@@ -4,8 +4,9 @@ Minimales Lernprojekt: Node.js + Express mit Docker und automatischem Deployment
 
 ## Features
 
-- `GET /` → `Hello from Hetzner Auto Deploy`
+- `GET /` → einfache Angular-Landing-Page mit `Hello World`
 - `GET /health` → `{ "status": "ok" }`
+- App läuft standardmäßig auf Port `80`
 - Docker-Image wird nach GitHub Container Registry (GHCR) gepusht
 - Deployment läuft automatisch bei Push auf `main`
 
@@ -25,14 +26,20 @@ npm start
 ```
 
 Danach erreichbar unter:
-- http://localhost:3000/
-- http://localhost:3000/health
+- http://localhost/
+- http://localhost/health
+
+Hinweis: Falls Port 80 lokal nicht erlaubt ist, starte mit einem alternativen Port:
+
+```bash
+PORT=3000 npm start
+```
 
 ### 3) App mit Docker starten
 
 ```bash
 docker build -t tts-lab:local .
-docker run --rm -p 3000:3000 tts-lab:local
+docker run --rm -p 80:80 tts-lab:local
 ```
 
 ## Deployment-Ablauf (GitHub Actions → Hetzner)

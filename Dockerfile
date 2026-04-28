@@ -6,8 +6,9 @@ COPY package.json package-lock.json ./
 RUN npm ci --omit=dev
 
 COPY server.js ./
+COPY public ./public
 
 ENV NODE_ENV=production
-EXPOSE 3000
+EXPOSE 80
 
 CMD ["npm", "start"]
