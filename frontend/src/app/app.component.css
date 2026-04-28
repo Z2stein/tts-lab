@@ -1,0 +1,38 @@
+.container {
+  max-width: 600px;
+  margin: 3rem auto;
+  padding: 1.5rem;
+  background-color: #fff;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+h1 {
+  margin-top: 0;
+}
+
+label,
+textarea,
+button {
+  display: block;
+  width: 100%;
+}
+
+textarea {
+  margin: 0.5rem 0 1rem;
+  padding: 0.6rem;
+  font: inherit;
+}
+
+button {
+  padding: 0.6rem;
+  cursor: pointer;
+}
+
+.result {
+  color: #007d32;
+}
+
+.error {
+  color: #c62828;
+}
