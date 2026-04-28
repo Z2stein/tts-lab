@@ -65,16 +65,32 @@ jobs:
           echo "app_host=$APP_HOST" >> "$GITHUB_OUTPUT"
           echo "ghcr_owner=$GHCR_OWNER" >> "$GITHUB_OUTPUT"
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
+      - name: Install frontend dependencies
+        working-directory: frontend
+        run: npm ci
+
+      - name: Install Playwright browser
+        working-directory: frontend
+        run: npx playwright install --with-deps chromium
+
+      - name: Frontend E2E test
+        working-directory: frontend
+        run: npm run test:e2e
+
       - name: Frontend build
         working-directory: frontend
-        run: |
-          npm ci
-          npm run build
+        run: npm run build
 
       - name: Frontend smoke check
         run: ./scripts/frontend_smoke_check.sh

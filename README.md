@@ -14,6 +14,7 @@ Flow: **Textfeld → Submit → Backend gibt Textlänge zurück**.
 
 ## API
 
+- `GET /health` -> `{ "status": "ok" }`
 - `POST /api/text-length`
 - Request:
 
@@ -61,6 +62,24 @@ Dann erreichbar unter:
 - Frontend: `http://localhost:8080`
 - Backend intern über Docker-Netzwerk (`backend:8080`)
 
+
+## Frontend E2E-Test (Playwright)
+
+```bash
+cd frontend
+npm ci
+npx playwright install --with-deps chromium
+npm run test:e2e
+```
+
+Der Test deckt den kompletten Flow ab:
+
+1. Seite öffnen
+2. Text eingeben
+3. Submit klicken
+4. Auf Ergebnis warten
+5. Ergebnis validieren
+
 ## Backend-Tests + Abdeckung
 
 ```bash
@@ -81,4 +100,4 @@ Der Workflow `.github/workflows/deploy.yml` baut und pusht **zwei Images** nach 
 
 Auf dem Hetzner-Server werden beide Services über `compose.app.yaml` als gemeinsamer Stack gestartet; Traefik routet auf den Frontend-Service.
 
-Vor dem Image-Push führt GitHub Actions einen Frontend-Build plus Smoke-Check aus (`scripts/frontend_smoke_check.sh`), damit fehlende Browser-Bundles wie `polyfills.js` früh auffallen.
+Vor dem Image-Push führt GitHub Actions automatisiert einen Playwright-E2E-Test sowie Frontend-Build + Smoke-Check aus (`scripts/frontend_smoke_check.sh`), damit UI-Regressionen und fehlende Browser-Bundles wie `polyfills.js` früh auffallen.
