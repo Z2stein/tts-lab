@@ -71,3 +71,12 @@ gradle test jacocoTestReport
 Coverage-Report (HTML):
 
 - `backend/build/reports/jacoco/test/html/index.html`
+
+## Deployment (GitHub Actions)
+
+Der Workflow `.github/workflows/deploy.yml` baut und pusht **zwei Images** nach GHCR:
+
+- `ghcr.io/<owner>/tts-lab-frontend:<tag>`
+- `ghcr.io/<owner>/tts-lab-backend:<tag>`
+
+Auf dem Hetzner-Server werden beide Services über `compose.app.yaml` als gemeinsamer Stack gestartet; Traefik routet auf den Frontend-Service.
