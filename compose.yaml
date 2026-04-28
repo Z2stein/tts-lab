@@ -1,0 +1,7 @@
+services:
+  web:
+    image: ghcr.io/${GHCR_OWNER}/tts-lab:latest
+    container_name: tts-lab
+    restart: unless-stopped
+    ports:
+      - "3000:3000"

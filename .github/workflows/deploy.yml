@@ -1,0 +1,60 @@
+name: Deploy to Hetzner
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/tts-lab
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - name: Build and push image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: Prepare SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+
+      - name: Deploy on server
+        env:
+          HOST: ${{ secrets.HETZNER_HOST }}
+          USER: ${{ secrets.HETZNER_USER }}
+          GHCR_OWNER: ${{ github.repository_owner }}
+        run: |
+          ssh "$USER@$HOST" "mkdir -p /opt/tts-lab"
+          scp compose.yaml "$USER@$HOST:/opt/tts-lab/compose.yaml"
+          ssh "$USER@$HOST" "GHCR_OWNER=$GHCR_OWNER docker compose -f /opt/tts-lab/compose.yaml pull"
+          ssh "$USER@$HOST" "GHCR_OWNER=$GHCR_OWNER docker compose -f /opt/tts-lab/compose.yaml up -d"
