@@ -1,0 +1,11 @@
+<main class="container">
+  <h1>Textlänge prüfen</h1>
+  <form (ngSubmit)="submit()">
+    <label for="text">Text eingeben</label>
+    <textarea id="text" [formControl]="textControl" rows="5"></textarea>
+    <button type="submit">Submit</button>
+  </form>
+
+  <p *ngIf="length !== null" class="result">Länge: {{ length }}</p>
+  <p *ngIf="error" class="error">{{ error }}</p>
+</main>

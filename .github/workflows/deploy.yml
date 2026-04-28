@@ -65,6 +65,20 @@ jobs:
           echo "app_host=$APP_HOST" >> "$GITHUB_OUTPUT"
           echo "ghcr_owner=$GHCR_OWNER" >> "$GITHUB_OUTPUT"
 
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Frontend build
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run build
+
+      - name: Frontend smoke check
+        run: ./scripts/frontend_smoke_check.sh
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -72,14 +86,25 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build and push image
+      - name: Build and push backend image
         uses: docker/build-push-action@v6
         with:
-          context: .
+          context: ./backend
+          file: ./backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.vars.outputs.ghcr_owner }}/tts-lab:${{ steps.vars.outputs.image_tag }}
-            ghcr.io/${{ steps.vars.outputs.ghcr_owner }}/tts-lab:${{ steps.vars.outputs.slug }}-latest
+            ghcr.io/${{ steps.vars.outputs.ghcr_owner }}/tts-lab-backend:${{ steps.vars.outputs.image_tag }}
+            ghcr.io/${{ steps.vars.outputs.ghcr_owner }}/tts-lab-backend:${{ steps.vars.outputs.slug }}-latest
+
+      - name: Build and push frontend image
+        uses: docker/build-push-action@v6
+        with:
+          context: ./frontend
+          file: ./frontend/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.vars.outputs.ghcr_owner }}/tts-lab-frontend:${{ steps.vars.outputs.image_tag }}
+            ghcr.io/${{ steps.vars.outputs.ghcr_owner }}/tts-lab-frontend:${{ steps.vars.outputs.slug }}-latest
 
       - name: Prepare SSH key
         run: |

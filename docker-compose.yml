@@ -1,0 +1,14 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    container_name: tts-lab-backend
+
+  frontend:
+    build:
+      context: ./frontend
+    container_name: tts-lab-frontend
+    depends_on:
+      - backend
+    ports:
+      - "8080:80"
