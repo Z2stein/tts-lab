@@ -1,152 +1,103 @@
 # tts-lab
 
-Minimales Lernprojekt: Node.js + Express mit Docker und automatischem Deployment auf einen Hetzner-Server via GitHub Actions.
+Ein einfaches Lernprojekt mit getrenntem Angular-Frontend und Java-Spring-Backend.
 
-## Features
+## Ziel
 
-- `GET /` → einfache Angular-Landing-Page mit `Hello World`
-- `GET /health` → `{ "status": "ok" }`
-- App läuft standardmäßig auf Port `80` im Container
-- Docker-Image wird nach GitHub Container Registry (GHCR) gepusht
-- Deployment läuft automatisch bei Push auf `main`, `develop` und Feature-Branches
-- Hostbasiertes Routing über Traefik + `sslip.io`
+Flow: **Textfeld → Submit → Backend gibt Textlänge zurück**.
 
-## Lokaler Start
+## Projektstruktur
 
-### 1) Voraussetzungen
+- `frontend/` → Angular App (npm + Angular CLI)
+- `backend/` → Spring Boot App (Java 21 + Gradle)
+- `docker-compose.yml` → startet beide Container getrennt
 
-- Node.js 20+
-- npm
-- Docker (optional für Container-Start)
+## API
 
-### 2) App direkt mit Node starten
+- `GET /health` -> `{ "status": "ok" }`
+- `POST /api/text-length`
+- Request:
+
+```json
+{ "text": "Hallo" }
+```
+
+- Response:
+
+```json
+{ "length": 5 }
+```
+
+## Lokal starten (ohne Docker)
+
+### Backend
 
 ```bash
+cd backend
+gradle bootRun
+```
+
+Backend läuft auf `http://localhost:8080`.
+
+### Frontend
+
+```bash
+cd frontend
 npm install
 npm start
 ```
 
-Danach erreichbar unter:
-- http://localhost/
-- http://localhost/health
+Frontend läuft auf `http://localhost:4200`.
 
-Hinweis: Falls Port 80 lokal nicht erlaubt ist, starte mit einem alternativen Port:
+Für lokales Angular-Dev-Setup kannst du in `frontend/src/app/app.component.ts` bei Bedarf direkt auf `http://localhost:8080/api/text-length` zeigen.
 
-```bash
-PORT=3000 npm start
-```
-
-### 3) App mit Docker starten
+## Mit Docker starten
 
 ```bash
-docker build -t tts-lab:local .
-docker run --rm -p 80:80 tts-lab:local
+docker compose up --build
 ```
 
-## Deployment-Ablauf (GitHub Actions → Hetzner)
+Dann erreichbar unter:
 
-Workflow-Datei: `.github/workflows/deploy.yml`
+- Frontend: `http://localhost:8080`
+- Backend intern über Docker-Netzwerk (`backend:8080`)
 
-### Branch-Regeln
 
-- `main` = Production
-- `develop` = Staging
-- alle anderen Branches = Preview
-
-### Routing-Regeln mit `sslip.io`
-
-Die öffentliche IP wird aus der GitHub Variable `HETZNER_HOST` genutzt.
-
-- `main` → `main.<HETZNER_HOST>.sslip.io`
-- `develop` → `develop.<HETZNER_HOST>.sslip.io`
-- `feature/x-y` → `<branch-slug>.<HETZNER_HOST>.sslip.io`
-
-Slug-Regeln für Branches:
-
-- alles lowercase
-- alle Zeichen außer `a-z` und `0-9` werden zu `-`
-- aufeinanderfolgende `-` werden zusammengefasst
-- führende/abschließende `-` werden entfernt
-
-### Compose-Struktur auf dem Server
-
-Ablagepfad: `/opt/tts-lab`
-
-- `compose.traefik.yaml` → dauerhafter Reverse Proxy (Port `80`)
-- `compose.app.yaml` → App-Stack je Branch
-- `scripts/deploy_stack.sh` → Upsert-Deployment (pull + up)
-- `scripts/remove_stack.sh` → Cleanup für Preview-Stacks
-
-Isolation pro Branch:
-
-- Über `COMPOSE_PROJECT_NAME=tts-<branch-slug>` läuft jeder Branch als eigener Compose-Stack.
-- Die App veröffentlicht keinen Host-Port mehr; Traefik routet intern per Docker-Netzwerk.
-
-Image-Tags:
-
-- branch+commit-spezifisch: `<branch-slug>-<short-sha>`
-- branch-spezifisch rolling: `<branch-slug>-latest`
-- Nach erfolgreichem Deployment steht die vollqualifizierte, klickbare URL in der GitHub Actions Job Summary.
-
-## Benötigte GitHub Variablen & Secrets
-
-- Variable: `HETZNER_HOST` (öffentliche Server-IP)
-- Secret: `HETZNER_USER`
-- Secret: `HETZNER_SSH_KEY`
-
-## Deploy verwenden
-
-### `main` deployen (Production)
+## Frontend E2E-Test (Playwright)
 
 ```bash
-git checkout main
-git push origin main
+cd frontend
+npm ci
+npx playwright install --with-deps chromium
+npm run test:e2e
 ```
 
-Erreichbar unter:
+Der Test deckt den kompletten Flow ab:
 
-- `http://main.<HETZNER_HOST>.sslip.io`
+1. Seite öffnen
+2. Text eingeben
+3. Submit klicken
+4. Auf Ergebnis warten
+5. Ergebnis validieren
 
-### `develop` deployen (Staging)
+## Backend-Tests + Abdeckung
 
 ```bash
-git checkout develop
-git push origin develop
+cd backend
+gradle test jacocoTestReport
 ```
 
-Erreichbar unter:
+Coverage-Report (HTML):
 
-- `http://develop.<HETZNER_HOST>.sslip.io`
+- `backend/build/reports/jacoco/test/html/index.html`
 
-### Feature-Branch deployen (Preview)
+## Deployment (GitHub Actions)
 
-Beispielbranch: `feature/add-banner`
+Der Workflow `.github/workflows/deploy.yml` baut und pusht **zwei Images** nach GHCR:
 
-```bash
-git checkout -b feature/add-banner
-# Änderungen committen
-git push -u origin feature/add-banner
-```
+- `ghcr.io/<owner>/tts-lab-frontend:<tag>`
+- `ghcr.io/<owner>/tts-lab-backend:<tag>`
 
-Erreichbar unter (Beispiel-Slug `feature-add-banner`):
+Auf dem Hetzner-Server werden beide Services über `compose.app.yaml` als gemeinsamer Stack gestartet; Traefik routet auf den Frontend-Service.
 
-- `http://feature-add-banner.<HETZNER_HOST>.sslip.io`
-
-## Cleanup-Konzept für Branch-Stände
-
-Automatisch:
-
-- Wenn ein Feature-Branch auf GitHub gelöscht wird, löst das `delete`-Event im Workflow einen Cleanup aus.
-- Der zugehörige Compose-Stack `tts-<branch-slug>` wird auf dem Server gestoppt und entfernt.
-
-Manuell (falls nötig):
-
-```bash
-ssh <user>@<host>
-cd /opt/tts-lab
-COMPOSE_PROJECT_NAME=tts-<branch-slug> ./scripts/remove_stack.sh
-```
-
-Hinweis:
-
-- `main` und `develop` werden beim Cleanup bewusst übersprungen.
+Vor dem Image-Push führt GitHub Actions automatisiert einen Playwright-E2E-Test sowie Frontend-Build + Smoke-Check aus (`scripts/frontend_smoke_check.sh`), damit UI-Regressionen und fehlende Browser-Bundles wie `polyfills.js` früh auffallen.

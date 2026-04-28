@@ -1,8 +1,15 @@
 services:
-  web:
-    image: ghcr.io/${GHCR_OWNER}/tts-lab:${IMAGE_TAG}
+  backend:
+    image: ghcr.io/${GHCR_OWNER}/tts-lab-backend:${IMAGE_TAG}
     restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/${GHCR_OWNER}/tts-lab-frontend:${IMAGE_TAG}
+    restart: unless-stopped
+    depends_on:
+      - backend
     networks:
+      - default
       - traefik-public
     labels:
       - traefik.enable=true
