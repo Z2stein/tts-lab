@@ -1,7 +1,0 @@
-services:
-  web:
-    image: ghcr.io/z2stein/tts-lab:latest
-    container_name: tts-lab
-    restart: unless-stopped
-    ports:
-      - "80:80"
