@@ -27,11 +27,11 @@ jobs:
         id: vars
         env:
           BRANCH_NAME: ${{ github.ref_name }}
-          SERVER_IP: ${{ vars.HETZNER_PUBLIC_IP }}
+          SERVER_IP: ${{ vars.HETZNER_HOST }}
           GIT_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          SERVER_IP="${SERVER_IP:-${{ secrets.HETZNER_HOST }}}"
+          SERVER_IP="${SERVER_IP:-${{ vars.HETZNER_HOST }}}"
           scripts/deployment_vars.sh deploy "$BRANCH_NAME" "$SERVER_IP" "$GIT_SHA" >> "$GITHUB_OUTPUT"
 
 
@@ -75,11 +75,11 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Deploy via Helm on k3s
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
+          HOST: ${{ vars.HETZNER_HOST }}
           USER: ${{ secrets.HETZNER_USER }}
           NAMESPACE: ${{ steps.vars.outputs.namespace }}
           RELEASE_NAME: ${{ steps.vars.outputs.release_name }}
@@ -134,14 +134,14 @@ jobs:
         env:
           DELETE_BRANCH: ${{ github.event.ref }}
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
-          SERVER_IP: ${{ vars.HETZNER_PUBLIC_IP }}
+          SERVER_IP: ${{ vars.HETZNER_HOST }}
         run: |
           set -euo pipefail
           BRANCH_NAME="$DELETE_BRANCH"
           if [ -n "${PR_BRANCH:-}" ] && [ "$PR_BRANCH" != "null" ]; then
             BRANCH_NAME="$PR_BRANCH"
           fi
-          SERVER_IP="${SERVER_IP:-${{ secrets.HETZNER_HOST }}}"
+          SERVER_IP="${SERVER_IP:-${{ vars.HETZNER_HOST }}}"
           scripts/deployment_vars.sh cleanup "$BRANCH_NAME" "$SERVER_IP" >> "$GITHUB_OUTPUT"
 
       - name: Prepare SSH key
@@ -150,12 +150,12 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ secrets.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
 
       - name: Cleanup feature release and namespace
         if: steps.vars.outputs.skip_cleanup == 'false'
         env:
-          HOST: ${{ secrets.HETZNER_HOST }}
+          HOST: ${{ vars.HETZNER_HOST }}
           USER: ${{ secrets.HETZNER_USER }}
           NAMESPACE: ${{ steps.vars.outputs.namespace }}
           RELEASE_NAME: ${{ steps.vars.outputs.release_name }}
