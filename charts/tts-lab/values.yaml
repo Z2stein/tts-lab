@@ -38,6 +38,8 @@ backend:
   service:
     type: ClusterIP
     port: 8080
+    createAlias: true
+    aliasName: backend
   resources:
     requests:
       cpu: 50m

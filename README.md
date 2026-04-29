@@ -116,6 +116,7 @@ Der Chart `charts/tts-lab` erstellt folgende Ressourcen:
 - 2 Services (ClusterIP):
   - Frontend Service
   - Backend Service
+- optional 1 Backend-Service-Alias (`backend`) für Nginx-Upstream-Kompatibilität
 - 1 Ingress (optional per `ingress.enabled`)
 
 ### Interne Verbindung Frontend ↔ Backend
@@ -125,6 +126,30 @@ Der Chart `charts/tts-lab` erstellt folgende Ressourcen:
 - Externer Traffic läuft über den Ingress:
   - `/` → Frontend Service
   - `/api` → Backend Service
+
+
+
+### Hinweis zum Frontend-Nginx-Upstream in Kubernetes
+
+Das Frontend-Image verwendet in `frontend/nginx.conf` den Upstream `http://backend:8080`.
+Damit der Container in Kubernetes nicht mit `host not found in upstream "backend"` crasht, erstellt der Helm-Chart standardmäßig einen zusätzlichen Service-Alias mit dem Namen `backend`, der auf die Backend-Pods zeigt.
+
+Relevante Werte in `charts/tts-lab/values.yaml`:
+
+```yaml
+backend:
+  service:
+    createAlias: true
+    aliasName: backend
+```
+
+Wenn du später eine andere Frontend-Nginx-Konfiguration nutzt, kannst du den Alias deaktivieren:
+
+```yaml
+backend:
+  service:
+    createAlias: false
+```
 
 ### Routing über Traefik
 
