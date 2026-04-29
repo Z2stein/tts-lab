@@ -89,3 +89,14 @@ cd frontend
 npm install
 npm start
 ```
+
+
+## Akzeptanzkriterien (Textlänge)
+
+Bewusst unterstützte Fälle für `POST /api/text-length`:
+
+- Leerer Text (`""`) liefert `length = 0`.
+- Unicode-Eingaben (z. B. Umlaute/Emoji) werden akzeptiert und gezählt.
+- Große Inputs (z. B. 10.000 Zeichen) werden verarbeitet.
+- Ungültige JSON-Payloads werden mit HTTP `400 Bad Request` abgelehnt.
+- Fehlende `text`-Property wird wie `null` behandelt und liefert `length = 0`.

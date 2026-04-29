@@ -20,12 +20,15 @@ test('text length success path works end-to-end', async ({ page }) => {
   await expect(page.getByText('Backend request failed.')).toHaveCount(0);
 });
 
-test('text length error path shows backend error', async ({ page }) => {
+
+test('shows UI error when backend responds with an error', async ({ page }) => {
+
   await page.route('**/api/text-length', async (route) => {
     await route.fulfill({
       status: 500,
       contentType: 'application/json',
-      body: JSON.stringify({ message: 'error' })
+      body: JSON.stringify({ message: 'simulated backend error' })
+
     });
   });
 
