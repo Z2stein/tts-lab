@@ -57,6 +57,11 @@ Beispiel:
 
 Workflow: `.github/workflows/deploy.yml`
 
+Pull Requests:
+
+1. Nur Validierung (Docker-Build für Backend + Frontend ohne Push/Deploy)
+2. Kein Helm-Deploy bei PR-Events
+
 Ablauf bei Push:
 
 1. Branch-Typ erkennen (main/develop/feature)
@@ -67,6 +72,11 @@ Ablauf bei Push:
 6. Namespace idempotent anlegen/aktualisieren
 7. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
 8. `helm upgrade --install` ausführen
+
+Parallelität:
+
+- Pro Branch/PR läuft nur ein Workflow gleichzeitig (`concurrency` mit Cancel-In-Progress).
+- Dadurch keine überlappenden Deployments für denselben Branch.
 
 Cleanup:
 
