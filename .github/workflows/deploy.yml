@@ -123,6 +123,11 @@ jobs:
 
       - name: Publish deployment URL
         run: |
+          {
+            echo "### Deployment Summary"
+            echo ""
+            echo "**URL:** [http://${{ steps.vars.outputs.host }}](http://${{ steps.vars.outputs.host }})"
+          } >> "$GITHUB_STEP_SUMMARY"
           echo "::notice title=Deployment URL::http://${{ steps.vars.outputs.host }}"
 
   cleanup-feature:
