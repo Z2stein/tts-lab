@@ -14,6 +14,9 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
 - Helm Chart: `charts/tts-lab`
 - Ingress Controller: Traefik in k3s
+- Standard-Health-Probes im Helm-Chart:
+  - Frontend: `GET /`
+  - Backend: `GET /health`
 - Routing:
   - `/` → Frontend Service
   - `/api` → Backend Service
