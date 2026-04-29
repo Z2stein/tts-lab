@@ -1,66 +1,35 @@
 nameOverride: ""
 fullnameOverride: ""
 
+# Namespace-lokales Pull Secret für GHCR.
 imagePullSecrets:
   - name: ghcr-pull-secret
 
 frontend:
   replicaCount: 1
   image:
-    repository: ghcr.io/REPLACE_ME/tts-lab-frontend
+    repository: ghcr.io/z2stein/tts-lab-frontend
     tag: latest
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 80
-  resources:
-    requests:
-      cpu: 50m
-      memory: 64Mi
-    limits:
-      cpu: 200m
-      memory: 256Mi
-  livenessProbe:
-    path: /
-    initialDelaySeconds: 15
-    periodSeconds: 20
-  readinessProbe:
-    path: /
-    initialDelaySeconds: 5
-    periodSeconds: 10
 
 backend:
   replicaCount: 1
   image:
-    repository: ghcr.io/REPLACE_ME/tts-lab-backend
+    repository: ghcr.io/z2stein/tts-lab-backend
     tag: latest
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 8080
+    # Muss aktiv bleiben, solange das Frontend intern backend:8080 erwartet.
     createAlias: true
     aliasName: backend
-  resources:
-    requests:
-      cpu: 50m
-      memory: 128Mi
-    limits:
-      cpu: 300m
-      memory: 384Mi
-  livenessProbe:
-    path: /health
-    initialDelaySeconds: 20
-    periodSeconds: 20
-  readinessProbe:
-    path: /health
-    initialDelaySeconds: 10
-    periodSeconds: 10
 
 ingress:
   enabled: true
   className: traefik
-  host: main.REPLACE_WITH_HETZNER_HOST.sslip.io
-  # Optional: mehrere Hosts (z. B. pro Feature-Branch).
-  # Wenn gesetzt, werden diese Hosts statt ingress.host verwendet.
-  hosts: []
+  host: tts-lab.178.105.41.67.sslip.io
   annotations: {}

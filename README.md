@@ -1,34 +1,76 @@
 # tts-lab
 
-Ein einfaches Lernprojekt mit getrenntem Angular-Frontend und Java-Spring-Backend.
+Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
-## Ziel
+## Deployment-Status
 
-Flow: **Textfeld → Submit → Backend gibt Textlänge zurück**.
+**Primärer Deployment-Weg ist k3s + Helm.**
 
-## Projektstruktur
+- Keine Docker-Compose-Deployments mehr.
+- Kein Docker-Traefik-Runtime-Setup mehr.
+- Dockerfiles bleiben für den Image-Build erhalten.
 
-- `frontend/` → Angular App (npm + Angular CLI)
-- `backend/` → Spring Boot App (Java 21 + Gradle)
-- `docker-compose.yml` → startet beide Container getrennt
+## Runtime-Architektur
 
-## API
+- Helm Chart: `charts/tts-lab`
+- Ingress Controller: Traefik in k3s
+- Routing:
+  - `/` → Frontend Service
+  - `/api` → Backend Service
+- Backend-Alias-Service `backend` bleibt standardmäßig aktiv für `http://backend:8080` im Frontend-Container.
 
-- `GET /health` -> `{ "status": "ok" }`
-- `POST /api/text-length`
-- Request:
+## Ziel-Umgebungen
 
-```json
-{ "text": "Hallo" }
-```
+- `main`
+  - Namespace: `tts-lab`
+  - Release: `tts-lab`
+  - URL: `http://tts-lab.178.105.41.67.sslip.io`
+- `develop`
+  - Namespace: `tts-lab-dev`
+  - Release: `tts-lab-dev`
+  - URL: `http://dev.tts-lab.178.105.41.67.sslip.io`
+- Feature-Branches
+  - Namespace: `tts-lab-<branch-slug>`
+  - Release: `tts-lab-<branch-slug>`
+  - URL: `http://<branch-slug>.tts-lab.178.105.41.67.sslip.io`
 
-- Response:
+## Branch-Slug-Regel
 
-```json
-{ "length": 5 }
-```
+Für Feature-Branches im Workflow:
 
-## Lokal starten (ohne Docker)
+1. Prefix entfernen: `feature/`, `bugfix/`, `hotfix/`, `release/`
+2. lowercase
+3. Sonderzeichen → `-`
+4. Mehrfach-`-` reduzieren
+5. führende/abschließende `-` entfernen
+6. max. 10 Zeichen
+7. falls abgeschnittenes Ende `-` ist: entfernen
+
+Beispiel:
+
+- `feature/codex-k3s-ganz-viel-mehr-text` → `codex-k3s`
+
+## CI/CD (GitHub Actions)
+
+Workflow: `.github/workflows/deploy.yml`
+
+Ablauf bei Push:
+
+1. Branch-Typ erkennen (main/develop/feature)
+2. Slug, Namespace, Release, Host berechnen
+3. Frontend/Backend Image bauen
+4. Images nach GHCR pushen
+5. SSH auf Hetzner
+6. Namespace idempotent anlegen/aktualisieren
+7. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
+8. `helm upgrade --install` ausführen
+
+Cleanup:
+
+- Bei Branch-Delete oder PR-Close werden Feature-Releases + Namespace entfernt.
+- `main` und `develop` werden explizit nie gelöscht.
+
+## Lokal entwickeln
 
 ### Backend
 
@@ -37,8 +79,6 @@ cd backend
 gradle bootRun
 ```
 
-Backend läuft auf `http://localhost:8080`.
-
 ### Frontend
 
 ```bash
@@ -46,300 +86,3 @@ cd frontend
 npm install
 npm start
 ```
-
-Frontend läuft auf `http://localhost:4200`.
-
-Für lokales Angular-Dev-Setup kannst du in `frontend/src/app/app.component.ts` bei Bedarf direkt auf `http://localhost:8080/api/text-length` zeigen.
-
-## Mit Docker starten
-
-```bash
-docker compose up --build
-```
-
-Dann erreichbar unter:
-
-- Frontend: `http://localhost:8080`
-- Backend intern über Docker-Netzwerk (`backend:8080`)
-
-
-## Frontend E2E-Test (Playwright)
-
-```bash
-cd frontend
-npm ci
-npx playwright install --with-deps chromium
-npm run test:e2e
-```
-
-Der Test deckt den kompletten Flow ab:
-
-1. Seite öffnen
-2. Text eingeben
-3. Submit klicken
-4. Auf Ergebnis warten
-5. Ergebnis validieren
-
-## Backend-Tests + Abdeckung
-
-```bash
-cd backend
-gradle test jacocoTestReport
-```
-
-Coverage-Report (HTML):
-
-- `backend/build/reports/jacoco/test/html/index.html`
-
-## Deployment (GitHub Actions)
-
-Der Workflow `.github/workflows/deploy.yml` baut und pusht **zwei Images** nach GHCR:
-
-- `ghcr.io/<owner>/tts-lab-frontend:<tag>`
-- `ghcr.io/<owner>/tts-lab-backend:<tag>`
-
-Auf dem Hetzner-Server werden beide Services über `compose.app.yaml` als gemeinsamer Stack gestartet; Traefik routet auf den Frontend-Service.
-
-Vor dem Image-Push führt GitHub Actions automatisiert einen Playwright-E2E-Test sowie Frontend-Build + Smoke-Check aus (`scripts/frontend_smoke_check.sh`), damit UI-Regressionen und fehlende Browser-Bundles wie `polyfills.js` früh auffallen.
-
-## Manuelles Kubernetes-/Helm-Deployment auf Hetzner (k3s)
-
-Dieser Abschnitt ergänzt das bestehende Docker-/Compose-Deployment um einen **ersten manuellen Helm- und Kubernetes-Stand**. Das bestehende Docker-Setup und GitHub Actions bleiben unverändert.
-
-### Was der Helm Chart erzeugt
-
-Der Chart `charts/tts-lab` erstellt folgende Ressourcen:
-
-- 2 Deployments:
-  - Frontend (`...-frontend`)
-  - Backend (`...-backend`)
-- 2 Services (ClusterIP):
-  - Frontend Service
-  - Backend Service
-- optional 1 Backend-Service-Alias (`backend`) für Nginx-Upstream-Kompatibilität
-- 1 Ingress (optional per `ingress.enabled`)
-
-### Interne Verbindung Frontend ↔ Backend
-
-- Beide Pods laufen im gleichen Kubernetes Namespace.
-- Das Backend ist intern über seinen Service (`...-backend`) erreichbar.
-- Externer Traffic läuft über den Ingress:
-  - `/` → Frontend Service
-  - `/api` → Backend Service
-
-
-
-### Hinweis zum Frontend-Nginx-Upstream in Kubernetes
-
-Das Frontend-Image verwendet in `frontend/nginx.conf` den Upstream `http://backend:8080`.
-Damit der Container in Kubernetes nicht mit `host not found in upstream "backend"` crasht, erstellt der Helm-Chart standardmäßig einen zusätzlichen Service-Alias mit dem Namen `backend`, der auf die Backend-Pods zeigt.
-
-Relevante Werte in `charts/tts-lab/values.yaml`:
-
-```yaml
-backend:
-  service:
-    createAlias: true
-    aliasName: backend
-```
-
-Wenn du später eine andere Frontend-Nginx-Konfiguration nutzt, kannst du den Alias deaktivieren:
-
-```yaml
-backend:
-  service:
-    createAlias: false
-```
-
-### Routing über Traefik
-
-- Traefik läuft als Ingress Controller in Kubernetes.
-- Die Ingress-Regeln im Chart leiten den Host (z. B. `main.<HETZNER_HOST>.sslip.io`) weiter:
-  - `http://main.<HETZNER_HOST>.sslip.io/` an Frontend
-  - `http://main.<HETZNER_HOST>.sslip.io/api/...` an Backend
-
-
-### Feature-Branch-/Subdomain-Modell im Kubernetes-/Helm-Weg
-
-Das bestehende Feature-Branch-Modell kann im Helm-Weg sauber weitergeführt werden:
-
-- **Empfohlen:** pro Feature-Branch ein eigener Helm-Release-Name und eigener Namespace/Host.
-- Der Host wird pro Deployment über `ingress.host` gesetzt.
-- Optional kannst du auch mehrere Hosts in einem Release über `ingress.hosts` pflegen.
-
-Beispiel (ein Release pro Feature):
-
-```bash
-helm upgrade --install tts-lab-feature-xyz ./charts/tts-lab   --namespace tts-lab-feature-xyz   --create-namespace   --set ingress.host=feature-xyz.<HETZNER_HOST>.sslip.io
-```
-
-Optional (mehrere Hosts in einem Release):
-
-```yaml
-ingress:
-  hosts:
-    - main.<HETZNER_HOST>.sslip.io
-    - feature-xyz.<HETZNER_HOST>.sslip.io
-```
-
-In beiden Fällen bleibt das Routing gleich:
-
-- `/` → Frontend Service
-- `/api` → Backend Service
-
-### Wichtige Werte in `charts/tts-lab/values.yaml`
-
-Bitte vor Deployment mindestens anpassen:
-
-- `ingress.host` (oder alternativ `ingress.hosts`)
-- `frontend.image.repository`
-- `frontend.image.tag`
-- `backend.image.repository`
-- `backend.image.tag`
-- optional `imagePullSecrets` (z. B. `[{"name":"ghcr-pull-secret"}]`)
-
-Beispiel-Host:
-
-```yaml
-ingress:
-  host: main.1.2.3.4.sslip.io
-```
-
-### Schritt-für-Schritt: manuelles Deployment
-
-1. **Docker-Traefik stoppen** (damit Ports 80/443 frei sind)
-
-   Beispiel (abhängig von deinem Setup):
-
-   ```bash
-   docker ps
-   docker stop <docker-traefik-container>
-   ```
-
-2. **Prüfen, ob Port 80 und 443 frei sind**
-
-   ```bash
-   sudo ss -ltnp | rg ':80|:443'
-   ```
-
-3. **Traefik Helm Repository hinzufügen und aktualisieren**
-
-   ```bash
-   helm repo add traefik https://traefik.github.io/charts
-   helm repo update
-   ```
-
-4. **Traefik Namespace erstellen**
-
-   ```bash
-   kubectl create namespace traefik --dry-run=client -o yaml | kubectl apply -f -
-   ```
-
-5. **Traefik in k3s installieren**
-
-   ```bash
-   helm upgrade --install traefik traefik/traefik \
-     --namespace traefik
-   ```
-
-6. **Traefik prüfen**
-
-   ```bash
-   kubectl get pods -n traefik
-   kubectl get svc -n traefik
-   ```
-
-7. **Namespace für die App erstellen**
-
-   ```bash
-   kubectl create namespace tts-lab --dry-run=client -o yaml | kubectl apply -f -
-   ```
-
-8. **Optional: imagePullSecret anlegen**
-
-   Beispiel für GHCR:
-
-   ```bash
-   kubectl create secret docker-registry ghcr-pull-secret \
-     --namespace tts-lab \
-     --docker-server=ghcr.io \
-     --docker-username=<GHCR_USER> \
-     --docker-password=<GHCR_TOKEN>
-   ```
-
-   Danach in `charts/tts-lab/values.yaml` setzen:
-
-   ```yaml
-   imagePullSecrets:
-     - name: ghcr-pull-secret
-   ```
-
-9. **Helm Chart rendern (`helm template`)**
-
-   ```bash
-   helm template tts-lab ./charts/tts-lab \
-     --namespace tts-lab
-   ```
-
-10. **Helm Chart prüfen (`helm lint`)**
-
-   ```bash
-   helm lint ./charts/tts-lab
-   ```
-
-11. **App deployen (`helm upgrade --install`)**
-
-   ```bash
-   helm upgrade --install tts-lab ./charts/tts-lab \
-     --namespace tts-lab
-   ```
-
-12. **Pods prüfen**
-
-   ```bash
-   kubectl get pods -n tts-lab
-   ```
-
-13. **Services prüfen**
-
-   ```bash
-   kubectl get svc -n tts-lab
-   ```
-
-14. **Ingress prüfen**
-
-   ```bash
-   kubectl get ingress -n tts-lab
-   ```
-
-15. **Logs prüfen**
-
-   ```bash
-   kubectl logs -n tts-lab deploy/tts-lab-tts-lab-frontend --tail=100
-   kubectl logs -n tts-lab deploy/tts-lab-tts-lab-backend --tail=100
-   ```
-
-16. **App im Browser testen**
-
-   Beispiel:
-
-   - `http://main.<HETZNER_HOST>.sslip.io/`
-   - `http://main.<HETZNER_HOST>.sslip.io/api/health`
-
-17. **Deployment wieder entfernen**
-
-   ```bash
-   helm uninstall tts-lab -n tts-lab
-   ```
-
-   Optional Namespace entfernen:
-
-   ```bash
-   kubectl delete namespace tts-lab
-   ```
-
-18. **Optional Docker-Traefik wieder starten**
-
-   ```bash
-   docker start <docker-traefik-container>
-   ```
