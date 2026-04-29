@@ -32,6 +32,43 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Backend test validation
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          gradle test
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend build validation
+        working-directory: frontend
+        run: |
+          set -euo pipefail
+          npm ci
+          npm run build
+
+      - name: Helm lint
+        run: |
+          set -euo pipefail
+          helm lint charts/tts-lab
+
+      - name: Helm template validation
+        run: |
+          set -euo pipefail
+          helm template tts-lab charts/tts-lab >/dev/null
+
       - name: Build backend image (validation only)
         uses: docker/build-push-action@v6
         with:
@@ -59,6 +96,19 @@ jobs:
           node-version: '20'
           cache: 'npm'
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+
+      - name: Backend test validation
+        working-directory: backend
+        run: |
+          set -euo pipefail
+          gradle test
 
       - name: Frontend build validation
         working-directory: frontend
@@ -172,7 +222,7 @@ jobs:
               --set frontend.image.tag="$IMAGE_TAG" \
               --set backend.image.repository=ghcr.io/$GHCR_OWNER/tts-lab-backend \
               --set backend.image.tag="$IMAGE_TAG" \
-              --set imagePullSecrets[0].name=ghcr-pull-secret
+              --set 'imagePullSecrets[0].name=ghcr-pull-secret'
           EOF
 
       - name: Publish deployment URL

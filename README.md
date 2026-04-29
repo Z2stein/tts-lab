@@ -57,6 +57,12 @@ Beispiel:
 
 Workflow: `.github/workflows/deploy.yml`
 
+Event-Mapping:
+
+- `pull_request` (`opened`, `reopened`, `ready_for_review`) → `validate`
+- `push` → `deploy` (inkl. leichter Validierung im Deploy-Job)
+- `pull_request` (`closed`) und `delete` → `cleanup-feature`
+
 Pull Requests:
 
 1. `opened`, `reopened`, `ready_for_review`: nur Validierung (Docker-Build für Backend + Frontend ohne Push/Deploy)
