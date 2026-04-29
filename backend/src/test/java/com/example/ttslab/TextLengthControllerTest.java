@@ -8,7 +8,6 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.isNull;
-import static org.mockito.ArgumentMatchers.startsWith;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -59,7 +58,7 @@ class TextLengthControllerTest {
     @Test
     void postTextLengthSupportsLargeInput() throws Exception {
         String largeText = "a".repeat(10_000);
-        when(textLengthService.countLength(startsWith("aaaa"))).thenReturn(10_000);
+        when(textLengthService.countLength(largeText)).thenReturn(10_000);
 
         mockMvc.perform(post("/api/text-length")
                 .contentType(MediaType.APPLICATION_JSON)
