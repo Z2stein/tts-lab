@@ -48,7 +48,7 @@ jobs:
           push: false
 
   deploy:
-    if: github.event_name == 'push'
+    if: (github.event_name == 'pull_request' && github.event.action != 'closed') || (github.event_name == 'push' && github.ref_name == github.event.repository.default_branch)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -57,7 +57,7 @@ jobs:
       - name: Compute deployment variables
         id: vars
         env:
-          BRANCH_NAME: ${{ github.ref_name }}
+          BRANCH_NAME: ${{ github.head_ref || github.ref_name }}
           SERVER_IP: ${{ vars.HETZNER_HOST }}
           GIT_SHA: ${{ github.sha }}
         run: |
