@@ -1,0 +1,52 @@
+nameOverride: ""
+fullnameOverride: ""
+
+# Namespace-lokales Pull Secret für GHCR.
+imagePullSecrets:
+  - name: ghcr-pull-secret
+
+frontend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/<owner>/tts-lab-frontend
+    tag: latest
+    pullPolicy: IfNotPresent
+  livenessProbe:
+    path: /
+    initialDelaySeconds: 10
+    periodSeconds: 10
+  readinessProbe:
+    path: /
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  resources: {}
+  service:
+    type: ClusterIP
+    port: 80
+
+backend:
+  replicaCount: 1
+  image:
+    repository: ghcr.io/<owner>/tts-lab-backend
+    tag: latest
+    pullPolicy: IfNotPresent
+  livenessProbe:
+    path: /health
+    initialDelaySeconds: 15
+    periodSeconds: 10
+  readinessProbe:
+    path: /health
+    initialDelaySeconds: 5
+    periodSeconds: 10
+  resources: {}
+  service:
+    type: ClusterIP
+    port: 8080
+    createAlias: true
+    aliasName: backend
+
+ingress:
+  enabled: true
+  className: traefik
+  host: tts-lab.<public-server-ip>.sslip.io
+  annotations: {}

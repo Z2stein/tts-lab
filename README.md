@@ -1,34 +1,79 @@
 # tts-lab
 
-Ein einfaches Lernprojekt mit getrenntem Angular-Frontend und Java-Spring-Backend.
+Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
-## Ziel
+## Deployment-Status
 
-Flow: **Textfeld → Submit → Backend gibt Textlänge zurück**.
+**Primärer Deployment-Weg ist k3s + Helm.**
 
-## Projektstruktur
+- Keine Docker-Compose-Deployments mehr.
+- Kein Docker-Traefik-Runtime-Setup mehr.
+- Dockerfiles bleiben für den Image-Build erhalten.
 
-- `frontend/` → Angular App (npm + Angular CLI)
-- `backend/` → Spring Boot App (Java 21 + Gradle)
-- `docker-compose.yml` → startet beide Container getrennt
+## Runtime-Architektur
 
-## API
+- Helm Chart: `charts/tts-lab`
+- Ingress Controller: Traefik in k3s
+- Standard-Health-Probes im Helm-Chart:
+  - Frontend: `GET /`
+  - Backend: `GET /health`
+- Routing:
+  - `/` → Frontend Service
+  - `/api` → Backend Service
+- Backend-Alias-Service `backend` bleibt standardmäßig aktiv für `http://backend:8080` im Frontend-Container.
 
-- `GET /health` -> `{ "status": "ok" }`
-- `POST /api/text-length`
-- Request:
+## Ziel-Umgebungen
 
-```json
-{ "text": "Hallo" }
-```
+- `main`
+  - Namespace: `tts-lab`
+  - Release: `tts-lab`
+  - URL: `http://tts-lab.178.105.41.67.sslip.io`
+- `develop`
+  - Namespace: `tts-lab-dev`
+  - Release: `tts-lab-dev`
+  - URL: `http://dev.tts-lab.178.105.41.67.sslip.io`
+- Feature-Branches
+  - Namespace: `tts-lab-<branch-slug>`
+  - Release: `tts-lab-<branch-slug>`
+  - URL: `http://<branch-slug>.tts-lab.178.105.41.67.sslip.io`
 
-- Response:
+## Branch-Slug-Regel
 
-```json
-{ "length": 5 }
-```
+Für Feature-Branches im Workflow:
 
-## Lokal starten (ohne Docker)
+1. Prefix entfernen: `feature/`, `bugfix/`, `hotfix/`, `release/`
+2. lowercase
+3. Sonderzeichen → `-`
+4. Mehrfach-`-` reduzieren
+5. führende/abschließende `-` entfernen
+6. max. 10 Zeichen
+7. falls abgeschnittenes Ende `-` ist: entfernen
+
+Beispiel:
+
+- `feature/codex-k3s-ganz-viel-mehr-text` → `codex-k3s`
+
+## CI/CD (GitHub Actions)
+
+Workflow: `.github/workflows/deploy.yml`
+
+Ablauf bei Push:
+
+1. Branch-Typ erkennen (main/develop/feature)
+2. Slug, Namespace, Release, Host berechnen
+3. Frontend/Backend Image bauen
+4. Images nach GHCR pushen
+5. SSH auf Hetzner
+6. Namespace idempotent anlegen/aktualisieren
+7. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
+8. `helm upgrade --install` ausführen
+
+Cleanup:
+
+- Bei Branch-Delete oder PR-Close werden Feature-Releases + Namespace entfernt.
+- `main` und `develop` werden explizit nie gelöscht.
+
+## Lokal entwickeln
 
 ### Backend
 
@@ -37,8 +82,6 @@ cd backend
 gradle bootRun
 ```
 
-Backend läuft auf `http://localhost:8080`.
-
 ### Frontend
 
 ```bash
@@ -46,58 +89,3 @@ cd frontend
 npm install
 npm start
 ```
-
-Frontend läuft auf `http://localhost:4200`.
-
-Für lokales Angular-Dev-Setup kannst du in `frontend/src/app/app.component.ts` bei Bedarf direkt auf `http://localhost:8080/api/text-length` zeigen.
-
-## Mit Docker starten
-
-```bash
-docker compose up --build
-```
-
-Dann erreichbar unter:
-
-- Frontend: `http://localhost:8080`
-- Backend intern über Docker-Netzwerk (`backend:8080`)
-
-
-## Frontend E2E-Test (Playwright)
-
-```bash
-cd frontend
-npm ci
-npx playwright install --with-deps chromium
-npm run test:e2e
-```
-
-Der Test deckt den kompletten Flow ab:
-
-1. Seite öffnen
-2. Text eingeben
-3. Submit klicken
-4. Auf Ergebnis warten
-5. Ergebnis validieren
-
-## Backend-Tests + Abdeckung
-
-```bash
-cd backend
-gradle test jacocoTestReport
-```
-
-Coverage-Report (HTML):
-
-- `backend/build/reports/jacoco/test/html/index.html`
-
-## Deployment (GitHub Actions)
-
-Der Workflow `.github/workflows/deploy.yml` baut und pusht **zwei Images** nach GHCR:
-
-- `ghcr.io/<owner>/tts-lab-frontend:<tag>`
-- `ghcr.io/<owner>/tts-lab-backend:<tag>`
-
-Auf dem Hetzner-Server werden beide Services über `compose.app.yaml` als gemeinsamer Stack gestartet; Traefik routet auf den Frontend-Service.
-
-Vor dem Image-Push führt GitHub Actions automatisiert einen Playwright-E2E-Test sowie Frontend-Build + Smoke-Check aus (`scripts/frontend_smoke_check.sh`), damit UI-Regressionen und fehlende Browser-Bundles wie `polyfills.js` früh auffallen.

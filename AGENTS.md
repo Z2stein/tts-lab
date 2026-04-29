@@ -6,9 +6,10 @@ Projektregeln für zukünftige Codex-Aufgaben in diesem Repository.
 
 Dieses Repository ist ein bewusst einfaches Lernprojekt für:
 
-1. Eine minimale Express-Web-App
-2. Containerisierung mit Docker
+1. Eine minimal verständliche Fullstack-App (Angular + Spring Boot)
+2. Container-Builds mit Docker
 3. Deployment mit GitHub Actions auf einen Hetzner-Server
+4. Runtime-Orchestrierung über k3s + Helm
 
 ## Leitlinien
 
@@ -24,20 +25,14 @@ Nicht hinzufügen, außer es wird ausdrücklich angefordert:
 - Text-to-Speech
 - Datenbank
 - Authentifizierung
-- Kubernetes/Helm
-
-## Code-Konventionen
-
-- Node.js mit CommonJS (`require`, `module.exports`) beibehalten.
-- Endpunkte in `server.js` klar und kurz halten.
-- Keine Framework-Migration ohne explizite Anforderung.
 
 ## Deployment-Konventionen
 
 - GitHub Actions Workflow liegt unter `.github/workflows/deploy.yml`.
-- Deployment-Trigger: Push auf `main`.
-- Zielserver-Pfad ist `/opt/tts-lab`.
-- Docker Compose Befehle müssen auf dem Server via SSH ausgeführt werden.
+- Primärer Deployment-Weg ist **k3s + Helm**.
+- Zielserver-Pfad für Chart-Dateien ist `/opt/tts-lab`.
+- Deployments laufen über `helm upgrade --install` via SSH auf dem Server.
+- Docker Compose und Docker-Traefik sind nicht mehr der Runtime-Deployment-Weg.
 
 ## Änderungsvorgehen für Codex
 
