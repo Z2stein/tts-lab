@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { TextLengthService } from './text-length.service';
 
 @Component({
   selector: 'app-root',
@@ -14,25 +15,14 @@ export class AppComponent {
   length: number | null = null;
   error: string | null = null;
 
+  constructor(private readonly textLengthService: TextLengthService) {}
+
   async submit(): Promise<void> {
     this.error = null;
     this.length = null;
 
     try {
-      const response = await fetch('/api/text-length', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ text: this.textControl.value })
-      });
-
-      if (!response.ok) {
-        throw new Error('Backend request failed.');
-      }
-
-      const data = (await response.json()) as { length: number };
-      this.length = data.length;
+      this.length = await this.textLengthService.getLength(this.textControl.value);
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Unknown error.';
     }
