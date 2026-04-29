@@ -59,19 +59,21 @@ Workflow: `.github/workflows/deploy.yml`
 
 Pull Requests:
 
-1. Nur Validierung (Docker-Build für Backend + Frontend ohne Push/Deploy)
-2. Kein Helm-Deploy bei PR-Events
+1. `opened`, `reopened`, `ready_for_review`: nur Validierung (Docker-Build für Backend + Frontend ohne Push/Deploy)
+2. `closed`: Cleanup (Feature-Release + Namespace entfernen, idempotent)
+3. `synchronize` löst keinen separaten PR-Workflow-Run aus
 
 Ablauf bei Push:
 
-1. Branch-Typ erkennen (main/develop/feature)
-2. Slug, Namespace, Release, Host berechnen
-3. Frontend/Backend Image bauen
-4. Images nach GHCR pushen
-5. SSH auf Hetzner
-6. Namespace idempotent anlegen/aktualisieren
-7. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
-8. `helm upgrade --install` ausführen
+1. Validierung (Docker-Build für Backend + Frontend ohne Push)
+2. Branch-Typ erkennen (main/develop/feature)
+3. Slug, Namespace, Release, Host berechnen
+4. Frontend/Backend Image bauen
+5. Images nach GHCR pushen
+6. SSH auf Hetzner
+7. Namespace idempotent anlegen/aktualisieren
+8. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
+9. `helm upgrade --install` ausführen
 
 Parallelität:
 
