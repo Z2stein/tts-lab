@@ -65,10 +65,10 @@ Pull Requests:
 
 Ablauf bei Push:
 
-1. Validierung (Docker-Build für Backend + Frontend ohne Push)
+1. Leichte Validierungen im Deploy-Job (Frontend-Build + Helm lint/template)
 2. Branch-Typ erkennen (main/develop/feature)
 3. Slug, Namespace, Release, Host berechnen
-4. Frontend/Backend Image bauen
+4. Frontend/Backend Images genau einmal bauen
 5. Images nach GHCR pushen
 6. SSH auf Hetzner
 7. Namespace idempotent anlegen/aktualisieren
