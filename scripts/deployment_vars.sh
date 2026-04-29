@@ -3,11 +3,16 @@ set -euo pipefail
 
 MODE="${1:-deploy}"
 BRANCH_NAME="${2:-}"
-SERVER_IP="${3:-178.105.41.67}"
+SERVER_IP="${3:-}"
 GIT_SHA="${4:-}"
 
 if [ -z "$BRANCH_NAME" ]; then
   echo "error: branch name is required" >&2
+  exit 1
+fi
+
+if [ -z "$SERVER_IP" ]; then
+  echo "error: server ip is required" >&2
   exit 1
 fi
 

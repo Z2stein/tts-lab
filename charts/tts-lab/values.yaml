@@ -8,7 +8,7 @@ imagePullSecrets:
 frontend:
   replicaCount: 1
   image:
-    repository: ghcr.io/z2stein/tts-lab-frontend
+    repository: ghcr.io/<owner>/tts-lab-frontend
     tag: latest
     pullPolicy: IfNotPresent
   service:
@@ -18,18 +18,17 @@ frontend:
 backend:
   replicaCount: 1
   image:
-    repository: ghcr.io/z2stein/tts-lab-backend
+    repository: ghcr.io/<owner>/tts-lab-backend
     tag: latest
     pullPolicy: IfNotPresent
   service:
     type: ClusterIP
     port: 8080
-    # Muss aktiv bleiben, solange das Frontend intern backend:8080 erwartet.
     createAlias: true
     aliasName: backend
 
 ingress:
   enabled: true
   className: traefik
-  host: tts-lab.178.105.41.67.sslip.io
+  host: tts-lab.<public-server-ip>.sslip.io
   annotations: {}
