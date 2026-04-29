@@ -11,6 +11,7 @@ Flow: **Textfeld → Submit → Backend gibt Textlänge zurück**.
 - `frontend/` → Angular App (npm + Angular CLI)
 - `backend/` → Spring Boot App (Java 21 + Gradle)
 - `docker-compose.yml` → startet beide Container getrennt
+- `deploy/helm/tts-lab/` → Helm-Chart für manuelles k3s-Deployment
 
 ## API
 
@@ -62,6 +63,73 @@ Dann erreichbar unter:
 - Frontend: `http://localhost:8080`
 - Backend intern über Docker-Netzwerk (`backend:8080`)
 
+## Manuelles Deployment auf Hetzner mit k3s + Helm + Traefik
+
+Fokus: bewusst manuell, ohne GitHub Actions.
+
+### 1) Voraussetzungen auf dem Server
+
+- k3s installiert (`kubectl get nodes` funktioniert)
+- Traefik in k3s aktiv (Standard bei k3s)
+- Helm 3 installiert
+- Domain zeigt auf den Server (z. B. `tts.example.com`)
+- TLS-Secret im Ziel-Namespace vorhanden (oder später erstellen)
+
+### 2) Images bauen und Registry bereitstellen
+
+Du brauchst ein Frontend- und Backend-Image in einer erreichbaren Registry.
+
+Beispiel (lokal):
+
+```bash
+docker build -t ghcr.io/<owner>/tts-lab-frontend:<tag> ./frontend
+docker build -t ghcr.io/<owner>/tts-lab-backend:<tag> ./backend
+docker push ghcr.io/<owner>/tts-lab-frontend:<tag>
+docker push ghcr.io/<owner>/tts-lab-backend:<tag>
+```
+
+### 3) Helm Values für Server anpassen
+
+`deploy/helm/tts-lab/values.yaml` enthält Defaults. Für produktive Nutzung mindestens setzen:
+
+- `frontend.image`, `frontend.tag`
+- `backend.image`, `backend.tag`
+- `ingress.host`
+- `ingress.tlsSecretName`
+
+Optional kannst du dafür eine eigene Datei (z. B. `values.prod.yaml`) nutzen.
+
+### 4) Deployment ausführen
+
+Auf dem Hetzner-Server:
+
+```bash
+helm upgrade --install tts-lab ./deploy/helm/tts-lab \
+  --namespace tts-lab \
+  --create-namespace \
+  -f ./deploy/helm/tts-lab/values.yaml
+```
+
+### 5) Status prüfen
+
+```bash
+kubectl -n tts-lab get pods
+kubectl -n tts-lab get svc
+kubectl -n tts-lab get ingressroute
+```
+
+Wenn alles läuft, sollte die App unter `https://<ingress.host>` erreichbar sein.
+
+### 6) Update/Rollback
+
+Update mit neuen Tags (Values anpassen + gleicher Helm-Befehl).
+
+Rollback bei Bedarf:
+
+```bash
+helm -n tts-lab history tts-lab
+helm -n tts-lab rollback tts-lab <revision>
+```
 
 ## Frontend E2E-Test (Playwright)
 
@@ -90,14 +158,3 @@ gradle test jacocoTestReport
 Coverage-Report (HTML):
 
 - `backend/build/reports/jacoco/test/html/index.html`
-
-## Deployment (GitHub Actions)
-
-Der Workflow `.github/workflows/deploy.yml` baut und pusht **zwei Images** nach GHCR:
-
-- `ghcr.io/<owner>/tts-lab-frontend:<tag>`
-- `ghcr.io/<owner>/tts-lab-backend:<tag>`
-
-Auf dem Hetzner-Server werden beide Services über `compose.app.yaml` als gemeinsamer Stack gestartet; Traefik routet auf den Frontend-Service.
-
-Vor dem Image-Push führt GitHub Actions automatisiert einen Playwright-E2E-Test sowie Frontend-Build + Smoke-Check aus (`scripts/frontend_smoke_check.sh`), damit UI-Regressionen und fehlende Browser-Bundles wie `polyfills.js` früh auffallen.

@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tts-frontend
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.frontend.replicas }}
+  selector:
+    matchLabels:
+      app: tts-frontend
+  template:
+    metadata:
+      labels:
+        app: tts-frontend
+    spec:
+      containers:
+        - name: frontend
+          image: "{{ .Values.frontend.image }}:{{ .Values.frontend.tag }}"
+          imagePullPolicy: {{ .Values.frontend.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.frontend.containerPort }}
+          readinessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.frontend.containerPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /
+              port: {{ .Values.frontend.containerPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 20

@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: tts-frontend
+  namespace: {{ .Values.namespace }}
+spec:
+  selector:
+    app: tts-frontend
+  ports:
+    - name: http
+      port: {{ .Values.frontend.servicePort }}
+      targetPort: {{ .Values.frontend.containerPort }}

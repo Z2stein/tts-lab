@@ -1,0 +1,22 @@
+namespace: tts-lab
+
+frontend:
+  image: ghcr.io/example/tts-lab-frontend
+  tag: latest
+  pullPolicy: IfNotPresent
+  replicas: 1
+  servicePort: 80
+  containerPort: 80
+
+backend:
+  image: ghcr.io/example/tts-lab-backend
+  tag: latest
+  pullPolicy: IfNotPresent
+  replicas: 1
+  servicePort: 8080
+  containerPort: 8080
+
+ingress:
+  host: tts.example.com
+  entryPoint: websecure
+  tlsSecretName: tts-example-tls

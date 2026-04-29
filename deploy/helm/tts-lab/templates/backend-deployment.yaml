@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tts-backend
+  namespace: {{ .Values.namespace }}
+spec:
+  replicas: {{ .Values.backend.replicas }}
+  selector:
+    matchLabels:
+      app: tts-backend
+  template:
+    metadata:
+      labels:
+        app: tts-backend
+    spec:
+      containers:
+        - name: backend
+          image: "{{ .Values.backend.image }}:{{ .Values.backend.tag }}"
+          imagePullPolicy: {{ .Values.backend.pullPolicy }}
+          ports:
+            - containerPort: {{ .Values.backend.containerPort }}
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.containerPort }}
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: {{ .Values.backend.containerPort }}
+            initialDelaySeconds: 15
+            periodSeconds: 20
