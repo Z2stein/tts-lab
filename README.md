@@ -158,11 +158,40 @@ backend:
   - `http://main.<HETZNER_HOST>.sslip.io/` an Frontend
   - `http://main.<HETZNER_HOST>.sslip.io/api/...` an Backend
 
+
+### Feature-Branch-/Subdomain-Modell im Kubernetes-/Helm-Weg
+
+Das bestehende Feature-Branch-Modell kann im Helm-Weg sauber weitergeführt werden:
+
+- **Empfohlen:** pro Feature-Branch ein eigener Helm-Release-Name und eigener Namespace/Host.
+- Der Host wird pro Deployment über `ingress.host` gesetzt.
+- Optional kannst du auch mehrere Hosts in einem Release über `ingress.hosts` pflegen.
+
+Beispiel (ein Release pro Feature):
+
+```bash
+helm upgrade --install tts-lab-feature-xyz ./charts/tts-lab   --namespace tts-lab-feature-xyz   --create-namespace   --set ingress.host=feature-xyz.<HETZNER_HOST>.sslip.io
+```
+
+Optional (mehrere Hosts in einem Release):
+
+```yaml
+ingress:
+  hosts:
+    - main.<HETZNER_HOST>.sslip.io
+    - feature-xyz.<HETZNER_HOST>.sslip.io
+```
+
+In beiden Fällen bleibt das Routing gleich:
+
+- `/` → Frontend Service
+- `/api` → Backend Service
+
 ### Wichtige Werte in `charts/tts-lab/values.yaml`
 
 Bitte vor Deployment mindestens anpassen:
 
-- `ingress.host`
+- `ingress.host` (oder alternativ `ingress.hosts`)
 - `frontend.image.repository`
 - `frontend.image.tag`
 - `backend.image.repository`

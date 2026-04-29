@@ -60,4 +60,7 @@ ingress:
   enabled: true
   className: traefik
   host: main.REPLACE_WITH_HETZNER_HOST.sslip.io
+  # Optional: mehrere Hosts (z. B. pro Feature-Branch).
+  # Wenn gesetzt, werden diese Hosts statt ingress.host verwendet.
+  hosts: []
   annotations: {}

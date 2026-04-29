@@ -14,6 +14,28 @@ spec:
   ingressClassName: {{ . }}
   {{- end }}
   rules:
+    {{- $hosts := .Values.ingress.hosts }}
+    {{- if and $hosts (gt (len $hosts) 0) }}
+    {{- range $host := $hosts }}
+    - host: {{ $host }}
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tts-lab.fullname" $ }}-backend
+                port:
+                  number: {{ $.Values.backend.service.port }}
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tts-lab.fullname" $ }}-frontend
+                port:
+                  number: {{ $.Values.frontend.service.port }}
+    {{- end }}
+    {{- else }}
     - host: {{ .Values.ingress.host }}
       http:
         paths:
@@ -31,4 +53,5 @@ spec:
                 name: {{ include "tts-lab.fullname" . }}-frontend
                 port:
                   number: {{ .Values.frontend.service.port }}
+    {{- end }}
 {{- end }}
