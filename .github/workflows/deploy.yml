@@ -16,9 +16,15 @@ permissions:
   packages: write
 
 jobs:
-  deploy:
+  build:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
+    outputs:
+      namespace: ${{ steps.vars.outputs.namespace }}
+      release_name: ${{ steps.vars.outputs.release_name }}
+      host: ${{ steps.vars.outputs.host }}
+      image_tag: ${{ steps.vars.outputs.image_tag }}
+      owner: ${{ steps.registry.outputs.owner }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -70,6 +76,17 @@ jobs:
             ghcr.io/${{ steps.registry.outputs.owner }}/tts-lab-frontend:${{ steps.vars.outputs.image_tag }}
             ghcr.io/${{ steps.registry.outputs.owner }}/tts-lab-frontend:${{ steps.vars.outputs.branch_alias_tag }}
 
+  deploy:
+    if: github.event_name == 'push'
+    needs: build
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-${{ github.ref_name }}
+      cancel-in-progress: false
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Prepare SSH key
         run: |
           mkdir -p ~/.ssh
@@ -81,13 +98,13 @@ jobs:
         env:
           HOST: ${{ vars.HETZNER_HOST }}
           USER: ${{ secrets.HETZNER_USER }}
-          NAMESPACE: ${{ steps.vars.outputs.namespace }}
-          RELEASE_NAME: ${{ steps.vars.outputs.release_name }}
-          APP_HOST: ${{ steps.vars.outputs.host }}
-          IMAGE_TAG: ${{ steps.vars.outputs.image_tag }}
+          NAMESPACE: ${{ needs.build.outputs.namespace }}
+          RELEASE_NAME: ${{ needs.build.outputs.release_name }}
+          APP_HOST: ${{ needs.build.outputs.host }}
+          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
-          GHCR_OWNER: ${{ steps.registry.outputs.owner }}
+          GHCR_OWNER: ${{ needs.build.outputs.owner }}
         run: |
           set -euo pipefail
           ssh "$USER@$HOST" "mkdir -p /opt/tts-lab/charts"
@@ -126,14 +143,17 @@ jobs:
           {
             echo "### Deployment Summary"
             echo ""
-            echo "**URL:** [http://${{ steps.vars.outputs.host }}](http://${{ steps.vars.outputs.host }})"
+            echo "**URL:** [http://${{ needs.build.outputs.host }}](http://${{ needs.build.outputs.host }})"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::notice title=Deployment URL::http://${{ steps.vars.outputs.host }}"
+          echo "::notice title=Deployment URL::http://${{ needs.build.outputs.host }}"
 
   cleanup-feature:
     if: github.event_name == 'delete' || (github.event_name == 'pull_request' && github.event.action == 'closed')
     runs-on: ubuntu-latest
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Compute cleanup variables
         id: vars
         env:
