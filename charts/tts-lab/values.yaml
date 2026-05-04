@@ -50,8 +50,8 @@ ingress:
   className: traefik
   host: tts-lab.<public-server-ip>.sslip.io
   annotations:
-    # cert-manager.io/cluster-issuer: letsencrypt-prod
+    cert-manager.io/cluster-issuer: letsencrypt-prod
   tls:
-    enabled: false
-    # secretName: tts-lab-tls
-    secretName: ""
+    enabled: true
+    # secretName kann im Deployment per --set überschrieben werden
+    secretName: tts-lab-tls
