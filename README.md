@@ -183,7 +183,7 @@ Feature deployments do not create or inject Google OAuth secrets.
 
 Frontend behavior note:
 
-- On startup, the frontend first checks `/api/me` and shows a short loading state until auth is resolved.
+- On startup, the frontend first checks `/api/me` and shows a short loading state until auth is resolved. If `/api/me` fails (for example due to CORS/network issues), the UI no longer hangs in loading and falls back to unauthenticated with a visible error message and browser console logs.
 - Only authenticated users see the real app controls.
 - Unauthenticated users see only the sign-in UI, which starts OAuth via `/oauth2/authorization/google`.
 - Logged-in users also see a logout button that calls `/logout` and returns to `/`.

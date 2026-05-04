@@ -2,6 +2,7 @@
   <h1>Text Length App</h1>
   <p *ngIf="authStatus === 'loading'">Loading...</p>
   <ng-container *ngIf="authStatus === 'unauthenticated'">
+    <p *ngIf="authError" class="error">{{ authError }}</p>
     <p>Please sign in to use the app.</p>
     <button type="button" (click)="loginWithGoogle()">Sign in with Google</button>
   </ng-container>
@@ -9,10 +10,10 @@
     <p>Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</p>
     <button type="button" (click)="logout()">Logout</button>
 
-    <form (ngSubmit)="submit()">
+    <form>
       <label for="text">Text</label>
       <input id="text" [formControl]="textControl" />
-      <button type="submit">Check length</button>
+      <button type="button" (click)="submit()">Check length</button>
     </form>
 
     <p *ngIf="length !== null">Length: {{ length }}</p>
