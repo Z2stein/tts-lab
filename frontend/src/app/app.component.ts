@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { CurrentUser, CurrentUserService } from './current-user.service';
 import { TextLengthService } from './text-length.service';
 
 @Component({
@@ -10,12 +11,20 @@ import { TextLengthService } from './text-length.service';
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })
-export class AppComponent {
+export class AppComponent implements OnInit {
   textControl = new FormControl('', { nonNullable: true });
   length: number | null = null;
   error: string | null = null;
+  currentUser: CurrentUser | null = null;
 
-  constructor(private readonly textLengthService: TextLengthService) {}
+  constructor(
+    private readonly textLengthService: TextLengthService,
+    private readonly currentUserService: CurrentUserService
+  ) {}
+
+  async ngOnInit(): Promise<void> {
+    this.currentUser = await this.currentUserService.getCurrentUser();
+  }
 
   async submit(): Promise<void> {
     this.error = null;

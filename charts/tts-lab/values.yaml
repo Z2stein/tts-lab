@@ -55,3 +55,16 @@ ingress:
     enabled: true
     # secretName kann im Deployment per --set überschrieben werden
     secretName: tts-lab-tls
+
+app:
+  environment: feature
+  baseUrl: http://localhost
+
+auth:
+  mode: mock
+  googleSecretName: ""
+  mockUser:
+    id: mock-user-1
+    email: mock.user@example.com
+    name: Mock User
+    roles: USER

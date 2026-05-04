@@ -135,3 +135,45 @@ Bewusst unterstützte Fälle für `POST /api/text-length`:
 - Große Inputs (z. B. 10.000 Zeichen) werden verarbeitet.
 - Ungültige JSON-Payloads werden mit HTTP `400 Bad Request` abgelehnt.
 - Fehlende `text`-Property wird wie `null` behandelt und liefert `length = 0`.
+
+## Authentication modes
+
+The backend supports environment-driven authentication with `AUTH_MODE`:
+
+- `AUTH_MODE=google` for stable environments (`main` and `develop` as `dev`).
+- `AUTH_MODE=mock` for feature branches and local testing.
+
+Required variables:
+
+- `AUTH_MODE` (`google|mock`)
+- `ENVIRONMENT` (`main|dev|feature|prod`)
+- `APP_BASE_URL` (external HTTPS URL)
+
+Google mode additionally requires:
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+
+Mock mode uses:
+
+- `MOCK_USER_ID`
+- `MOCK_USER_EMAIL`
+- `MOCK_USER_NAME`
+- `MOCK_USER_ROLES` (comma-separated)
+
+Safety guardrails:
+
+- `AUTH_MODE=mock` fails startup when `ENVIRONMENT=main` or `ENVIRONMENT=prod`.
+- `AUTH_MODE=google` fails startup when Google credentials are missing.
+
+Google redirect URI must match Spring callback path exactly:
+
+- `https://<host>/login/oauth2/code/google`
+
+The workflow `.github/workflows/deploy.yml` now sets auth by branch type:
+
+- `main` -> Google auth (`ENVIRONMENT=main`)
+- `develop` -> Google auth (`ENVIRONMENT=dev`)
+- all other branches -> mock auth (`ENVIRONMENT=feature`)
+
+Feature deployments do not create or inject Google OAuth secrets.
