@@ -29,15 +29,16 @@ jobs:
       backend_image_name: ${{ steps.repo_config.outputs.backend_image_name }}
       frontend_image_name: ${{ steps.repo_config.outputs.frontend_image_name }}
     steps:
-      - name: Validate required GHCR token
+      - name: Validate required env and secrets
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USER: ${{ vars.GHCR_USER }}
+          HETZNER_HOST: ${{ vars.HETZNER_HOST }}
         run: |
           set -euo pipefail
-          if [ -z "${GHCR_TOKEN}" ]; then
-            echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token before running deployments."
-            exit 1
-          fi
+          [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
+          [ -n "${GHCR_USER}" ] || { echo "::error title=Missing GHCR_USER::Set repository variable GHCR_USER for registry authentication."; exit 1; }
+          [ -n "${HETZNER_HOST}" ] || { echo "::error title=Missing HETZNER_HOST::Set repository variable HETZNER_HOST for deployment target host."; exit 1; }
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -113,15 +114,20 @@ jobs:
       group: deploy-${{ github.ref_name }}
       cancel-in-progress: false
     steps:
-      - name: Validate required GHCR token
+      - name: Validate required env and secrets
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          GHCR_USER: ${{ vars.GHCR_USER }}
+          HETZNER_HOST: ${{ vars.HETZNER_HOST }}
+          HETZNER_USER: ${{ secrets.HETZNER_USER }}
+          HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
         run: |
           set -euo pipefail
-          if [ -z "${GHCR_TOKEN}" ]; then
-            echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token before running deployments."
-            exit 1
-          fi
+          [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
+          [ -n "${GHCR_USER}" ] || { echo "::error title=Missing GHCR_USER::Set repository variable GHCR_USER for registry authentication."; exit 1; }
+          [ -n "${HETZNER_HOST}" ] || { echo "::error title=Missing HETZNER_HOST::Set repository variable HETZNER_HOST for deployment target host."; exit 1; }
+          [ -n "${HETZNER_USER}" ] || { echo "::error title=Missing HETZNER_USER::Set repository secret HETZNER_USER for SSH deploy user."; exit 1; }
+          [ -n "${HETZNER_SSH_KEY}" ] || { echo "::error title=Missing HETZNER_SSH_KEY::Set repository secret HETZNER_SSH_KEY for SSH authentication."; exit 1; }
 
       - name: Checkout
         uses: actions/checkout@v4
