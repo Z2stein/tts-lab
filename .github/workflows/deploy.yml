@@ -208,7 +208,6 @@ jobs:
             helm upgrade --install "$RELEASE_NAME" /opt/tts-lab/charts/tts-lab \
               --namespace "$NAMESPACE" \
               --set ingress.host="$APP_HOST" \
-              --set ingress.annotations.cert-manager\.io/cluster-issuer=letsencrypt-prod \
               --set ingress.tls.enabled=true \
               --set ingress.tls.secretName="$RELEASE_NAME-tls" \
               --set frontend.image.repository=ghcr.io/$GHCR_OWNER/$FRONTEND_IMAGE_NAME \
