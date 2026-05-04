@@ -2,6 +2,7 @@
   <h1>Text Length App</h1>
   <p *ngIf="authStatus === 'loading'">Loading...</p>
   <ng-container *ngIf="authStatus === 'unauthenticated'">
+    <p *ngIf="authError" class="error">{{ authError }}</p>
     <p>Please sign in to use the app.</p>
     <button type="button" (click)="loginWithGoogle()">Sign in with Google</button>
   </ng-container>

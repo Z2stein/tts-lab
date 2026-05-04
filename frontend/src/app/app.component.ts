@@ -13,6 +13,7 @@ import { TextLengthService } from './text-length.service';
 })
 export class AppComponent implements OnInit {
   authStatus: 'loading' | 'authenticated' | 'unauthenticated' = 'loading';
+  authError: string | null = null;
   textControl = new FormControl('', { nonNullable: true });
   length: number | null = null;
   error: string | null = null;
@@ -24,8 +25,16 @@ export class AppComponent implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
-    this.currentUser = await this.currentUserService.getCurrentUser();
-    this.authStatus = this.currentUser ? 'authenticated' : 'unauthenticated';
+    console.info('[app] Initializing app and resolving auth state');
+    try {
+      this.currentUser = await this.currentUserService.getCurrentUser();
+      this.authStatus = this.currentUser ? 'authenticated' : 'unauthenticated';
+    } catch (error) {
+      console.error('[app] Unexpected auth initialization error', error);
+      this.authStatus = 'unauthenticated';
+      this.authError = 'Could not validate session. Please try signing in again.';
+    }
+    console.info('[app] Auth state resolved', { authStatus: this.authStatus });
   }
 
   async submit(): Promise<void> {
@@ -36,6 +45,7 @@ export class AppComponent implements OnInit {
       this.length = await this.textLengthService.getLength(this.textControl.value);
     } catch (e) {
       this.error = e instanceof Error ? e.message : 'Unknown error.';
+      console.error('[app] Text length request failed', e);
     }
   }
 
