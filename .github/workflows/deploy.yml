@@ -76,8 +76,8 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ needs.build.outputs.backend_image_name }}:${{ steps.vars.outputs.image_tag }}
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ needs.build.outputs.backend_image_name }}:${{ steps.vars.outputs.branch_alias_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.backend_image_name }}:${{ steps.vars.outputs.image_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.backend_image_name }}:${{ steps.vars.outputs.branch_alias_tag }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -86,8 +86,8 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ needs.build.outputs.frontend_image_name }}:${{ steps.vars.outputs.image_tag }}
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ needs.build.outputs.frontend_image_name }}:${{ steps.vars.outputs.branch_alias_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.frontend_image_name }}:${{ steps.vars.outputs.image_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.frontend_image_name }}:${{ steps.vars.outputs.branch_alias_tag }}
 
   deploy:
     if: github.event_name == 'push'
