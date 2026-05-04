@@ -164,6 +164,12 @@ Mock mode uses:
 - `MOCK_USER_NAME`
 - `MOCK_USER_ROLES` (comma-separated)
 
+Mock mode login flow:
+
+- Anonymous requests are **not** auto-authenticated.
+- `POST /api/mock-login` creates a session-backed authenticated mock principal.
+- All protected API routes (including `GET /api/me` and `POST /api/text-length`) require an authenticated principal.
+
 Safety guardrails:
 
 - `AUTH_MODE=mock` fails startup when `ENVIRONMENT=main` or `ENVIRONMENT=prod`.

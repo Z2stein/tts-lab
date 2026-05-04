@@ -24,9 +24,11 @@ public class MeController {
         log.info("GET /api/me called (authMode={})", props.mode());
 
         if (props.mode() == AuthMode.MOCK) {
-            CurrentUser mockUser = props.mockCurrentUser();
-            log.info("Returning mock user from /api/me (id={}, email={})", mockUser.id(), mockUser.email());
-            return mockUser;
+            MockUserPrincipal principal = (MockUserPrincipal) authentication.getPrincipal();
+            List<String> roles = principal.authorities().stream().map(GrantedAuthority::getAuthority).toList();
+            CurrentUser currentUser = new CurrentUser(principal.id(), principal.email(), principal.displayName(), roles, "mock");
+            log.info("Returning mock user from /api/me (id={}, email={})", currentUser.id(), currentUser.email());
+            return currentUser;
         }
 
         DefaultOAuth2User user = (DefaultOAuth2User) authentication.getPrincipal();
