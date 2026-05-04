@@ -15,6 +15,11 @@ permissions:
   contents: read
   packages: write
 
+env:
+  APP_SLUG: ${{ vars.APP_SLUG || github.event.repository.name }}
+  BACKEND_IMAGE_NAME: ${{ format('{0}-backend', vars.APP_SLUG || github.event.repository.name) }}
+  FRONTEND_IMAGE_NAME: ${{ format('{0}-frontend', vars.APP_SLUG || github.event.repository.name) }}
+
 jobs:
   build:
     if: github.event_name == 'push'
@@ -35,6 +40,7 @@ jobs:
           BRANCH_NAME: ${{ github.ref_name }}
           SERVER_IP: ${{ vars.HETZNER_HOST }}
           GIT_SHA: ${{ github.sha }}
+          APP_SLUG: ${{ env.APP_SLUG }}
         run: |
           set -euo pipefail
           SERVER_IP="${SERVER_IP:-${{ vars.HETZNER_HOST }}}"
@@ -63,8 +69,8 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.registry.outputs.owner }}/tts-lab-backend:${{ steps.vars.outputs.image_tag }}
-            ghcr.io/${{ steps.registry.outputs.owner }}/tts-lab-backend:${{ steps.vars.outputs.branch_alias_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.vars.outputs.image_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.vars.outputs.branch_alias_tag }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -73,8 +79,8 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.registry.outputs.owner }}/tts-lab-frontend:${{ steps.vars.outputs.image_tag }}
-            ghcr.io/${{ steps.registry.outputs.owner }}/tts-lab-frontend:${{ steps.vars.outputs.branch_alias_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.vars.outputs.image_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.vars.outputs.branch_alias_tag }}
 
   deploy:
     if: github.event_name == 'push'
@@ -105,12 +111,14 @@ jobs:
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
           GHCR_OWNER: ${{ needs.build.outputs.owner }}
+          BACKEND_IMAGE_NAME: ${{ env.BACKEND_IMAGE_NAME }}
+          FRONTEND_IMAGE_NAME: ${{ env.FRONTEND_IMAGE_NAME }}
         run: |
           set -euo pipefail
           ssh "$USER@$HOST" "mkdir -p /opt/tts-lab/charts"
           scp -r charts/tts-lab "$USER@$HOST:/opt/tts-lab/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" <<'EOF'
+          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -119,6 +127,8 @@ jobs:
             GHCR_USERNAME="$5"
             GHCR_PASSWORD="$6"
             GHCR_OWNER="$7"
+            FRONTEND_IMAGE_NAME="$8"
+            BACKEND_IMAGE_NAME="$9"
 
             kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
@@ -131,9 +141,9 @@ jobs:
             helm upgrade --install "$RELEASE_NAME" /opt/tts-lab/charts/tts-lab \
               --namespace "$NAMESPACE" \
               --set ingress.host="$APP_HOST" \
-              --set frontend.image.repository=ghcr.io/$GHCR_OWNER/tts-lab-frontend \
+              --set frontend.image.repository=ghcr.io/$GHCR_OWNER/$FRONTEND_IMAGE_NAME \
               --set frontend.image.tag="$IMAGE_TAG" \
-              --set backend.image.repository=ghcr.io/$GHCR_OWNER/tts-lab-backend \
+              --set backend.image.repository=ghcr.io/$GHCR_OWNER/$BACKEND_IMAGE_NAME \
               --set backend.image.tag="$IMAGE_TAG" \
               --set imagePullSecrets[0].name=ghcr-pull-secret
           EOF

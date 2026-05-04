@@ -41,22 +41,28 @@ slugify_branch() {
 resolve_target() {
   local branch="$1"
   local server_ip="$2"
+  local app_slug="${APP_SLUG:-tts-lab}"
+
+  app_slug="$(normalize_slug_chars "$app_slug")"
+  if [ -z "$app_slug" ]; then
+    app_slug="tts-lab"
+  fi
 
   if [ "$branch" = "main" ]; then
     echo "deploy_type=main"
     echo "branch_slug=main"
-    echo "namespace=tts-lab"
-    echo "release_name=tts-lab"
-    echo "host=tts-lab.${server_ip}.sslip.io"
+    echo "namespace=$app_slug"
+    echo "release_name=$app_slug"
+    echo "host=${app_slug}.${server_ip}.sslip.io"
     return
   fi
 
   if [ "$branch" = "develop" ]; then
     echo "deploy_type=develop"
     echo "branch_slug=dev"
-    echo "namespace=tts-lab-dev"
-    echo "release_name=tts-lab-dev"
-    echo "host=dev.tts-lab.${server_ip}.sslip.io"
+    echo "namespace=${app_slug}-dev"
+    echo "release_name=${app_slug}-dev"
+    echo "host=dev.${app_slug}.${server_ip}.sslip.io"
     return
   fi
 
@@ -65,9 +71,9 @@ resolve_target() {
 
   echo "deploy_type=feature"
   echo "branch_slug=$slug"
-  echo "namespace=tts-lab-$slug"
-  echo "release_name=tts-lab-$slug"
-  echo "host=${slug}.tts-lab.${server_ip}.sslip.io"
+  echo "namespace=${app_slug}-$slug"
+  echo "release_name=${app_slug}-$slug"
+  echo "host=${slug}.${app_slug}.${server_ip}.sslip.io"
 }
 
 build_image_tags() {

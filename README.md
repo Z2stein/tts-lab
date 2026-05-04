@@ -2,6 +2,25 @@
 
 Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
+## Repo-Onboarding (kurzer Config-Block)
+
+Für ein neues Repository muss nur ein kleiner Satz an Variablen gesetzt werden (statt Shell-Logik zu ändern):
+
+```text
+# GitHub Actions Repository Variables (Settings → Secrets and variables → Actions)
+APP_SLUG=<kebab-case-app-name>        # optional, default: Repository-Name
+HETZNER_HOST=<server-ip-or-hostname>  # required
+```
+
+Naming-Konventionen:
+
+- `APP_SLUG` in `kebab-case` (z. B. `my-tts-app`).
+- Aus `APP_SLUG` werden automatisch abgeleitet:
+  - Namespaces/Releases: `<app-slug>`, `<app-slug>-dev`, `<app-slug>-<branch-slug>`
+  - Hosts: `<app-slug>.<server-ip>.sslip.io`, `dev.<app-slug>...`, `<branch-slug>.<app-slug>...`
+  - GHCR-Images: `<app-slug>-backend`, `<app-slug>-frontend`
+- Backward Compatibility: Wenn `APP_SLUG` fehlt oder leer ist, fällt der Workflow auf den Repository-Namen zurück; die Deployment-Skripte nutzen als letzte Fallback-Stufe `tts-lab`.
+
 ## Deployment-Status
 
 **Primärer Deployment-Weg ist k3s + Helm.**
@@ -25,17 +44,17 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 ## Ziel-Umgebungen
 
 - `main`
-  - Namespace: `tts-lab`
-  - Release: `tts-lab`
-  - URL: `http://tts-lab.178.105.41.67.sslip.io`
+  - Namespace: `<app-slug>`
+  - Release: `<app-slug>`
+  - URL: `http://<app-slug>.178.105.41.67.sslip.io`
 - `develop`
-  - Namespace: `tts-lab-dev`
-  - Release: `tts-lab-dev`
-  - URL: `http://dev.tts-lab.178.105.41.67.sslip.io`
+  - Namespace: `<app-slug>-dev`
+  - Release: `<app-slug>-dev`
+  - URL: `http://dev.<app-slug>.178.105.41.67.sslip.io`
 - Feature-Branches
-  - Namespace: `tts-lab-<branch-slug>`
-  - Release: `tts-lab-<branch-slug>`
-  - URL: `http://<branch-slug>.tts-lab.178.105.41.67.sslip.io`
+  - Namespace: `<app-slug>-<branch-slug>`
+  - Release: `<app-slug>-<branch-slug>`
+  - URL: `http://<branch-slug>.<app-slug>.178.105.41.67.sslip.io`
 
 ## Branch-Slug-Regel
 
