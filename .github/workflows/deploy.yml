@@ -180,6 +180,9 @@ jobs:
             helm upgrade --install "$RELEASE_NAME" /opt/tts-lab/charts/tts-lab \
               --namespace "$NAMESPACE" \
               --set ingress.host="$APP_HOST" \
+              --set ingress.tls.enabled=true \
+              --set ingress.tls.secretName="$RELEASE_NAME-tls" \
+              --set ingress.annotations.cert-manager\.io/cluster-issuer=letsencrypt-prod \
               --set frontend.image.repository=ghcr.io/$GHCR_OWNER/$FRONTEND_IMAGE_NAME \
               --set frontend.image.tag="$IMAGE_TAG" \
               --set backend.image.repository=ghcr.io/$GHCR_OWNER/$BACKEND_IMAGE_NAME \
@@ -192,9 +195,9 @@ jobs:
           {
             echo "### Deployment Summary"
             echo ""
-            echo "**URL:** [http://${{ needs.build.outputs.host }}](http://${{ needs.build.outputs.host }})"
+            echo "**URL:** [https://${{ needs.build.outputs.host }}](https://${{ needs.build.outputs.host }})"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::notice title=Deployment URL::http://${{ needs.build.outputs.host }}"
+          echo "::notice title=Deployment URL::https://${{ needs.build.outputs.host }}"
 
   cleanup-feature:
     if: github.event_name == 'delete' || (github.event_name == 'pull_request' && github.event.action == 'closed')
