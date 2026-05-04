@@ -40,4 +40,8 @@ export class AppComponent implements OnInit {
   loginWithGoogle(): void {
     this.currentUserService.startGoogleLogin();
   }
+
+  logout(): void {
+    this.currentUserService.startLogout();
+  }
 }
