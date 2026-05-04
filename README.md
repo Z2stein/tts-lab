@@ -97,48 +97,14 @@ Cleanup:
 - Bei Branch-Delete oder PR-Close werden Feature-Releases + Namespace entfernt.
 - `main` und `develop` werden explizit nie gelöscht.
 
-## HTTPS-Voraussetzungen außerhalb des Repos (Pflicht)
+## HTTPS-Voraussetzungen außerhalb des Repos (Status)
 
-Damit TLS-Zertifikate für den Traefik-Ingress ausgestellt werden können, sind genau diese zwei Schritte außerhalb dieses Repos erforderlich:
+Für TLS über Traefik wurden außerhalb dieses Repos bereits diese zwei Punkte umgesetzt:
 
-1. **cert-manager in k3s installieren**
+1. **cert-manager ist im k3s-Cluster installiert**.
+2. **Ein Let’s Encrypt `ClusterIssuer` (`letsencrypt-prod`) für Traefik ist erstellt**.
 
-   ```bash
-   kubectl create namespace cert-manager
-   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.crds.yaml
-   kubectl apply -f https://github.com/cert-manager/cert-manager/releases/latest/download/cert-manager.yaml
-   kubectl -n cert-manager rollout status deploy/cert-manager
-   kubectl -n cert-manager rollout status deploy/cert-manager-webhook
-   kubectl -n cert-manager rollout status deploy/cert-manager-cainjector
-   kubectl get pods -n cert-manager
-   ```
-
-2. **Let’s Encrypt ClusterIssuer erstellen** (für Traefik)
-
-   ```bash
-   cat > clusterissuer-letsencrypt-prod.yaml <<'EOF'
-   apiVersion: cert-manager.io/v1
-   kind: ClusterIssuer
-   metadata:
-     name: letsencrypt-prod
-   spec:
-     acme:
-       email: YOUR_EMAIL_HERE
-       server: https://acme-v02.api.letsencrypt.org/directory
-       privateKeySecretRef:
-         name: letsencrypt-prod-account-key
-       solvers:
-         - http01:
-             ingress:
-               ingressClassName: traefik
-   EOF
-
-   kubectl apply -f clusterissuer-letsencrypt-prod.yaml
-   kubectl get clusterissuer letsencrypt-prod
-   kubectl describe clusterissuer letsencrypt-prod
-   ```
-
-   Erwartung: `READY: True` beim `ClusterIssuer`.
+Damit sind die externen Cluster-Voraussetzungen für HTTPS erfüllt.
 
 ## Lokal entwickeln
 
