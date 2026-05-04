@@ -10,10 +10,10 @@
     <p>Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</p>
     <button type="button" (click)="logout()">Logout</button>
 
-    <form (ngSubmit)="submit()">
+    <form>
       <label for="text">Text</label>
       <input id="text" [formControl]="textControl" />
-      <button type="submit">Check length</button>
+      <button type="button" (click)="submit()">Check length</button>
     </form>
 
     <p *ngIf="length !== null">Length: {{ length }}</p>
