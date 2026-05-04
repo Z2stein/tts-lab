@@ -16,6 +16,7 @@ export class AppComponent implements OnInit {
   length: number | null = null;
   error: string | null = null;
   currentUser: CurrentUser | null = null;
+  isLoadingUser = true;
 
   constructor(
     private readonly textLengthService: TextLengthService,
@@ -23,7 +24,11 @@ export class AppComponent implements OnInit {
   ) {}
 
   async ngOnInit(): Promise<void> {
-    this.currentUser = await this.currentUserService.getCurrentUser();
+    try {
+      this.currentUser = await this.currentUserService.getCurrentUser();
+    } finally {
+      this.isLoadingUser = false;
+    }
   }
 
   async submit(): Promise<void> {
@@ -39,5 +44,9 @@ export class AppComponent implements OnInit {
 
   loginWithGoogle(): void {
     this.currentUserService.startGoogleLogin();
+  }
+
+  logout(): void {
+    this.currentUserService.startLogout();
   }
 }

@@ -1,7 +1,9 @@
 <main>
   <h1>Text Length App</h1>
+  <p *ngIf="isLoadingUser">Loading...</p>
   <p *ngIf="currentUser">Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</p>
   <button *ngIf="!currentUser" type="button" (click)="loginWithGoogle()">Sign in with Google</button>
+  <button *ngIf="currentUser" type="button" (click)="logout()">Logout</button>
 
   <form (ngSubmit)="submit()">
     <label for="text">Text</label>
