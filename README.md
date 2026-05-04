@@ -41,17 +41,18 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
 Für Feature-Branches im Workflow:
 
-1. Prefix entfernen: `feature/`, `bugfix/`, `hotfix/`, `release/`
+1. Wenn Branch ein Prefix hat (`prefix/name`), wird es zu `<erster-buchstabe-von-prefix>-name` transformiert (z. B. `codex/x` → `c-x`, `feature/x` → `f-x`)
 2. lowercase
 3. Sonderzeichen → `-`
 4. Mehrfach-`-` reduzieren
 5. führende/abschließende `-` entfernen
-6. max. 10 Zeichen
+6. max. 14 Zeichen
 7. falls abgeschnittenes Ende `-` ist: entfernen
 
 Beispiel:
 
-- `feature/codex-k3s-ganz-viel-mehr-text` → `codex-k3s`
+- `codex/split-to-separate-build-and-deploy-steps` → `c-split-to-sep`
+- `feature/my-super-long-branch-name` → `f-my-super-lon`
 
 ## CI/CD (GitHub Actions)
 

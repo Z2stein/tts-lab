@@ -3,10 +3,14 @@ set -euo pipefail
 
 strip_prefix() {
   local branch="$1"
-  branch="${branch#feature/}"
-  branch="${branch#bugfix/}"
-  branch="${branch#hotfix/}"
-  branch="${branch#release/}"
+
+  if [[ "$branch" == */* ]]; then
+    local prefix="${branch%%/*}"
+    local remainder="${branch#*/}"
+    echo "${prefix:0:1}-${remainder}"
+    return
+  fi
+
   echo "$branch"
 }
 
@@ -19,7 +23,7 @@ normalize_slug_chars() {
 
 truncate_slug() {
   local value="$1"
-  value="${value:0:10}"
+  value="${value:0:14}"
   echo "$value" | sed -E 's/-+$//'
 }
 
