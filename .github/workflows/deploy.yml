@@ -23,6 +23,7 @@ jobs:
       namespace: ${{ steps.vars.outputs.namespace }}
       release_name: ${{ steps.vars.outputs.release_name }}
       host: ${{ steps.vars.outputs.host }}
+      deploy_type: ${{ steps.vars.outputs.deploy_type }}
       image_tag: ${{ steps.vars.outputs.image_tag }}
       branch_alias_tag: ${{ steps.vars.outputs.branch_alias_tag }}
       owner: ${{ steps.registry.outputs.owner }}
@@ -179,13 +180,16 @@ jobs:
           GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN }}
           GHCR_OWNER: ${{ needs.prepare-build.outputs.owner }}
           BACKEND_IMAGE_NAME: ${{ needs.prepare-build.outputs.backend_image_name }}
+          DEPLOY_TYPE: ${{ needs.prepare-build.outputs.deploy_type }}
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           FRONTEND_IMAGE_NAME: ${{ needs.prepare-build.outputs.frontend_image_name }}
         run: |
           set -euo pipefail
           ssh "$USER@$HOST" "mkdir -p /opt/tts-lab/charts"
           scp -r charts/tts-lab "$USER@$HOST:/opt/tts-lab/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" <<'EOF'
+          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -196,8 +200,26 @@ jobs:
             GHCR_OWNER="$7"
             FRONTEND_IMAGE_NAME="$8"
             BACKEND_IMAGE_NAME="$9"
+            DEPLOY_TYPE="${10}"
+            GOOGLE_CLIENT_ID="${11}"
+            GOOGLE_CLIENT_SECRET="${12}"
+
+            if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
+              AUTH_MODE="google"
+              ENVIRONMENT=$([ "$DEPLOY_TYPE" = "main" ] && echo "main" || echo "dev")
+            else
+              AUTH_MODE="mock"
+              ENVIRONMENT="feature"
+            fi
 
             kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
+
+            if [ "$AUTH_MODE" = "google" ]; then
+              kubectl -n "$NAMESPACE" create secret generic google-oauth \
+                --from-literal=client-id="$GOOGLE_CLIENT_ID" \
+                --from-literal=client-secret="$GOOGLE_CLIENT_SECRET" \
+                --dry-run=client -o yaml | kubectl apply -f -
+            fi
 
             kubectl -n "$NAMESPACE" create secret docker-registry ghcr-pull-secret \
               --docker-server=ghcr.io \
@@ -214,7 +236,11 @@ jobs:
               --set frontend.image.tag="$IMAGE_TAG" \
               --set backend.image.repository=ghcr.io/$GHCR_OWNER/$BACKEND_IMAGE_NAME \
               --set backend.image.tag="$IMAGE_TAG" \
-              --set imagePullSecrets[0].name=ghcr-pull-secret
+              --set imagePullSecrets[0].name=ghcr-pull-secret \
+              --set app.environment="$ENVIRONMENT" \
+              --set app.baseUrl="https://$APP_HOST" \
+              --set auth.mode="$AUTH_MODE" \
+              --set auth.googleSecretName="google-oauth"
           EOF
 
       - name: Publish deployment URL

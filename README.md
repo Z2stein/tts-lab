@@ -44,6 +44,9 @@ Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
 - Routing:
   - `/` → Frontend Service
   - `/api` → Backend Service
+  - `/oauth2` → Backend Service
+  - `/login/oauth2` → Backend Service
+  - `/logout` → Backend Service
 - Backend-Alias-Service `backend` bleibt standardmäßig aktiv für `http://backend:8080` im Frontend-Container.
 
 ### In-Repo TLS activation
@@ -135,3 +138,52 @@ Bewusst unterstützte Fälle für `POST /api/text-length`:
 - Große Inputs (z. B. 10.000 Zeichen) werden verarbeitet.
 - Ungültige JSON-Payloads werden mit HTTP `400 Bad Request` abgelehnt.
 - Fehlende `text`-Property wird wie `null` behandelt und liefert `length = 0`.
+
+## Authentication modes
+
+The backend supports environment-driven authentication with `AUTH_MODE`:
+
+- `AUTH_MODE=google` for stable environments (`main` and `develop` as `dev`).
+- `AUTH_MODE=mock` for feature branches and local testing.
+
+Required variables:
+
+- `AUTH_MODE` (`google|mock`)
+- `ENVIRONMENT` (`main|dev|feature|prod`)
+- `APP_BASE_URL` (external HTTPS URL)
+
+Google mode additionally requires:
+
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+
+Mock mode uses:
+
+- `MOCK_USER_ID`
+- `MOCK_USER_EMAIL`
+- `MOCK_USER_NAME`
+- `MOCK_USER_ROLES` (comma-separated)
+
+Safety guardrails:
+
+- `AUTH_MODE=mock` fails startup when `ENVIRONMENT=main` or `ENVIRONMENT=prod`.
+- `AUTH_MODE=google` fails startup when Google credentials are missing.
+
+Google redirect URI must match Spring callback path exactly:
+
+- `https://<host>/login/oauth2/code/google`
+
+The workflow `.github/workflows/deploy.yml` now sets auth by branch type:
+
+- `main` -> Google auth (`ENVIRONMENT=main`)
+- `develop` -> Google auth (`ENVIRONMENT=dev`)
+- all other branches -> mock auth (`ENVIRONMENT=feature`)
+
+Feature deployments do not create or inject Google OAuth secrets.
+
+Frontend behavior note:
+
+- On startup, the frontend first checks `/api/me` and shows a short loading state until auth is resolved. If `/api/me` fails (for example due to CORS/network issues), the UI no longer hangs in loading and falls back to unauthenticated with a visible error message and browser console logs.
+- Only authenticated users see the real app controls.
+- Unauthenticated users see only the sign-in UI, which starts OAuth via `/oauth2/authorization/google`.
+- Logged-in users also see a logout button that calls `/logout` and returns to `/`.

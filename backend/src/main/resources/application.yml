@@ -1,0 +1,12 @@
+server:
+  forward-headers-strategy: framework
+
+spring:
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:unset}
+            client-secret: ${GOOGLE_CLIENT_SECRET:unset}
+            scope: openid,email,profile

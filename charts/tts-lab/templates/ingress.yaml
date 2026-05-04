@@ -33,6 +33,27 @@ spec:
                 name: {{ include "tts-lab.fullname" $ }}-backend
                 port:
                   number: {{ $.Values.backend.service.port }}
+          - path: /oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tts-lab.fullname" $ }}-backend
+                port:
+                  number: {{ $.Values.backend.service.port }}
+          - path: /login/oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tts-lab.fullname" $ }}-backend
+                port:
+                  number: {{ $.Values.backend.service.port }}
+          - path: /logout
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tts-lab.fullname" $ }}-backend
+                port:
+                  number: {{ $.Values.backend.service.port }}
           - path: /
             pathType: Prefix
             backend:
@@ -46,6 +67,27 @@ spec:
       http:
         paths:
           - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tts-lab.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.service.port }}
+          - path: /oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tts-lab.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.service.port }}
+          - path: /login/oauth2
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tts-lab.fullname" . }}-backend
+                port:
+                  number: {{ .Values.backend.service.port }}
+          - path: /logout
             pathType: Prefix
             backend:
               service:

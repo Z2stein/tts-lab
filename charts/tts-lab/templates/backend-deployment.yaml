@@ -41,5 +41,33 @@ spec:
               port: http
             initialDelaySeconds: {{ .Values.backend.readinessProbe.initialDelaySeconds }}
             periodSeconds: {{ .Values.backend.readinessProbe.periodSeconds }}
+          env:
+            - name: AUTH_MODE
+              value: {{ .Values.auth.mode | quote }}
+            - name: ENVIRONMENT
+              value: {{ .Values.app.environment | quote }}
+            - name: APP_BASE_URL
+              value: {{ .Values.app.baseUrl | quote }}
+            {{- if eq .Values.auth.mode "google" }}
+            - name: GOOGLE_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.googleSecretName }}
+                  key: client-id
+            - name: GOOGLE_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.auth.googleSecretName }}
+                  key: client-secret
+            {{- else }}
+            - name: MOCK_USER_ID
+              value: {{ .Values.auth.mockUser.id | quote }}
+            - name: MOCK_USER_EMAIL
+              value: {{ .Values.auth.mockUser.email | quote }}
+            - name: MOCK_USER_NAME
+              value: {{ .Values.auth.mockUser.name | quote }}
+            - name: MOCK_USER_ROLES
+              value: {{ .Values.auth.mockUser.roles | quote }}
+            {{- end }}
           resources:
             {{- toYaml .Values.backend.resources | nindent 12 }}
