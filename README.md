@@ -21,6 +21,11 @@ Naming-Konventionen:
   - GHCR-Images: `<app-slug>-backend`, `<app-slug>-frontend`
 - Backward Compatibility: Wenn `APP_SLUG` fehlt oder leer ist, fällt der Workflow auf den Repository-Namen zurück; die Deployment-Skripte nutzen als letzte Fallback-Stufe `tts-lab`.
 
+Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
+
+- `repo_config.sh`: erzeugt `app_slug`, `backend_image_name`, `frontend_image_name`
+- `lib_deployment_vars.sh`: zentrale Namespace/Release/Host-Logik (wird von `scripts/lib_deployment_vars.sh` nur noch eingebunden)
+
 ## Deployment-Status
 
 **Primärer Deployment-Weg ist k3s + Helm.**

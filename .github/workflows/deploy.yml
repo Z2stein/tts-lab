@@ -15,11 +15,6 @@ permissions:
   contents: read
   packages: write
 
-env:
-  APP_SLUG: ${{ vars.APP_SLUG || github.event.repository.name }}
-  BACKEND_IMAGE_NAME: ${{ format('{0}-backend', vars.APP_SLUG || github.event.repository.name) }}
-  FRONTEND_IMAGE_NAME: ${{ format('{0}-frontend', vars.APP_SLUG || github.event.repository.name) }}
-
 jobs:
   build:
     if: github.event_name == 'push'
@@ -30,9 +25,21 @@ jobs:
       host: ${{ steps.vars.outputs.host }}
       image_tag: ${{ steps.vars.outputs.image_tag }}
       owner: ${{ steps.registry.outputs.owner }}
+      app_slug: ${{ steps.repo_config.outputs.app_slug }}
+      backend_image_name: ${{ steps.repo_config.outputs.backend_image_name }}
+      frontend_image_name: ${{ steps.repo_config.outputs.frontend_image_name }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Compute shared repo config
+        id: repo_config
+        env:
+          APP_SLUG: ${{ vars.APP_SLUG }}
+          REPO_NAME: ${{ github.event.repository.name }}
+        run: |
+          set -euo pipefail
+          shared/deployment/repo_config.sh "$APP_SLUG" "$REPO_NAME" >> "$GITHUB_OUTPUT"
 
       - name: Compute deployment variables
         id: vars
@@ -40,7 +47,7 @@ jobs:
           BRANCH_NAME: ${{ github.ref_name }}
           SERVER_IP: ${{ vars.HETZNER_HOST }}
           GIT_SHA: ${{ github.sha }}
-          APP_SLUG: ${{ env.APP_SLUG }}
+          APP_SLUG: ${{ steps.repo_config.outputs.app_slug }}
         run: |
           set -euo pipefail
           SERVER_IP="${SERVER_IP:-${{ vars.HETZNER_HOST }}}"
@@ -69,8 +76,8 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.vars.outputs.image_tag }}
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ env.BACKEND_IMAGE_NAME }}:${{ steps.vars.outputs.branch_alias_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ needs.build.outputs.backend_image_name }}:${{ steps.vars.outputs.image_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ needs.build.outputs.backend_image_name }}:${{ steps.vars.outputs.branch_alias_tag }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -79,8 +86,8 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.vars.outputs.image_tag }}
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ env.FRONTEND_IMAGE_NAME }}:${{ steps.vars.outputs.branch_alias_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ needs.build.outputs.frontend_image_name }}:${{ steps.vars.outputs.image_tag }}
+            ghcr.io/${{ steps.registry.outputs.owner }}/${{ needs.build.outputs.frontend_image_name }}:${{ steps.vars.outputs.branch_alias_tag }}
 
   deploy:
     if: github.event_name == 'push'
@@ -111,8 +118,8 @@ jobs:
           GHCR_USERNAME: ${{ github.actor }}
           GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
           GHCR_OWNER: ${{ needs.build.outputs.owner }}
-          BACKEND_IMAGE_NAME: ${{ env.BACKEND_IMAGE_NAME }}
-          FRONTEND_IMAGE_NAME: ${{ env.FRONTEND_IMAGE_NAME }}
+          BACKEND_IMAGE_NAME: ${{ needs.build.outputs.backend_image_name }}
+          FRONTEND_IMAGE_NAME: ${{ needs.build.outputs.frontend_image_name }}
         run: |
           set -euo pipefail
           ssh "$USER@$HOST" "mkdir -p /opt/tts-lab/charts"
