@@ -183,5 +183,7 @@ Feature deployments do not create or inject Google OAuth secrets.
 
 Frontend behavior note:
 
-- If `/api/me` is not authenticated yet, the app now shows a visible **Sign in with Google** button.
-- The button starts the OAuth flow via `/oauth2/authorization/google`.
+- On startup, the frontend first checks `/api/me` and shows a short loading state until auth is resolved.
+- Only authenticated users see the real app controls.
+- Unauthenticated users see only the sign-in UI, which starts OAuth via `/oauth2/authorization/google`.
+- Logged-in users also see a logout button that calls `/logout` and returns to `/`.

@@ -1,15 +1,21 @@
 <main>
   <h1>Text Length App</h1>
-  <p *ngIf="currentUser">Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</p>
-  <button *ngIf="!currentUser" type="button" (click)="loginWithGoogle()">Sign in with Google</button>
-  <button *ngIf="currentUser" type="button" (click)="logout()">Logout</button>
+  <p *ngIf="authStatus === 'loading'">Loading...</p>
+  <ng-container *ngIf="authStatus === 'unauthenticated'">
+    <p>Please sign in to use the app.</p>
+    <button type="button" (click)="loginWithGoogle()">Sign in with Google</button>
+  </ng-container>
+  <ng-container *ngIf="authStatus === 'authenticated' && currentUser">
+    <p>Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</p>
+    <button type="button" (click)="logout()">Logout</button>
 
-  <form (ngSubmit)="submit()">
-    <label for="text">Text</label>
-    <input id="text" [formControl]="textControl" />
-    <button type="submit">Check length</button>
-  </form>
+    <form (ngSubmit)="submit()">
+      <label for="text">Text</label>
+      <input id="text" [formControl]="textControl" />
+      <button type="submit">Check length</button>
+    </form>
 
-  <p *ngIf="length !== null">Length: {{ length }}</p>
-  <p *ngIf="error">{{ error }}</p>
+    <p *ngIf="length !== null">Length: {{ length }}</p>
+    <p *ngIf="error">{{ error }}</p>
+  </ng-container>
 </main>

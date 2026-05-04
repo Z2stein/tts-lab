@@ -12,6 +12,7 @@ import { TextLengthService } from './text-length.service';
   styleUrl: './app.component.css'
 })
 export class AppComponent implements OnInit {
+  authStatus: 'loading' | 'authenticated' | 'unauthenticated' = 'loading';
   textControl = new FormControl('', { nonNullable: true });
   length: number | null = null;
   error: string | null = null;
@@ -24,6 +25,7 @@ export class AppComponent implements OnInit {
 
   async ngOnInit(): Promise<void> {
     this.currentUser = await this.currentUserService.getCurrentUser();
+    this.authStatus = this.currentUser ? 'authenticated' : 'unauthenticated';
   }
 
   async submit(): Promise<void> {
