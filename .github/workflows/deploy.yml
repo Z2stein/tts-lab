@@ -16,7 +16,7 @@ permissions:
   packages: write
 
 jobs:
-  build:
+  prepare-build:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
     outputs:
@@ -24,6 +24,7 @@ jobs:
       release_name: ${{ steps.vars.outputs.release_name }}
       host: ${{ steps.vars.outputs.host }}
       image_tag: ${{ steps.vars.outputs.image_tag }}
+      branch_alias_tag: ${{ steps.vars.outputs.branch_alias_tag }}
       owner: ${{ steps.registry.outputs.owner }}
       app_slug: ${{ steps.repo_config.outputs.app_slug }}
       backend_image_name: ${{ steps.repo_config.outputs.backend_image_name }}
@@ -73,6 +74,14 @@ jobs:
           set -euo pipefail
           echo "owner=$(echo "$REPO_OWNER" | tr '[:upper:]' '[:lower:]')" >> "$GITHUB_OUTPUT"
 
+  build-backend:
+    if: github.event_name == 'push'
+    needs: prepare-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Log in to GHCR
         uses: docker/login-action@v3
         with:
@@ -87,8 +96,28 @@ jobs:
           file: ./backend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.backend_image_name }}:${{ steps.vars.outputs.image_tag }}
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.backend_image_name }}:${{ steps.vars.outputs.branch_alias_tag }}
+            ghcr.io/${{ needs.prepare-build.outputs.owner }}/${{ needs.prepare-build.outputs.backend_image_name }}:${{ needs.prepare-build.outputs.image_tag }}
+            ghcr.io/${{ needs.prepare-build.outputs.owner }}/${{ needs.prepare-build.outputs.backend_image_name }}:${{ needs.prepare-build.outputs.branch_alias_tag }}
+
+      - name: Verify pushed backend image is pullable
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "ghcr.io/${{ needs.prepare-build.outputs.owner }}/${{ needs.prepare-build.outputs.backend_image_name }}:${{ needs.prepare-build.outputs.image_tag }}" >/dev/null
+
+  build-frontend:
+    if: github.event_name == 'push'
+    needs: prepare-build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ vars.GHCR_USER }}
+          password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Build and push frontend image
         uses: docker/build-push-action@v6
@@ -97,18 +126,17 @@ jobs:
           file: ./frontend/Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.frontend_image_name }}:${{ steps.vars.outputs.image_tag }}
-            ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.frontend_image_name }}:${{ steps.vars.outputs.branch_alias_tag }}
+            ghcr.io/${{ needs.prepare-build.outputs.owner }}/${{ needs.prepare-build.outputs.frontend_image_name }}:${{ needs.prepare-build.outputs.image_tag }}
+            ghcr.io/${{ needs.prepare-build.outputs.owner }}/${{ needs.prepare-build.outputs.frontend_image_name }}:${{ needs.prepare-build.outputs.branch_alias_tag }}
 
-      - name: Verify pushed images are pullable
+      - name: Verify pushed frontend image is pullable
         run: |
           set -euo pipefail
-          docker buildx imagetools inspect "ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.backend_image_name }}:${{ steps.vars.outputs.image_tag }}" >/dev/null
-          docker buildx imagetools inspect "ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.frontend_image_name }}:${{ steps.vars.outputs.image_tag }}" >/dev/null
+          docker buildx imagetools inspect "ghcr.io/${{ needs.prepare-build.outputs.owner }}/${{ needs.prepare-build.outputs.frontend_image_name }}:${{ needs.prepare-build.outputs.image_tag }}" >/dev/null
 
   deploy:
     if: github.event_name == 'push'
-    needs: build
+    needs: [prepare-build, build-backend, build-frontend]
     runs-on: ubuntu-latest
     concurrency:
       group: deploy-${{ github.ref_name }}
@@ -143,15 +171,15 @@ jobs:
         env:
           HOST: ${{ vars.HETZNER_HOST }}
           USER: ${{ secrets.HETZNER_USER }}
-          NAMESPACE: ${{ needs.build.outputs.namespace }}
-          RELEASE_NAME: ${{ needs.build.outputs.release_name }}
-          APP_HOST: ${{ needs.build.outputs.host }}
-          IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
+          NAMESPACE: ${{ needs.prepare-build.outputs.namespace }}
+          RELEASE_NAME: ${{ needs.prepare-build.outputs.release_name }}
+          APP_HOST: ${{ needs.prepare-build.outputs.host }}
+          IMAGE_TAG: ${{ needs.prepare-build.outputs.image_tag }}
           GHCR_USERNAME: ${{ vars.GHCR_USER }}
           GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN }}
-          GHCR_OWNER: ${{ needs.build.outputs.owner }}
-          BACKEND_IMAGE_NAME: ${{ needs.build.outputs.backend_image_name }}
-          FRONTEND_IMAGE_NAME: ${{ needs.build.outputs.frontend_image_name }}
+          GHCR_OWNER: ${{ needs.prepare-build.outputs.owner }}
+          BACKEND_IMAGE_NAME: ${{ needs.prepare-build.outputs.backend_image_name }}
+          FRONTEND_IMAGE_NAME: ${{ needs.prepare-build.outputs.frontend_image_name }}
         run: |
           set -euo pipefail
           ssh "$USER@$HOST" "mkdir -p /opt/tts-lab/charts"
@@ -192,9 +220,9 @@ jobs:
           {
             echo "### Deployment Summary"
             echo ""
-            echo "**URL:** [http://${{ needs.build.outputs.host }}](http://${{ needs.build.outputs.host }})"
+            echo "**URL:** [http://${{ needs.prepare-build.outputs.host }}](http://${{ needs.prepare-build.outputs.host }})"
           } >> "$GITHUB_STEP_SUMMARY"
-          echo "::notice title=Deployment URL::http://${{ needs.build.outputs.host }}"
+          echo "::notice title=Deployment URL::http://${{ needs.prepare-build.outputs.host }}"
 
   cleanup-feature:
     if: github.event_name == 'delete' || (github.event_name == 'pull_request' && github.event.action == 'closed')
