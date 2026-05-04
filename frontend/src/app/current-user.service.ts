@@ -11,13 +11,16 @@ export type CurrentUser = {
 @Injectable({ providedIn: 'root' })
 export class CurrentUserService {
   async getCurrentUser(): Promise<CurrentUser | null> {
-    const response = await fetch('/api/me');
-    if (response.status === 401) {
+    const response = await fetch('/api/me', { redirect: 'follow' });
+    if (response.status === 401 || response.redirected) {
       return null;
     }
-    if (!response.ok) {
-      throw new Error('Failed to load current user.');
+
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!response.ok || !contentType.includes('application/json')) {
+      return null;
     }
+
     return (await response.json()) as CurrentUser;
   }
 }
