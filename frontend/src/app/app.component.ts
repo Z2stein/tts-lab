@@ -36,4 +36,8 @@ export class AppComponent implements OnInit {
       this.error = e instanceof Error ? e.message : 'Unknown error.';
     }
   }
+
+  loginWithGoogle(): void {
+    this.currentUserService.startGoogleLogin();
+  }
 }

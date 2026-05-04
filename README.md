@@ -177,3 +177,8 @@ The workflow `.github/workflows/deploy.yml` now sets auth by branch type:
 - all other branches -> mock auth (`ENVIRONMENT=feature`)
 
 Feature deployments do not create or inject Google OAuth secrets.
+
+Frontend behavior note:
+
+- If `/api/me` is not authenticated yet, the app now shows a visible **Sign in with Google** button.
+- The button starts the OAuth flow via `/oauth2/authorization/google`.
