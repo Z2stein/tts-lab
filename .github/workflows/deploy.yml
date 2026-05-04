@@ -76,7 +76,7 @@ jobs:
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: ${{ vars.GHCR_USER }}
           password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Build and push backend image
@@ -141,7 +141,7 @@ jobs:
           RELEASE_NAME: ${{ needs.build.outputs.release_name }}
           APP_HOST: ${{ needs.build.outputs.host }}
           IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
-          GHCR_USERNAME: ${{ github.actor }}
+          GHCR_USERNAME: ${{ vars.GHCR_USER }}
           GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN }}
           GHCR_OWNER: ${{ needs.build.outputs.owner }}
           BACKEND_IMAGE_NAME: ${{ needs.build.outputs.backend_image_name }}
