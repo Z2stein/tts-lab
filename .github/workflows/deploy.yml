@@ -89,6 +89,12 @@ jobs:
             ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.frontend_image_name }}:${{ steps.vars.outputs.image_tag }}
             ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.frontend_image_name }}:${{ steps.vars.outputs.branch_alias_tag }}
 
+      - name: Verify pushed images are pullable
+        run: |
+          set -euo pipefail
+          docker buildx imagetools inspect "ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.backend_image_name }}:${{ steps.vars.outputs.image_tag }}" >/dev/null
+          docker buildx imagetools inspect "ghcr.io/${{ steps.registry.outputs.owner }}/${{ steps.repo_config.outputs.frontend_image_name }}:${{ steps.vars.outputs.image_tag }}" >/dev/null
+
   deploy:
     if: github.event_name == 'push'
     needs: build
