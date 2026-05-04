@@ -29,6 +29,16 @@ jobs:
       backend_image_name: ${{ steps.repo_config.outputs.backend_image_name }}
       frontend_image_name: ${{ steps.repo_config.outputs.frontend_image_name }}
     steps:
+      - name: Validate required GHCR token
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GHCR_TOKEN}" ]; then
+            echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token before running deployments."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -67,7 +77,7 @@ jobs:
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+          password: ${{ secrets.GHCR_TOKEN }}
 
       - name: Build and push backend image
         uses: docker/build-push-action@v6
@@ -103,6 +113,16 @@ jobs:
       group: deploy-${{ github.ref_name }}
       cancel-in-progress: false
     steps:
+      - name: Validate required GHCR token
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -z "${GHCR_TOKEN}" ]; then
+            echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token before running deployments."
+            exit 1
+          fi
+
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -122,7 +142,7 @@ jobs:
           APP_HOST: ${{ needs.build.outputs.host }}
           IMAGE_TAG: ${{ needs.build.outputs.image_tag }}
           GHCR_USERNAME: ${{ github.actor }}
-          GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}
+          GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN }}
           GHCR_OWNER: ${{ needs.build.outputs.owner }}
           BACKEND_IMAGE_NAME: ${{ needs.build.outputs.backend_image_name }}
           FRONTEND_IMAGE_NAME: ${{ needs.build.outputs.frontend_image_name }}

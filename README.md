@@ -46,6 +46,17 @@ Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
   - `/api` → Backend Service
 - Backend-Alias-Service `backend` bleibt standardmäßig aktiv für `http://backend:8080` im Frontend-Container.
 
+### In-Repo TLS activation
+
+TLS im Ingress kann direkt per Helm-Values aktiviert werden:
+
+- `ingress.tls.enabled=true`
+- `ingress.tls.secretName=<tls-secret-name>`
+- `ingress.annotations.cert-manager.io/cluster-issuer=<issuer-name>` (z. B. `letsencrypt-prod`)
+
+Der Ingress verwendet weiterhin `ingress.host` als Host für `rules` und TLS-Mapping.
+Externe Voraussetzungen sind im Abschnitt **HTTPS-Voraussetzungen außerhalb des Repos (Status)** dokumentiert.
+
 ## Ziel-Umgebungen
 
 - `main`
