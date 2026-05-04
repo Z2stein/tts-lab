@@ -4,49 +4,18 @@ on:
   push:
     branches:
       - '**'
-  pull_request:
-    types:
-      - opened
-      - synchronize
-      - reopened
-      - ready_for_review
-      - closed
   delete:
     branches:
       - '**'
+  pull_request:
+    types:
+      - closed
 
 permissions:
   contents: read
   packages: write
 
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.head.ref || github.ref_name || github.event.ref || github.run_id }}
-  cancel-in-progress: true
-
 jobs:
-
-  validate:
-    if: github.event_name == 'pull_request' && github.event.action != 'closed'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
-
-      - name: Build backend image (validation only)
-        uses: docker/build-push-action@v6
-        with:
-          context: ./backend
-          file: ./backend/Dockerfile
-          push: false
-
-      - name: Build frontend image (validation only)
-        uses: docker/build-push-action@v6
-        with:
-          context: ./frontend
-          file: ./frontend/Dockerfile
-          push: false
-
   deploy:
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
