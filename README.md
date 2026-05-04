@@ -62,15 +62,15 @@ Externe Voraussetzungen sind im Abschnitt **HTTPS-Voraussetzungen außerhalb des
 - `main`
   - Namespace: `<app-slug>`
   - Release: `<app-slug>`
-  - URL: `http://<app-slug>.178.105.41.67.sslip.io`
+  - URL: `https://<app-slug>.178.105.41.67.sslip.io`
 - `develop`
   - Namespace: `<app-slug>-dev`
   - Release: `<app-slug>-dev`
-  - URL: `http://dev.<app-slug>.178.105.41.67.sslip.io`
+  - URL: `https://dev.<app-slug>.178.105.41.67.sslip.io`
 - Feature-Branches
   - Namespace: `<app-slug>-<branch-slug>`
   - Release: `<app-slug>-<branch-slug>`
-  - URL: `http://<branch-slug>.<app-slug>.178.105.41.67.sslip.io`
+  - URL: `https://<branch-slug>.<app-slug>.178.105.41.67.sslip.io`
 
 ## Branch-Slug-Regel
 
