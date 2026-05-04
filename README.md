@@ -44,6 +44,9 @@ Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
 - Routing:
   - `/` → Frontend Service
   - `/api` → Backend Service
+  - `/oauth2` → Backend Service
+  - `/login/oauth2` → Backend Service
+  - `/logout` → Backend Service
 - Backend-Alias-Service `backend` bleibt standardmäßig aktiv für `http://backend:8080` im Frontend-Container.
 
 ### In-Repo TLS activation
@@ -177,3 +180,8 @@ The workflow `.github/workflows/deploy.yml` now sets auth by branch type:
 - all other branches -> mock auth (`ENVIRONMENT=feature`)
 
 Feature deployments do not create or inject Google OAuth secrets.
+
+Frontend behavior note:
+
+- If `/api/me` is not authenticated yet, the app now shows a visible **Sign in with Google** button.
+- The button starts the OAuth flow via `/oauth2/authorization/google`.

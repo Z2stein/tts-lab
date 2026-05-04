@@ -23,4 +23,8 @@ export class CurrentUserService {
 
     return (await response.json()) as CurrentUser;
   }
+
+  startGoogleLogin(): void {
+    window.location.href = '/oauth2/authorization/google';
+  }
 }
