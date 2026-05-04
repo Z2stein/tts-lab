@@ -27,4 +27,8 @@ export class CurrentUserService {
   startGoogleLogin(): void {
     window.location.href = '/oauth2/authorization/google';
   }
+
+  startLogout(): void {
+    window.location.href = '/logout';
+  }
 }
