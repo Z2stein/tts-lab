@@ -1,0 +1,17 @@
+<button type="button" class="chat-toggle" (click)="toggle()">{{ isOpen ? 'Close chat' : 'Open chat' }}</button>
+
+<section *ngIf="isOpen" class="chatbox">
+  <div class="messages">
+    <p *ngFor="let message of messages" [class.user]="message.role === 'user'" [class.assistant]="message.role === 'assistant'">
+      <strong>{{ message.role === 'user' ? 'You' : 'Assistant' }}:</strong> {{ message.text }}
+    </p>
+  </div>
+
+  <p *ngIf="loading">Thinking...</p>
+  <p *ngIf="error" class="error">{{ error }}</p>
+
+  <div class="controls">
+    <input [(ngModel)]="input" placeholder="Ask something..." />
+    <button type="button" (click)="send()" [disabled]="loading || !input.trim()">Send</button>
+  </div>
+</section>

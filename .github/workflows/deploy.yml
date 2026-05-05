@@ -150,6 +150,7 @@ jobs:
           HETZNER_HOST: ${{ vars.HETZNER_HOST }}
           HETZNER_USER: ${{ secrets.HETZNER_USER }}
           HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           set -euo pipefail
           [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
@@ -157,6 +158,7 @@ jobs:
           [ -n "${HETZNER_HOST}" ] || { echo "::error title=Missing HETZNER_HOST::Set repository variable HETZNER_HOST for deployment target host."; exit 1; }
           [ -n "${HETZNER_USER}" ] || { echo "::error title=Missing HETZNER_USER::Set repository secret HETZNER_USER for SSH deploy user."; exit 1; }
           [ -n "${HETZNER_SSH_KEY}" ] || { echo "::error title=Missing HETZNER_SSH_KEY::Set repository secret HETZNER_SSH_KEY for SSH authentication."; exit 1; }
+          [ -n "${GEMINI_API_KEY}" ] || { echo "::error title=Missing GEMINI_API_KEY::Set repository secret GEMINI_API_KEY for chatbot backend runtime."; exit 1; }
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -184,12 +186,13 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           FRONTEND_IMAGE_NAME: ${{ needs.prepare-build.outputs.frontend_image_name }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: |
           set -euo pipefail
           ssh "$USER@$HOST" "mkdir -p /opt/tts-lab/charts"
           scp -r charts/tts-lab "$USER@$HOST:/opt/tts-lab/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" <<'EOF'
+          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -203,6 +206,7 @@ jobs:
             DEPLOY_TYPE="${10}"
             GOOGLE_CLIENT_ID="${11}"
             GOOGLE_CLIENT_SECRET="${12}"
+            GEMINI_API_KEY="${13}"
 
             if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
               AUTH_MODE="google"
@@ -220,6 +224,10 @@ jobs:
                 --from-literal=client-secret="$GOOGLE_CLIENT_SECRET" \
                 --dry-run=client -o yaml | kubectl apply -f -
             fi
+
+            kubectl -n "$NAMESPACE" create secret generic gemini-api \
+              --from-literal=api-key="$GEMINI_API_KEY" \
+              --dry-run=client -o yaml | kubectl apply -f -
 
             kubectl -n "$NAMESPACE" create secret docker-registry ghcr-pull-secret \
               --docker-server=ghcr.io \
@@ -240,7 +248,8 @@ jobs:
               --set app.environment="$ENVIRONMENT" \
               --set app.baseUrl="https://$APP_HOST" \
               --set auth.mode="$AUTH_MODE" \
-              --set auth.googleSecretName="google-oauth"
+              --set auth.googleSecretName="google-oauth" \
+              --set chat.geminiSecretName="gemini-api"
           EOF
 
       - name: Publish deployment URL

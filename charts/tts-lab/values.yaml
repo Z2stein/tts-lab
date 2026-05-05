@@ -68,3 +68,6 @@ auth:
     email: mock.user@example.com
     name: Mock User
     roles: USER
+
+chat:
+  geminiSecretName: gemini-api

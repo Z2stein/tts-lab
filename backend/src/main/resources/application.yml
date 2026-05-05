@@ -10,3 +10,13 @@ spring:
             client-id: ${GOOGLE_CLIENT_ID:unset}
             client-secret: ${GOOGLE_CLIENT_SECRET:unset}
             scope: openid,email,profile
+
+  ai:
+    model:
+      chat: google-genai
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY:}
+        chat:
+          options:
+            model: gemini-3.1-flash-lite-preview

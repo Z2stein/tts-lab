@@ -11,7 +11,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = {"AUTH_MODE=mock", "ENVIRONMENT=feature", "MOCK_USER_ID=123", "MOCK_USER_EMAIL=test.user@example.com", "MOCK_USER_NAME=Test User", "MOCK_USER_ROLES=USER,ADMIN"})
+@SpringBootTest(properties = {"AUTH_MODE=mock", "ENVIRONMENT=feature", "MOCK_USER_ID=123", "MOCK_USER_EMAIL=test.user@example.com", "MOCK_USER_NAME=Test User", "MOCK_USER_ROLES=USER,ADMIN", "spring.ai.model.chat=google-genai", "spring.autoconfigure.exclude=org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration"})
 @AutoConfigureMockMvc
 class MeControllerMockModeTest {
     @Autowired MockMvc mockMvc;

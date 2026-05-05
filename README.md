@@ -187,3 +187,33 @@ Frontend behavior note:
 - Only authenticated users see the real app controls.
 - Unauthenticated users see only the sign-in UI, which starts OAuth via `/oauth2/authorization/google`.
 - Logged-in users also see a logout button that calls `/logout` and returns to `/`.
+
+## Chatbot (MVP)
+
+The frontend now includes a reusable chatbot widget component that calls `POST /api/chat` on the backend. The frontend never calls Gemini directly.
+
+### Required secret
+
+- `GEMINI_API_KEY` must be configured as a GitHub Actions repository secret.
+- The deployment workflow injects this key into Kubernetes as a Secret and maps it to backend env var `GEMINI_API_KEY`.
+- The key is available to backend runtime only and is not exposed to Angular.
+
+### Local development
+
+Set Gemini key before starting backend:
+
+```bash
+export GEMINI_API_KEY=your-gemini-api-key
+cd backend
+./gradlew bootRun
+```
+
+Then run frontend normally:
+
+```bash
+cd frontend
+npm install
+npm start
+```
+
+Automated backend/frontend tests use mocks and do not call Gemini APIs.

@@ -28,6 +28,9 @@ class AuthConfigValidationTest {
     }
 
     private ConfigurableApplicationContext run(String... props) {
-        return new SpringApplicationBuilder(TtsLabApplication.class).properties(props).run();
+        String[] baseProps = new String[]{"spring.ai.model.chat=google-genai", "spring.autoconfigure.exclude=org.springframework.ai.model.google.genai.autoconfigure.chat.GoogleGenAiChatAutoConfiguration"};
+        String[] allProps = java.util.stream.Stream.concat(java.util.Arrays.stream(baseProps), java.util.Arrays.stream(props))
+            .toArray(String[]::new);
+        return new SpringApplicationBuilder(TtsLabApplication.class).properties(allProps).run();
     }
 }
