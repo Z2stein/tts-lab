@@ -38,8 +38,8 @@ export class ChatbotWidgetComponent {
       const response = await this.chatbotService.sendMessage(message, this.conversationId);
       this.conversationId = response.conversationId;
       this.messages.push({ role: 'assistant', text: response.answer });
-    } catch {
-      this.error = 'Chatbot is currently unavailable.';
+    } catch (error) {
+      this.error = error instanceof Error ? error.message : 'Chatbot is currently unavailable.';
     } finally {
       this.loading = false;
     }

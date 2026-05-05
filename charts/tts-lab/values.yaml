@@ -79,5 +79,5 @@ chatbot:
   rateLimit:
     enabled: true
     window: 1h
-    maxRequests: 100
+    maxRequests: 5
     idHeader: X-User-Id
