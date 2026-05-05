@@ -16,10 +16,6 @@ public class ChatUsageIdentityResolver {
             }
         }
 
-        String apiKeyId = request.getHeader("X-Api-Key-Id");
-        if (apiKeyId != null && !apiKeyId.isBlank()) {
-            return apiKeyId;
-        }
 
         String headerValue = request.getHeader(configuredHeader);
         if (headerValue != null && !headerValue.isBlank()) {

@@ -30,6 +30,17 @@ class ChatUsageIdentityResolverTest {
         assertEquals("header-user", resolver.resolve(null, request, "X-Custom-Id"));
     }
 
+
+    @Test
+    void apiKeyHeaderIsIgnoredUntilApiKeyAuthExists() {
+        ChatUsageIdentityResolver resolver = new ChatUsageIdentityResolver();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-Api-Key-Id", "api-key-user");
+        request.addHeader("X-User-Id", "configured-header-user");
+
+        assertEquals("configured-header-user", resolver.resolve(null, request, "X-User-Id"));
+    }
+
     @Test
     void ipFallbackWorks() {
         ChatUsageIdentityResolver resolver = new ChatUsageIdentityResolver();

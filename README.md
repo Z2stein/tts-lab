@@ -262,9 +262,8 @@ chatbot:
 Identity resolution order:
 
 1. Authenticated principal id (`sub`)
-2. `X-Api-Key-Id` header (if present)
-3. Configured header (`CHAT_LIMIT_ID_HEADER`)
-4. Client IP fallback
+2. Configured header (`CHAT_LIMIT_ID_HEADER`)
+3. Client IP fallback
 
 When exceeded, backend returns HTTP `429` with `Retry-After` and JSON:
 
