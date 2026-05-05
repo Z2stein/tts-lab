@@ -50,6 +50,10 @@ spec:
               value: {{ .Values.app.baseUrl | quote }}
             - name: CHATBOT_PROVIDER
               value: {{ .Values.chat.provider | quote }}
+            {{- if eq .Values.chat.provider "gemini" }}
+            - name: SPRING_AI_MODEL_CHAT
+              value: "google-genai"
+            {{- end }}
             - name: SPRING_AI_GOOGLE_GENAI_CHAT_OPTIONS_MODEL
               value: {{ .Values.chat.geminiModel | quote }}
             {{- if eq .Values.chat.provider "gemini" }}
