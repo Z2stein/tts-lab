@@ -24,3 +24,9 @@ spring:
 
 chatbot:
   provider: ${CHATBOT_PROVIDER:mock}
+
+chat-limit:
+  enabled: ${CHAT_LIMIT_ENABLED:true}
+  window: ${CHAT_LIMIT_WINDOW:1h}
+  max-requests: ${CHAT_LIMIT_MAX_REQUESTS:100}
+  id-header: ${CHAT_LIMIT_ID_HEADER:X-User-Id}

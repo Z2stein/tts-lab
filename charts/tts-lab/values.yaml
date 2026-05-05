@@ -74,3 +74,10 @@ chat:
   geminiModel: gemini-2.5-flash
   provider: gemini
   realProviderOnFeatureBranches: false
+
+chatbot:
+  rateLimit:
+    enabled: true
+    window: 1h
+    maxRequests: 100
+    idHeader: X-User-Id
