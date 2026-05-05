@@ -10,6 +10,8 @@ export type CurrentUser = {
 
 @Injectable({ providedIn: 'root' })
 export class CurrentUserService {
+  private csrfToken: string | null = null;
+
   async getCurrentUser(): Promise<CurrentUser | null> {
     console.info('[auth] Checking current user via /api/me');
 
@@ -51,8 +53,44 @@ export class CurrentUserService {
     window.location.href = '/oauth2/authorization/google';
   }
 
-  startLogout(): void {
-    console.info('[auth] Starting logout redirect');
-    window.location.href = '/logout';
+  async startLogout(): Promise<void> {
+    try {
+      const csrfToken = await this.ensureCsrfToken();
+      await fetch('/logout', {
+        method: 'POST',
+        headers: {
+          'X-XSRF-TOKEN': csrfToken
+        }
+      });
+      console.info('[auth] Logout request completed, reloading page');
+      window.location.href = '/';
+    } catch (error) {
+      console.error('[auth] Logout request failed', error);
+    }
+  }
+
+  async ensureCsrfToken(): Promise<string> {
+    if (this.csrfToken) {
+      return this.csrfToken;
+    }
+
+    await fetch('/api/me', { redirect: 'follow' });
+    const token = this.readCookie('XSRF-TOKEN');
+    if (!token) {
+      throw new Error('Missing CSRF token cookie');
+    }
+
+    this.csrfToken = token;
+    return token;
+  }
+
+  private readCookie(name: string): string | null {
+    const prefix = `${name}=`;
+    const cookie = document.cookie
+      .split(';')
+      .map((entry) => entry.trim())
+      .find((entry) => entry.startsWith(prefix));
+
+    return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null;
   }
 }
