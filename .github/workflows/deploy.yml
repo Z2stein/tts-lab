@@ -198,7 +198,7 @@ jobs:
           ssh "$USER@$HOST" "mkdir -p /opt/tts-lab/charts"
           scp -r charts/tts-lab "$USER@$HOST:/opt/tts-lab/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "$CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES" <<'EOF'
+          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -213,7 +213,7 @@ jobs:
             GOOGLE_CLIENT_ID="${11}"
             GOOGLE_CLIENT_SECRET="${12}"
             GEMINI_API_KEY="${13}"
-            CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES="${14}"
+            CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES="${14:-false}"
 
             REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
             if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
