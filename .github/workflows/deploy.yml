@@ -251,7 +251,7 @@ jobs:
               --docker-password="$GHCR_PASSWORD" \
               --dry-run=client -o yaml | kubectl apply -f -
 
-            helm upgrade --install "$RELEASE_NAME" /opt/tts-lab/charts/tts-lab \
+            helm upgrade --install --force "$RELEASE_NAME" /opt/tts-lab/charts/tts-lab \
               --namespace "$NAMESPACE" \
               --set ingress.host="$APP_HOST" \
               --set ingress.tls.enabled=true \
