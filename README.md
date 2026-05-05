@@ -245,7 +245,7 @@ Spring env vars:
 
 - `CHAT_LIMIT_ENABLED` (default `true`)
 - `CHAT_LIMIT_WINDOW` (default `1h`)
-- `CHAT_LIMIT_MAX_REQUESTS` (default `100`)
+- `CHAT_LIMIT_MAX_REQUESTS` (default `5`)
 - `CHAT_LIMIT_ID_HEADER` (default `X-User-Id`)
 
 Helm values:
@@ -255,7 +255,7 @@ chatbot:
   rateLimit:
     enabled: true
     window: 1h
-    maxRequests: 100
+    maxRequests: 5
     idHeader: X-User-Id
 ```
 
@@ -274,7 +274,7 @@ When exceeded, backend returns HTTP `429` with `Retry-After` and JSON:
   "retry_after": 1234,
   "limit": {
     "window": "PT1H",
-    "max_requests": 100
+    "max_requests": 5
   }
 }
 ```
