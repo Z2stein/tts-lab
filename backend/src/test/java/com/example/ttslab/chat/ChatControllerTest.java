@@ -56,7 +56,7 @@ class ChatControllerTest {
 
     @Test
     void providerErrorReturnsControlledError() throws Exception {
-        when(chatService.ask(any())).thenThrow(new ChatProviderException("x", new RuntimeException("boom")));
+        when(chatService.ask(any())).thenThrow(new ChatProviderException("x", new RuntimeException("boom"), false));
 
         mockMvc.perform(post("/api/chat")
                 .contentType(MediaType.APPLICATION_JSON)

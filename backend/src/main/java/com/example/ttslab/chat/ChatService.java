@@ -16,7 +16,7 @@ public class ChatService {
 
     public ChatResponse ask(ChatRequest request) {
         if (chatModel == null) {
-            throw new ChatProviderException("Chat provider not configured", null);
+            throw new ChatProviderException("Chat provider not configured", null, true);
         }
         try {
             String answer = chatModel.call(new Prompt(new UserMessage(request.message()))).getResult().getOutput().getText();
@@ -25,7 +25,7 @@ public class ChatService {
                 : request.conversationId();
             return new ChatResponse(answer == null ? "" : answer, conversationId);
         } catch (Exception ex) {
-            throw new ChatProviderException("AI provider failed", ex);
+            throw new ChatProviderException("AI provider failed", ex, false);
         }
     }
 }

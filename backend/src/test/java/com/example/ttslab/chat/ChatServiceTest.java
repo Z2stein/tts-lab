@@ -36,6 +36,17 @@ class ChatServiceTest {
         when(chatModel.call(any(Prompt.class))).thenThrow(new RuntimeException("down"));
 
         ChatService service = new ChatService(provider);
-        assertThrows(ChatProviderException.class, () -> service.ask(new ChatRequest("hello", "c-1")));
+        ChatProviderException ex = assertThrows(ChatProviderException.class, () -> service.ask(new ChatRequest("hello", "c-1")));
+        assertFalse(ex.chatModelMissing());
+    }
+
+    @Test
+    void chatModelMissingWhenUnconfigured() {
+        ObjectProvider<ChatModel> provider = mock(ObjectProvider.class);
+        when(provider.getIfAvailable()).thenReturn(null);
+
+        ChatService service = new ChatService(provider);
+        ChatProviderException ex = assertThrows(ChatProviderException.class, () -> service.ask(new ChatRequest("hello", null)));
+        assertTrue(ex.chatModelMissing());
     }
 }
