@@ -17,13 +17,13 @@ class ChatServiceTest {
     @Test
     void mockProviderReturnsDeterministicResponseWithoutChatModel() {
         ObjectProvider<ChatModel> provider = mock(ObjectProvider.class);
-        when(provider.getIfAvailable()).thenReturn(null);
 
         ChatService service = new ChatService(provider, "mock");
         com.example.ttslab.chat.ChatResponse response = service.ask(new ChatRequest("hello", "c-1"));
 
         assertEquals("[mock] Echo: hello", response.answer());
         assertEquals("c-1", response.conversationId());
+        verify(provider, never()).getIfAvailable();
     }
 
     @Test
