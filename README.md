@@ -192,17 +192,33 @@ Frontend behavior note:
 
 The frontend now includes a reusable chatbot widget component that calls `POST /api/chat` on the backend. The frontend never calls Gemini directly.
 
+### Helm/runtime configuration
+
+- `chat.geminiModel` controls the Gemini model (`gemini-2.5-flash` by default).
+- `chat.provider` controls backend runtime provider (`gemini` or `mock`).
+- `chat.realProviderOnFeatureBranches` defaults to `false` and is used by the deploy workflow to keep feature branches in mock chatbot mode by default.
+- The frontend remains provider-agnostic and always calls `POST /api/chat`.
+
 ### Required secret
 
-- `GEMINI_API_KEY` must be configured as a GitHub Actions repository secret.
-- The deployment workflow injects this key into Kubernetes as a Secret and maps it to backend env var `GEMINI_API_KEY`.
-- The key is available to backend runtime only and is not exposed to Angular.
+- `GEMINI_API_KEY` is required for `main` and `develop` deployments (provider = `gemini`).
+- Feature branch deployments run with provider = `mock` by default, so `GEMINI_API_KEY` is not required in that default mode.
+- If feature branches explicitly enable the real provider (`CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES=true` in GitHub Actions variables), then `GEMINI_API_KEY` is required there as well.
+- The key is injected via Kubernetes `secretKeyRef` only and is never exposed to Angular.
 
 ### Local development
 
-Set Gemini key before starting backend:
+Mock chatbot is the safe default for local runs:
 
 ```bash
+cd backend
+./gradlew bootRun
+```
+
+To test with real Gemini locally:
+
+```bash
+export CHATBOT_PROVIDER=gemini
 export GEMINI_API_KEY=your-gemini-api-key
 cd backend
 ./gradlew bootRun
