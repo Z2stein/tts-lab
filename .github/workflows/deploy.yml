@@ -218,10 +218,12 @@ jobs:
             REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
             if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
               AUTH_MODE="google"
+              AUTH_GOOGLE_SECRET_NAME="google-oauth"
               ENVIRONMENT=$([ "$DEPLOY_TYPE" = "main" ] && echo "main" || echo "dev")
               CHAT_PROVIDER="gemini"
             else
               AUTH_MODE="mock"
+              AUTH_GOOGLE_SECRET_NAME=""
               ENVIRONMENT="feature"
               if [ "$REAL_PROVIDER_ON_FEATURE_BRANCHES" = "true" ]; then
                 CHAT_PROVIDER="gemini"
@@ -262,7 +264,7 @@ jobs:
               --set app.environment="$ENVIRONMENT" \
               --set app.baseUrl="https://$APP_HOST" \
               --set auth.mode="$AUTH_MODE" \
-              --set auth.googleSecretName="google-oauth" \
+              --set auth.googleSecretName="$AUTH_GOOGLE_SECRET_NAME" \
               --set chat.geminiSecretName="gemini-api" \
               --set chat.provider="$CHAT_PROVIDER" \
               --set chat.realProviderOnFeatureBranches="$REAL_PROVIDER_ON_FEATURE_BRANCHES"
