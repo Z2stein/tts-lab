@@ -3,11 +3,12 @@ import { Component, OnInit } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { CurrentUser, CurrentUserService } from './current-user.service';
 import { TextLengthService } from './text-length.service';
+import { ChatbotWidgetComponent } from './chatbot/chatbot-widget.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ChatbotWidgetComponent],
   templateUrl: './app.component.html',
   styleUrl: './app.component.css'
 })

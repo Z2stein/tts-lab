@@ -1,0 +1,8 @@
+.chat-toggle { position: fixed; right: 1rem; bottom: 1rem; z-index: 10; }
+.chatbox { position: fixed; right: 1rem; bottom: 4rem; width: 320px; background: #fff; border: 1px solid #ccc; padding: .75rem; }
+.messages { max-height: 220px; overflow: auto; margin-bottom: .5rem; }
+.user { text-align: right; }
+.assistant { text-align: left; }
+.controls { display: flex; gap: .5rem; }
+.controls input { flex: 1; }
+.error { color: #c62828; }
