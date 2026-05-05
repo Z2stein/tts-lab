@@ -7,6 +7,8 @@ import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.mock.web.MockHttpServletRequest;
 import org.springframework.security.authentication.TestingAuthenticationToken;
+import org.springframework.security.oauth2.core.oidc.OidcIdToken;
+import org.springframework.security.oauth2.core.oidc.user.DefaultOidcUser;
 import org.springframework.security.oauth2.core.user.DefaultOAuth2User;
 
 class ChatUsageIdentityResolverTest {
@@ -19,6 +21,18 @@ class ChatUsageIdentityResolverTest {
         DefaultOAuth2User principal = new DefaultOAuth2User(java.util.List.of(), Map.of("sub", "auth-user"), "sub");
 
         assertEquals("auth-user", resolver.resolve(new TestingAuthenticationToken(principal, null), request, "X-User-Id"));
+    }
+
+
+    @Test
+    void oidcAuthenticatedUserWinsOnDevelopDeployments() {
+        ChatUsageIdentityResolver resolver = new ChatUsageIdentityResolver();
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("X-User-Id", "header-user");
+        OidcIdToken idToken = new OidcIdToken("token", java.time.Instant.now(), java.time.Instant.now().plusSeconds(60), Map.of("sub", "oidc-user"));
+        DefaultOidcUser principal = new DefaultOidcUser(java.util.List.of(), idToken);
+
+        assertEquals("oidc-user", resolver.resolve(new TestingAuthenticationToken(principal, null), request, "X-User-Id"));
     }
 
     @Test
