@@ -74,8 +74,12 @@ export class CurrentUserService {
       return this.csrfToken;
     }
 
-    await fetch('/api/me', { redirect: 'follow' });
-    const token = this.readCookie('XSRF-TOKEN');
+    let token = this.readCookie('XSRF-TOKEN');
+    if (!token) {
+      await fetch('/api/me', { redirect: 'follow' });
+      token = this.readCookie('XSRF-TOKEN');
+    }
+
     if (!token) {
       throw new Error('Missing CSRF token cookie');
     }
