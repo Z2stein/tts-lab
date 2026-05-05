@@ -14,10 +14,8 @@ echo "$rendered_gemini" | rg -q "value: \"gemini-2.5-flash\""
 
 echo "$rendered_mock" | rg -q "name: CHATBOT_PROVIDER"
 echo "$rendered_mock" | rg -q "value: \"mock\""
-if echo "$rendered_mock" | rg -q "name: GEMINI_API_KEY"; then
-  echo "Found GEMINI_API_KEY env var in mock mode; expected no Gemini secret reference." >&2
-  exit 1
-fi
+echo "$rendered_mock" | rg -q "name: GEMINI_API_KEY"
+echo "$rendered_mock" | rg -q "name: SPRING_AI_MODEL_CHAT"
 
 if echo "$rendered_gemini" | rg -q "api-key:"; then
   echo "Found inline api-key in rendered manifests; expected secret reference only." >&2

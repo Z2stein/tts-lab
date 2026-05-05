@@ -50,19 +50,16 @@ spec:
               value: {{ .Values.app.baseUrl | quote }}
             - name: CHATBOT_PROVIDER
               value: {{ .Values.chat.provider | quote }}
-            {{- if eq .Values.chat.provider "gemini" }}
             - name: SPRING_AI_MODEL_CHAT
               value: "google-genai"
-            {{- end }}
             - name: SPRING_AI_GOOGLE_GENAI_CHAT_OPTIONS_MODEL
               value: {{ .Values.chat.geminiModel | quote }}
-            {{- if eq .Values.chat.provider "gemini" }}
             - name: GEMINI_API_KEY
               valueFrom:
                 secretKeyRef:
                   name: {{ .Values.chat.geminiSecretName }}
                   key: api-key
-            {{- end }}
+                  optional: true
             {{- if eq .Values.auth.mode "google" }}
             - name: GOOGLE_CLIENT_ID
               valueFrom:

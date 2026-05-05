@@ -239,11 +239,9 @@ jobs:
                 --dry-run=client -o yaml | kubectl apply -f -
             fi
 
-            if [ "$CHAT_PROVIDER" = "gemini" ]; then
-              kubectl -n "$NAMESPACE" create secret generic gemini-api \
-                --from-literal=api-key="$GEMINI_API_KEY" \
-                --dry-run=client -o yaml | kubectl apply -f -
-            fi
+            kubectl -n "$NAMESPACE" create secret generic gemini-api \
+              --from-literal=api-key="${GEMINI_API_KEY:-}" \
+              --dry-run=client -o yaml | kubectl apply -f -
 
             kubectl -n "$NAMESPACE" create secret docker-registry ghcr-pull-secret \
               --docker-server=ghcr.io \
