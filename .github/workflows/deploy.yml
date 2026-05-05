@@ -152,6 +152,7 @@ jobs:
           HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
+          DEPLOY_TYPE: ${{ needs.prepare-build.outputs.deploy_type }}
         run: |
           set -euo pipefail
           [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
