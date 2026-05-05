@@ -6,6 +6,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -24,9 +25,34 @@ class ChatControllerTest {
     @MockBean
     private ChatService chatService;
 
+    @MockBean
+    private ChatRateLimitService chatRateLimitService;
+
+    @MockBean
+    private ChatRateLimitProperties chatRateLimitProperties;
+
+    @MockBean
+    private ChatUsageIdentityResolver chatUsageIdentityResolver;
+
+
+    @BeforeEach
+    void setupRateLimitDefaults() {
+        when(chatRateLimitProperties.idHeader()).thenReturn("X-User-Id");
+        when(chatRateLimitProperties.window()).thenReturn(java.time.Duration.ofHours(1));
+        when(chatRateLimitProperties.maxRequests()).thenReturn(100);
+        when(chatUsageIdentityResolver.resolve(any(), any(), any())).thenReturn("u1");
+        when(chatRateLimitService.checkAndConsume("u1")).thenReturn(new ChatRateLimitResult(true, 1, 0, 1));
+    }
+
     @Test
     void validMessageReturnsSuccess() throws Exception {
+        when(chatUsageIdentityResolver.resolve(any(), any(), any())).thenReturn("u1");
+        when(chatRateLimitService.checkAndConsume("u1")).thenReturn(new ChatRateLimitResult(true, 1, 0, 1));
         when(chatService.ask(any())).thenReturn(new ChatResponse("hello", "c-1"));
+
+        when(chatRateLimitProperties.idHeader()).thenReturn("X-User-Id");
+        when(chatUsageIdentityResolver.resolve(any(), any(), any())).thenReturn("u1");
+        when(chatRateLimitService.checkAndConsume("u1")).thenReturn(new ChatRateLimitResult(true, 1, 0, 1));
 
         mockMvc.perform(post("/api/chat")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -64,4 +90,20 @@ class ChatControllerTest {
             .andExpect(status().isBadGateway())
             .andExpect(content().json("{\"error\":\"Chat provider is currently unavailable.\"}"));
     }
+    @Test
+    void rateLimitExceededReturns429WithRetryAfter() throws Exception {
+        when(chatRateLimitProperties.idHeader()).thenReturn("X-User-Id");
+        when(chatRateLimitProperties.window()).thenReturn(java.time.Duration.ofHours(1));
+        when(chatRateLimitProperties.maxRequests()).thenReturn(100);
+        when(chatUsageIdentityResolver.resolve(any(), any(), any())).thenReturn("u1");
+        when(chatRateLimitService.checkAndConsume("u1")).thenReturn(new ChatRateLimitResult(false, 101, 123, 1));
+
+        mockMvc.perform(post("/api/chat")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"message\":\"hi\"}"))
+            .andExpect(status().isTooManyRequests())
+            .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Retry-After", "123"))
+            .andExpect(content().json("{\"error\":\"RATE_LIMIT_EXCEEDED\"}"));
+    }
+
 }
