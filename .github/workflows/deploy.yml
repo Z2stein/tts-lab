@@ -151,6 +151,8 @@ jobs:
           HETZNER_USER: ${{ secrets.HETZNER_USER }}
           HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
+          DEPLOY_TYPE: ${{ needs.prepare-build.outputs.deploy_type }}
         run: |
           set -euo pipefail
           [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
@@ -158,7 +160,10 @@ jobs:
           [ -n "${HETZNER_HOST}" ] || { echo "::error title=Missing HETZNER_HOST::Set repository variable HETZNER_HOST for deployment target host."; exit 1; }
           [ -n "${HETZNER_USER}" ] || { echo "::error title=Missing HETZNER_USER::Set repository secret HETZNER_USER for SSH deploy user."; exit 1; }
           [ -n "${HETZNER_SSH_KEY}" ] || { echo "::error title=Missing HETZNER_SSH_KEY::Set repository secret HETZNER_SSH_KEY for SSH authentication."; exit 1; }
-          [ -n "${GEMINI_API_KEY}" ] || { echo "::error title=Missing GEMINI_API_KEY::Set repository secret GEMINI_API_KEY for chatbot backend runtime."; exit 1; }
+          REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
+          if [ "${DEPLOY_TYPE}" = "main" ] || [ "${DEPLOY_TYPE}" = "develop" ] || [ "${REAL_PROVIDER_ON_FEATURE_BRANCHES}" = "true" ]; then
+            [ -n "${GEMINI_API_KEY}" ] || { echo "::error title=Missing GEMINI_API_KEY::Set repository secret GEMINI_API_KEY for chatbot backend runtime."; exit 1; }
+          fi
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -187,12 +192,14 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           FRONTEND_IMAGE_NAME: ${{ needs.prepare-build.outputs.frontend_image_name }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
+          DEPLOY_TYPE: ${{ needs.prepare-build.outputs.deploy_type }}
         run: |
           set -euo pipefail
           ssh "$USER@$HOST" "mkdir -p /opt/tts-lab/charts"
           scp -r charts/tts-lab "$USER@$HOST:/opt/tts-lab/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" <<'EOF'
+          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "$CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -207,13 +214,21 @@ jobs:
             GOOGLE_CLIENT_ID="${11}"
             GOOGLE_CLIENT_SECRET="${12}"
             GEMINI_API_KEY="${13}"
+            CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES="${14}"
 
+            REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
             if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
               AUTH_MODE="google"
               ENVIRONMENT=$([ "$DEPLOY_TYPE" = "main" ] && echo "main" || echo "dev")
+              CHAT_PROVIDER="gemini"
             else
               AUTH_MODE="mock"
               ENVIRONMENT="feature"
+              if [ "$REAL_PROVIDER_ON_FEATURE_BRANCHES" = "true" ]; then
+                CHAT_PROVIDER="gemini"
+              else
+                CHAT_PROVIDER="mock"
+              fi
             fi
 
             kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
@@ -225,9 +240,11 @@ jobs:
                 --dry-run=client -o yaml | kubectl apply -f -
             fi
 
-            kubectl -n "$NAMESPACE" create secret generic gemini-api \
-              --from-literal=api-key="$GEMINI_API_KEY" \
-              --dry-run=client -o yaml | kubectl apply -f -
+            if [ "$CHAT_PROVIDER" = "gemini" ]; then
+              kubectl -n "$NAMESPACE" create secret generic gemini-api \
+                --from-literal=api-key="$GEMINI_API_KEY" \
+                --dry-run=client -o yaml | kubectl apply -f -
+            fi
 
             kubectl -n "$NAMESPACE" create secret docker-registry ghcr-pull-secret \
               --docker-server=ghcr.io \
@@ -249,7 +266,9 @@ jobs:
               --set app.baseUrl="https://$APP_HOST" \
               --set auth.mode="$AUTH_MODE" \
               --set auth.googleSecretName="google-oauth" \
-              --set chat.geminiSecretName="gemini-api"
+              --set chat.geminiSecretName="gemini-api" \
+              --set chat.provider="$CHAT_PROVIDER" \
+              --set chat.realProviderOnFeatureBranches="$REAL_PROVIDER_ON_FEATURE_BRANCHES"
           EOF
 
       - name: Publish deployment URL

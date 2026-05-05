@@ -19,4 +19,7 @@ spring:
         api-key: ${GEMINI_API_KEY:}
         chat:
           options:
-            model: gemini-3.1-flash-lite-preview
+            model: ${SPRING_AI_GOOGLE_GENAI_CHAT_OPTIONS_MODEL:gemini-2.5-flash}
+
+chatbot:
+  provider: ${CHATBOT_PROVIDER:mock}
