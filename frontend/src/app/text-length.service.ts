@@ -1,9 +1,12 @@
 import { Injectable } from '@angular/core';
+import { CurrentUserService } from './current-user.service';
 
 @Injectable({
   providedIn: 'root'
 })
 export class TextLengthService {
+  constructor(private readonly currentUserService: CurrentUserService) {}
+
   async getLength(text: string): Promise<number> {
     console.info('[text-length] Sending request', { textLength: text.length });
 
@@ -12,7 +15,8 @@ export class TextLengthService {
       response = await fetch('/api/text-length', {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-XSRF-TOKEN': await this.currentUserService.ensureCsrfToken()
         },
         body: JSON.stringify({ text })
       });

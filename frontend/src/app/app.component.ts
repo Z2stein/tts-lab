@@ -53,7 +53,7 @@ export class AppComponent implements OnInit {
     this.currentUserService.startGoogleLogin();
   }
 
-  logout(): void {
-    this.currentUserService.startLogout();
+  async logout(): Promise<void> {
+    await this.currentUserService.startLogout();
   }
 }
