@@ -10,13 +10,13 @@ normalize_slug_chars() {
 
 resolve_app_slug() {
   local configured_app_slug="${1:-}"
-  local repo_name="${2:-}"
 
-  local app_slug="${configured_app_slug:-$repo_name}"
-  app_slug="$(normalize_slug_chars "$app_slug")"
+  local app_slug
+  app_slug="$(normalize_slug_chars "$configured_app_slug")"
 
   if [ -z "$app_slug" ]; then
-    app_slug="tts-lab"
+    echo "error: APP_SLUG is required" >&2
+    return 1
   fi
 
   echo "$app_slug"
@@ -24,10 +24,9 @@ resolve_app_slug() {
 
 emit_repo_config() {
   local configured_app_slug="${1:-}"
-  local repo_name="${2:-}"
 
   local app_slug
-  app_slug="$(resolve_app_slug "$configured_app_slug" "$repo_name")"
+  app_slug="$(resolve_app_slug "$configured_app_slug")"
 
   echo "app_slug=$app_slug"
   echo "backend_image_name=${app_slug}-backend"

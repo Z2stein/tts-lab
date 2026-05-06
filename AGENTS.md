@@ -19,6 +19,12 @@ This repository is a deliberately simple learning project for:
 - Do not introduce unnecessary architecture, frameworks, infrastructure, or abstractions.
 - Fix the actual cause of broken behavior instead of hiding symptoms.
 
+
+## Single source of truth
+
+- Every important value, rule, or behavior must have one clear source of truth.
+- Do not duplicate configuration, business rules, deployment values, environment values, or derived logic across multiple files unless there is a clear reason.
+
 ## Automated quality assurance
 
 Automated checks are mandatory. A change is not done if tests cannot run.

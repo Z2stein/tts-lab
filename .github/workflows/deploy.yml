@@ -35,12 +35,14 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GHCR_USER: ${{ vars.GHCR_USER }}
+          APP_SLUG: ${{ vars.APP_SLUG }}
           HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
           BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
         run: |
           set -euo pipefail
           [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
           [ -n "${GHCR_USER}" ] || { echo "::error title=Missing GHCR_USER::Set repository variable GHCR_USER for registry authentication."; exit 1; }
+          [ -n "${APP_SLUG}" ] || { echo "::error title=Missing APP_SLUG::Set repository variable APP_SLUG for app, release, image, and hostname derivation."; exit 1; }
           [ -n "${HETZNER_PUBLIC_IP}" ] || { echo "::error title=Missing HETZNER_PUBLIC_IP::Set repository variable HETZNER_PUBLIC_IP for the deployment server public IP."; exit 1; }
           [ -n "${BASE_DOMAIN}" ] || { echo "::error title=Missing BASE_DOMAIN::Set repository variable BASE_DOMAIN for public ingress hostnames."; exit 1; }
 
@@ -51,10 +53,9 @@ jobs:
         id: repo_config
         env:
           APP_SLUG: ${{ vars.APP_SLUG }}
-          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           set -euo pipefail
-          shared/deployment/repo_config.sh "$APP_SLUG" "$REPO_NAME" >> "$GITHUB_OUTPUT"
+          shared/deployment/repo_config.sh "$APP_SLUG" >> "$GITHUB_OUTPUT"
 
       - name: Compute deployment variables
         id: vars
@@ -150,6 +151,7 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GHCR_USER: ${{ vars.GHCR_USER }}
+          APP_SLUG: ${{ needs.prepare-build.outputs.app_slug }}
           HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
           BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
           HETZNER_USER: ${{ secrets.HETZNER_USER }}
@@ -161,6 +163,7 @@ jobs:
           set -euo pipefail
           [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
           [ -n "${GHCR_USER}" ] || { echo "::error title=Missing GHCR_USER::Set repository variable GHCR_USER for registry authentication."; exit 1; }
+          [ -n "${APP_SLUG}" ] || { echo "::error title=Missing APP_SLUG::Set repository variable APP_SLUG for app, release, image, and hostname derivation."; exit 1; }
           [ -n "${HETZNER_PUBLIC_IP}" ] || { echo "::error title=Missing HETZNER_PUBLIC_IP::Set repository variable HETZNER_PUBLIC_IP for the deployment server public IP."; exit 1; }
           [ -n "${BASE_DOMAIN}" ] || { echo "::error title=Missing BASE_DOMAIN::Set repository variable BASE_DOMAIN for public ingress hostnames."; exit 1; }
           [ -n "${HETZNER_USER}" ] || { echo "::error title=Missing HETZNER_USER::Set repository secret HETZNER_USER for SSH deploy user."; exit 1; }
@@ -198,12 +201,14 @@ jobs:
           FRONTEND_IMAGE_NAME: ${{ needs.prepare-build.outputs.frontend_image_name }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
+          APP_SLUG: ${{ needs.prepare-build.outputs.app_slug }}
         run: |
           set -euo pipefail
-          ssh "$USER@$HOST" "mkdir -p /opt/tts-lab/charts"
-          scp -r charts/tts-lab "$USER@$HOST:/opt/tts-lab/charts/"
+          REMOTE_APP_DIR="/opt/${APP_SLUG}"
+          ssh "$USER@$HOST" "mkdir -p '$REMOTE_APP_DIR/charts'"
+          scp -r charts/tts-lab "$USER@$HOST:$REMOTE_APP_DIR/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}" <<'EOF'
+          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}" "$REMOTE_APP_DIR" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -219,6 +224,7 @@ jobs:
             GOOGLE_CLIENT_SECRET="${12}"
             GEMINI_API_KEY="${13}"
             CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES="${14:-false}"
+            REMOTE_APP_DIR="${15}"
 
             REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
             if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
@@ -256,7 +262,7 @@ jobs:
               --docker-password="$GHCR_PASSWORD" \
               --dry-run=client -o yaml | kubectl apply -f -
 
-            helm upgrade --install "$RELEASE_NAME" /opt/tts-lab/charts/tts-lab \
+            helm upgrade --install "$RELEASE_NAME" "$REMOTE_APP_DIR/charts/tts-lab" \
               --namespace "$NAMESPACE" \
               --set ingress.host="$APP_HOST" \
               --set ingress.tls.enabled=true \
@@ -296,6 +302,7 @@ jobs:
         env:
           DELETE_BRANCH: ${{ github.event.ref }}
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
+          APP_SLUG: ${{ vars.APP_SLUG }}
           HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
           BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
         run: |

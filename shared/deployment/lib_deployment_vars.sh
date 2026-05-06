@@ -43,12 +43,13 @@ slugify_branch() {
 resolve_target() {
   local branch="$1"
   local _hetzner_public_ip="$2"
-  local app_slug="${APP_SLUG:-tts-lab}"
+  local app_slug="${APP_SLUG:-}"
   local base_domain="${BASE_DOMAIN:-}"
 
   app_slug="$(normalize_slug_chars "$app_slug")"
   if [ -z "$app_slug" ]; then
-    app_slug="tts-lab"
+    echo "error: APP_SLUG is required" >&2
+    return 1
   fi
 
   base_domain="$(echo "$base_domain" | tr '[:upper:]' '[:lower:]' | sed -E 's#^https?://##; s#^\*\.##; s#/.*$##; s/^\.+//; s/\.+$//')"

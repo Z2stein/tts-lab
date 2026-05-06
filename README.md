@@ -22,7 +22,6 @@ Naming-Konventionen:
   - Namespaces/Releases: `<app-slug>`, `<app-slug>-dev`, `<app-slug>-<branch-slug>`
   - Hosts: `<app-slug>.<base-domain>`, `dev.<app-slug>.<base-domain>`, `<branch-slug>.<app-slug>.<base-domain>`
   - GHCR-Images: `<app-slug>-backend`, `<app-slug>-frontend`
-- Backward Compatibility: Wenn `APP_SLUG` fehlt oder leer ist, fällt der Workflow auf den Repository-Namen zurück; die Deployment-Skripte nutzen als letzte Fallback-Stufe `tts-lab`.
 
 Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
 
