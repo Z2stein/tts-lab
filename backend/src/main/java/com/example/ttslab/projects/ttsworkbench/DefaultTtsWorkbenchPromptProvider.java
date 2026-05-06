@@ -75,19 +75,25 @@ public class DefaultTtsWorkbenchPromptProvider implements TtsWorkbenchPromptProv
                 .collect(Collectors.joining(", "));
 
         return """
-                Analyze this raw dialogue for a text-to-speech workbench.
+                Analyze this prose/dialogue text for a text-to-speech workbench.
+                
                 Return only JSON with this shape:
                 {"speakers":[{"speakerName":"...","roleDescription":"...","voiceSuggestion":"..."}]}
-                Keep descriptions and voice suggestions short and practical.
+                
+                Important:
+                - If the text contains narration, descriptions, action beats, dialogue attribution, or non-quoted prose, you MUST include a speaker named "Narrator".
+                - "Narrator" is a pseudo-speaker for all prose that is not directly spoken by a character.
+                - Character names should be used for quoted spoken dialogue.
+                - Keep descriptions and voice suggestions short and practical.
                 
                 speakerName cannot contain whitespace or non-alphanumeric characters.
                 
-                Constraint for 'voiceSuggestion':\s
-                            You MUST use one of the uppercase keys from the list below.\s
-                            Do not include the style description in the JSON value.
-                            Available Voice Keys: %s
+                Constraint for 'voiceSuggestion':
+                You MUST use one of the uppercase keys from the list below.
+                Do not include the style description in the JSON value.
+                Available Voice Keys: %s
                 
-                Dialogue:
+                Text:
                 %s
                 """.formatted(availableVoices, rawDialogue);
     }
@@ -95,17 +101,30 @@ public class DefaultTtsWorkbenchPromptProvider implements TtsWorkbenchPromptProv
     @Override
     public String getSpeakerSplitPrompt(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers) {
         return """
-                Split this raw dialogue into text-to-speech speaker turns.
+                Split this prose/dialogue text into ordered text-to-speech turns.
+                
                 Return only JSON with this shape:
                 {"turns":[{"speaker":"...","text":"..."}]}
-                Use the provided speakers when possible and keep original wording.
+                
+                Critical preservation rules:
+                - Preserve ALL original wording.
+                - Do not summarize.
+                - Do not remove narration.
+                - Do not merge narration into character speech.
+                - Every piece of non-quoted prose must become a turn spoken by "Narrator".
+                - Quoted speech must become a turn spoken by the character who says it.
+                - Dialogue attribution and action beats belong to "Narrator".
+                  Example: Mara folded the letter twice, then unfolded it again.
+                - If one paragraph contains narration and speech, split it in reading order.
+                - Use the provided speakers when possible.
+                - If narration exists and "Narrator" is not in the provided speakers, still use "Narrator".
                 
                 speaker cannot contain whitespace or non-alphanumeric characters.
                 
                 Speakers:
                 %s
                 
-                Dialogue:
+                Text:
                 %s
                 """.formatted(toJson(speakers), rawDialogue);
     }
@@ -113,32 +132,32 @@ public class DefaultTtsWorkbenchPromptProvider implements TtsWorkbenchPromptProv
     @Override
     public String getEmotionAnnotationPrompt(List<SpeakerSplitTurn> turns) {
         return """
-    Add expressive text-to-speech markup to these speaker turns.
-
-    Goal:
-    Make the dialogue sound lively, natural, and emotionally engaging.
-    The spoken result should feel like performed dialogue, not plain reading.
-
-    Use these known markup tokens:
-    %s
-
-    Markup rules:
-    - Use markup actively when it improves emotion, rhythm, tension, humor, hesitation, surprise, or dramatic effect.
-    - Prefer fitting emotional and reaction tags over neutral delivery.
-    - You may combine multiple suitable tags in one turn if the scene benefits from it.
-    - Use pauses to improve timing and dramatic rhythm.
-    - Do not overload every sentence with markup.
-    - Do not invent new markup tokens.
-    - Keep the original wording mostly unchanged, but you may add small non-verbal reactions like [sigh], [gasp], [laughs], or pauses when appropriate.
-
-    speaker cannot contain whitespace or non-alphanumeric characters.
-
-    Return only JSON with this shape:
-    {"turns":[{"speaker":"...","text":"..."}]}
-
-    Turns:
-    %s
-    """.formatted(toKnownTtsMarkupStylesText(), toJson(turns));
+                Add expressive text-to-speech markup to these speaker turns.
+                
+                Goal:
+                Make the dialogue sound lively, natural, and emotionally engaging.
+                The spoken result should feel like performed dialogue, not plain reading.
+                
+                Use these known markup tokens:
+                %s
+                
+                Markup rules:
+                - Use markup actively when it improves emotion, rhythm, tension, humor, hesitation, surprise, or dramatic effect.
+                - Prefer fitting emotional and reaction tags over neutral delivery.
+                - You may combine multiple suitable tags in one turn if the scene benefits from it.
+                - Use pauses to improve timing and dramatic rhythm.
+                - Do not overload every sentence with markup.
+                - Do not invent new markup tokens.
+                - Keep the original wording mostly unchanged, but you may add small non-verbal reactions like [sigh], [gasp], [laughs], or pauses when appropriate.
+                
+                speaker cannot contain whitespace or non-alphanumeric characters.
+                
+                Return only JSON with this shape:
+                {"turns":[{"speaker":"...","text":"..."}]}
+                
+                Turns:
+                %s
+                """.formatted(toKnownTtsMarkupStylesText(), toJson(turns));
 
     }
 
