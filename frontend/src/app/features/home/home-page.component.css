@@ -1,0 +1,20 @@
+.hero-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.hero-actions a {
+  background: #1d4ed8;
+  border-radius: 999px;
+  color: #fff;
+  font-weight: 700;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+}
+
+.hero-actions a.secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}

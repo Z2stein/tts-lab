@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { CurrentUserService } from './current-user.service';
+import { CurrentUserService } from '../../current-user.service';
 
 @Injectable({
   providedIn: 'root'
@@ -12,7 +12,7 @@ export class TextLengthService {
 
     let response: Response;
     try {
-      response = await fetch('/api/text-length', {
+      response = await fetch('/api/projects/text-length/calculate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

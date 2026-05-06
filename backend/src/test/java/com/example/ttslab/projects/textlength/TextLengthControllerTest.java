@@ -1,4 +1,4 @@
-package com.example.ttslab;
+package com.example.ttslab.projects.textlength;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +25,18 @@ class TextLengthControllerTest {
     private TextLengthService textLengthService;
 
     @Test
-    void postTextLengthReturnsLength() throws Exception {
+    void postProjectTextLengthReturnsLength() throws Exception {
+        when(textLengthService.countLength("abc")).thenReturn(3);
+
+        mockMvc.perform(post("/api/projects/text-length/calculate")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"text\":\"abc\"}"))
+            .andExpect(status().isOk())
+            .andExpect(content().json("{\"length\":3}"));
+    }
+
+    @Test
+    void postDeprecatedTextLengthReturnsLength() throws Exception {
         when(textLengthService.countLength("abc")).thenReturn(3);
 
         mockMvc.perform(post("/api/text-length")
@@ -39,7 +50,7 @@ class TextLengthControllerTest {
     void postTextLengthReturnsZeroForEmptyText() throws Exception {
         when(textLengthService.countLength("")).thenReturn(0);
 
-        mockMvc.perform(post("/api/text-length")
+        mockMvc.perform(post("/api/projects/text-length/calculate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"text\":\"\"}"))
             .andExpect(status().isOk())
@@ -50,7 +61,7 @@ class TextLengthControllerTest {
     void postTextLengthSupportsUnicodeText() throws Exception {
         when(textLengthService.countLength("Grüße 🌍")).thenReturn(8);
 
-        mockMvc.perform(post("/api/text-length")
+        mockMvc.perform(post("/api/projects/text-length/calculate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"text\":\"Grüße 🌍\"}"))
             .andExpect(status().isOk())
@@ -62,7 +73,7 @@ class TextLengthControllerTest {
         String largeText = "a".repeat(10_000);
         when(textLengthService.countLength(largeText)).thenReturn(10_000);
 
-        mockMvc.perform(post("/api/text-length")
+        mockMvc.perform(post("/api/projects/text-length/calculate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"text\":\"" + largeText + "\"}"))
             .andExpect(status().isOk())
@@ -73,7 +84,7 @@ class TextLengthControllerTest {
     void postTextLengthReturnsZeroWhenTextFieldMissing() throws Exception {
         when(textLengthService.countLength(isNull())).thenReturn(0);
 
-        mockMvc.perform(post("/api/text-length")
+        mockMvc.perform(post("/api/projects/text-length/calculate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{}"))
             .andExpect(status().isOk())
@@ -82,7 +93,7 @@ class TextLengthControllerTest {
 
     @Test
     void postTextLengthRejectsInvalidJsonPayload() throws Exception {
-        mockMvc.perform(post("/api/text-length")
+        mockMvc.perform(post("/api/projects/text-length/calculate")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"text\":\"abc\""))
             .andExpect(status().isBadRequest());

@@ -1,4 +1,4 @@
-package com.example.ttslab;
+package com.example.ttslab.projects.textlength;
 
 public record TextLengthResponse(int length) {
 }

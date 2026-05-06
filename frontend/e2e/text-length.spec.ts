@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test('text length success path works end-to-end', async ({ page }) => {
-  await page.route('**/api/text-length', async (route) => {
+  await page.route('**/api/projects/text-length/calculate', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
@@ -9,7 +9,7 @@ test('text length success path works end-to-end', async ({ page }) => {
     });
   });
 
-  await page.goto('/');
+  await page.goto('/text-length');
 
   const input = page.getByLabel('Text eingeben');
   await input.fill('abc');
@@ -23,7 +23,7 @@ test('text length success path works end-to-end', async ({ page }) => {
 
 test('shows UI error when backend responds with an error', async ({ page }) => {
 
-  await page.route('**/api/text-length', async (route) => {
+  await page.route('**/api/projects/text-length/calculate', async (route) => {
     await route.fulfill({
       status: 500,
       contentType: 'application/json',
@@ -32,7 +32,7 @@ test('shows UI error when backend responds with an error', async ({ page }) => {
     });
   });
 
-  await page.goto('/');
+  await page.goto('/text-length');
 
   const input = page.getByLabel('Text eingeben');
   await input.fill('abc');

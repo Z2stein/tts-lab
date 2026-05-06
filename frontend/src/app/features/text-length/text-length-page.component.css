@@ -1,0 +1,45 @@
+.text-length-form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+label {
+  font-weight: 700;
+}
+
+textarea {
+  min-height: 8rem;
+  resize: vertical;
+}
+
+textarea,
+button {
+  border: 1px solid #ccd5e1;
+  border-radius: 0.65rem;
+  font: inherit;
+  padding: 0.75rem;
+}
+
+button {
+  background: #1d4ed8;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 700;
+  justify-self: start;
+  padding: 0.75rem 1.1rem;
+}
+
+button:hover {
+  background: #1e40af;
+}
+
+.result {
+  color: #047857;
+  font-weight: 700;
+}
+
+.error {
+  color: #b91c1c;
+  font-weight: 700;
+}

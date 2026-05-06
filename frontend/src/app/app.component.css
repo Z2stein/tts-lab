@@ -1,38 +1,114 @@
-.container {
-  max-width: 600px;
-  margin: 3rem auto;
-  padding: 1.5rem;
-  background-color: #fff;
-  border-radius: 8px;
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
-}
-
-h1 {
-  margin-top: 0;
-}
-
-label,
-textarea,
-button {
+:host {
   display: block;
-  width: 100%;
+  min-height: 100vh;
 }
 
-textarea {
-  margin: 0.5rem 0 1rem;
-  padding: 0.6rem;
-  font: inherit;
+.app-shell {
+  min-height: 100vh;
+}
+
+.top-nav {
+  align-items: center;
+  background: #0f172a;
+  color: #fff;
+  display: flex;
+  gap: 1rem;
+  justify-content: space-between;
+  padding: 1rem clamp(1rem, 4vw, 2rem);
+}
+
+.brand {
+  color: #fff;
+  font-size: 1.2rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+
+nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+nav a {
+  border-radius: 999px;
+  color: #dbeafe;
+  padding: 0.5rem 0.75rem;
+  text-decoration: none;
+}
+
+nav a.active,
+nav a:hover {
+  background: #1e40af;
+  color: #fff;
+}
+
+.auth-area {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+.user-label {
+  color: #dbeafe;
+  font-size: 0.9rem;
 }
 
 button {
-  padding: 0.6rem;
+  border: 0;
+  border-radius: 999px;
   cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.55rem 0.85rem;
 }
 
-.result {
-  color: #007d32;
+.content {
+  margin: 0 auto;
+  max-width: 960px;
+  padding: clamp(1rem, 4vw, 2rem);
 }
 
 .error {
-  color: #c62828;
+  color: #b91c1c;
+  font-weight: 700;
+}
+
+:host ::ng-deep .page-card {
+  background: #fff;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.08);
+  padding: clamp(1rem, 4vw, 2rem);
+}
+
+:host ::ng-deep .page-card h1 {
+  margin: 0.25rem 0 0;
+}
+
+:host ::ng-deep .eyebrow {
+  color: #1d4ed8;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+:host ::ng-deep .intro {
+  color: #475569;
+  line-height: 1.6;
+  max-width: 42rem;
+}
+
+@media (max-width: 760px) {
+  .top-nav {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .auth-area {
+    justify-content: flex-start;
+  }
 }

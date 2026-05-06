@@ -129,15 +129,68 @@ npm start
 ```
 
 
+
+## Frontend-Struktur und Routing
+
+Das Angular-Frontend nutzt eine einfache App-Shell mit Header-Navigation und geroutetem Hauptbereich.
+
+Routen:
+
+- `/` → Landing Page
+- `/text-length` → Text-Length-Feature
+- `/tts-workbench` → TTS Workbench
+- unbekannte Pfade leiten zurück auf `/`
+
+Feature-Code liegt unter `frontend/src/app/features/`:
+
+- `features/home/` für die Landing Page
+- `features/text-length/` für UI und Service zum projektbezogenen `POST /api/projects/text-length/calculate` Endpoint
+- `features/tts-workbench/` für Raw-Dialogue-Eingabe und einfache Speaker-/Voice-Analyse über `POST /api/projects/tts-workbench/speaker-voice-analysis`
+
+Die bestehende Authentifizierung bleibt in der App-Shell: Navigation und Login/Logout-State sind global sichtbar, geschützte Inhalte werden erst nach erfolgreicher Session-Prüfung gerendert.
+
 ## Akzeptanzkriterien (Textlänge)
 
-Bewusst unterstützte Fälle für `POST /api/text-length`:
+Bewusst unterstützte Fälle für `POST /api/projects/text-length/calculate` (der alte Endpoint `POST /api/text-length` bleibt vorerst als deprecated Backward-Compatibility-Pfad erhalten):
 
 - Leerer Text (`""`) liefert `length = 0`.
 - Unicode-Eingaben (z. B. Umlaute/Emoji) werden akzeptiert und gezählt.
 - Große Inputs (z. B. 10.000 Zeichen) werden verarbeitet.
 - Ungültige JSON-Payloads werden mit HTTP `400 Bad Request` abgelehnt.
 - Fehlende `text`-Property wird wie `null` behandelt und liefert `length = 0`.
+
+
+## TTS Workbench API (MVP)
+
+Die TTS Workbench nutzt einen bewusst einfachen, mock-sicheren Backend-Service. Es werden keine externen AI-/Gemini-APIs aufgerufen.
+
+Endpoint:
+
+- `POST /api/projects/tts-workbench/speaker-voice-analysis`
+
+Request:
+
+```json
+{
+  "rawDialogue": "Alice: Hello\nBob: Hi"
+}
+```
+
+Response:
+
+```json
+{
+  "speakers": [
+    {
+      "speakerName": "Alice",
+      "roleDescription": "Dialogue speaker detected from the script.",
+      "voiceSuggestion": "Use a clear, natural voice and adjust tone based on the line context."
+    }
+  ]
+}
+```
+
+Leere oder blanke `rawDialogue`-Werte liefern `{"speakers": []}`. Ungültige JSON-Payloads werden mit HTTP `400 Bad Request` abgelehnt.
 
 ## Authentication modes
 

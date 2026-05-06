@@ -1,4 +1,4 @@
-package com.example.ttslab;
+package com.example.ttslab.projects.textlength;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,13 +18,23 @@ public class TextLengthController {
         this.textLengthService = textLengthService;
     }
 
-    @PostMapping("/text-length")
-    public TextLengthResponse getTextLength(@RequestBody TextLengthRequest request) {
+    @PostMapping("/projects/text-length/calculate")
+    public TextLengthResponse calculateTextLength(@RequestBody TextLengthRequest request) {
         int inputLength = request.text() == null ? 0 : request.text().length();
-        log.info("POST /api/text-length called (inputLength={})", inputLength);
+        log.info("POST /api/projects/text-length/calculate called (inputLength={})", inputLength);
 
         int length = textLengthService.countLength(request.text());
-        log.info("POST /api/text-length succeeded (resultLength={})", length);
+        log.info("POST /api/projects/text-length/calculate succeeded (resultLength={})", length);
         return new TextLengthResponse(length);
+    }
+
+    /**
+     * @deprecated Use {@code POST /api/projects/text-length/calculate} instead.
+     */
+    @Deprecated(forRemoval = false)
+    @PostMapping("/text-length")
+    public TextLengthResponse getTextLength(@RequestBody TextLengthRequest request) {
+        log.info("Deprecated POST /api/text-length called; forwarding to project endpoint handler");
+        return calculateTextLength(request);
     }
 }

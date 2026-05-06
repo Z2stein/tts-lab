@@ -1,0 +1,45 @@
+<section class="page-card">
+  <p class="eyebrow">TTS Workbench</p>
+  <h1>TTS Workbench</h1>
+  <p class="intro">
+    Paste raw dialogue and let the backend create simple, mock-safe speaker and voice suggestions.
+  </p>
+
+  <form class="workbench-form">
+    <label for="raw-dialogue">Raw dialogue</label>
+    <textarea
+      id="raw-dialogue"
+      rows="10"
+      [formControl]="rawDialogueControl"
+      placeholder="Alice: Hello there&#10;Bob: Nice to meet you"
+    ></textarea>
+    <button type="button" (click)="analyze()" [disabled]="loading">
+      {{ loading ? 'Analyzing...' : 'Analyze speakers' }}
+    </button>
+  </form>
+
+  <p *ngIf="loading" class="status">Analyzing dialogue...</p>
+  <p *ngIf="error" class="error">{{ error }}</p>
+
+  <section *ngIf="!loading && submitted && !error" class="analysis-results" aria-live="polite">
+    <h2>Speaker voice suggestions</h2>
+    <p *ngIf="speakers.length === 0" class="empty-state">No speakers found.</p>
+
+    <table *ngIf="speakers.length > 0">
+      <thead>
+        <tr>
+          <th>Speaker</th>
+          <th>Role</th>
+          <th>Voice suggestion</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let speaker of speakers">
+          <td>{{ speaker.speakerName }}</td>
+          <td>{{ speaker.roleDescription }}</td>
+          <td>{{ speaker.voiceSuggestion }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+</section>

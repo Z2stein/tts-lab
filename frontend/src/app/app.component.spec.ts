@@ -1,36 +1,48 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
-import { TextLengthService } from './text-length.service';
-import { CurrentUserService } from './current-user.service';
+import { routes } from './app.routes';
+import { CurrentUser, CurrentUserService } from './current-user.service';
 
 describe('AppComponent chatbot visibility', () => {
   let fixture: ComponentFixture<AppComponent>;
-  let component: AppComponent;
+  let currentUserService: jasmine.SpyObj<CurrentUserService>;
 
   beforeEach(async () => {
+    currentUserService = jasmine.createSpyObj<CurrentUserService>('CurrentUserService', [
+      'getCurrentUser',
+      'ensureCsrfToken',
+      'startGoogleLogin',
+      'startLogout'
+    ]);
+
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
-        { provide: TextLengthService, useValue: { getLength: jasmine.createSpy().and.resolveTo(3) } },
-        { provide: CurrentUserService, useValue: { getCurrentUser: jasmine.createSpy(), ensureCsrfToken: jasmine.createSpy(), startGoogleLogin: jasmine.createSpy(), startLogout: jasmine.createSpy() } }
+        provideRouter(routes),
+        { provide: CurrentUserService, useValue: currentUserService }
       ]
     }).compileComponents();
-
-    fixture = TestBed.createComponent(AppComponent);
-    component = fixture.componentInstance;
   });
 
-  it('chatbot widget is not visible when unauthenticated', () => {
-    component.authStatus = 'unauthenticated';
-    component.currentUser = null;
+  it('chatbot widget is not visible when unauthenticated', async () => {
+    currentUserService.getCurrentUser.and.resolveTo(null);
+    fixture = TestBed.createComponent(AppComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('app-chatbot-widget')).toBeNull();
   });
 
-  it('chatbot widget is visible when authenticated', () => {
-    component.authStatus = 'authenticated';
-    component.currentUser = { id: '1', email: 'u@test.dev', name: 'User', authMode: 'mock', roles: ['USER'] };
+  it('chatbot widget is visible when authenticated', async () => {
+    const user: CurrentUser = { id: '1', email: 'u@test.dev', name: 'User', authMode: 'mock', roles: ['USER'] };
+    currentUserService.getCurrentUser.and.resolveTo(user);
+    fixture = TestBed.createComponent(AppComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('app-chatbot-widget')).not.toBeNull();
