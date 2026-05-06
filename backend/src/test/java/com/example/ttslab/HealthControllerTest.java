@@ -23,4 +23,11 @@ class HealthControllerTest {
             .andExpect(status().isOk())
             .andExpect(content().json("{\"status\":\"ok\"}"));
     }
+
+    @Test
+    void apiHealthReturnsOkForExternalE2eChecks() throws Exception {
+        mockMvc.perform(get("/api/health"))
+            .andExpect(status().isOk())
+            .andExpect(content().json("{\"status\":\"ok\"}"));
+    }
 }

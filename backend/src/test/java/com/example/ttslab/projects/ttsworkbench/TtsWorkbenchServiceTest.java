@@ -3,12 +3,14 @@ package com.example.ttslab.projects.ttsworkbench;
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatResponse;
 import com.example.ttslab.chat.ChatService;
+import com.example.ttslab.error.ApiException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -93,7 +95,7 @@ class TtsWorkbenchServiceTest {
     void geminiProviderUsesChatServiceAndParsesSpeakerJson() {
         ChatService chatService = mock(ChatService.class);
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("""
-            {"speakers":[{"speakerName":"Narrator","roleDescription":"Guides the scene","voiceSuggestion":"Warm voice"}]}
+            {"speakers":[{"speakerName":"Narrator","roleDescription":"Guides the scene","voiceSuggestion":"ZEPHYR"}]}
             """, "c-1"));
         TtsWorkbenchService service = createService(chatService, "gemini");
 
@@ -105,38 +107,39 @@ class TtsWorkbenchServiceTest {
     }
 
     @Test
-    void geminiProviderFallsBackToMockAnalysisForInvalidModelOutput() {
+    void geminiProviderReturnsStructuredErrorForInvalidSpeakerModelOutput() {
         ChatService chatService = mock(ChatService.class);
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("not-json", "c-1"));
         TtsWorkbenchService service = createService(chatService, "gemini");
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello");
+        ApiException exception = assertThrows(ApiException.class, () -> service.analyze("Alice: Hello"));
 
-        assertEquals(1, response.speakers().size());
-        assertEquals("Alice", response.speakers().getFirst().speakerName());
-        assertEquals("Detected dialogue speaker", response.speakers().getFirst().roleDescription());
+        assertEquals("TTS_WORKBENCH_PROVIDER_RESPONSE_INVALID", exception.code());
+        assertEquals(502, exception.status().value());
     }
 
     @Test
-    void geminiProviderFallsBackToMockSplitForInvalidModelOutput() {
+    void geminiProviderReturnsStructuredErrorForInvalidSplitModelOutput() {
         ChatService chatService = mock(ChatService.class);
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("not-json", "c-1"));
         TtsWorkbenchService service = createService(chatService, "gemini");
 
-        SpeakerSplitAnalysisResponse response = service.split("A: Hello", List.of());
+        ApiException exception = assertThrows(ApiException.class, () -> service.split("A: Hello", List.of()));
 
-        assertEquals(List.of(new SpeakerSplitTurn("A", "Hello")), response.turns());
+        assertEquals("TTS_WORKBENCH_PROVIDER_RESPONSE_INVALID", exception.code());
+        assertEquals(502, exception.status().value());
     }
 
     @Test
-    void geminiProviderFallsBackToMockEmotionAnnotationForInvalidModelOutput() {
+    void geminiProviderReturnsStructuredErrorForInvalidEmotionModelOutput() {
         ChatService chatService = mock(ChatService.class);
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("not-json", "c-1"));
         TtsWorkbenchService service = createService(chatService, "gemini");
 
-        EmotionAnnotationAnalysisResponse response = service.annotate(List.of(new SpeakerSplitTurn("A", "Please talk.")));
+        ApiException exception = assertThrows(ApiException.class, () -> service.annotate(List.of(new SpeakerSplitTurn("A", "Please talk."))));
 
-        assertEquals("[calm] Please talk.", response.turns().getFirst().text());
+        assertEquals("TTS_WORKBENCH_PROVIDER_RESPONSE_INVALID", exception.code());
+        assertEquals(502, exception.status().value());
     }
 
     @Test

@@ -1,8 +1,10 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 
+const e2eBaseUrl = process.env['E2E_BASE_URL'] || 'http://127.0.0.1:4200';
+
 async function authenticate(context: BrowserContext, page: Page): Promise<void> {
   await context.addCookies([
-    { name: 'XSRF-TOKEN', value: 'test-token', url: 'http://127.0.0.1:4200' }
+    { name: 'XSRF-TOKEN', value: 'test-token', url: e2eBaseUrl }
   ]);
 
   await page.route('**/api/me', async (route) => {

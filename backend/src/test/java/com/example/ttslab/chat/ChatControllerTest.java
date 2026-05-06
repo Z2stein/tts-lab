@@ -4,6 +4,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -67,7 +68,10 @@ class ChatControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"message\":\"   \"}"))
             .andExpect(status().isBadRequest())
-            .andExpect(content().json("{\"error\":\"Invalid chat request.\"}"));
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+            .andExpect(jsonPath("$.message").value("The request is invalid. Please check your input and try again."))
+            .andExpect(jsonPath("$.requestId").exists());
     }
 
     @Test
@@ -77,7 +81,10 @@ class ChatControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"message\":\"" + tooLarge + "\"}"))
             .andExpect(status().isBadRequest())
-            .andExpect(content().json("{\"error\":\"Invalid chat request.\"}"));
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+            .andExpect(jsonPath("$.message").value("The request is invalid. Please check your input and try again."))
+            .andExpect(jsonPath("$.requestId").exists());
     }
 
     @Test
@@ -88,7 +95,10 @@ class ChatControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"message\":\"hi\"}"))
             .andExpect(status().isBadGateway())
-            .andExpect(content().json("{\"error\":\"Chat provider is currently unavailable.\"}"));
+            .andExpect(jsonPath("$.status").value(502))
+            .andExpect(jsonPath("$.code").value("CHAT_PROVIDER_UNAVAILABLE"))
+            .andExpect(jsonPath("$.message").value("Chat provider is currently unavailable. Please try again later."))
+            .andExpect(jsonPath("$.requestId").exists());
     }
     @Test
     void rateLimitExceededReturns429WithRetryAfter() throws Exception {
@@ -103,7 +113,10 @@ class ChatControllerTest {
                 .content("{\"message\":\"hi\"}"))
             .andExpect(status().isTooManyRequests())
             .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Retry-After", "123"))
-            .andExpect(content().json("{\"error\":\"RATE_LIMIT_EXCEEDED\"}"));
+            .andExpect(jsonPath("$.status").value(429))
+            .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"))
+            .andExpect(jsonPath("$.message").value("Chat usage limit exceeded. Please try again later."))
+            .andExpect(jsonPath("$.requestId").exists());
     }
 
 }

@@ -1,12 +1,14 @@
 package com.example.ttslab.projects.ttsworkbench;
 
 import java.util.List;
+import com.example.ttslab.error.ApiException;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -14,6 +16,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @AutoConfigureMockMvc(addFilters = false)
@@ -86,4 +89,39 @@ class TtsWorkbenchControllerTest {
                 {"input":{"prompt":"Prompt","multiSpeakerMarkup":{"turns":[]}},"voice":{"languageCode":"en-US","modelName":"{{google-model}}","multiSpeakerVoiceConfig":{"speakerVoiceConfigs":[]}},"audioConfig":{"audioEncoding":"MP3"}}
                 """));
     }
+    @Test
+    void apiExceptionReturnsStructuredErrorResponse() throws Exception {
+        when(ttsWorkbenchService.analyze("Alice: Hello")).thenThrow(new ApiException(
+            HttpStatus.BAD_GATEWAY,
+            "TTS_WORKBENCH_PROVIDER_FAILED",
+            "The speaker voice analysis provider is currently unavailable. Please try again later.",
+            null,
+            new RuntimeException("provider timeout")
+        ));
+
+        mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
+                .header("X-Request-Id", "test-request-1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rawDialogue\":\"Alice: Hello\"}"))
+            .andExpect(status().isBadGateway())
+            .andExpect(jsonPath("$.status").value(502))
+            .andExpect(jsonPath("$.code").value("TTS_WORKBENCH_PROVIDER_FAILED"))
+            .andExpect(jsonPath("$.message").value("The speaker voice analysis provider is currently unavailable. Please try again later."))
+            .andExpect(jsonPath("$.requestId").value("test-request-1"));
+    }
+
+    @Test
+    void unexpectedExceptionReturnsSafeStructuredErrorResponse() throws Exception {
+        when(ttsWorkbenchService.analyze("Alice: Hello")).thenThrow(new IllegalStateException("database-password=secret"));
+
+        mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rawDialogue\":\"Alice: Hello\"}"))
+            .andExpect(status().isInternalServerError())
+            .andExpect(jsonPath("$.status").value(500))
+            .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
+            .andExpect(jsonPath("$.message").value("An unexpected server error occurred. Please try again later."))
+            .andExpect(jsonPath("$.requestId").exists());
+    }
+
 }

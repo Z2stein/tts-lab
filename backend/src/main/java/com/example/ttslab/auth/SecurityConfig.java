@@ -33,7 +33,7 @@ public class SecurityConfig {
             http.authorizeHttpRequests(auth -> auth.anyRequest().permitAll());
         } else {
             http.authorizeHttpRequests(auth -> auth
-                .requestMatchers("/health", "/actuator/health").permitAll()
+                .requestMatchers("/health", "/api/health", "/actuator/health").permitAll()
                 .anyRequest().authenticated());
             http.oauth2Login(oauth -> oauth.defaultSuccessUrl("/", true));
             http.logout(logout -> logout

@@ -1,8 +1,10 @@
 import { test, expect } from '@playwright/test';
 
+const e2eBaseUrl = process.env['E2E_BASE_URL'] || 'http://127.0.0.1:4200';
+
 test.beforeEach(async ({ context, page }) => {
   await context.addCookies([
-    { name: 'XSRF-TOKEN', value: 'test-token', url: 'http://127.0.0.1:4200' }
+    { name: 'XSRF-TOKEN', value: 'test-token', url: e2eBaseUrl }
   ]);
 
   await page.route('**/api/me', async (route) => {
@@ -45,7 +47,7 @@ test('shows UI error when backend responds with an error', async ({ page }) => {
     await route.fulfill({
       status: 500,
       contentType: 'application/json',
-      body: JSON.stringify({ message: 'simulated backend error' })
+      body: JSON.stringify({ status: 500, code: 'INTERNAL_ERROR', message: 'simulated backend error', requestId: 'e2e-request-1' })
     });
   });
 
@@ -56,6 +58,6 @@ test('shows UI error when backend responds with an error', async ({ page }) => {
 
   await page.getByRole('button', { name: 'Check length' }).click();
 
-  await expect(page.getByText('Backend request failed (HTTP 500).')).toBeVisible();
+  await expect(page.getByText('simulated backend error')).toBeVisible();
   await expect(page.getByText('Length: 3')).toHaveCount(0);
 });

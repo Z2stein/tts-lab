@@ -264,6 +264,8 @@ jobs:
 
             helm upgrade --install "$RELEASE_NAME" "$REMOTE_APP_DIR/charts/tts-lab" \
               --namespace "$NAMESPACE" \
+              --wait \
+              --timeout 5m \
               --set ingress.host="$APP_HOST" \
               --set ingress.tls.enabled=true \
               --set ingress.tls.secretName="$RELEASE_NAME-tls" \
@@ -279,7 +281,52 @@ jobs:
               --set chat.geminiSecretName="gemini-api" \
               --set chat.provider="$CHAT_PROVIDER" \
               --set chat.realProviderOnFeatureBranches="$REAL_PROVIDER_ON_FEATURE_BRANCHES"
+
+            BACKEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-backend"
+            FRONTEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-frontend"
+            BACKEND_SELECTOR="app.kubernetes.io/instance=$RELEASE_NAME,app.kubernetes.io/component=backend"
+            FRONTEND_SELECTOR="app.kubernetes.io/instance=$RELEASE_NAME,app.kubernetes.io/component=frontend"
+
+            echo "Waiting for backend rollout: deployment/$BACKEND_DEPLOYMENT"
+            kubectl -n "$NAMESPACE" rollout status "deployment/$BACKEND_DEPLOYMENT" --timeout=5m
+            echo "Waiting for frontend rollout: deployment/$FRONTEND_DEPLOYMENT"
+            kubectl -n "$NAMESPACE" rollout status "deployment/$FRONTEND_DEPLOYMENT" --timeout=5m
+
+            echo "Waiting for backend pods to be Ready with selector: $BACKEND_SELECTOR"
+            kubectl -n "$NAMESPACE" wait --for=condition=Ready pod -l "$BACKEND_SELECTOR" --timeout=5m
+            echo "Waiting for frontend pods to be Ready with selector: $FRONTEND_SELECTOR"
+            kubectl -n "$NAMESPACE" wait --for=condition=Ready pod -l "$FRONTEND_SELECTOR" --timeout=5m
+
+            kubectl -n "$NAMESPACE" get deployments,pods -l "app.kubernetes.io/instance=$RELEASE_NAME" -o wide
           EOF
+
+      - name: Set up Node for mandatory E2E tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm ci
+
+      - name: Install Playwright browser
+        run: |
+          set -euo pipefail
+          cd frontend
+          npx playwright install --with-deps chromium
+
+      - name: Run mandatory E2E tests against deployment
+        env:
+          E2E_BASE_URL: https://${{ needs.prepare-build.outputs.host }}
+          E2E_USE_LOCAL_SERVERS: 'false'
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm run test:e2e
 
       - name: Publish deployment URL
         run: |

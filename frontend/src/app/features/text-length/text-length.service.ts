@@ -1,6 +1,14 @@
 import { Injectable } from '@angular/core';
 import { CurrentUserService } from '../../current-user.service';
 
+interface ApiErrorResponse {
+  status?: number;
+  code?: string;
+  message?: string;
+  details?: string | null;
+  requestId?: string;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -26,12 +34,21 @@ export class TextLengthService {
     }
 
     if (!response.ok) {
-      console.error('[text-length] Backend returned non-OK status', { status: response.status });
-      throw new Error(`Backend request failed (HTTP ${response.status}).`);
+      const apiError = await this.readApiError(response);
+      console.error('[text-length] Backend returned non-OK status', { status: response.status, code: apiError?.code });
+      throw new Error(apiError?.message || `Backend request failed (HTTP ${response.status}).`);
     }
 
     const data = (await response.json()) as { length: number };
     console.info('[text-length] Request succeeded', { length: data.length });
     return data.length;
+  }
+
+  private async readApiError(response: Response): Promise<ApiErrorResponse | null> {
+    try {
+      return (await response.json()) as ApiErrorResponse;
+    } catch {
+      return null;
+    }
   }
 }
