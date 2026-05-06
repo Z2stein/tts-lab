@@ -72,7 +72,7 @@ auth:
 chat:
   geminiSecretName: gemini-api
   geminiModel: gemini-2.5-flash
-  provider: gemini
+  provider: mock
   realProviderOnFeatureBranches: false
 
 chatbot:

@@ -1,4 +1,4 @@
-package com.example.ttslab;
+package com.example.ttslab.projects.textlength;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -18,13 +18,13 @@ public class TextLengthController {
         this.textLengthService = textLengthService;
     }
 
-    @PostMapping("/text-length")
+    @PostMapping({"/text-length", "/projects/text-length/calculate"})
     public TextLengthResponse getTextLength(@RequestBody TextLengthRequest request) {
         int inputLength = request.text() == null ? 0 : request.text().length();
-        log.info("POST /api/text-length called (inputLength={})", inputLength);
+        log.info("Text length calculation called (inputLength={})", inputLength);
 
         int length = textLengthService.countLength(request.text());
-        log.info("POST /api/text-length succeeded (resultLength={})", length);
+        log.info("Text length calculation succeeded (resultLength={})", length);
         return new TextLengthResponse(length);
     }
 }
