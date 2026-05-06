@@ -37,3 +37,8 @@ Before a change is considered complete, the following checks must pass where app
 ### Frontend test rule
 
 Angular/Karma tests must run successfully
+
+## Codex Web validation rule
+
+Do not run Docker commands in Codex Web.
+Skip all Docker-based validation.

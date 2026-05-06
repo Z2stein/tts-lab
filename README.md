@@ -131,7 +131,9 @@ npm start
 
 ## Akzeptanzkriterien (Textlänge)
 
-Bewusst unterstützte Fälle für `POST /api/text-length`:
+The frontend calls `POST /api/projects/text-length/calculate`. For backward compatibility, `POST /api/text-length` remains supported with the same behavior.
+
+Bewusst unterstützte Fälle für both Text Length endpoints:
 
 - Leerer Text (`""`) liefert `length = 0`.
 - Unicode-Eingaben (z. B. Umlaute/Emoji) werden akzeptiert und gezählt.
@@ -184,9 +186,26 @@ Feature deployments do not create or inject Google OAuth secrets.
 Frontend behavior note:
 
 - On startup, the frontend first checks `/api/me` and shows a short loading state until auth is resolved. If `/api/me` fails (for example due to CORS/network issues), the UI no longer hangs in loading and falls back to unauthenticated with a visible error message and browser console logs.
-- Only authenticated users see the real app controls.
+- The authenticated app uses a shared header and client-side routes: `/` for the landing page, `/text-length` for the existing text-length UI, and `/tts-workbench` for the TTS Workbench speaker/voice analysis MVP. Unknown frontend routes redirect to `/`.
+- Only authenticated users see the routed app pages and chatbot widget.
 - Unauthenticated users see only the sign-in UI, which starts OAuth via `/oauth2/authorization/google`.
-- Logged-in users also see a logout button that calls `/logout` and returns to `/`.
+- Logged-in users also see their auth state in the header and a logout button that calls `/logout` and returns to `/`.
+
+
+## TTS Workbench (MVP)
+
+The TTS Workbench page calls `POST /api/projects/tts-workbench/speaker-voice-analysis` with raw dialogue and displays suggested rows containing:
+
+- `speakerName`
+- `roleDescription`
+- `voiceSuggestion`
+
+Runtime behavior follows the existing chatbot provider mode where possible:
+
+- `CHATBOT_PROVIDER=mock` returns deterministic local speaker suggestions and never calls Gemini.
+- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice analysis, then falls back to deterministic suggestions if the provider response is not parseable.
+
+Automated tests use mock behavior and do not call Gemini APIs.
 
 ## Chatbot (MVP)
 
@@ -195,7 +214,7 @@ The frontend now includes a reusable chatbot widget component that calls `POST /
 ### Helm/runtime configuration
 
 - `chat.geminiModel` controls the Gemini model (`gemini-2.5-flash` by default).
-- `chat.provider` controls backend runtime provider (`gemini` or `mock`).
+- `chat.provider` controls backend runtime provider (`gemini` or `mock`); the chart default is `mock` so local/feature-style installs do not require `GEMINI_API_KEY`.
 - `chat.realProviderOnFeatureBranches` defaults to `false` and is used by the deploy workflow to keep feature branches in mock chatbot mode by default.
 - The frontend remains provider-agnostic and always calls `POST /api/chat`.
 

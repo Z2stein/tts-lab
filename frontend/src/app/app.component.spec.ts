@@ -1,9 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
-import { TextLengthService } from './text-length.service';
 import { CurrentUserService } from './current-user.service';
+import { routes } from './app.routes';
 
-describe('AppComponent chatbot visibility', () => {
+describe('AppComponent layout and chatbot visibility', () => {
   let fixture: ComponentFixture<AppComponent>;
   let component: AppComponent;
 
@@ -11,13 +12,32 @@ describe('AppComponent chatbot visibility', () => {
     await TestBed.configureTestingModule({
       imports: [AppComponent],
       providers: [
-        { provide: TextLengthService, useValue: { getLength: jasmine.createSpy().and.resolveTo(3) } },
-        { provide: CurrentUserService, useValue: { getCurrentUser: jasmine.createSpy(), ensureCsrfToken: jasmine.createSpy(), startGoogleLogin: jasmine.createSpy(), startLogout: jasmine.createSpy() } }
+        provideRouter(routes),
+        {
+          provide: CurrentUserService,
+          useValue: {
+            getCurrentUser: jasmine.createSpy(),
+            ensureCsrfToken: jasmine.createSpy(),
+            startGoogleLogin: jasmine.createSpy(),
+            startLogout: jasmine.createSpy()
+          }
+        }
       ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(AppComponent);
     component = fixture.componentInstance;
+  });
+
+  it('shows navigation links in the shared header', () => {
+    component.authStatus = 'authenticated';
+    component.currentUser = { id: '1', email: 'u@test.dev', name: 'User', authMode: 'mock', roles: ['USER'] };
+    fixture.detectChanges();
+
+    const text = fixture.nativeElement.textContent;
+    expect(text).toContain('Home');
+    expect(text).toContain('Text Length');
+    expect(text).toContain('TTS Workbench');
   });
 
   it('chatbot widget is not visible when unauthenticated', () => {
