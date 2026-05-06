@@ -187,6 +187,16 @@ jobs:
             --set chat.provider=mock \
             --set chat.realProviderOnFeatureBranches=false
 
+      - name: Debug predeploy backend
+        if: failure()
+        run: |
+          kubectl -n predeploy-e2e get all
+          kubectl -n predeploy-e2e get pods -o wide
+          kubectl -n predeploy-e2e describe deployment predeploy-e2e-tts-lab-backend
+          kubectl -n predeploy-e2e describe pods
+          kubectl -n predeploy-e2e logs -l app.kubernetes.io/component=backend --all-containers --tail=200 || true
+          kubectl -n predeploy-e2e get events --sort-by=.lastTimestamp
+
       - name: Wait for temporary app readiness
         run: |
           set -euo pipefail
