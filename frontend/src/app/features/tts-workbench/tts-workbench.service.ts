@@ -35,6 +35,14 @@ interface EmotionAnnotationAnalysisResponse {
   turns: AnnotatedSpeakerTurn[];
 }
 
+interface ApiErrorResponse {
+  status?: number;
+  code?: string;
+  message?: string;
+  details?: string | null;
+  requestId?: string;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TtsWorkbenchService {
   constructor(private readonly currentUserService: CurrentUserService) {}
@@ -92,9 +100,18 @@ export class TtsWorkbenchService {
     });
 
     if (!response.ok) {
-      throw new Error(`${errorPrefix} (HTTP ${response.status}).`);
+      const apiError = await this.readApiError(response);
+      throw new Error(apiError?.message || `${errorPrefix} (HTTP ${response.status}).`);
     }
 
     return (await response.json()) as T;
+  }
+
+  private async readApiError(response: Response): Promise<ApiErrorResponse | null> {
+    try {
+      return (await response.json()) as ApiErrorResponse;
+    } catch {
+      return null;
+    }
   }
 }

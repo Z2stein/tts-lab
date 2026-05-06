@@ -2,6 +2,7 @@ package com.example.ttslab.projects.ttsworkbench;
 
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatService;
+import com.example.ttslab.error.ApiException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -10,6 +11,7 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -50,15 +52,18 @@ public class SpeakerVoiceAnalysisService {
 
         try {
             String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerVoiceAnalysisPrompt(rawDialogue), null)).answer();
-            List<SpeakerVoiceAnalysisItem> parsed = parseProviderAnswer(answer);
-            if (!parsed.isEmpty()) {
-                return new SpeakerVoiceAnalysisResponse(parsed);
-            }
-        } catch (Exception e) {
-            log.error("TTS Workbench analysis failed: {}", e.getMessage(), e);
+            return new SpeakerVoiceAnalysisResponse(parseProviderAnswer(answer));
+        } catch (ApiException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ApiException(
+                HttpStatus.BAD_GATEWAY,
+                "TTS_WORKBENCH_PROVIDER_FAILED",
+                "The speaker voice analysis provider is currently unavailable. Please try again later.",
+                null,
+                ex
+            );
         }
-
-        return new SpeakerVoiceAnalysisResponse(fallbackService.analyzeSpeakers(rawDialogue));
     }
 
     private List<SpeakerVoiceAnalysisItem> parseProviderAnswer(String answer) {
@@ -66,13 +71,13 @@ public class SpeakerVoiceAnalysisService {
         log.debug("start parsing answer:\n "+answer);
 
         if (answer == null || answer.isBlank()) {
-            return List.of();
+            throw invalidProviderResponse(null);
         }
 
         try {
             JsonNode speakers = objectMapper.readTree(TtsWorkbenchJson.stripMarkdownFence(answer)).path("speakers");
             if (!speakers.isArray()) {
-                return List.of();
+                throw invalidProviderResponse(null);
             }
 
             List<SpeakerVoiceAnalysisItem> items = new ArrayList<>();
@@ -84,10 +89,24 @@ public class SpeakerVoiceAnalysisService {
                     items.add(new SpeakerVoiceAnalysisItem(speakerName, roleDescription, voiceSuggestion));
                 }
             }
+            if (items.isEmpty()) {
+                throw invalidProviderResponse(null);
+            }
             return items;
+        } catch (ApiException ex) {
+            throw ex;
         } catch (Exception ex) {
-            log.error("Failed to parse LLM response: {}", answer, ex);
-            return List.of();
+            throw invalidProviderResponse(ex);
         }
+    }
+
+    private ApiException invalidProviderResponse(Throwable cause) {
+        return new ApiException(
+            HttpStatus.BAD_GATEWAY,
+            "TTS_WORKBENCH_PROVIDER_RESPONSE_INVALID",
+            "The speaker voice analysis provider returned an invalid response. Please try again later.",
+            null,
+            cause
+        );
     }
 }

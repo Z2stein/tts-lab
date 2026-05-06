@@ -62,8 +62,22 @@ describe('TtsWorkbenchService', () => {
 
   it('throws a user-facing error when analysis fails', async () => {
     const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    spyOn(window, 'fetch').and.resolveTo(new Response('{}', { status: 500 }));
+    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
+      status: 502,
+      code: 'TTS_WORKBENCH_PROVIDER_FAILED',
+      message: 'The speaker voice analysis provider is currently unavailable. Please try again later.',
+      requestId: 'request-1'
+    }), { status: 502 }));
+
+    await expectAsync(service.analyzeSpeakers('Alice: Hello'))
+      .toBeRejectedWithError('The speaker voice analysis provider is currently unavailable. Please try again later.');
+  });
+
+  it('falls back to HTTP status when backend error body is unavailable', async () => {
+    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
+    spyOn(window, 'fetch').and.resolveTo(new Response('not-json', { status: 500 }));
 
     await expectAsync(service.analyzeSpeakers('Alice: Hello')).toBeRejectedWithError('Speaker voice analysis failed (HTTP 500).');
   });
+
 });

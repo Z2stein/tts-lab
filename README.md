@@ -45,7 +45,7 @@ Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
   - Backend: `GET /health`
 - Routing:
   - `/` → Frontend Service
-  - `/api` → Backend Service
+  - `/api` → Backend Service, including the unauthenticated `GET /api/health` endpoint used by real deployed E2E checks
   - `/oauth2` → Backend Service
   - `/login/oauth2` → Backend Service
   - `/logout` → Backend Service
@@ -106,7 +106,14 @@ Ablauf bei Push:
 5. SSH auf Hetzner
 6. Namespace idempotent anlegen/aktualisieren
 7. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
-8. `helm upgrade --install` ausführen
+8. `helm upgrade --install --wait --timeout 5m` ausführen
+9. Backend- und Frontend-Deployments per `kubectl rollout status` abwarten
+10. Backend- und Frontend-Pods per `kubectl wait --for=condition=Ready pod -l ...` abwarten
+11. Deployment-URL veröffentlichen; parallel zum Deployment-Pfad führt der separate Job `e2e-local` die mandatory Playwright-E2E-Tests lokal im GitHub-Actions-Runner mit Playwright-Webservern aus, inklusive realem Frontend-Backend-Check ohne Mock für die geprüfte Backend-Route
+
+Die Pipeline schlägt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn der separate `e2e-local`-Job fehlschlägt. Feste Sleep-Zeiten sind nicht der primäre Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend).
+
+Der lokale E2E-Job läuft mit `E2E_BASE_URL=http://127.0.0.1:4200` und `E2E_USE_LOCAL_SERVERS=true` (der Standard wäre ebenfalls lokal), startet also Backend und Frontend über die bestehende Playwright-`webServer`-Konfiguration. Er enthält weiterhin deterministische UI-Tests mit gemockten Backend-Routen und zusätzlich `real-backend-health.spec.ts`. Dieser reale Integrationscheck lädt das lokale Frontend und ruft aus dem Browser-Kontext `GET /api/health` auf. Die Route ist bewusst stabil, benötigt keine Anmeldung, keine CSRF-Token und keine externen Provider-Secrets. Der Test schlägt fehl, wenn der Browser das lokal gestartete Backend nicht erreicht, wenn die Antwort kein `200 {"status":"ok"}` ist, oder wenn das Frontend die Antwort nicht verarbeiten und anzeigen kann.
 
 Cleanup:
 
@@ -130,6 +137,40 @@ npm install
 npm start
 ```
 
+### Lokale Checks und E2E
+
+Empfohlene schnelle lokale/Codex-Checks sind Backend-Build/Unit-Tests, Frontend-Unit-Tests und Frontend-Builds. E2E-Tests sind lokal optional und sollen gezielt laufen, wenn eine Änderung End-to-End-Verhalten, Routing, Auth, Deployment-Verhalten oder mehrere App-Schichten betrifft.
+
+```bash
+cd backend
+gradle build
+
+cd ../frontend
+CHROME_BIN="${CHROME_BIN:-/tmp/chrome-no-sandbox}" npm test
+npm run build
+```
+
+Lokale E2E-Tests starten standardmäßig Backend und Frontend über Playwright:
+
+```bash
+cd frontend
+npm run test:e2e
+```
+
+Die Playwright-Suite unterscheidet zwischen:
+
+- gemockten UI-E2E-Tests (`text-length.spec.ts`, `tts-workbench.spec.ts`), die gezielt Backend-Routen mocken, um UI-Erfolg und UI-Fehler deterministisch zu prüfen;
+- realen Frontend-Backend-E2E-Tests (`real-backend-health.spec.ts`), die die geprüfte Backend-Route nicht mocken und standardmäßig über die lokal gestarteten Playwright-Webserver laufen.
+
+E2E gegen eine deployte Umgebung:
+
+```bash
+cd frontend
+E2E_BASE_URL="https://<deployed-host>" E2E_USE_LOCAL_SERVERS=false npm run test:e2e
+```
+
+Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory und läuft dort lokal im GitHub-Actions-Runner mit `E2E_USE_LOCAL_SERVERS=true`.
+
 
 ## Akzeptanzkriterien (Textlänge)
 
@@ -140,8 +181,37 @@ Bewusst unterstützte Fälle für both Text Length endpoints:
 - Leerer Text (`""`) liefert `length = 0`.
 - Unicode-Eingaben (z. B. Umlaute/Emoji) werden akzeptiert und gezählt.
 - Große Inputs (z. B. 10.000 Zeichen) werden verarbeitet.
-- Ungültige JSON-Payloads werden mit HTTP `400 Bad Request` abgelehnt.
+- Ungültige JSON-Payloads werden mit HTTP `400 Bad Request` und strukturierter Fehlerantwort abgelehnt.
 - Fehlende `text`-Property wird wie `null` behandelt und liefert `length = 0`.
+
+## Health endpoints
+
+- `GET /health` is the backend pod health endpoint used by Kubernetes probes.
+- `GET /api/health` returns the same `{ "status": "ok" }` payload through the public `/api` ingress route and is intentionally unauthenticated so deployed E2E can verify real frontend-to-backend connectivity without OAuth, CSRF, or external provider dependencies.
+
+## API error responses
+
+Backend API failures use a structured, frontend-safe JSON response:
+
+```json
+{
+  "status": 502,
+  "code": "TTS_WORKBENCH_PROVIDER_FAILED",
+  "message": "The speaker voice analysis provider is currently unavailable. Please try again later.",
+  "details": null,
+  "requestId": "request-or-generated-id"
+}
+```
+
+Fields:
+
+- `status`: HTTP status code.
+- `code`: stable application error code for clients/tests.
+- `message`: safe user-facing message suitable for display in the frontend.
+- `details`: optional safe details, mostly for validation hints; stack traces/secrets/internal implementation details are not exposed.
+- `requestId`: incoming `X-Request-Id` when present, otherwise generated by the backend and also returned as response header.
+
+The backend logs the full exception/cause for debugging while keeping frontend responses safe. Frontend clients prefer the backend `message` and fall back to a generic HTTP-status message only when no structured backend error is available.
 
 ## Authentication modes
 
@@ -214,7 +284,7 @@ Backend endpoints:
 Runtime behavior follows the existing chatbot provider mode where possible:
 
 - `CHATBOT_PROVIDER=mock` returns deterministic local speaker suggestions, speaker splitting, emotion annotation, and final JSON preview data. It never calls Gemini.
-- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice, speaker split, and emotion annotation output, then falls back to deterministic local behavior if the provider response is not parseable or fails.
+- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice, speaker split, and emotion annotation output. Provider failures or invalid provider output now return structured API errors so the frontend can show a clear failure instead of silently displaying fallback data.
 
 Prompts are accessed through a `TtsWorkbenchPromptProvider` abstraction. The current implementation returns static defaults, but the service structure is intentionally open for future prompts loaded from configuration, a database, an admin UI, project settings, or tenant-specific settings.
 

@@ -2,11 +2,13 @@ package com.example.ttslab.projects.ttsworkbench;
 
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatService;
+import com.example.ttslab.error.ApiException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -44,26 +46,29 @@ public class SpeakerSplitAnalysisService {
 
         try {
             String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerSplitPrompt(rawDialogue, speakers == null ? List.of() : speakers), null)).answer();
-            List<SpeakerSplitTurn> parsed = parseProviderAnswer(answer);
-            if (!parsed.isEmpty()) {
-                return new SpeakerSplitAnalysisResponse(parsed);
-            }
-        } catch (Exception ignored) {
-            // The workbench must remain usable when the configured provider fails.
+            return new SpeakerSplitAnalysisResponse(parseProviderAnswer(answer));
+        } catch (ApiException ex) {
+            throw ex;
+        } catch (Exception ex) {
+            throw new ApiException(
+                HttpStatus.BAD_GATEWAY,
+                "TTS_WORKBENCH_PROVIDER_FAILED",
+                "The speaker split provider is currently unavailable. Please try again later.",
+                null,
+                ex
+            );
         }
-
-        return new SpeakerSplitAnalysisResponse(fallbackService.splitDialogue(rawDialogue));
     }
 
     private List<SpeakerSplitTurn> parseProviderAnswer(String answer) {
         if (answer == null || answer.isBlank()) {
-            return List.of();
+            throw invalidProviderResponse(null);
         }
 
         try {
             JsonNode turns = objectMapper.readTree(TtsWorkbenchJson.stripMarkdownFence(answer)).path("turns");
             if (!turns.isArray()) {
-                return List.of();
+                throw invalidProviderResponse(null);
             }
 
             List<SpeakerSplitTurn> items = new ArrayList<>();
@@ -74,9 +79,24 @@ public class SpeakerSplitAnalysisService {
                     items.add(new SpeakerSplitTurn(speaker, text));
                 }
             }
+            if (items.isEmpty()) {
+                throw invalidProviderResponse(null);
+            }
             return items;
+        } catch (ApiException ex) {
+            throw ex;
         } catch (Exception ex) {
-            return List.of();
+            throw invalidProviderResponse(ex);
         }
+    }
+
+    private ApiException invalidProviderResponse(Throwable cause) {
+        return new ApiException(
+            HttpStatus.BAD_GATEWAY,
+            "TTS_WORKBENCH_PROVIDER_RESPONSE_INVALID",
+            "The speaker split provider returned an invalid response. Please try again later.",
+            null,
+            cause
+        );
     }
 }
