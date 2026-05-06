@@ -53,7 +53,7 @@ npm run test:e2e
 The Playwright suite contains two kinds of tests:
 
 - Mocked UI E2E specs, such as `text-length.spec.ts` and `tts-workbench.spec.ts`, mock selected backend routes to keep UI behavior deterministic.
-- Real deployed frontend-backend E2E specs, such as `deployed-real-backend.spec.ts`, must not mock the backend route they verify and should use stable internal endpoints without external provider dependencies.
+- Real frontend-backend E2E specs, such as `real-backend-health.spec.ts`, must not mock the backend route they verify and should use stable internal endpoints without external provider dependencies.
 
 To run Playwright against an already deployed environment instead of local web servers:
 
@@ -64,15 +64,15 @@ E2E_BASE_URL="https://<deployed-host>" E2E_USE_LOCAL_SERVERS=false npm run test:
 
 ### Mandatory CI/CD pipeline checks
 
-The GitHub Actions deployment pipeline must run E2E tests after deployment. Pipeline E2E tests are mandatory even though local/Codex E2E execution is optional.
+The GitHub Actions pipeline must run E2E tests locally inside the GitHub Actions runner. Pipeline E2E tests are mandatory even though local/Codex E2E execution is optional.
 
 The pipeline must:
 
-1. Deploy backend and frontend.
-2. Wait for Helm/Kubernetes rollout success.
-3. Wait for backend and frontend pods to be Ready using Kubernetes readiness checks.
-4. Run all E2E tests against the deployed URL, including the real frontend-backend spec.
-5. Fail if readiness fails, the real backend integration check fails, or any E2E test fails.
+1. Deploy backend and frontend in the deployment job.
+2. Wait for Helm/Kubernetes rollout success in the deployment job.
+3. Wait for backend and frontend pods to be Ready using Kubernetes readiness checks in the deployment job.
+4. Run all E2E tests in a separate local runner job with Playwright's webServer configuration enabled (`E2E_USE_LOCAL_SERVERS=true` or omitted) and `E2E_BASE_URL=http://127.0.0.1:4200`.
+5. Fail if readiness fails, the real local frontend-backend integration check fails, or any E2E test fails.
 
 ### Frontend test rule
 

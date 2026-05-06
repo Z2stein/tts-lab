@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test';
 
-test('deployed frontend can reach and process the real backend health response', async ({ page }) => {
+test('frontend can reach and process the real backend health response', async ({ page }) => {
   await page.goto('/');
   await expect(page.getByRole('link', { name: 'TTS Lab home' })).toBeVisible();
 
