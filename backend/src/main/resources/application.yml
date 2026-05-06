@@ -33,4 +33,5 @@ chat-limit:
 
 logging:
   level:
-    root: DEBUG
+    root: info
+    com.example.ttslab: DEBUG
