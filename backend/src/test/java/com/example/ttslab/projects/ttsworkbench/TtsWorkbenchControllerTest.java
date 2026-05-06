@@ -28,7 +28,7 @@ class TtsWorkbenchControllerTest {
     @Test
     void speakerVoiceAnalysisReturnsSuggestedVoices() throws Exception {
         when(ttsWorkbenchService.analyze("Alice: Hello")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
-            new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", "Warm neutral voice")
+            new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)
         )));
 
         mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
@@ -36,7 +36,7 @@ class TtsWorkbenchControllerTest {
                 .content("{\"rawDialogue\":\"Alice: Hello\"}"))
             .andExpect(status().isOk())
             .andExpect(content().json("""
-                {"speakers":[{"speakerName":"Alice","roleDescription":"Detected dialogue speaker","voiceSuggestion":"Warm neutral voice"}]}
+                {"speakers":[{"speakerName":"Alice","roleDescription":"Detected dialogue speaker","voiceSuggestion":"ACHIRD"}]}
                 """));
     }
 

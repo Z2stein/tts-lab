@@ -70,8 +70,8 @@ class TtsWorkbenchServiceTest {
         FinalTtsRequestPreviewResponse response = service.buildFinalRequest(new FinalTtsRequestPreviewRequest(
             "A conversation between Speaker A and Speaker B.",
             List.of(
-                new SpeakerVoiceAnalysisItem("A", "Emotional speaker", "Kore"),
-                new SpeakerVoiceAnalysisItem("B", "Calm speaker", "Puck")
+                new SpeakerVoiceAnalysisItem("A", "Emotional speaker", SpeakerVoice.FENRIR),
+                new SpeakerVoiceAnalysisItem("B", "Calm speaker", SpeakerVoice.ACHERNAR)
             ),
             List.of(
                 new AnnotatedSpeakerTurn("A", "[urgent] Hello!"),
@@ -86,7 +86,7 @@ class TtsWorkbenchServiceTest {
         assertEquals("en-US", response.voice().get("languageCode"));
         assertEquals("MP3", response.audioConfig().get("audioEncoding"));
         assertTrue(response.voice().toString().contains("speakerAlias=A"));
-        assertTrue(response.voice().toString().contains("speakerId=Kore"));
+        assertTrue(response.voice().toString().contains("speakerId=Fenrir"));
     }
 
     @Test
@@ -101,7 +101,7 @@ class TtsWorkbenchServiceTest {
 
         assertEquals(1, response.speakers().size());
         assertEquals("Narrator", response.speakers().getFirst().speakerName());
-        assertEquals("Warm voice", response.speakers().getFirst().voiceSuggestion());
+        assertEquals("ZEPHYR", response.speakers().getFirst().voiceSuggestion().name());
     }
 
     @Test

@@ -31,7 +31,7 @@ public class FinalTtsRequestBuilder {
             .map(speaker -> {
                 Map<String, String> speakerVoiceConfig = new LinkedHashMap<>();
                 speakerVoiceConfig.put("speakerAlias", speaker.speakerName());
-                speakerVoiceConfig.put("speakerId", defaultIfBlank(speaker.voiceSuggestion(), "default"));
+                speakerVoiceConfig.put("speakerId", defaultIfBlank(speaker.voiceSuggestion().getKey(), SpeakerVoice.ERINOME.getKey()));
                 return speakerVoiceConfig;
             })
             .toList();

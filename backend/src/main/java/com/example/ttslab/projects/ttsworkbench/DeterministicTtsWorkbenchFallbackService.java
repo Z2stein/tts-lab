@@ -11,12 +11,7 @@ import org.springframework.stereotype.Service;
 @Service
 public class DeterministicTtsWorkbenchFallbackService {
     private static final Pattern SPEAKER_LINE = Pattern.compile("^\\s*([\\p{L}][\\p{L}0-9 ._'’-]{0,40})\\s*[:：-]\\s+(.+)\\s*$");
-    private static final List<String> MOCK_VOICES = List.of(
-        "Warm neutral voice",
-        "Clear energetic voice",
-        "Calm lower-pitched voice",
-        "Bright conversational voice"
-    );
+    private static final List<SpeakerVoice> MOCK_VOICES = List.of(SpeakerVoice.values());
 
     public List<SpeakerVoiceAnalysisItem> analyzeSpeakers(String rawDialogue) {
         Map<String, Integer> speakerOrder = new LinkedHashMap<>();

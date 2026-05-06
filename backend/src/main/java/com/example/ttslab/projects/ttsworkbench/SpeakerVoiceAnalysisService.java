@@ -70,7 +70,7 @@ public class SpeakerVoiceAnalysisService {
             for (JsonNode speaker : speakers) {
                 String speakerName = speaker.path("speakerName").asText("").trim();
                 String roleDescription = speaker.path("roleDescription").asText("").trim();
-                String voiceSuggestion = speaker.path("voiceSuggestion").asText("").trim();
+                SpeakerVoice voiceSuggestion = SpeakerVoice.valueOf(speaker.path("voiceSuggestion").asText("").trim().toUpperCase());
                 if (!speakerName.isBlank()) {
                     items.add(new SpeakerVoiceAnalysisItem(speakerName, roleDescription, voiceSuggestion));
                 }

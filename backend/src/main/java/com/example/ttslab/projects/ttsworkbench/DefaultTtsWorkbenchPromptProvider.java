@@ -2,7 +2,11 @@ package com.example.ttslab.projects.ttsworkbench;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
+
 import org.springframework.stereotype.Component;
 
 @Component
@@ -15,14 +19,23 @@ public class DefaultTtsWorkbenchPromptProvider implements TtsWorkbenchPromptProv
 
     @Override
     public String getSpeakerVoiceAnalysisPrompt(String rawDialogue) {
-        return """
-            Analyze this raw dialogue for a text-to-speech workbench.
-            Return only JSON with this shape:
-            {"speakers":[{"speakerName":"...","roleDescription":"...","voiceSuggestion":"..."}]}
-            Keep descriptions and voice suggestions short and practical.
 
-            Dialogue:
-            """ + rawDialogue;
+        String availableVoices = Arrays.stream(SpeakerVoice.values())
+                .map(v -> v.getKey() + " (" + v.getStyle() + ")")
+                .collect(Collectors.joining(", "));
+
+        return """
+                Analyze this raw dialogue for a text-to-speech workbench.
+                Return only JSON with this shape:
+                {"speakers":[{"speakerName":"...","roleDescription":"...","voiceSuggestion":"..."}]}
+                Keep descriptions and voice suggestions short and practical.
+                
+                You MUST select 'voiceSuggestion' ONLY from this list:
+                %s
+            
+                Dialogue:
+                %s
+                """.formatted(availableVoices, rawDialogue);
     }
 
     @Override
