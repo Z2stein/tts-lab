@@ -35,12 +35,16 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GHCR_USER: ${{ vars.GHCR_USER }}
-          HETZNER_HOST: ${{ vars.HETZNER_HOST }}
+          APP_SLUG: ${{ vars.APP_SLUG }}
+          HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
+          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
         run: |
           set -euo pipefail
           [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
           [ -n "${GHCR_USER}" ] || { echo "::error title=Missing GHCR_USER::Set repository variable GHCR_USER for registry authentication."; exit 1; }
-          [ -n "${HETZNER_HOST}" ] || { echo "::error title=Missing HETZNER_HOST::Set repository variable HETZNER_HOST for deployment target host."; exit 1; }
+          [ -n "${APP_SLUG}" ] || { echo "::error title=Missing APP_SLUG::Set repository variable APP_SLUG for app, release, image, and hostname derivation."; exit 1; }
+          [ -n "${HETZNER_PUBLIC_IP}" ] || { echo "::error title=Missing HETZNER_PUBLIC_IP::Set repository variable HETZNER_PUBLIC_IP for the deployment server public IP."; exit 1; }
+          [ -n "${BASE_DOMAIN}" ] || { echo "::error title=Missing BASE_DOMAIN::Set repository variable BASE_DOMAIN for public ingress hostnames."; exit 1; }
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -49,22 +53,22 @@ jobs:
         id: repo_config
         env:
           APP_SLUG: ${{ vars.APP_SLUG }}
-          REPO_NAME: ${{ github.event.repository.name }}
         run: |
           set -euo pipefail
-          shared/deployment/repo_config.sh "$APP_SLUG" "$REPO_NAME" >> "$GITHUB_OUTPUT"
+          shared/deployment/repo_config.sh "$APP_SLUG" >> "$GITHUB_OUTPUT"
 
       - name: Compute deployment variables
         id: vars
         env:
           BRANCH_NAME: ${{ github.ref_name }}
-          SERVER_IP: ${{ vars.HETZNER_HOST }}
+          HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
           GIT_SHA: ${{ github.sha }}
           APP_SLUG: ${{ steps.repo_config.outputs.app_slug }}
+          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
         run: |
           set -euo pipefail
-          SERVER_IP="${SERVER_IP:-${{ vars.HETZNER_HOST }}}"
-          scripts/deployment_vars.sh deploy "$BRANCH_NAME" "$SERVER_IP" "$GIT_SHA" >> "$GITHUB_OUTPUT"
+          HETZNER_PUBLIC_IP="${HETZNER_PUBLIC_IP:-${{ vars.HETZNER_PUBLIC_IP }}}"
+          scripts/deployment_vars.sh deploy "$BRANCH_NAME" "$HETZNER_PUBLIC_IP" "$GIT_SHA" >> "$GITHUB_OUTPUT"
 
 
       - name: Compute registry owner
@@ -147,7 +151,9 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GHCR_USER: ${{ vars.GHCR_USER }}
-          HETZNER_HOST: ${{ vars.HETZNER_HOST }}
+          APP_SLUG: ${{ needs.prepare-build.outputs.app_slug }}
+          HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
+          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
           HETZNER_USER: ${{ secrets.HETZNER_USER }}
           HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -157,7 +163,9 @@ jobs:
           set -euo pipefail
           [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
           [ -n "${GHCR_USER}" ] || { echo "::error title=Missing GHCR_USER::Set repository variable GHCR_USER for registry authentication."; exit 1; }
-          [ -n "${HETZNER_HOST}" ] || { echo "::error title=Missing HETZNER_HOST::Set repository variable HETZNER_HOST for deployment target host."; exit 1; }
+          [ -n "${APP_SLUG}" ] || { echo "::error title=Missing APP_SLUG::Set repository variable APP_SLUG for app, release, image, and hostname derivation."; exit 1; }
+          [ -n "${HETZNER_PUBLIC_IP}" ] || { echo "::error title=Missing HETZNER_PUBLIC_IP::Set repository variable HETZNER_PUBLIC_IP for the deployment server public IP."; exit 1; }
+          [ -n "${BASE_DOMAIN}" ] || { echo "::error title=Missing BASE_DOMAIN::Set repository variable BASE_DOMAIN for public ingress hostnames."; exit 1; }
           [ -n "${HETZNER_USER}" ] || { echo "::error title=Missing HETZNER_USER::Set repository secret HETZNER_USER for SSH deploy user."; exit 1; }
           [ -n "${HETZNER_SSH_KEY}" ] || { echo "::error title=Missing HETZNER_SSH_KEY::Set repository secret HETZNER_SSH_KEY for SSH authentication."; exit 1; }
           REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
@@ -173,11 +181,11 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ vars.HETZNER_PUBLIC_IP }}" >> ~/.ssh/known_hosts
 
       - name: Deploy via Helm on k3s
         env:
-          HOST: ${{ vars.HETZNER_HOST }}
+          HOST: ${{ vars.HETZNER_PUBLIC_IP }}
           USER: ${{ secrets.HETZNER_USER }}
           NAMESPACE: ${{ needs.prepare-build.outputs.namespace }}
           RELEASE_NAME: ${{ needs.prepare-build.outputs.release_name }}
@@ -193,12 +201,14 @@ jobs:
           FRONTEND_IMAGE_NAME: ${{ needs.prepare-build.outputs.frontend_image_name }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
+          APP_SLUG: ${{ needs.prepare-build.outputs.app_slug }}
         run: |
           set -euo pipefail
-          ssh "$USER@$HOST" "mkdir -p /opt/tts-lab/charts"
-          scp -r charts/tts-lab "$USER@$HOST:/opt/tts-lab/charts/"
+          REMOTE_APP_DIR="/opt/${APP_SLUG}"
+          ssh "$USER@$HOST" "mkdir -p '$REMOTE_APP_DIR/charts'"
+          scp -r charts/tts-lab "$USER@$HOST:$REMOTE_APP_DIR/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}" <<'EOF'
+          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}" "$REMOTE_APP_DIR" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -214,6 +224,7 @@ jobs:
             GOOGLE_CLIENT_SECRET="${12}"
             GEMINI_API_KEY="${13}"
             CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES="${14:-false}"
+            REMOTE_APP_DIR="${15}"
 
             REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
             if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
@@ -251,8 +262,10 @@ jobs:
               --docker-password="$GHCR_PASSWORD" \
               --dry-run=client -o yaml | kubectl apply -f -
 
-            helm upgrade --install "$RELEASE_NAME" /opt/tts-lab/charts/tts-lab \
+            helm upgrade --install "$RELEASE_NAME" "$REMOTE_APP_DIR/charts/tts-lab" \
               --namespace "$NAMESPACE" \
+              --wait \
+              --timeout 5m \
               --set ingress.host="$APP_HOST" \
               --set ingress.tls.enabled=true \
               --set ingress.tls.secretName="$RELEASE_NAME-tls" \
@@ -268,6 +281,23 @@ jobs:
               --set chat.geminiSecretName="gemini-api" \
               --set chat.provider="$CHAT_PROVIDER" \
               --set chat.realProviderOnFeatureBranches="$REAL_PROVIDER_ON_FEATURE_BRANCHES"
+
+            BACKEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-backend"
+            FRONTEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-frontend"
+            BACKEND_SELECTOR="app.kubernetes.io/instance=$RELEASE_NAME,app.kubernetes.io/component=backend"
+            FRONTEND_SELECTOR="app.kubernetes.io/instance=$RELEASE_NAME,app.kubernetes.io/component=frontend"
+
+            echo "Waiting for backend rollout: deployment/$BACKEND_DEPLOYMENT"
+            kubectl -n "$NAMESPACE" rollout status "deployment/$BACKEND_DEPLOYMENT" --timeout=5m
+            echo "Waiting for frontend rollout: deployment/$FRONTEND_DEPLOYMENT"
+            kubectl -n "$NAMESPACE" rollout status "deployment/$FRONTEND_DEPLOYMENT" --timeout=5m
+
+            echo "Waiting for backend pods to be Ready with selector: $BACKEND_SELECTOR"
+            kubectl -n "$NAMESPACE" wait --for=condition=Ready pod -l "$BACKEND_SELECTOR" --timeout=5m
+            echo "Waiting for frontend pods to be Ready with selector: $FRONTEND_SELECTOR"
+            kubectl -n "$NAMESPACE" wait --for=condition=Ready pod -l "$FRONTEND_SELECTOR" --timeout=5m
+
+            kubectl -n "$NAMESPACE" get deployments,pods -l "app.kubernetes.io/instance=$RELEASE_NAME" -o wide
           EOF
 
       - name: Publish deployment URL
@@ -278,6 +308,42 @@ jobs:
             echo "**URL:** [https://${{ needs.prepare-build.outputs.host }}](https://${{ needs.prepare-build.outputs.host }})"
           } >> "$GITHUB_STEP_SUMMARY"
           echo "::notice title=Deployment URL::https://${{ needs.prepare-build.outputs.host }}"
+
+  e2e-local:
+    if: github.event_name == 'push'
+    needs: [prepare-build, build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node for mandatory E2E tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm ci
+
+      - name: Install Playwright browser
+        run: |
+          set -euo pipefail
+          cd frontend
+          npx playwright install --with-deps chromium
+
+      - name: Run mandatory local E2E tests
+        env:
+          E2E_BASE_URL: http://127.0.0.1:4200
+          E2E_USE_LOCAL_SERVERS: 'true'
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm run test:e2e
 
   cleanup-feature:
     if: github.event_name == 'delete' || (github.event_name == 'pull_request' && github.event.action == 'closed')
@@ -291,15 +357,17 @@ jobs:
         env:
           DELETE_BRANCH: ${{ github.event.ref }}
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
-          SERVER_IP: ${{ vars.HETZNER_HOST }}
+          APP_SLUG: ${{ vars.APP_SLUG }}
+          HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
+          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
         run: |
           set -euo pipefail
           BRANCH_NAME="$DELETE_BRANCH"
           if [ -n "${PR_BRANCH:-}" ] && [ "$PR_BRANCH" != "null" ]; then
             BRANCH_NAME="$PR_BRANCH"
           fi
-          SERVER_IP="${SERVER_IP:-${{ vars.HETZNER_HOST }}}"
-          scripts/deployment_vars.sh cleanup "$BRANCH_NAME" "$SERVER_IP" >> "$GITHUB_OUTPUT"
+          HETZNER_PUBLIC_IP="${HETZNER_PUBLIC_IP:-${{ vars.HETZNER_PUBLIC_IP }}}"
+          scripts/deployment_vars.sh cleanup "$BRANCH_NAME" "$HETZNER_PUBLIC_IP" >> "$GITHUB_OUTPUT"
 
       - name: Prepare SSH key
         if: steps.vars.outputs.skip_cleanup == 'false'
@@ -307,12 +375,12 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ vars.HETZNER_PUBLIC_IP }}" >> ~/.ssh/known_hosts
 
       - name: Cleanup feature release and namespace
         if: steps.vars.outputs.skip_cleanup == 'false'
         env:
-          HOST: ${{ vars.HETZNER_HOST }}
+          HOST: ${{ vars.HETZNER_PUBLIC_IP }}
           USER: ${{ secrets.HETZNER_USER }}
           NAMESPACE: ${{ steps.vars.outputs.namespace }}
           RELEASE_NAME: ${{ steps.vars.outputs.release_name }}

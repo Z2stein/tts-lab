@@ -1,0 +1,121 @@
+.workbench {
+  background: #ffffff;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  padding: 1.5rem;
+}
+
+.eyebrow {
+  color: #315cbe;
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  margin: 0 0 0.5rem;
+  text-transform: uppercase;
+}
+
+h1 {
+  margin: 0 0 0.75rem;
+}
+
+.workbench > p:last-of-type,
+.empty-state {
+  color: #4b5563;
+  line-height: 1.6;
+  max-width: 42rem;
+}
+
+.workbench-form {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.step-card {
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 1rem;
+  padding: 1rem;
+}
+
+label {
+  font-weight: 700;
+}
+
+input,
+textarea {
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  box-sizing: border-box;
+  font: inherit;
+  padding: 0.75rem;
+  resize: vertical;
+  width: 100%;
+}
+
+button {
+  align-self: start;
+  background: #1d4ed8;
+  border: 0;
+  border-radius: 999px;
+  color: #ffffff;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 700;
+  padding: 0.65rem 1.25rem;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.7;
+}
+
+.result-panel {
+  margin-top: 1.5rem;
+  overflow-x: auto;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+th,
+td {
+  border-bottom: 1px solid #e5e7eb;
+  padding: 0.75rem;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  background: #f8fafc;
+}
+
+.error {
+  color: #c62828;
+  font-weight: 700;
+}
+
+.request-settings {
+  display: grid;
+  gap: 0.5rem;
+  grid-template-columns: minmax(8rem, auto) 1fr;
+}
+
+pre {
+  background: #0f172a;
+  border-radius: 10px;
+  color: #e2e8f0;
+  overflow-x: auto;
+  padding: 1rem;
+  white-space: pre-wrap;
+}
+
+@media (max-width: 720px) {
+  .request-settings {
+    grid-template-columns: 1fr;
+  }
+}

@@ -1,24 +1,42 @@
-<main>
-  <h1>Text Length App</h1>
-  <p *ngIf="authStatus === 'loading'">Loading...</p>
-  <ng-container *ngIf="authStatus === 'unauthenticated'">
-    <p *ngIf="authError" class="error">{{ authError }}</p>
-    <p>Please sign in to use the app.</p>
-    <button type="button" (click)="loginWithGoogle()">Sign in with Google</button>
-  </ng-container>
-  <ng-container *ngIf="authStatus === 'authenticated' && currentUser">
-    <p>Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</p>
-    <button type="button" (click)="logout()">Logout</button>
+<div class="app-shell">
+  <header class="app-header">
+    <a class="brand" routerLink="/" aria-label="TTS Lab home">TTS Lab</a>
 
-    <form>
-      <label for="text">Text</label>
-      <input id="text" [formControl]="textControl" />
-      <button type="button" (click)="submit()">Check length</button>
-    </form>
+    <nav class="main-nav" aria-label="Primary navigation">
+      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      <a routerLink="/text-length" routerLinkActive="active">Text Length</a>
+      <a routerLink="/tts-workbench" routerLinkActive="active">TTS Workbench</a>
+    </nav>
 
-    <p *ngIf="length !== null">Length: {{ length }}</p>
-    <p *ngIf="error">{{ error }}</p>
+    <div class="auth-summary" aria-live="polite">
+      <span *ngIf="authStatus === 'loading'">Loading...</span>
+      <ng-container *ngIf="authStatus === 'authenticated' && currentUser">
+        <span>Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</span>
+        <button type="button" (click)="logout()">Logout</button>
+      </ng-container>
+    </div>
+  </header>
 
-    <app-chatbot-widget></app-chatbot-widget>
-  </ng-container>
-</main>
+  <main class="app-main">
+    <ng-container *ngIf="authStatus === 'loading'">
+      <section class="status-card">
+        <h1>Loading TTS Lab</h1>
+        <p>Checking your session...</p>
+      </section>
+    </ng-container>
+
+    <ng-container *ngIf="authStatus === 'unauthenticated'">
+      <section class="status-card">
+        <h1>Sign in to use TTS Lab</h1>
+        <p *ngIf="authError" class="error">{{ authError }}</p>
+        <p>Please sign in to access the learning app features.</p>
+        <button type="button" (click)="loginWithGoogle()">Sign in with Google</button>
+      </section>
+    </ng-container>
+
+    <ng-container *ngIf="authStatus === 'authenticated' && currentUser">
+      <router-outlet></router-outlet>
+      <app-chatbot-widget></app-chatbot-widget>
+    </ng-container>
+  </main>
+</div>

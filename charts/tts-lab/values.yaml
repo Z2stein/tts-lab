@@ -8,7 +8,7 @@ imagePullSecrets:
 frontend:
   replicaCount: 1
   image:
-    repository: ghcr.io/<owner>/tts-lab-frontend
+    repository: ghcr.io/<owner>/<app-slug>-frontend
     tag: latest
     pullPolicy: IfNotPresent
   livenessProbe:
@@ -27,7 +27,7 @@ frontend:
 backend:
   replicaCount: 1
   image:
-    repository: ghcr.io/<owner>/tts-lab-backend
+    repository: ghcr.io/<owner>/<app-slug>-backend
     tag: latest
     pullPolicy: IfNotPresent
   livenessProbe:
@@ -48,13 +48,13 @@ backend:
 ingress:
   enabled: true
   className: traefik
-  host: tts-lab.<public-server-ip>.sslip.io
+  host: <app-slug>.<base-domain>
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
   tls:
     enabled: true
     # secretName kann im Deployment per --set überschrieben werden
-    secretName: tts-lab-tls
+    secretName: <app-slug>-tls
 
 app:
   environment: feature
@@ -72,7 +72,7 @@ auth:
 chat:
   geminiSecretName: gemini-api
   geminiModel: gemini-2.5-flash
-  provider: gemini
+  provider: mock
   realProviderOnFeatureBranches: false
 
 chatbot:
