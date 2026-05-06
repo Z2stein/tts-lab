@@ -57,6 +57,6 @@ describe('ChatbotWidgetComponent', () => {
     chatbotService.sendMessage.and.rejectWith(new Error('fail'));
     component.input = 'hello';
     await component.send();
-    expect(component.error).toContain('unavailable');
+    expect(component.error).toBe('fail');
   });
 });

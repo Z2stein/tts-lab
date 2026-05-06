@@ -50,6 +50,14 @@ spec:
               value: {{ .Values.app.baseUrl | quote }}
             - name: CHATBOT_PROVIDER
               value: {{ .Values.chat.provider | quote }}
+            - name: CHAT_LIMIT_ENABLED
+              value: {{ .Values.chatbot.rateLimit.enabled | quote }}
+            - name: CHAT_LIMIT_WINDOW
+              value: {{ .Values.chatbot.rateLimit.window | quote }}
+            - name: CHAT_LIMIT_MAX_REQUESTS
+              value: {{ .Values.chatbot.rateLimit.maxRequests | quote }}
+            - name: CHAT_LIMIT_ID_HEADER
+              value: {{ .Values.chatbot.rateLimit.idHeader | quote }}
             - name: SPRING_AI_MODEL_CHAT
               value: "google-genai"
             - name: SPRING_AI_GOOGLE_GENAI_CHAT_OPTIONS_MODEL

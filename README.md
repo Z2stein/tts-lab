@@ -233,3 +233,56 @@ npm start
 ```
 
 Automated backend/frontend tests use mocks and do not call Gemini APIs.
+
+
+## Chatbot rate limiting (MVP)
+
+Backend chat requests (`POST /api/chat`) are protected by a fixed-window request limiter (in-memory storage).
+
+### Config
+
+Spring env vars:
+
+- `CHAT_LIMIT_ENABLED` (default `true`)
+- `CHAT_LIMIT_WINDOW` (default `1h`)
+- `CHAT_LIMIT_MAX_REQUESTS` (default `5`)
+- `CHAT_LIMIT_ID_HEADER` (default `X-User-Id`)
+
+Helm values:
+
+```yaml
+chatbot:
+  rateLimit:
+    enabled: true
+    window: 1h
+    maxRequests: 5
+    idHeader: X-User-Id
+```
+
+Identity resolution order:
+
+1. Authenticated principal id (`sub`)
+2. Configured header (`CHAT_LIMIT_ID_HEADER`)
+3. Client IP fallback
+
+When exceeded, backend returns HTTP `429` with `Retry-After` and JSON:
+
+```json
+{
+  "error": "RATE_LIMIT_EXCEEDED",
+  "message": "Chat usage limit exceeded. Please try again later.",
+  "retry_after": 1234,
+  "limit": {
+    "window": "PT1H",
+    "max_requests": 5
+  }
+}
+```
+
+Limitations of current in-memory store:
+
+- Works per pod only
+- Counters are lost on restart
+- Not consistent across multiple replicas
+
+For multi-replica environments, Redis is the recommended next step (store interface is already separated).

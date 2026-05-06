@@ -18,4 +18,12 @@ describe('ChatbotService', () => {
 
     await expectAsync(service.sendMessage('hello', null)).toBeRejected();
   });
+
+  it('maps rate-limit response to a user-facing message', async () => {
+    const service = new ChatbotService({ ensureCsrfToken: async () => 'csrf' } as any);
+    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({ error: 'RATE_LIMIT_EXCEEDED', retry_after: 42 }), { status: 429 }));
+
+    await expectAsync(service.sendMessage('hello', null)).toBeRejectedWithError('Chat rate limit reached. Please try again in 42 seconds.');
+  });
+
 });

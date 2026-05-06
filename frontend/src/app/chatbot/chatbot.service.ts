@@ -6,6 +6,12 @@ export interface ChatResponse {
   conversationId: string;
 }
 
+interface ChatErrorResponse {
+  error?: string;
+  message?: string;
+  retry_after?: number;
+}
+
 @Injectable({ providedIn: 'root' })
 export class ChatbotService {
   constructor(private readonly currentUserService: CurrentUserService) {}
@@ -21,7 +27,20 @@ export class ChatbotService {
     });
 
     if (!response.ok) {
-      throw new Error(`Chat request failed (HTTP ${response.status}).`);
+      let errorBody: ChatErrorResponse | null = null;
+      try {
+        errorBody = (await response.json()) as ChatErrorResponse;
+      } catch {
+        errorBody = null;
+      }
+
+      if (response.status === 429 && errorBody?.error === 'RATE_LIMIT_EXCEEDED') {
+        const retryAfter = typeof errorBody.retry_after === 'number' ? errorBody.retry_after : null;
+        const retryHint = retryAfter != null ? ` Please try again in ${retryAfter} seconds.` : '';
+        throw new Error('Chat rate limit reached.' + retryHint);
+      }
+
+      throw new Error(errorBody?.message || `Chat request failed (HTTP ${response.status}).`);
     }
 
     return (await response.json()) as ChatResponse;

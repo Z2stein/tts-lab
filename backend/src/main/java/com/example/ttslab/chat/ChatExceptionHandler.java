@@ -7,6 +7,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.MethodArgumentNotValidException;
+import org.springframework.web.bind.annotation.ResponseBody;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -19,6 +20,22 @@ public class ChatExceptionHandler {
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     public Map<String, String> handleValidationError() {
         return Map.of("error", "Invalid chat request.");
+    }
+
+
+    @ExceptionHandler(ChatRateLimitExceededException.class)
+    @ResponseStatus(HttpStatus.TOO_MANY_REQUESTS)
+    @ResponseBody
+    public org.springframework.http.ResponseEntity<Map<String, Object>> handleRateLimitExceeded(ChatRateLimitExceededException ex) {
+        Map<String, Object> body = Map.of(
+            "error", "RATE_LIMIT_EXCEEDED",
+            "message", "Chat usage limit exceeded. Please try again later.",
+            "retry_after", ex.retryAfterSeconds(),
+            "limit", Map.of("window", ex.window(), "max_requests", ex.maxRequests())
+        );
+        return org.springframework.http.ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .header("Retry-After", String.valueOf(ex.retryAfterSeconds()))
+            .body(body);
     }
 
     @ExceptionHandler(ChatProviderException.class)
