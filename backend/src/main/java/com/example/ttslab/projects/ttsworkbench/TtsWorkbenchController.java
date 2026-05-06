@@ -19,7 +19,7 @@ public class TtsWorkbenchController {
 
     @PostMapping("/speaker-voice-analysis")
     public SpeakerVoiceAnalysisResponse analyzeSpeakers(@RequestBody SpeakerVoiceAnalysisRequest request) {
-        log.debug("/speaker-voice-analysis revieved "+request.toString());
+        log.debug("/speaker-voice-analysis will send request "+request.toString());
         return ttsWorkbenchService.analyze(request.rawDialogue());
     }
 

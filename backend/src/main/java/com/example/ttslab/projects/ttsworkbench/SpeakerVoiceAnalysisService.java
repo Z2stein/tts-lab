@@ -62,6 +62,9 @@ public class SpeakerVoiceAnalysisService {
     }
 
     private List<SpeakerVoiceAnalysisItem> parseProviderAnswer(String answer) {
+
+        log.debug("start parsing answer:\n "+answer);
+
         if (answer == null || answer.isBlank()) {
             return List.of();
         }
@@ -83,6 +86,7 @@ public class SpeakerVoiceAnalysisService {
             }
             return items;
         } catch (Exception ex) {
+            log.error("Failed to parse LLM response: {}", answer, ex);
             return List.of();
         }
     }
