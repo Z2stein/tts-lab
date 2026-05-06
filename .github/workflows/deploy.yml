@@ -300,6 +300,23 @@ jobs:
             kubectl -n "$NAMESPACE" get deployments,pods -l "app.kubernetes.io/instance=$RELEASE_NAME" -o wide
           EOF
 
+      - name: Publish deployment URL
+        run: |
+          {
+            echo "### Deployment Summary"
+            echo ""
+            echo "**URL:** [https://${{ needs.prepare-build.outputs.host }}](https://${{ needs.prepare-build.outputs.host }})"
+          } >> "$GITHUB_STEP_SUMMARY"
+          echo "::notice title=Deployment URL::https://${{ needs.prepare-build.outputs.host }}"
+
+  e2e-tests:
+    if: github.event_name == 'push'
+    needs: [prepare-build, deploy]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
       - name: Set up Node for mandatory E2E tests
         uses: actions/setup-node@v4
         with:
@@ -328,14 +345,6 @@ jobs:
           cd frontend
           npm run test:e2e
 
-      - name: Publish deployment URL
-        run: |
-          {
-            echo "### Deployment Summary"
-            echo ""
-            echo "**URL:** [https://${{ needs.prepare-build.outputs.host }}](https://${{ needs.prepare-build.outputs.host }})"
-          } >> "$GITHUB_STEP_SUMMARY"
-          echo "::notice title=Deployment URL::https://${{ needs.prepare-build.outputs.host }}"
 
   cleanup-feature:
     if: github.event_name == 'delete' || (github.event_name == 'pull_request' && github.event.action == 'closed')

@@ -39,7 +39,7 @@ test('tts workbench displays speaker voice analysis results for authenticated us
   await page.goto('/tts-workbench');
 
   await page.getByRole('textbox', { name: 'Raw dialogue' }).fill('Alice: Hello');
-  await page.getByRole('button', { name: 'Analyze speakers and suggest voices' }).click();
+  await page.getByRole('button', { name: 'Analyze Speakers' }).click();
 
   await expect(page.getByRole('cell', { name: 'Alice' })).toBeVisible();
   await expect(page.getByRole('cell', { name: 'Warm neutral voice' })).toBeVisible();
