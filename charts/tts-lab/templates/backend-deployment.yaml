@@ -59,7 +59,8 @@ spec:
             - name: CHAT_LIMIT_ID_HEADER
               value: {{ .Values.chatbot.rateLimit.idHeader | quote }}
             - name: SPRING_AI_MODEL_CHAT
-              value: "google-genai"
+              value: {{ ternary "google-genai" "none" (eq .Values.chat.provider "gemini") | quote }}
+            {{- if eq .Values.chat.provider "gemini" }}
             - name: SPRING_AI_GOOGLE_GENAI_CHAT_OPTIONS_MODEL
               value: {{ .Values.chat.geminiModel | quote }}
             - name: GEMINI_API_KEY
@@ -68,6 +69,7 @@ spec:
                   name: {{ .Values.chat.geminiSecretName }}
                   key: api-key
                   optional: true
+            {{- end }}
             {{- if eq .Values.auth.mode "google" }}
             - name: GOOGLE_CLIENT_ID
               valueFrom:

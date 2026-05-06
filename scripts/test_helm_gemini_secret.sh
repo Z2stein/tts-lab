@@ -14,8 +14,13 @@ echo "$rendered_gemini" | rg -q "value: \"gemini-2.5-flash\""
 
 echo "$rendered_mock" | rg -q "name: CHATBOT_PROVIDER"
 echo "$rendered_mock" | rg -q "value: \"mock\""
-echo "$rendered_mock" | rg -q "name: GEMINI_API_KEY"
 echo "$rendered_mock" | rg -q "name: SPRING_AI_MODEL_CHAT"
+echo "$rendered_mock" | rg -q "value: \"none\""
+
+if echo "$rendered_mock" | rg -q "name: GEMINI_API_KEY|name: SPRING_AI_GOOGLE_GENAI_CHAT_OPTIONS_MODEL|google-genai|gemini-2.5-flash"; then
+  echo "Found Google GenAI configuration in mock mode; expected SPRING_AI_MODEL_CHAT=none only." >&2
+  exit 1
+fi
 
 if echo "$rendered_gemini" | rg -q "api-key:"; then
   echo "Found inline api-key in rendered manifests; expected secret reference only." >&2
