@@ -103,17 +103,23 @@ Ablauf bei Push:
 2. Slug, Namespace, Release, Host berechnen
 3. Frontend/Backend Image bauen
 4. Images nach GHCR pushen
-5. SSH auf Hetzner
-6. Namespace idempotent anlegen/aktualisieren
-7. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
-8. `helm upgrade --install --wait --timeout 5m` ausführen
-9. Backend- und Frontend-Deployments per `kubectl rollout status` abwarten
-10. Backend- und Frontend-Pods per `kubectl wait --for=condition=Ready pod -l ...` abwarten
-11. Mandatory Playwright-E2E-Tests gegen die deployte HTTPS-URL ausführen, inklusive realem Frontend-Backend-Check ohne Mock für die geprüfte Backend-Route
+5. Mandatory Playwright-E2E-Tests im separaten Job `predeploy-e2e` ausführen:
+   - temporären kind-Cluster in GitHub Actions erstellen
+   - dasselbe Helm-Chart mit den gerade gebauten Images deployen
+   - CI-sichere Konfiguration verwenden (`auth.mode=mock`, `chat.provider=mock`, kein Hetzner-SSH, keine Production-Secrets, keine Production-Daten)
+   - Backend- und Frontend-Readiness per Helm/Kubernetes abwarten
+   - Frontend lokal per Port-Forward verfügbar machen
+   - Playwright mit `E2E_BASE_URL=http://127.0.0.1:8080` und `E2E_USE_LOCAL_SERVERS=false` ausführen
+6. Nur wenn `predeploy-e2e` erfolgreich war: SSH auf Hetzner
+7. Namespace idempotent anlegen/aktualisieren
+8. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
+9. `helm upgrade --install --wait --timeout 5m` ausführen
+10. Backend- und Frontend-Deployments per `kubectl rollout status` abwarten
+11. Backend- und Frontend-Pods per `kubectl wait --for=condition=Ready pod -l ...` abwarten
 
-Die Pipeline schlägt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn die E2E-Tests fehlschlagen. Feste Sleep-Zeiten sind nicht der primäre Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend).
+Die Pipeline schlägt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn die E2E-Tests fehlschlagen. Feste Sleep-Zeiten sind nicht der primäre Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend). Schlägt `predeploy-e2e` fehl, wird der echte Hetzner-Deploy-Job durch die Job-Abhängigkeit nicht ausgeführt.
 
-Die deployed E2E-Stufe enthält weiterhin deterministische UI-Tests mit gemockten Backend-Routen und zusätzlich `deployed-real-backend.spec.ts`. Dieser reale Integrationscheck lädt das deployte Frontend und ruft aus dem Browser-Kontext `GET /api/health` auf. Die Route ist bewusst stabil, benötigt keine Anmeldung, keine CSRF-Token und keine externen Provider-Secrets. Der Test schlägt fehl, wenn der Browser das Backend über den deployten Host nicht erreicht, wenn die Antwort kein `200 {"status":"ok"}` ist, oder wenn das Frontend die Antwort nicht verarbeiten und anzeigen kann.
+Die E2E-Stufe enthält weiterhin deterministische UI-Tests mit gemockten Backend-Routen und zusätzlich `deployed-real-backend.spec.ts`. Dieser reale Integrationscheck lädt das temporär deployte Frontend und ruft aus dem Browser-Kontext `GET /api/health` auf. Die Route ist bewusst stabil, benötigt keine Anmeldung, keine CSRF-Token und keine externen Provider-Secrets. Full E2E darf in CI/CD nicht gegen Production/Hetzner laufen; dafür nutzt die Pipeline ausschließlich die temporäre GitHub-Actions-Umgebung.
 
 Cleanup:
 
@@ -160,16 +166,16 @@ npm run test:e2e
 Die Playwright-Suite unterscheidet zwischen:
 
 - gemockten UI-E2E-Tests (`text-length.spec.ts`, `tts-workbench.spec.ts`), die gezielt Backend-Routen mocken, um UI-Erfolg und UI-Fehler deterministisch zu prüfen;
-- realen deployed Frontend-Backend-E2E-Tests (`deployed-real-backend.spec.ts`), die die geprüfte Backend-Route nicht mocken und über den deployten Host laufen.
+- realen Frontend-Backend-E2E-Tests (`deployed-real-backend.spec.ts`), die die geprüfte Backend-Route nicht mocken und eine vollständig deployte App-Umgebung erwarten.
 
-E2E gegen eine deployte Umgebung:
+E2E gegen eine nicht-produktive, bereits gestartete Umgebung:
 
 ```bash
 cd frontend
-E2E_BASE_URL="https://<deployed-host>" E2E_USE_LOCAL_SERVERS=false npm run test:e2e
+E2E_BASE_URL="https://<non-production-host>" E2E_USE_LOCAL_SERVERS=false npm run test:e2e
 ```
 
-Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory.
+Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory. CI/CD führt Full E2E vor dem echten Deployment im Job `predeploy-e2e` aus. Full E2E soll nicht gegen Production/Hetzner laufen.
 
 
 ## Akzeptanzkriterien (Textlänge)

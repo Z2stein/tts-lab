@@ -139,9 +139,115 @@ jobs:
           set -euo pipefail
           docker buildx imagetools inspect "ghcr.io/${{ needs.prepare-build.outputs.owner }}/${{ needs.prepare-build.outputs.frontend_image_name }}:${{ needs.prepare-build.outputs.image_tag }}" >/dev/null
 
-  deploy:
+  predeploy-e2e:
     if: github.event_name == 'push'
     needs: [prepare-build, build-backend, build-frontend]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Create temporary kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: tts-lab-predeploy-e2e
+
+      - name: Set up Helm
+        uses: azure/setup-helm@v4
+
+      - name: Create CI-only pull secret
+        env:
+          GHCR_USERNAME: ${{ vars.GHCR_USER }}
+          GHCR_PASSWORD: ${{ secrets.GHCR_TOKEN }}
+        run: |
+          set -euo pipefail
+          kubectl create namespace predeploy-e2e
+          kubectl -n predeploy-e2e create secret docker-registry ghcr-pull-secret \
+            --docker-server=ghcr.io \
+            --docker-username="$GHCR_USERNAME" \
+            --docker-password="$GHCR_PASSWORD"
+
+      - name: Deploy Helm chart to temporary cluster
+        run: |
+          set -euo pipefail
+          helm upgrade --install predeploy-e2e ./charts/tts-lab \
+            --namespace predeploy-e2e \
+            --wait \
+            --timeout 5m \
+            --set ingress.enabled=false \
+            --set frontend.image.repository=ghcr.io/${{ needs.prepare-build.outputs.owner }}/${{ needs.prepare-build.outputs.frontend_image_name }} \
+            --set-string frontend.image.tag=${{ needs.prepare-build.outputs.image_tag }} \
+            --set backend.image.repository=ghcr.io/${{ needs.prepare-build.outputs.owner }}/${{ needs.prepare-build.outputs.backend_image_name }} \
+            --set-string backend.image.tag=${{ needs.prepare-build.outputs.image_tag }} \
+            --set imagePullSecrets[0].name=ghcr-pull-secret \
+            --set app.environment=ci \
+            --set-string app.baseUrl=http://127.0.0.1:8080 \
+            --set auth.mode=mock \
+            --set auth.googleSecretName= \
+            --set chat.provider=mock \
+            --set chat.realProviderOnFeatureBranches=false
+
+      - name: Wait for temporary app readiness
+        run: |
+          set -euo pipefail
+          kubectl -n predeploy-e2e rollout status deployment/predeploy-e2e-tts-lab-backend --timeout=5m
+          kubectl -n predeploy-e2e rollout status deployment/predeploy-e2e-tts-lab-frontend --timeout=5m
+          kubectl -n predeploy-e2e wait --for=condition=Ready pod \
+            -l app.kubernetes.io/instance=predeploy-e2e,app.kubernetes.io/component=backend \
+            --timeout=5m
+          kubectl -n predeploy-e2e wait --for=condition=Ready pod \
+            -l app.kubernetes.io/instance=predeploy-e2e,app.kubernetes.io/component=frontend \
+            --timeout=5m
+          kubectl -n predeploy-e2e get deployments,pods -l app.kubernetes.io/instance=predeploy-e2e -o wide
+
+      - name: Expose temporary frontend locally
+        run: |
+          set -euo pipefail
+          kubectl -n predeploy-e2e port-forward service/predeploy-e2e-tts-lab-frontend 8080:80 > /tmp/predeploy-e2e-port-forward.log 2>&1 &
+          echo $! > /tmp/predeploy-e2e-port-forward.pid
+          timeout 60 bash -c 'until curl --fail --silent --show-error http://127.0.0.1:8080/ >/dev/null; do sleep 1; done'
+
+      - name: Set up Node for mandatory E2E tests
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install frontend dependencies
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm ci
+
+      - name: Install Playwright browser
+        run: |
+          set -euo pipefail
+          cd frontend
+          npx playwright install --with-deps chromium
+
+      - name: Run mandatory E2E tests against temporary environment
+        env:
+          E2E_BASE_URL: http://127.0.0.1:8080
+          E2E_USE_LOCAL_SERVERS: 'false'
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm run test:e2e
+
+      - name: Show temporary cluster diagnostics on failure
+        if: failure()
+        run: |
+          set -euo pipefail
+          kubectl -n predeploy-e2e get all -o wide || true
+          kubectl -n predeploy-e2e describe pods || true
+          if [ -f /tmp/predeploy-e2e-port-forward.log ]; then
+            cat /tmp/predeploy-e2e-port-forward.log
+          fi
+
+  deploy:
+    if: github.event_name == 'push'
+    needs: [prepare-build, build-backend, build-frontend, predeploy-e2e]
     runs-on: ubuntu-latest
     concurrency:
       group: deploy-${{ github.ref_name }}
@@ -300,33 +406,6 @@ jobs:
             kubectl -n "$NAMESPACE" get deployments,pods -l "app.kubernetes.io/instance=$RELEASE_NAME" -o wide
           EOF
 
-      - name: Set up Node for mandatory E2E tests
-        uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
-
-      - name: Install frontend dependencies
-        run: |
-          set -euo pipefail
-          cd frontend
-          npm ci
-
-      - name: Install Playwright browser
-        run: |
-          set -euo pipefail
-          cd frontend
-          npx playwright install --with-deps chromium
-
-      - name: Run mandatory E2E tests against deployment
-        env:
-          E2E_BASE_URL: https://${{ needs.prepare-build.outputs.host }}
-          E2E_USE_LOCAL_SERVERS: 'false'
-        run: |
-          set -euo pipefail
-          cd frontend
-          npm run test:e2e
 
       - name: Publish deployment URL
         run: |
