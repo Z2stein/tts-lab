@@ -63,3 +63,12 @@ Skip all Docker-based validation.
 Use these non-Docker validation commands where applicable:
 - Backend: `cd backend && gradle build`
 
+## Error handling and observability
+
+Silent exception swallowing is forbidden in production code.
+
+Do not use:
+
+```java
+catch (Exception ignored) {
+}

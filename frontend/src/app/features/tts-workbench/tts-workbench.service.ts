@@ -7,8 +7,32 @@ export interface SpeakerVoiceAnalysisItem {
   voiceSuggestion: string;
 }
 
+export interface SpeakerSplitTurn {
+  speaker: string;
+  text: string;
+}
+
+export interface AnnotatedSpeakerTurn {
+  speaker: string;
+  text: string;
+}
+
+export interface FinalTtsRequestPreview {
+  input: unknown;
+  voice: unknown;
+  audioConfig: unknown;
+}
+
 interface SpeakerVoiceAnalysisResponse {
   speakers: SpeakerVoiceAnalysisItem[];
+}
+
+interface SpeakerSplitAnalysisResponse {
+  turns: SpeakerSplitTurn[];
+}
+
+interface EmotionAnnotationAnalysisResponse {
+  turns: AnnotatedSpeakerTurn[];
 }
 
 @Injectable({ providedIn: 'root' })
@@ -16,20 +40,61 @@ export class TtsWorkbenchService {
   constructor(private readonly currentUserService: CurrentUserService) {}
 
   async analyzeSpeakers(rawDialogue: string): Promise<SpeakerVoiceAnalysisItem[]> {
-    const response = await fetch('/api/projects/tts-workbench/speaker-voice-analysis', {
+    const data = await this.post<SpeakerVoiceAnalysisResponse>(
+      '/api/projects/tts-workbench/speaker-voice-analysis',
+      { rawDialogue },
+      'Speaker voice analysis failed'
+    );
+    return data.speakers;
+  }
+
+  async splitDialogue(rawDialogue: string, speakers: SpeakerVoiceAnalysisItem[]): Promise<SpeakerSplitTurn[]> {
+    const data = await this.post<SpeakerSplitAnalysisResponse>(
+      '/api/projects/tts-workbench/speaker-split-analysis',
+      { rawDialogue, speakers },
+      'Speaker split analysis failed'
+    );
+    return data.turns;
+  }
+
+  async annotateEmotions(turns: SpeakerSplitTurn[]): Promise<AnnotatedSpeakerTurn[]> {
+    const data = await this.post<EmotionAnnotationAnalysisResponse>(
+      '/api/projects/tts-workbench/emotion-annotation-analysis',
+      { turns },
+      'Emotion annotation analysis failed'
+    );
+    return data.turns;
+  }
+
+  async generateFinalJson(request: {
+    prompt: string;
+    speakers: SpeakerVoiceAnalysisItem[];
+    annotatedTurns: AnnotatedSpeakerTurn[];
+    languageCode: string;
+    modelName: string;
+    audioEncoding: string;
+  }): Promise<FinalTtsRequestPreview> {
+    return this.post<FinalTtsRequestPreview>(
+      '/api/projects/tts-workbench/final-request-preview',
+      request,
+      'Final request preview failed'
+    );
+  }
+
+  private async post<T>(url: string, body: unknown, errorPrefix: string): Promise<T> {
+    const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-XSRF-TOKEN': await this.currentUserService.ensureCsrfToken()
       },
-      body: JSON.stringify({ rawDialogue })
+      body: JSON.stringify(body)
     });
 
     if (!response.ok) {
-      throw new Error(`Speaker voice analysis failed (HTTP ${response.status}).`);
+      throw new Error(`${errorPrefix} (HTTP ${response.status}).`);
     }
 
-    const data = (await response.json()) as SpeakerVoiceAnalysisResponse;
-    return data.speakers;
+    return (await response.json()) as T;
   }
 }

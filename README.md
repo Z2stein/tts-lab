@@ -196,16 +196,27 @@ Frontend behavior note:
 
 ## TTS Workbench (MVP)
 
-The TTS Workbench page calls `POST /api/projects/tts-workbench/speaker-voice-analysis` with raw dialogue and displays suggested rows containing:
+The TTS Workbench page is a step-by-step development workbench for inspecting the intermediate data that will later feed a text-to-speech provider. It currently supports:
 
-- `speakerName`
-- `roleDescription`
-- `voiceSuggestion`
+1. Raw dialogue input
+2. Speaker and voice suggestions
+3. Speaker split preview
+4. Emotion annotation preview with simple markup such as `[happy]`, `[sad]`, `[calm]`, `[urgent]`, `[sigh]`, `[short pause]`, and `[medium pause]`
+5. Final request JSON preview
+
+Backend endpoints:
+
+- `POST /api/projects/tts-workbench/speaker-voice-analysis` with raw dialogue returns suggested rows containing `speakerName`, `roleDescription`, and `voiceSuggestion`.
+- `POST /api/projects/tts-workbench/speaker-split-analysis` with raw dialogue and speaker suggestions returns `turns` containing `speaker` and `text`.
+- `POST /api/projects/tts-workbench/emotion-annotation-analysis` with split turns returns annotated `turns` containing `speaker` and marked-up `text`.
+- `POST /api/projects/tts-workbench/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
 
 Runtime behavior follows the existing chatbot provider mode where possible:
 
-- `CHATBOT_PROVIDER=mock` returns deterministic local speaker suggestions and never calls Gemini.
-- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice analysis, then falls back to deterministic suggestions if the provider response is not parseable.
+- `CHATBOT_PROVIDER=mock` returns deterministic local speaker suggestions, speaker splitting, emotion annotation, and final JSON preview data. It never calls Gemini.
+- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice, speaker split, and emotion annotation output, then falls back to deterministic local behavior if the provider response is not parseable or fails.
+
+Prompts are accessed through a `TtsWorkbenchPromptProvider` abstraction. The current implementation returns static defaults, but the service structure is intentionally open for future prompts loaded from configuration, a database, an admin UI, project settings, or tenant-specific settings.
 
 Automated tests use mock behavior and do not call Gemini APIs.
 
