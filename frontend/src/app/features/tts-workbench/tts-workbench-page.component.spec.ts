@@ -98,7 +98,7 @@ describe('TtsWorkbenchPageComponent', () => {
     fixture.detectChanges();
 
     expect(ttsWorkbenchService.planProviderCompatibleRequests).toHaveBeenCalledWith(component.finalRequest);
-    expect(fixture.nativeElement.textContent).toContain('Provider-Compatible Request Plan Preview');
+    expect(fixture.nativeElement.textContent).toContain('Provider-Compatible Request Splitting Preview');
     expect(fixture.nativeElement.textContent).toContain('Chunk count: 1');
     expect(fixture.nativeElement.textContent).toContain('Included speakers: Alice');
   });
