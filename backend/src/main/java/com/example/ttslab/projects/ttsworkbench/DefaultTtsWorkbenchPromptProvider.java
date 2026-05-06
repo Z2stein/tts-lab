@@ -21,7 +21,7 @@ public class DefaultTtsWorkbenchPromptProvider implements TtsWorkbenchPromptProv
     public String getSpeakerVoiceAnalysisPrompt(String rawDialogue) {
 
         String availableVoices = Arrays.stream(SpeakerVoice.values())
-                .map(v -> v.getKey() + " (" + v.getStyle() + ")")
+                .map(v -> "Key: " + v.getKey() + " Style: " + v.getStyle() )
                 .collect(Collectors.joining(", "));
 
         return """
@@ -30,8 +30,10 @@ public class DefaultTtsWorkbenchPromptProvider implements TtsWorkbenchPromptProv
                 {"speakers":[{"speakerName":"...","roleDescription":"...","voiceSuggestion":"..."}]}
                 Keep descriptions and voice suggestions short and practical.
                 
-                You MUST select 'voiceSuggestion' ONLY from this list:
-                %s
+                Constraint for 'voiceSuggestion':\s
+                            You MUST use one of the uppercase keys from the list below.\s
+                            Do not include the style description in the JSON value.
+                            Available Voice Keys: %s
             
                 Dialogue:
                 %s
