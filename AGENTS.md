@@ -42,9 +42,24 @@ Before a change is considered complete, the following checks must pass where app
 
 ### Frontend test rule
 
-Angular/Karma tests must run successfully
+Angular/Karma tests must run successfully.
+
+In Codex Web, run frontend tests with:
+
+```bash
+cd frontend
+CHROME_BIN="${CHROME_BIN:-/tmp/chrome-no-sandbox}" npm test
+```
+
+Do not append duplicate `--watch=false --browsers=ChromeHeadless` flags, because they are already defined in `frontend/package.json`.
+
 
 ## Codex Web validation rule
 
 Do not run Docker commands in Codex Web.
 Skip all Docker-based validation.
+
+
+Use these non-Docker validation commands where applicable:
+- Backend: `cd backend && gradle build`
+
