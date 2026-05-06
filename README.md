@@ -8,18 +8,20 @@ Für ein neues Repository muss nur ein kleiner Satz an Variablen gesetzt werden 
 
 ```text
 # GitHub Actions Repository Variables (Settings → Secrets and variables → Actions)
-APP_SLUG=<kebab-case-app-name>        # optional, default: Repository-Name
-HETZNER_HOST=<server-ip-or-hostname>  # required
+APP_SLUG=<kebab-case-app-name>      # required app/release/host slug
+BASE_DOMAIN=<public-base-domain>    # required public wildcard DNS domain
+HETZNER_PUBLIC_IP=<server-public-ip> # required deployment target (SSH/k3s server)
 ```
 
 Naming-Konventionen:
 
-- `APP_SLUG` in `kebab-case` (z. B. `my-tts-app`).
+- `APP_SLUG` in `kebab-case`.
+- `BASE_DOMAIN` ist die öffentliche Wildcard-Domain für Ingress-Hosts.
+- `HETZNER_PUBLIC_IP` bleibt nur der SSH/k3s-Zielserver und wird nicht mehr in öffentlichen Hostnamen verwendet.
 - Aus `APP_SLUG` werden automatisch abgeleitet:
   - Namespaces/Releases: `<app-slug>`, `<app-slug>-dev`, `<app-slug>-<branch-slug>`
-  - Hosts: `<app-slug>.<server-ip>.sslip.io`, `dev.<app-slug>...`, `<branch-slug>.<app-slug>...`
+  - Hosts: `<app-slug>.<base-domain>`, `dev.<app-slug>.<base-domain>`, `<branch-slug>.<app-slug>.<base-domain>`
   - GHCR-Images: `<app-slug>-backend`, `<app-slug>-frontend`
-- Backward Compatibility: Wenn `APP_SLUG` fehlt oder leer ist, fällt der Workflow auf den Repository-Namen zurück; die Deployment-Skripte nutzen als letzte Fallback-Stufe `tts-lab`.
 
 Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
 
@@ -65,15 +67,15 @@ Externe Voraussetzungen sind im Abschnitt **HTTPS-Voraussetzungen außerhalb des
 - `main`
   - Namespace: `<app-slug>`
   - Release: `<app-slug>`
-  - URL: `https://<app-slug>.178.105.41.67.sslip.io`
+  - URL: `https://<app-slug>.<base-domain>`
 - `develop`
   - Namespace: `<app-slug>-dev`
   - Release: `<app-slug>-dev`
-  - URL: `https://dev.<app-slug>.178.105.41.67.sslip.io`
+  - URL: `https://dev.<app-slug>.<base-domain>`
 - Feature-Branches
   - Namespace: `<app-slug>-<branch-slug>`
   - Release: `<app-slug>-<branch-slug>`
-  - URL: `https://<branch-slug>.<app-slug>.178.105.41.67.sslip.io`
+  - URL: `https://<branch-slug>.<app-slug>.<base-domain>`
 
 ## Branch-Slug-Regel
 
