@@ -89,6 +89,33 @@ class TtsWorkbenchControllerTest {
                 {"input":{"prompt":"Prompt","multiSpeakerMarkup":{"turns":[]}},"voice":{"languageCode":"en-US","modelName":"{{google-model}}","multiSpeakerVoiceConfig":{"speakerVoiceConfigs":[]}},"audioConfig":{"audioEncoding":"MP3"}}
                 """));
     }
+
+    @Test
+    void providerCompatibleRequestPlanReturnsChunks() throws Exception {
+        when(ttsWorkbenchService.planProviderCompatibleRequests(any(ProviderCompatibleRequestPlanRequest.class)))
+            .thenReturn(new ProviderCompatibleRequestPlanResponse(List.of(
+                new ProviderCompatibleRequestChunk(
+                    1,
+                    List.of("Alice"),
+                    new FinalTtsRequestPreviewResponse(
+                        Map.of("prompt", "Prompt", "multiSpeakerMarkup", Map.of("turns", List.of(Map.of("speaker", "Alice", "text", "Hello")))),
+                        Map.of("languageCode", "en-US", "multiSpeakerVoiceConfig", Map.of("speakerVoiceConfigs", List.of(Map.of("speakerAlias", "Alice", "speakerId", "Kore")))),
+                        Map.of("audioEncoding", "MP3")
+                    )
+                )
+            )));
+
+        mockMvc.perform(post("/api/projects/tts-workbench/provider-compatible-request-plan")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"input":{"prompt":"Prompt","multiSpeakerMarkup":{"turns":[]}},"voice":{},"audioConfig":{}}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(content().json("""
+                {"chunks":[{"chunkNumber":1,"speakers":["Alice"],"request":{"input":{"prompt":"Prompt","multiSpeakerMarkup":{"turns":[{"speaker":"Alice","text":"Hello"}]}},"voice":{"languageCode":"en-US","multiSpeakerVoiceConfig":{"speakerVoiceConfigs":[{"speakerAlias":"Alice","speakerId":"Kore"}]}},"audioConfig":{"audioEncoding":"MP3"}}}]}
+                """));
+    }
+
     @Test
     void apiExceptionReturnsStructuredErrorResponse() throws Exception {
         when(ttsWorkbenchService.analyze("Alice: Hello")).thenThrow(new ApiException(

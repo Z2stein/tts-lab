@@ -23,6 +23,16 @@ export interface FinalTtsRequestPreview {
   audioConfig: unknown;
 }
 
+export interface ProviderCompatibleRequestChunk {
+  chunkNumber: number;
+  speakers: string[];
+  request: FinalTtsRequestPreview;
+}
+
+export interface ProviderCompatibleRequestPlan {
+  chunks: ProviderCompatibleRequestChunk[];
+}
+
 interface SpeakerVoiceAnalysisResponse {
   speakers: SpeakerVoiceAnalysisItem[];
 }
@@ -86,6 +96,14 @@ export class TtsWorkbenchService {
       '/api/projects/tts-workbench/final-request-preview',
       request,
       'Final request preview failed'
+    );
+  }
+
+  async planProviderCompatibleRequests(finalRequest: FinalTtsRequestPreview): Promise<ProviderCompatibleRequestPlan> {
+    return this.post<ProviderCompatibleRequestPlan>(
+      '/api/projects/tts-workbench/provider-compatible-request-plan',
+      finalRequest,
+      'Provider-compatible request plan preview failed'
     );
   }
 

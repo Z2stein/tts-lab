@@ -12,7 +12,8 @@ describe('TtsWorkbenchPageComponent', () => {
       'analyzeSpeakers',
       'splitDialogue',
       'annotateEmotions',
-      'generateFinalJson'
+      'generateFinalJson',
+      'planProviderCompatibleRequests'
     ]);
 
     await TestBed.configureTestingModule({
@@ -76,6 +77,30 @@ describe('TtsWorkbenchPageComponent', () => {
 
     expect(ttsWorkbenchService.generateFinalJson).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('"audioEncoding": "MP3"');
+  });
+
+
+  it('displays provider-compatible request plan chunks', async () => {
+    component.finalRequest = {
+      input: { prompt: 'Prompt' },
+      voice: { languageCode: 'en-US' },
+      audioConfig: { audioEncoding: 'MP3' }
+    };
+    ttsWorkbenchService.planProviderCompatibleRequests.and.resolveTo({
+      chunks: [{
+        chunkNumber: 1,
+        speakers: ['Alice'],
+        request: component.finalRequest
+      }]
+    });
+
+    await component.planProviderCompatibleRequests();
+    fixture.detectChanges();
+
+    expect(ttsWorkbenchService.planProviderCompatibleRequests).toHaveBeenCalledWith(component.finalRequest);
+    expect(fixture.nativeElement.textContent).toContain('Provider-Compatible Request Plan Preview');
+    expect(fixture.nativeElement.textContent).toContain('Chunk count: 1');
+    expect(fixture.nativeElement.textContent).toContain('Included speakers: Alice');
   });
 
   it('keeps editable preview fields in component state', () => {

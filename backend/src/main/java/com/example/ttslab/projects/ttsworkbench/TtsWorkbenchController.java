@@ -37,4 +37,11 @@ public class TtsWorkbenchController {
     public FinalTtsRequestPreviewResponse previewFinalRequest(@RequestBody FinalTtsRequestPreviewRequest request) {
         return ttsWorkbenchService.buildFinalRequest(request);
     }
+
+    @PostMapping("/provider-compatible-request-plan")
+    public ProviderCompatibleRequestPlanResponse previewProviderCompatibleRequestPlan(
+        @RequestBody ProviderCompatibleRequestPlanRequest request
+    ) {
+        return ttsWorkbenchService.planProviderCompatibleRequests(request);
+    }
 }

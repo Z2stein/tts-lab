@@ -108,5 +108,23 @@
     <h2 id="final-json-title">5. Final Request JSON Preview</h2>
     <p *ngIf="!finalRequest" class="empty-state">The final request JSON will appear after generation.</p>
     <pre *ngIf="finalRequest">{{ finalRequestJson }}</pre>
+    <button type="button" (click)="planProviderCompatibleRequests()" [disabled]="loadingAction !== null || !finalRequest">
+      {{ isLoading('provider-plan') ? 'Planning...' : 'Plan Provider-Compatible Requests' }}
+    </button>
+  </section>
+
+  <section class="result-panel step-card" aria-labelledby="provider-request-plan-title">
+    <h2 id="provider-request-plan-title">6. Provider-Compatible Request Plan Preview</h2>
+    <p *ngIf="!providerRequestPlan" class="empty-state">
+      Provider-compatible request chunks will appear after planning. This keeps the final request preview unchanged.
+    </p>
+    <div *ngIf="providerRequestPlan" class="chunk-summary">
+      Chunk count: {{ providerRequestChunks.length }}
+    </div>
+    <article *ngFor="let chunk of providerRequestChunks" class="request-chunk">
+      <h3>Chunk {{ chunk.chunkNumber }}</h3>
+      <p><strong>Included speakers:</strong> {{ chunk.speakers.join(', ') || 'None' }}</p>
+      <pre>{{ providerRequestChunkJson(chunk) }}</pre>
+    </article>
   </section>
 </section>

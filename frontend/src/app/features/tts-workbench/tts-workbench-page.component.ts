@@ -4,6 +4,8 @@ import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import {
   AnnotatedSpeakerTurn,
   FinalTtsRequestPreview,
+  ProviderCompatibleRequestChunk,
+  ProviderCompatibleRequestPlan,
   SpeakerSplitTurn,
   SpeakerVoiceAnalysisItem,
   TtsWorkbenchService
@@ -27,6 +29,7 @@ export class TtsWorkbenchPageComponent {
   speakerTurns: SpeakerSplitTurn[] = [];
   annotatedTurns: AnnotatedSpeakerTurn[] = [];
   finalRequest: FinalTtsRequestPreview | null = null;
+  providerRequestPlan: ProviderCompatibleRequestPlan | null = null;
   loadingAction: string | null = null;
   error: string | null = null;
 
@@ -38,6 +41,7 @@ export class TtsWorkbenchPageComponent {
       this.speakerTurns = [];
       this.annotatedTurns = [];
       this.finalRequest = null;
+      this.providerRequestPlan = null;
     }, 'Speaker voice analysis failed.');
   }
 
@@ -46,6 +50,7 @@ export class TtsWorkbenchPageComponent {
       this.speakerTurns = await this.ttsWorkbenchService.splitDialogue(this.rawDialogueControl.value, this.speakers);
       this.annotatedTurns = [];
       this.finalRequest = null;
+      this.providerRequestPlan = null;
     }, 'Speaker split analysis failed.');
   }
 
@@ -53,6 +58,7 @@ export class TtsWorkbenchPageComponent {
     await this.runStep('emotions', async () => {
       this.annotatedTurns = await this.ttsWorkbenchService.annotateEmotions(this.speakerTurns);
       this.finalRequest = null;
+      this.providerRequestPlan = null;
     }, 'Emotion annotation analysis failed.');
   }
 
@@ -66,7 +72,18 @@ export class TtsWorkbenchPageComponent {
         modelName: this.modelNameControl.value,
         audioEncoding: this.audioEncodingControl.value
       });
+      this.providerRequestPlan = null;
     }, 'Final request preview failed.');
+  }
+
+  async planProviderCompatibleRequests(): Promise<void> {
+    if (!this.finalRequest) {
+      return;
+    }
+
+    await this.runStep('provider-plan', async () => {
+      this.providerRequestPlan = await this.ttsWorkbenchService.planProviderCompatibleRequests(this.finalRequest!);
+    }, 'Provider-compatible request plan preview failed.');
   }
 
   updateSpeakerName(speaker: SpeakerVoiceAnalysisItem, event: Event): void {
@@ -99,6 +116,14 @@ export class TtsWorkbenchPageComponent {
 
   get finalRequestJson(): string {
     return this.finalRequest ? JSON.stringify(this.finalRequest, null, 2) : '';
+  }
+
+  get providerRequestChunks(): ProviderCompatibleRequestChunk[] {
+    return this.providerRequestPlan?.chunks ?? [];
+  }
+
+  providerRequestChunkJson(chunk: ProviderCompatibleRequestChunk): string {
+    return JSON.stringify(chunk.request, null, 2);
   }
 
   isLoading(action: string): boolean {

@@ -60,6 +60,31 @@ describe('TtsWorkbenchService', () => {
     expect((finalJson.audioConfig as any).audioEncoding).toBe('MP3');
   });
 
+
+  it('posts final request JSON to the provider-compatible request plan endpoint', async () => {
+    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
+    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
+      chunks: [{
+        chunkNumber: 1,
+        speakers: ['Alice'],
+        request: {
+          input: { prompt: 'Prompt' },
+          voice: { languageCode: 'en-US' },
+          audioConfig: { audioEncoding: 'MP3' }
+        }
+      }]
+    }), { status: 200 }));
+
+    const plan = await service.planProviderCompatibleRequests({
+      input: { prompt: 'Prompt' },
+      voice: { languageCode: 'en-US' },
+      audioConfig: { audioEncoding: 'MP3' }
+    });
+
+    expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/provider-compatible-request-plan', jasmine.objectContaining({ method: 'POST' }));
+    expect(plan.chunks[0].speakers).toEqual(['Alice']);
+  });
+
   it('throws a user-facing error when analysis fails', async () => {
     const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
     spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
