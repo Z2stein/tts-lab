@@ -142,6 +142,7 @@ public class DefaultTtsWorkbenchPromptProvider implements TtsWorkbenchPromptProv
                 %s
                 
                 Markup rules:
+                - Every SpeakerSplitTurn needs at least one audio style tag. Repiticion is allowed.  
                 - Use markup actively when it improves emotion, rhythm, tension, humor, hesitation, surprise, or dramatic effect.
                 - Prefer fitting emotional and reaction tags over neutral delivery.
                 - You may combine multiple suitable tags in one turn if the scene benefits from it.
