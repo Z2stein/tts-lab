@@ -64,7 +64,7 @@ E2E_BASE_URL="https://<deployed-host>" E2E_USE_LOCAL_SERVERS=false npm run test:
 
 ### Mandatory CI/CD pipeline checks
 
-The GitHub Actions deployment pipeline must run E2E tests in a separate `predeploy-e2e` job before the real Hetzner deployment. Pipeline E2E tests are mandatory even though local/Codex E2E execution is optional. Full E2E must not run against production/Hetzner.
+The GitHub Actions deployment pipeline must run E2E tests in a separate `predeploy-e2e` job against an isolated temporary CI environment. Pipeline E2E tests are mandatory even though local/Codex E2E execution is optional. Full E2E must not run against production/Hetzner.
 
 The pipeline must:
 
@@ -74,7 +74,7 @@ The pipeline must:
 4. Wait for Helm/Kubernetes rollout success and for backend/frontend pods to be Ready using Kubernetes readiness checks.
 5. Run all E2E tests against the temporary CI URL, including the real frontend-backend spec.
 6. Fail if readiness fails, the real backend integration check fails, or any E2E test fails.
-7. Skip the real `deploy` job if `predeploy-e2e` fails.
+7. Keep the real `deploy` job independent of `predeploy-e2e` so both jobs can run in parallel after the image builds finish.
 
 ### Frontend test rule
 

@@ -110,14 +110,14 @@ Ablauf bei Push:
    - Backend- und Frontend-Readiness per Helm/Kubernetes abwarten
    - Frontend lokal per Port-Forward verfügbar machen
    - Playwright mit `E2E_BASE_URL=http://127.0.0.1:8080` und `E2E_USE_LOCAL_SERVERS=false` ausführen
-6. Nur wenn `predeploy-e2e` erfolgreich war: SSH auf Hetzner
+6. Parallel zu `predeploy-e2e`: SSH auf Hetzner
 7. Namespace idempotent anlegen/aktualisieren
 8. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
 9. `helm upgrade --install --wait --timeout 5m` ausführen
 10. Backend- und Frontend-Deployments per `kubectl rollout status` abwarten
 11. Backend- und Frontend-Pods per `kubectl wait --for=condition=Ready pod -l ...` abwarten
 
-Die Pipeline schlägt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn die E2E-Tests fehlschlagen. Feste Sleep-Zeiten sind nicht der primäre Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend). Schlägt `predeploy-e2e` fehl, wird der echte Hetzner-Deploy-Job durch die Job-Abhängigkeit nicht ausgeführt.
+Die Pipeline schlägt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn die E2E-Tests fehlschlagen. Feste Sleep-Zeiten sind nicht der primäre Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend). `predeploy-e2e` und der echte Hetzner-Deploy-Job laufen nach den Build-Jobs parallel; ein E2E-Fehler lässt die Pipeline fehlschlagen, blockiert den parallel gestarteten Deploy-Job aber nicht.
 
 Die E2E-Stufe enthält weiterhin deterministische UI-Tests mit gemockten Backend-Routen und zusätzlich `deployed-real-backend.spec.ts`. Dieser reale Integrationscheck lädt das temporär deployte Frontend und ruft aus dem Browser-Kontext `GET /api/health` auf. Die Route ist bewusst stabil, benötigt keine Anmeldung, keine CSRF-Token und keine externen Provider-Secrets. Full E2E darf in CI/CD nicht gegen Production/Hetzner laufen; dafür nutzt die Pipeline ausschließlich die temporäre GitHub-Actions-Umgebung.
 
@@ -175,7 +175,7 @@ cd frontend
 E2E_BASE_URL="https://<non-production-host>" E2E_USE_LOCAL_SERVERS=false npm run test:e2e
 ```
 
-Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory. CI/CD führt Full E2E vor dem echten Deployment im Job `predeploy-e2e` aus. Full E2E soll nicht gegen Production/Hetzner laufen.
+Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory. CI/CD führt Full E2E im separaten Job `predeploy-e2e` gegen eine temporäre Umgebung aus. Full E2E soll nicht gegen Production/Hetzner laufen.
 
 
 ## Akzeptanzkriterien (Textlänge)

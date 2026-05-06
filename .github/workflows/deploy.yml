@@ -200,13 +200,6 @@ jobs:
             --timeout=5m
           kubectl -n predeploy-e2e get deployments,pods -l app.kubernetes.io/instance=predeploy-e2e -o wide
 
-      - name: Expose temporary frontend locally
-        run: |
-          set -euo pipefail
-          kubectl -n predeploy-e2e port-forward service/predeploy-e2e-tts-lab-frontend 8080:80 > /tmp/predeploy-e2e-port-forward.log 2>&1 &
-          echo $! > /tmp/predeploy-e2e-port-forward.pid
-          timeout 60 bash -c 'until curl --fail --silent --show-error http://127.0.0.1:8080/ >/dev/null; do sleep 1; done'
-
       - name: Set up Node for mandatory E2E tests
         uses: actions/setup-node@v4
         with:
@@ -232,6 +225,12 @@ jobs:
           E2E_USE_LOCAL_SERVERS: 'false'
         run: |
           set -euo pipefail
+          kubectl -n predeploy-e2e port-forward service/predeploy-e2e-tts-lab-frontend 8080:80 > /tmp/predeploy-e2e-port-forward.log 2>&1 &
+          PORT_FORWARD_PID=$!
+          echo "$PORT_FORWARD_PID" > /tmp/predeploy-e2e-port-forward.pid
+          trap 'kill "$PORT_FORWARD_PID" 2>/dev/null || true' EXIT
+          timeout 60 bash -c 'until curl --fail --silent --show-error http://127.0.0.1:8080/ >/dev/null; do sleep 1; done'
+          curl --fail --silent --show-error --header 'Accept: application/json' http://127.0.0.1:8080/api/health
           cd frontend
           npm run test:e2e
 
@@ -247,7 +246,7 @@ jobs:
 
   deploy:
     if: github.event_name == 'push'
-    needs: [prepare-build, build-backend, build-frontend, predeploy-e2e]
+    needs: [prepare-build, build-backend, build-frontend]
     runs-on: ubuntu-latest
     concurrency:
       group: deploy-${{ github.ref_name }}
