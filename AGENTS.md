@@ -1,42 +1,39 @@
 # AGENTS.md
 
-Projektregeln für zukünftige Codex-Aufgaben in diesem Repository.
+Project rules for future Codex tasks in this repository.
 
-## Ziel des Projekts
+## Project goal
 
-Dieses Repository ist ein bewusst einfaches Lernprojekt für:
+This repository is a deliberately simple learning project for:
 
-1. Eine minimal verständliche Fullstack-App (Angular + Spring Boot)
-2. Container-Builds mit Docker
-3. Deployment mit GitHub Actions auf einen Hetzner-Server
-4. Runtime-Orchestrierung über k3s + Helm
+1. A minimally understandable fullstack app with Angular + Spring Boot
+2. Container builds with Docker
+3. Deployment with GitHub Actions to a Hetzner server
+4. Runtime orchestration via k3s + Helm
 
-## Leitlinien
+## Core principles
 
-- Keep it simple: Änderungen möglichst klein und nachvollziehbar halten.
-- Keine unnötige Komplexität oder zusätzliche Infrastruktur.
-- Fokus auf Lernbarkeit vor "Production-Optimierung".
+- Keep it simple: changes must be small, understandable, and easy to review.
+- Work test-driven whenever practical: first reproduce bugs or define expected behavior with a failing test, then implement the smallest fix.
+- Prefer learning value over production-level optimization.
+- Do not introduce unnecessary architecture, frameworks, infrastructure, or abstractions.
+- Fix the actual cause of broken behavior instead of hiding symptoms.
 
-## Technischer Rahmen
+## Automated quality assurance
 
-Nicht hinzufügen, außer es wird ausdrücklich angefordert:
+Automated checks are mandatory. A change is not done if tests cannot run.
 
-- OpenAI API
-- Text-to-Speech
-- Datenbank
-- Authentifizierung
+### Required quality gates
 
-## Deployment-Konventionen
+Before a change is considered complete, the following checks must pass where applicable:
 
-- GitHub Actions Workflow liegt unter `.github/workflows/deploy.yml`.
-- Primärer Deployment-Weg ist **k3s + Helm**.
-- Zielserver-Pfad für Chart-Dateien ist `/opt/tts-lab`.
-- Deployments laufen über `helm upgrade --install` via SSH auf dem Server.
-- Docker Compose und Docker-Traefik sind nicht mehr der Runtime-Deployment-Weg.
+1. Frontend unit tests
+2. Backend unit tests
+3. Application build
+4. Docker image build
+5. Helm chart validation, if chart files were changed
+6. README update, if behavior, setup, deployment, or quality checks changed
 
-## Änderungsvorgehen für Codex
+### Frontend test rule
 
-1. Bestehende Dateien minimal anpassen statt groß umbauen.
-2. README bei jeder relevanten Verhaltensänderung aktualisieren.
-3. Neue Abhängigkeiten nur mit kurzer Begründung einführen.
-4. Sicherheitsrelevante Änderungen (Secrets, SSH, Registry) besonders sorgfältig behandeln.
+Angular/Karma tests must run successfully
