@@ -30,3 +30,7 @@ chat-limit:
   window: ${CHAT_LIMIT_WINDOW:1h}
   max-requests: ${CHAT_LIMIT_MAX_REQUESTS:5}
   id-header: ${CHAT_LIMIT_ID_HEADER:X-User-Id}
+
+logging:
+  level:
+    root: DEBUG

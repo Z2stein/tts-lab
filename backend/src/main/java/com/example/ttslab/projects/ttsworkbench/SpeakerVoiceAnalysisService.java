@@ -6,12 +6,16 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SpeakerVoiceAnalysisService {
     private static final String PROVIDER_GEMINI = "gemini";
+    private static final Logger log = LoggerFactory.getLogger(SpeakerVoiceAnalysisService.class);
 
     private final ChatService chatService;
     private final ObjectMapper objectMapper;
@@ -35,10 +39,12 @@ public class SpeakerVoiceAnalysisService {
 
     public SpeakerVoiceAnalysisResponse analyze(String rawDialogue) {
         if (rawDialogue == null || rawDialogue.isBlank()) {
+            log.debug("chatbotProvider:"+chatbotProvider);
             return new SpeakerVoiceAnalysisResponse(List.of());
         }
 
         if (!PROVIDER_GEMINI.equals(chatbotProvider)) {
+            log.debug("chatbotProvider:"+chatbotProvider);
             return new SpeakerVoiceAnalysisResponse(fallbackService.analyzeSpeakers(rawDialogue));
         }
 
@@ -48,8 +54,8 @@ public class SpeakerVoiceAnalysisService {
             if (!parsed.isEmpty()) {
                 return new SpeakerVoiceAnalysisResponse(parsed);
             }
-        } catch (Exception ignored) {
-            // The workbench must remain usable when the configured provider fails.
+        } catch (Exception e) {
+            log.error("TTS Workbench analysis failed: {}", e.getMessage(), e);
         }
 
         return new SpeakerVoiceAnalysisResponse(fallbackService.analyzeSpeakers(rawDialogue));
