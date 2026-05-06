@@ -4,9 +4,11 @@ import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatResponse;
 import com.example.ttslab.chat.ChatService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -14,11 +16,12 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class TtsWorkbenchServiceTest {
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     void mockProviderReturnsDeterministicSpeakersWithoutCallingChatProvider() {
         ChatService chatService = mock(ChatService.class);
-        TtsWorkbenchService service = new TtsWorkbenchService(chatService, new ObjectMapper(), "mock");
+        TtsWorkbenchService service = createService(chatService, "mock");
 
         SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello\nBob: Hi");
 
@@ -29,12 +32,70 @@ class TtsWorkbenchServiceTest {
     }
 
     @Test
-    void geminiProviderUsesChatServiceAndParsesJson() {
+    void mockProviderSplitsDialogueWithoutCallingChatProvider() {
+        ChatService chatService = mock(ChatService.class);
+        TtsWorkbenchService service = createService(chatService, "mock");
+
+        SpeakerSplitAnalysisResponse response = service.split("A: First line\ncontinued\nB: Second line", List.of());
+
+        assertEquals(List.of(
+            new SpeakerSplitTurn("A", "First line continued"),
+            new SpeakerSplitTurn("B", "Second line")
+        ), response.turns());
+        verify(chatService, never()).ask(any(ChatRequest.class));
+    }
+
+    @Test
+    void mockProviderAnnotatesEmotionsWithoutCallingChatProvider() {
+        ChatService chatService = mock(ChatService.class);
+        TtsWorkbenchService service = createService(chatService, "mock");
+
+        EmotionAnnotationAnalysisResponse response = service.annotate(List.of(
+            new SpeakerSplitTurn("A", "Yesterday was everything fine and now I cannot believe you did this!"),
+            new SpeakerSplitTurn("B", "I know you are hurt. Please, let us just talk.")
+        ));
+
+        assertEquals("A", response.turns().get(0).speaker());
+        assertTrue(response.turns().get(0).text().startsWith("[happy]"));
+        assertTrue(response.turns().get(0).text().contains("[short pause]"));
+        assertTrue(response.turns().get(0).text().contains("[urgent]"));
+        assertEquals("[calm] I know you are hurt. [short pause] Please, let us just talk.", response.turns().get(1).text());
+        verify(chatService, never()).ask(any(ChatRequest.class));
+    }
+
+    @Test
+    void finalRequestBuilderCreatesProviderRequestShape() {
+        TtsWorkbenchService service = createService(mock(ChatService.class), "mock");
+
+        FinalTtsRequestPreviewResponse response = service.buildFinalRequest(new FinalTtsRequestPreviewRequest(
+            "A conversation between Speaker A and Speaker B.",
+            List.of(
+                new SpeakerVoiceAnalysisItem("A", "Emotional speaker", "Kore"),
+                new SpeakerVoiceAnalysisItem("B", "Calm speaker", "Puck")
+            ),
+            List.of(
+                new AnnotatedSpeakerTurn("A", "[urgent] Hello!"),
+                new AnnotatedSpeakerTurn("B", "[calm] Hi.")
+            ),
+            "en-US",
+            "{{google-model}}",
+            "MP3"
+        ));
+
+        assertEquals("A conversation between Speaker A and Speaker B.", response.input().get("prompt"));
+        assertEquals("en-US", response.voice().get("languageCode"));
+        assertEquals("MP3", response.audioConfig().get("audioEncoding"));
+        assertTrue(response.voice().toString().contains("speakerAlias=A"));
+        assertTrue(response.voice().toString().contains("speakerId=Kore"));
+    }
+
+    @Test
+    void geminiProviderUsesChatServiceAndParsesSpeakerJson() {
         ChatService chatService = mock(ChatService.class);
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("""
             {"speakers":[{"speakerName":"Narrator","roleDescription":"Guides the scene","voiceSuggestion":"Warm voice"}]}
             """, "c-1"));
-        TtsWorkbenchService service = new TtsWorkbenchService(chatService, new ObjectMapper(), "gemini");
+        TtsWorkbenchService service = createService(chatService, "gemini");
 
         SpeakerVoiceAnalysisResponse response = service.analyze("Once upon a time");
 
@@ -47,7 +108,7 @@ class TtsWorkbenchServiceTest {
     void geminiProviderFallsBackToMockAnalysisForInvalidModelOutput() {
         ChatService chatService = mock(ChatService.class);
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("not-json", "c-1"));
-        TtsWorkbenchService service = new TtsWorkbenchService(chatService, new ObjectMapper(), "gemini");
+        TtsWorkbenchService service = createService(chatService, "gemini");
 
         SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello");
 
@@ -57,13 +118,46 @@ class TtsWorkbenchServiceTest {
     }
 
     @Test
+    void geminiProviderFallsBackToMockSplitForInvalidModelOutput() {
+        ChatService chatService = mock(ChatService.class);
+        when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("not-json", "c-1"));
+        TtsWorkbenchService service = createService(chatService, "gemini");
+
+        SpeakerSplitAnalysisResponse response = service.split("A: Hello", List.of());
+
+        assertEquals(List.of(new SpeakerSplitTurn("A", "Hello")), response.turns());
+    }
+
+    @Test
+    void geminiProviderFallsBackToMockEmotionAnnotationForInvalidModelOutput() {
+        ChatService chatService = mock(ChatService.class);
+        when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("not-json", "c-1"));
+        TtsWorkbenchService service = createService(chatService, "gemini");
+
+        EmotionAnnotationAnalysisResponse response = service.annotate(List.of(new SpeakerSplitTurn("A", "Please talk.")));
+
+        assertEquals("[calm] Please talk.", response.turns().getFirst().text());
+    }
+
+    @Test
     void blankDialogueReturnsNoSpeakers() {
         ChatService chatService = mock(ChatService.class);
-        TtsWorkbenchService service = new TtsWorkbenchService(chatService, new ObjectMapper(), "mock");
+        TtsWorkbenchService service = createService(chatService, "mock");
 
         SpeakerVoiceAnalysisResponse response = service.analyze("   ");
 
         assertEquals(0, response.speakers().size());
         verify(chatService, never()).ask(any(ChatRequest.class));
+    }
+
+    private TtsWorkbenchService createService(ChatService chatService, String provider) {
+        DeterministicTtsWorkbenchFallbackService fallbackService = new DeterministicTtsWorkbenchFallbackService();
+        DefaultTtsWorkbenchPromptProvider promptProvider = new DefaultTtsWorkbenchPromptProvider(objectMapper);
+        return new TtsWorkbenchService(
+            new SpeakerVoiceAnalysisService(chatService, objectMapper, promptProvider, fallbackService, provider),
+            new SpeakerSplitAnalysisService(chatService, objectMapper, promptProvider, fallbackService, provider),
+            new EmotionAnnotationService(chatService, objectMapper, promptProvider, fallbackService, provider),
+            new FinalTtsRequestBuilder()
+        );
     }
 }

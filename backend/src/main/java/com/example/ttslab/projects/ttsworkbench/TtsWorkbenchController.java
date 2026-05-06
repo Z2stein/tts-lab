@@ -18,4 +18,19 @@ public class TtsWorkbenchController {
     public SpeakerVoiceAnalysisResponse analyzeSpeakers(@RequestBody SpeakerVoiceAnalysisRequest request) {
         return ttsWorkbenchService.analyze(request.rawDialogue());
     }
+
+    @PostMapping("/speaker-split-analysis")
+    public SpeakerSplitAnalysisResponse splitDialogue(@RequestBody SpeakerSplitAnalysisRequest request) {
+        return ttsWorkbenchService.split(request.rawDialogue(), request.speakers());
+    }
+
+    @PostMapping("/emotion-annotation-analysis")
+    public EmotionAnnotationAnalysisResponse annotateEmotions(@RequestBody EmotionAnnotationAnalysisRequest request) {
+        return ttsWorkbenchService.annotate(request.turns());
+    }
+
+    @PostMapping("/final-request-preview")
+    public FinalTtsRequestPreviewResponse previewFinalRequest(@RequestBody FinalTtsRequestPreviewRequest request) {
+        return ttsWorkbenchService.buildFinalRequest(request);
+    }
 }
