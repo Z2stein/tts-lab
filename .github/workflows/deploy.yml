@@ -35,12 +35,14 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GHCR_USER: ${{ vars.GHCR_USER }}
-          HETZNER_HOST: ${{ vars.HETZNER_HOST }}
+          HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
+          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
         run: |
           set -euo pipefail
           [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
           [ -n "${GHCR_USER}" ] || { echo "::error title=Missing GHCR_USER::Set repository variable GHCR_USER for registry authentication."; exit 1; }
-          [ -n "${HETZNER_HOST}" ] || { echo "::error title=Missing HETZNER_HOST::Set repository variable HETZNER_HOST for deployment target host."; exit 1; }
+          [ -n "${HETZNER_PUBLIC_IP}" ] || { echo "::error title=Missing HETZNER_PUBLIC_IP::Set repository variable HETZNER_PUBLIC_IP for the deployment server public IP."; exit 1; }
+          [ -n "${BASE_DOMAIN}" ] || { echo "::error title=Missing BASE_DOMAIN::Set repository variable BASE_DOMAIN for public ingress hostnames."; exit 1; }
 
       - name: Checkout
         uses: actions/checkout@v4
@@ -58,13 +60,14 @@ jobs:
         id: vars
         env:
           BRANCH_NAME: ${{ github.ref_name }}
-          SERVER_IP: ${{ vars.HETZNER_HOST }}
+          HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
           GIT_SHA: ${{ github.sha }}
           APP_SLUG: ${{ steps.repo_config.outputs.app_slug }}
+          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
         run: |
           set -euo pipefail
-          SERVER_IP="${SERVER_IP:-${{ vars.HETZNER_HOST }}}"
-          scripts/deployment_vars.sh deploy "$BRANCH_NAME" "$SERVER_IP" "$GIT_SHA" >> "$GITHUB_OUTPUT"
+          HETZNER_PUBLIC_IP="${HETZNER_PUBLIC_IP:-${{ vars.HETZNER_PUBLIC_IP }}}"
+          scripts/deployment_vars.sh deploy "$BRANCH_NAME" "$HETZNER_PUBLIC_IP" "$GIT_SHA" >> "$GITHUB_OUTPUT"
 
 
       - name: Compute registry owner
@@ -147,7 +150,8 @@ jobs:
         env:
           GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
           GHCR_USER: ${{ vars.GHCR_USER }}
-          HETZNER_HOST: ${{ vars.HETZNER_HOST }}
+          HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
+          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
           HETZNER_USER: ${{ secrets.HETZNER_USER }}
           HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
@@ -157,7 +161,8 @@ jobs:
           set -euo pipefail
           [ -n "${GHCR_TOKEN}" ] || { echo "::error title=Missing GHCR_TOKEN::Set repository secret GHCR_TOKEN with a long-lived token."; exit 1; }
           [ -n "${GHCR_USER}" ] || { echo "::error title=Missing GHCR_USER::Set repository variable GHCR_USER for registry authentication."; exit 1; }
-          [ -n "${HETZNER_HOST}" ] || { echo "::error title=Missing HETZNER_HOST::Set repository variable HETZNER_HOST for deployment target host."; exit 1; }
+          [ -n "${HETZNER_PUBLIC_IP}" ] || { echo "::error title=Missing HETZNER_PUBLIC_IP::Set repository variable HETZNER_PUBLIC_IP for the deployment server public IP."; exit 1; }
+          [ -n "${BASE_DOMAIN}" ] || { echo "::error title=Missing BASE_DOMAIN::Set repository variable BASE_DOMAIN for public ingress hostnames."; exit 1; }
           [ -n "${HETZNER_USER}" ] || { echo "::error title=Missing HETZNER_USER::Set repository secret HETZNER_USER for SSH deploy user."; exit 1; }
           [ -n "${HETZNER_SSH_KEY}" ] || { echo "::error title=Missing HETZNER_SSH_KEY::Set repository secret HETZNER_SSH_KEY for SSH authentication."; exit 1; }
           REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
@@ -173,11 +178,11 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ vars.HETZNER_PUBLIC_IP }}" >> ~/.ssh/known_hosts
 
       - name: Deploy via Helm on k3s
         env:
-          HOST: ${{ vars.HETZNER_HOST }}
+          HOST: ${{ vars.HETZNER_PUBLIC_IP }}
           USER: ${{ secrets.HETZNER_USER }}
           NAMESPACE: ${{ needs.prepare-build.outputs.namespace }}
           RELEASE_NAME: ${{ needs.prepare-build.outputs.release_name }}
@@ -291,15 +296,16 @@ jobs:
         env:
           DELETE_BRANCH: ${{ github.event.ref }}
           PR_BRANCH: ${{ github.event.pull_request.head.ref }}
-          SERVER_IP: ${{ vars.HETZNER_HOST }}
+          HETZNER_PUBLIC_IP: ${{ vars.HETZNER_PUBLIC_IP }}
+          BASE_DOMAIN: ${{ vars.BASE_DOMAIN }}
         run: |
           set -euo pipefail
           BRANCH_NAME="$DELETE_BRANCH"
           if [ -n "${PR_BRANCH:-}" ] && [ "$PR_BRANCH" != "null" ]; then
             BRANCH_NAME="$PR_BRANCH"
           fi
-          SERVER_IP="${SERVER_IP:-${{ vars.HETZNER_HOST }}}"
-          scripts/deployment_vars.sh cleanup "$BRANCH_NAME" "$SERVER_IP" >> "$GITHUB_OUTPUT"
+          HETZNER_PUBLIC_IP="${HETZNER_PUBLIC_IP:-${{ vars.HETZNER_PUBLIC_IP }}}"
+          scripts/deployment_vars.sh cleanup "$BRANCH_NAME" "$HETZNER_PUBLIC_IP" >> "$GITHUB_OUTPUT"
 
       - name: Prepare SSH key
         if: steps.vars.outputs.skip_cleanup == 'false'
@@ -307,12 +313,12 @@ jobs:
           mkdir -p ~/.ssh
           echo "${{ secrets.HETZNER_SSH_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "${{ vars.HETZNER_HOST }}" >> ~/.ssh/known_hosts
+          ssh-keyscan -H "${{ vars.HETZNER_PUBLIC_IP }}" >> ~/.ssh/known_hosts
 
       - name: Cleanup feature release and namespace
         if: steps.vars.outputs.skip_cleanup == 'false'
         env:
-          HOST: ${{ vars.HETZNER_HOST }}
+          HOST: ${{ vars.HETZNER_PUBLIC_IP }}
           USER: ${{ secrets.HETZNER_USER }}
           NAMESPACE: ${{ steps.vars.outputs.namespace }}
           RELEASE_NAME: ${{ steps.vars.outputs.release_name }}

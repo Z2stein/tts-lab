@@ -3,7 +3,7 @@ set -euo pipefail
 
 MODE="${1:-deploy}"
 BRANCH_NAME="${2:-}"
-SERVER_IP="${3:-}"
+HETZNER_PUBLIC_IP="${3:-}"
 GIT_SHA="${4:-}"
 
 if [ -z "$BRANCH_NAME" ]; then
@@ -11,8 +11,8 @@ if [ -z "$BRANCH_NAME" ]; then
   exit 1
 fi
 
-if [ -z "$SERVER_IP" ]; then
-  echo "error: server ip is required" >&2
+if [ -z "$HETZNER_PUBLIC_IP" ]; then
+  echo "error: Hetzner public IP is required" >&2
   exit 1
 fi
 
@@ -20,7 +20,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 # shellcheck source=./lib_deployment_vars.sh
 source "$SCRIPT_DIR/lib_deployment_vars.sh"
 
-TARGET_OUTPUT="$(resolve_target "$BRANCH_NAME" "$SERVER_IP")"
+TARGET_OUTPUT="$(resolve_target "$BRANCH_NAME" "$HETZNER_PUBLIC_IP")"
 echo "$TARGET_OUTPUT"
 
 if [ "$MODE" = "cleanup" ]; then

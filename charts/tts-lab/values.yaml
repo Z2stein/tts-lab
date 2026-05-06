@@ -48,7 +48,7 @@ backend:
 ingress:
   enabled: true
   className: traefik
-  host: tts-lab.<public-server-ip>.sslip.io
+  host: tts-lab.<base-domain>
   annotations:
     cert-manager.io/cluster-issuer: letsencrypt-prod
   tls:

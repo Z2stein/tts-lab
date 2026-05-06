@@ -42,12 +42,19 @@ slugify_branch() {
 
 resolve_target() {
   local branch="$1"
-  local server_ip="$2"
+  local _hetzner_public_ip="$2"
   local app_slug="${APP_SLUG:-tts-lab}"
+  local base_domain="${BASE_DOMAIN:-}"
 
   app_slug="$(normalize_slug_chars "$app_slug")"
   if [ -z "$app_slug" ]; then
     app_slug="tts-lab"
+  fi
+
+  base_domain="$(echo "$base_domain" | tr '[:upper:]' '[:lower:]' | sed -E 's#^https?://##; s#^\*\.##; s#/.*$##; s/^\.+//; s/\.+$//')"
+  if [ -z "$base_domain" ]; then
+    echo "error: BASE_DOMAIN is required" >&2
+    return 1
   fi
 
   if [ "$branch" = "main" ]; then
@@ -55,7 +62,7 @@ resolve_target() {
     echo "branch_slug=main"
     echo "namespace=$app_slug"
     echo "release_name=$app_slug"
-    echo "host=${app_slug}.${server_ip}.sslip.io"
+    echo "host=${app_slug}.${base_domain}"
     return
   fi
 
@@ -64,7 +71,7 @@ resolve_target() {
     echo "branch_slug=dev"
     echo "namespace=${app_slug}-dev"
     echo "release_name=${app_slug}-dev"
-    echo "host=dev.${app_slug}.${server_ip}.sslip.io"
+    echo "host=dev.${app_slug}.${base_domain}"
     return
   fi
 
@@ -75,7 +82,7 @@ resolve_target() {
   echo "branch_slug=$slug"
   echo "namespace=${app_slug}-$slug"
   echo "release_name=${app_slug}-$slug"
-  echo "host=${slug}.${app_slug}.${server_ip}.sslip.io"
+  echo "host=${slug}.${app_slug}.${base_domain}"
 }
 
 build_image_tags() {
