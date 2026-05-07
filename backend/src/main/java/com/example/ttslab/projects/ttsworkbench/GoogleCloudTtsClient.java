@@ -82,6 +82,8 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
         if (!name.isBlank()) {
             builder.setName(name);
         }
+        builder.setCustomVoice(CustomVoiceParams.newBuilder()
+                .setModel(stringValue(voice,"modelName")).build());
         return builder.build();
     }
 
