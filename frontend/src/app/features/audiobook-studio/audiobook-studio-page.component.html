@@ -57,14 +57,16 @@
         </article>
       </div>
 
-      <div class="waveform-preview" aria-label="Audio preview waveform">
-        <button type="button" aria-label="Play audio preview" (click)="playDemo($event)">
+      <div class="waveform-preview framework-player" aria-label="Audio preview player">
+        <button type="button" [attr.aria-label]="demoPlaying ? 'Pause audio preview' : 'Play audio preview'" (click)="playDemo($event)">
           <span class="play-icon" aria-hidden="true"></span>
         </button>
-        <div class="wave-bars" aria-hidden="true">
-          <span *ngFor="let bar of [16, 28, 36, 22, 44, 30, 52, 26, 38, 18, 46, 34, 24, 50, 32, 42, 20, 36, 48, 28, 40, 18, 32, 24]"></span>
+        <div class="player-copy">
+          <strong>{{ demoPlaying ? 'Playing demo' : 'Demo preview' }}</strong>
+          <span>Multi-speaker sample</span>
         </div>
-        <span class="wave-time">01:28 / 02:45</span>
+        <div #demoWaveform class="waveform-canvas" aria-hidden="true"></div>
+        <span class="wave-time">00:00 / 02:45</span>
       </div>
     </div>
   </section>
@@ -367,13 +369,17 @@
       </button>
       <p *ngIf="fullPlanAudioError" class="error">{{ fullPlanAudioError }}</p>
 
-      <div *ngIf="fullPlanAudioUrl" class="generated-audio-player">
+      <div *ngIf="fullPlanAudioUrl" class="generated-audio-player framework-player">
         <div>
           <span class="task-label">Generated preview</span>
           <h3>Audiobook preview</h3>
           <p>{{ fullPlanAudioFilename }}</p>
         </div>
-        <audio controls [src]="fullPlanAudioUrl"></audio>
+        <button type="button" class="player-button" [attr.aria-label]="fullPlanAudioPlaying ? 'Pause audiobook preview' : 'Play audiobook preview'" (click)="toggleFullGeneratedAudio()">
+          <span class="play-icon" aria-hidden="true"></span>
+        </button>
+        <div #fullWaveform class="waveform-canvas generated-waveform" aria-hidden="true"></div>
+        <span class="wave-time">00:00 / {{ fullPlanDurationLabel() }}</span>
       </div>
 
       <details *ngIf="renderRequests.length > 0" class="audio-parts-details">
@@ -394,7 +400,23 @@
               {{ renderRequestAudioState(requestIndex).loading ? 'Generating...' : 'Generate this part' }}
             </button>
             <p *ngIf="renderRequestAudioState(requestIndex).error" class="error">{{ renderRequestAudioState(requestIndex).error }}</p>
-            <audio *ngIf="renderRequestAudioState(requestIndex).audioUrl" controls [src]="renderRequestAudioState(requestIndex).audioUrl"></audio>
+            <div *ngIf="renderRequestAudioState(requestIndex).audioUrl" class="render-player framework-player">
+              <button
+                type="button"
+                class="player-button"
+                [attr.aria-label]="renderRequestAudioPlayingStates[requestIndex] ? 'Pause voice part ' + (requestIndex + 1) : 'Play voice part ' + (requestIndex + 1)"
+                (click)="toggleRenderRequestAudio(requestIndex)"
+              >
+                <span class="play-icon" aria-hidden="true"></span>
+              </button>
+              <div
+                #renderRequestWaveform
+                class="waveform-canvas generated-waveform"
+                [attr.data-request-index]="requestIndex"
+                aria-hidden="true"
+              ></div>
+              <span class="wave-time">00:00 / {{ renderRequestDurationLabel(requestIndex) }}</span>
+            </div>
           </article>
         </div>
       </details>

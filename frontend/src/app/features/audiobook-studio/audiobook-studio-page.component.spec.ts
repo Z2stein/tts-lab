@@ -215,7 +215,7 @@ describe('AudiobookStudioPageComponent', () => {
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
   });
 
-  it('shows an in-page audio player after the audiobook preview is generated', async () => {
+  it('shows the framework audio player after the audiobook preview is generated', async () => {
     component.audioProductionPlan = {
       renderRequests: [{ input: {}, voice: {}, audioConfig: {} }]
     };
@@ -227,9 +227,10 @@ describe('AudiobookStudioPageComponent', () => {
     await component.generateAudio();
     fixture.detectChanges();
 
-    const audio = fixture.nativeElement.querySelector('.generated-audio-player audio') as HTMLAudioElement | null;
+    const player = fixture.nativeElement.querySelector('.generated-audio-player .waveform-canvas') as HTMLElement | null;
     expect(ttsWorkbenchService.createAudio).toHaveBeenCalledWith(component.audioProductionPlan);
-    expect(audio).not.toBeNull();
+    expect(player).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
     expect(component.fullPlanAudioFilename).toBe('audiobook-preview.mp3');
   });
 

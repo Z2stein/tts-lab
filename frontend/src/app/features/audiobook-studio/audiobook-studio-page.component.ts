@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, ElementRef, OnDestroy, QueryList, ViewChild, ViewChildren } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import WaveSurfer from 'wavesurfer.js';
 import {
   AnnotatedSpeakerTurn,
   FinalTtsRequestPreview,
@@ -78,7 +79,7 @@ export function formatSpeakerDisplayName(speakerName: string): string {
   templateUrl: './audiobook-studio-page.component.html',
   styleUrl: './audiobook-studio-page.component.css'
 })
-export class AudiobookStudioPageComponent implements OnDestroy {
+export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   readonly benefitChips = ['Multi-speaker', 'Scene detection', 'Voice previews', 'Export MP3'];
 
   readonly heroCast: HeroCastMember[] = [
@@ -159,7 +160,30 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   castReviewed = false;
   scriptApproved = false;
   performanceNotesStale = false;
+  demoPlaying = false;
+  fullPlanAudioPlaying = false;
+  renderRequestAudioPlayingStates: Record<number, boolean> = {};
   private activeSampleAudio: HTMLAudioElement | null = null;
+  private demoWaveformElement: ElementRef<HTMLElement> | null = null;
+  private fullWaveformElement: ElementRef<HTMLElement> | null = null;
+  private demoWaveSurfer: WaveSurfer | null = null;
+  private fullWaveSurfer: WaveSurfer | null = null;
+  private renderRequestWaveSurfers = new Map<number, WaveSurfer>();
+
+  @ViewChild('demoWaveform')
+  set demoWaveform(ref: ElementRef<HTMLElement> | undefined) {
+    this.demoWaveformElement = ref ?? null;
+    this.initializeDemoWaveform();
+  }
+
+  @ViewChild('fullWaveform')
+  set fullWaveform(ref: ElementRef<HTMLElement> | undefined) {
+    this.fullWaveformElement = ref ?? null;
+    this.initializeFullWaveform();
+  }
+
+  @ViewChildren('renderRequestWaveform')
+  renderRequestWaveformElements!: QueryList<ElementRef<HTMLElement>>;
 
   constructor(private readonly ttsWorkbenchService: TtsWorkbenchService) {}
 
@@ -336,6 +360,10 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
 
   playDemo(event?: Event): void {
     event?.preventDefault();
+    if (this.demoWaveSurfer) {
+      void this.demoWaveSurfer.playPause();
+      return;
+    }
     this.playAudioPath('/assets/audio/voice-samples/full-text-preview.mp3');
   }
 
@@ -491,6 +519,22 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     return this.fullPlanAudioLoading || Object.values(this.renderRequestAudioStates).some((state) => state.loading);
   }
 
+  fullPlanDurationLabel(): string {
+    return this.durationLabelFor(this.fullWaveSurfer);
+  }
+
+  renderRequestDurationLabel(requestIndex: number): string {
+    return this.durationLabelFor(this.renderRequestWaveSurfers.get(requestIndex) ?? null);
+  }
+
+  toggleFullGeneratedAudio(): void {
+    void this.fullWaveSurfer?.playPause();
+  }
+
+  toggleRenderRequestAudio(requestIndex: number): void {
+    void this.renderRequestWaveSurfers.get(requestIndex)?.playPause();
+  }
+
   isLoading(action: string): boolean {
     return this.loadingAction === action;
   }
@@ -590,7 +634,15 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
 
   ngOnDestroy(): void {
     this.activeSampleAudio?.pause();
+    this.demoWaveSurfer?.destroy();
+    this.fullWaveSurfer?.destroy();
+    this.renderRequestWaveSurfers.forEach((waveSurfer) => waveSurfer.destroy());
     this.revokeGeneratedAudioUrls();
+  }
+
+  ngAfterViewInit(): void {
+    this.initializeDemoWaveform();
+    this.renderRequestWaveformElements.changes.subscribe(() => this.initializeRenderRequestWaveforms());
   }
 
   trackCastByIndex(index: number): number {
@@ -626,6 +678,12 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   private resetAudioStates(): void {
     this.fullPlanAudioLoading = false;
     this.fullPlanAudioError = null;
+    this.fullPlanAudioPlaying = false;
+    this.renderRequestAudioPlayingStates = {};
+    this.fullWaveSurfer?.destroy();
+    this.fullWaveSurfer = null;
+    this.renderRequestWaveSurfers.forEach((waveSurfer) => waveSurfer.destroy());
+    this.renderRequestWaveSurfers.clear();
     this.revokeGeneratedAudioUrls();
   }
 
@@ -636,6 +694,7 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     this.fullPlanAudioUrl = window.URL.createObjectURL(blob);
     this.fullPlanAudioFilename = filename;
     this.downloadBlobUrl(this.fullPlanAudioUrl, filename);
+    window.setTimeout(() => this.initializeFullWaveform());
   }
 
   private setRenderRequestAudio(requestIndex: number, blob: Blob, filename: string): void {
@@ -646,6 +705,7 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     state.audioUrl = window.URL.createObjectURL(blob);
     state.filename = filename;
     this.downloadBlobUrl(state.audioUrl, filename);
+    window.setTimeout(() => this.initializeRenderRequestWaveforms());
   }
 
   private downloadBlobUrl(url: string, filename: string): void {
@@ -677,6 +737,89 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     this.activeSampleAudio.play().catch(() => {
       this.scrollToSection('cast-section');
     });
+  }
+
+  private initializeDemoWaveform(): void {
+    if (!this.demoWaveformElement || this.demoWaveSurfer) {
+      return;
+    }
+
+    this.demoWaveSurfer = this.createWaveSurfer(this.demoWaveformElement.nativeElement, '/assets/audio/voice-samples/full-text-preview.mp3');
+    this.bindPlaybackState(this.demoWaveSurfer, (playing) => {
+      this.demoPlaying = playing;
+    });
+  }
+
+  private initializeFullWaveform(): void {
+    if (!this.fullWaveformElement || !this.fullPlanAudioUrl) {
+      return;
+    }
+
+    this.fullWaveSurfer?.destroy();
+    this.fullWaveSurfer = this.createWaveSurfer(this.fullWaveformElement.nativeElement, this.fullPlanAudioUrl);
+    this.bindPlaybackState(this.fullWaveSurfer, (playing) => {
+      this.fullPlanAudioPlaying = playing;
+    });
+  }
+
+  private initializeRenderRequestWaveforms(): void {
+    if (!this.renderRequestWaveformElements) {
+      return;
+    }
+
+    this.renderRequestWaveformElements.forEach((waveformElement) => {
+      const requestIndex = Number(waveformElement.nativeElement.dataset['requestIndex']);
+      const audioUrl = this.renderRequestAudioState(requestIndex).audioUrl;
+
+      if (!Number.isFinite(requestIndex) || !audioUrl || this.renderRequestWaveSurfers.has(requestIndex)) {
+        return;
+      }
+
+      const waveSurfer = this.createWaveSurfer(waveformElement.nativeElement, audioUrl);
+      this.renderRequestWaveSurfers.set(requestIndex, waveSurfer);
+      this.bindPlaybackState(waveSurfer, (playing) => {
+        this.renderRequestAudioPlayingStates[requestIndex] = playing;
+      });
+    });
+  }
+
+  private createWaveSurfer(container: HTMLElement, url: string): WaveSurfer {
+    container.innerHTML = '';
+    return WaveSurfer.create({
+      container,
+      url,
+      height: 58,
+      waveColor: '#596174',
+      progressColor: '#f0ad5d',
+      cursorColor: '#ffd591',
+      cursorWidth: 2,
+      barWidth: 3,
+      barGap: 3,
+      barRadius: 3,
+      normalize: true,
+      dragToSeek: true
+    });
+  }
+
+  private bindPlaybackState(waveSurfer: WaveSurfer, update: (playing: boolean) => void): void {
+    waveSurfer.on('play', () => update(true));
+    waveSurfer.on('pause', () => update(false));
+    waveSurfer.on('finish', () => update(false));
+  }
+
+  private durationLabelFor(waveSurfer: WaveSurfer | null): string {
+    if (!waveSurfer) {
+      return '00:00';
+    }
+
+    const duration = waveSurfer.getDuration();
+    if (!Number.isFinite(duration) || duration <= 0) {
+      return '00:00';
+    }
+
+    const minutes = Math.floor(duration / 60).toString().padStart(2, '0');
+    const seconds = Math.floor(duration % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
   }
 
   private async runStep(action: string, step: () => Promise<void>, fallbackMessage: string): Promise<void> {
