@@ -5,6 +5,7 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 ## Inhaltsverzeichnis
 
 - [Repo-Onboarding](#repo-onboarding-kurzer-config-block)
+- [What’s new](#whats-new)
 - [Deployment-Status](#deployment-status)
 - [Runtime-Architektur](#runtime-architektur)
 - [Ziel-Umgebungen](#ziel-umgebungen)
@@ -20,6 +21,20 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 - [TTS Workbench (MVP)](#tts-workbench-mvp)
 - [Chatbot (MVP)](#chatbot-mvp)
 - [Request limits (MVP)](#request-limits-mvp)
+
+## What’s new
+
+This chat upgraded the existing Audiobook Studio MVP from an internal workflow page into a more premium, cinematic AI audiobook studio experience:
+
+- `/audiobook-studio` now opens with a frontend-only hero section: “Give every character in your story a voice.”
+- The first viewport shows the intended product promise visually: pasted story text flows into a detected cast card and an audio waveform preview.
+- The hero includes `Create audio story` and `Listen to demo` actions; the primary CTA scrolls to and focuses the existing story textarea.
+- A new “From plain text to performed story” section explains the four-step journey: paste story, discover cast, direct performance, generate audio.
+- The existing functional workflow remains below the motivational sections and still uses the same Angular component state and backend APIs.
+- Detected cast cards now feel more like creative character/voice cards, with initials, stronger hierarchy, voice badges, and subtle per-card accent glows.
+- Technical production fields such as language code, model name, and audio encoding are tucked behind `Advanced production settings`, while the story direction stays visible.
+- This was a frontend-only UX/UI pass. No backend endpoints, database tables, provider behavior, Helm config, or business logic changed.
+- Verification run for this chat: `npm run build`, `npm run test -- --watch=false --browsers=ChromeHeadless`, and `npm run test:e2e -- e2e/audiobook-studio.spec.ts`.
 
 ## Repo-Onboarding (kurzer Config-Block)
 
@@ -306,7 +321,24 @@ Frontend behavior note:
 
 Audiobook Studio is a user-friendly frontend flow built on top of the existing TTS Workbench endpoints. It is available at `/audiobook-studio` and reframes the same pipeline as story input, cast discovery, script preview, performance notes, an audio production plan, and generated audio.
 
-The MVP does not add database tables or new backend endpoints. It reuses the existing speaker analysis, speaker split, emotion annotation, final request preview, single-speaker render plan, and audio creation APIs while presenting story-focused language and a dark studio-style interface.
+The MVP does not add database tables or new backend endpoints. It reuses the existing speaker analysis, speaker split, emotion annotation, final request preview, single-speaker render plan, and audio creation APIs while presenting story-focused language and a dark cinematic studio interface.
+
+The page now starts with a product-led landing/workflow layer:
+
+- A premium hero with the headline “Give every character in your story a voice.”
+- A static visual demo that shows story text transforming into a detected cast and an audio waveform.
+- Benefit chips for `Multi-speaker`, `Scene detection`, `Voice previews`, and `Export MP3`.
+- A four-card “From plain text to performed story” journey section.
+- Hero CTAs that keep the existing workflow reachable: `Create audio story` focuses the story input, and `Listen to demo` loads the sample story before focusing the textarea.
+
+The page now includes a frontend-only review and correction layer before generation:
+
+- Cast cards support `Edit`, `Save`, and `Cancel` for `speakerName`, `roleDescription`, and `voiceSuggestion`.
+- Speaker names are formatted for display while preserving their original backend/internal value unless saved by the user.
+- Script turns support one-at-a-time editing for `speaker` and `text`.
+- Script approval is required before performance notes can be generated.
+- Editing the script after performance notes exist marks those notes stale and blocks audio production planning until notes are regenerated.
+- These review states are local component state only; no persistence, auth, deployment, database, provider, or Helm behavior changed.
 
 ## TTS Workbench (MVP)
 
