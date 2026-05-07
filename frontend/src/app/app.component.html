@@ -12,6 +12,10 @@
     <div class="auth-summary" aria-live="polite">
       <span *ngIf="authStatus === 'loading'">Loading...</span>
       <ng-container *ngIf="authStatus === 'authenticated' && currentUser">
+        <div class="limit-summary" aria-label="Remaining usage">
+          <span>Speech {{ formatRemaining(limitFor('SPEECH_MODEL')) }}</span>
+          <span>Text {{ formatRemaining(limitFor('TEXT_MODEL')) }}</span>
+        </div>
         <span>Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</span>
         <button type="button" (click)="logout()">Logout</button>
       </ng-container>

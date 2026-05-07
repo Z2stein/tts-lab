@@ -3,6 +3,10 @@ package com.example.ttslab.chat;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.PromptHistoryService;
+import com.example.ttslab.ratelimit.RequestRateLimitResult;
+import com.example.ttslab.ratelimit.RequestRateLimitService;
+import com.example.ttslab.ratelimit.RequestRateLimitUnit;
+import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -32,40 +36,30 @@ class ChatControllerTest {
     private ChatService chatService;
 
     @MockBean
-    private ChatRateLimitService chatRateLimitService;
-
-    @MockBean
-    private ChatRateLimitProperties chatRateLimitProperties;
-
-    @MockBean
-    private ChatUsageIdentityResolver chatUsageIdentityResolver;
-
-    @MockBean
     private CurrentUserResolver currentUserResolver;
 
     @MockBean
     private PromptHistoryService promptHistoryService;
 
+    @MockBean
+    private RequestRateLimitService requestRateLimitService;
+
+    @MockBean
+    private RequestUsageMeasurer requestUsageMeasurer;
+
 
     @BeforeEach
     void setupRateLimitDefaults() {
-        when(chatRateLimitProperties.idHeader()).thenReturn("X-User-Id");
-        when(chatRateLimitProperties.window()).thenReturn(java.time.Duration.ofHours(1));
-        when(chatRateLimitProperties.maxRequests()).thenReturn(100);
-        when(chatUsageIdentityResolver.resolve(any(), any(), any())).thenReturn("u1");
-        when(chatRateLimitService.checkAndConsume("u1")).thenReturn(new ChatRateLimitResult(true, 1, 0, 1));
         when(currentUserResolver.resolve(any())).thenReturn(new CurrentUser("u1", "u1@example.com", "User One", java.util.List.of("USER"), "mock"));
+        when(requestRateLimitService.unit()).thenReturn(RequestRateLimitUnit.WORDS);
+        when(requestUsageMeasurer.measure(any(), eq(RequestRateLimitUnit.WORDS))).thenReturn(1L);
+        when(requestRateLimitService.checkAndConsume(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq(1L)))
+            .thenReturn(new RequestRateLimitResult(com.example.ttslab.prompts.ModelType.TEXT_MODEL, true, 1, 100, 99, 1, 0, 1, RequestRateLimitUnit.WORDS));
     }
 
     @Test
     void validMessageReturnsSuccess() throws Exception {
-        when(chatUsageIdentityResolver.resolve(any(), any(), any())).thenReturn("u1");
-        when(chatRateLimitService.checkAndConsume("u1")).thenReturn(new ChatRateLimitResult(true, 1, 0, 1));
         when(chatService.ask(any())).thenReturn(new ChatResponse("hello", "c-1"));
-
-        when(chatRateLimitProperties.idHeader()).thenReturn("X-User-Id");
-        when(chatUsageIdentityResolver.resolve(any(), any(), any())).thenReturn("u1");
-        when(chatRateLimitService.checkAndConsume("u1")).thenReturn(new ChatRateLimitResult(true, 1, 0, 1));
 
         mockMvc.perform(post("/api/chat")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -116,11 +110,8 @@ class ChatControllerTest {
     }
     @Test
     void rateLimitExceededReturns429WithRetryAfter() throws Exception {
-        when(chatRateLimitProperties.idHeader()).thenReturn("X-User-Id");
-        when(chatRateLimitProperties.window()).thenReturn(java.time.Duration.ofHours(1));
-        when(chatRateLimitProperties.maxRequests()).thenReturn(100);
-        when(chatUsageIdentityResolver.resolve(any(), any(), any())).thenReturn("u1");
-        when(chatRateLimitService.checkAndConsume("u1")).thenReturn(new ChatRateLimitResult(false, 101, 123, 1));
+        when(requestRateLimitService.checkAndConsume(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq(1L)))
+            .thenReturn(new RequestRateLimitResult(com.example.ttslab.prompts.ModelType.TEXT_MODEL, false, 100, 100, 0, 1, 123, 1, RequestRateLimitUnit.WORDS));
 
         mockMvc.perform(post("/api/chat")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -129,7 +120,7 @@ class ChatControllerTest {
             .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.header().string("Retry-After", "123"))
             .andExpect(jsonPath("$.status").value(429))
             .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"))
-            .andExpect(jsonPath("$.message").value("Chat usage limit exceeded. Please try again later."))
+            .andExpect(jsonPath("$.message").value("Usage limit exceeded. Please try again later."))
             .andExpect(jsonPath("$.requestId").exists());
     }
 

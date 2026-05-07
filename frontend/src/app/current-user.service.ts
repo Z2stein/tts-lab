@@ -8,6 +8,20 @@ export type CurrentUser = {
   authMode: 'google' | 'mock';
 };
 
+export type RequestLimitItem = {
+  modelType: 'TEXT_MODEL' | 'SPEECH_MODEL';
+  used: number;
+  limit: number;
+  remaining: number;
+  unit: 'WORDS' | 'TOKENS';
+};
+
+export type RequestLimitSummary = {
+  windowResetAt: string;
+  windowSeconds: number;
+  limits: RequestLimitItem[];
+};
+
 @Injectable({ providedIn: 'root' })
 export class CurrentUserService {
   private csrfToken: string | null = null;
@@ -44,6 +58,21 @@ export class CurrentUserService {
       return user;
     } catch (error) {
       console.error('[auth] /api/me request failed, treating as unauthenticated', error);
+      return null;
+    }
+  }
+
+  async refreshRequestLimits(): Promise<RequestLimitSummary | null> {
+    try {
+      const response = await fetch('/api/request-limits/me', { redirect: 'follow' });
+      if (!response.ok || response.redirected) {
+        return null;
+      }
+      const summary = (await response.json()) as RequestLimitSummary;
+      window.dispatchEvent(new CustomEvent<RequestLimitSummary>('request-limits-updated', { detail: summary }));
+      return summary;
+    } catch (error) {
+      console.error('[auth] /api/request-limits/me request failed', error);
       return null;
     }
   }

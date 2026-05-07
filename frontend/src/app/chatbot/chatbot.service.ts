@@ -28,6 +28,7 @@ export class ChatbotService {
       },
       body: JSON.stringify({ message, conversationId })
     });
+    await this.refreshRequestLimits();
 
     if (!response.ok) {
       let errorBody: ChatErrorResponse | null = null;
@@ -45,5 +46,12 @@ export class ChatbotService {
     }
 
     return (await response.json()) as ChatResponse;
+  }
+
+  private async refreshRequestLimits(): Promise<void> {
+    const service = this.currentUserService as CurrentUserService & {
+      refreshRequestLimits?: () => Promise<unknown>;
+    };
+    await service.refreshRequestLimits?.();
   }
 }
