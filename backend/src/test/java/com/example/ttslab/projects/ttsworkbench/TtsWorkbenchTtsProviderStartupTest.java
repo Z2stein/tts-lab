@@ -1,6 +1,5 @@
 package com.example.ttslab.projects.ttsworkbench;
 
-import com.example.ttslab.error.ApiException;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 
@@ -16,19 +15,17 @@ class TtsWorkbenchTtsProviderStartupTest {
             .withPropertyValues("chatbot.provider=mock")
             .run(context -> {
                 assertThat(context).hasNotFailed();
-                assertThat(context).doesNotHaveBean(GoogleCloudTtsClient.class);
+                assertThat(context).hasSingleBean(GoogleCloudTtsClient.class);
             });
     }
 
     @Test
-    void geminiModeFailsClearlyWithoutGoogleTtsCredentials() {
+    void geminiModeStartsWithoutGoogleTtsCredentials() {
         contextRunner
             .withPropertyValues("chatbot.provider=gemini", "tts-workbench.google.service-account-json-b64=")
             .run(context -> {
-                assertThat(context).hasFailed();
-                assertThat(context.getStartupFailure()).hasCauseInstanceOf(ApiException.class);
-                assertThat(context.getStartupFailure())
-                    .hasMessageContaining("Google Cloud Text-to-Speech credentials are missing or invalid for gemini mode.");
+                assertThat(context).hasNotFailed();
+                assertThat(context).hasSingleBean(GoogleCloudTtsClient.class);
             });
     }
 }

@@ -185,7 +185,6 @@ jobs:
           [ -n "${HETZNER_SSH_KEY}" ] || { echo "::error title=Missing HETZNER_SSH_KEY::Set repository secret HETZNER_SSH_KEY for SSH authentication."; exit 1; }
           if [ "${CHAT_PROVIDER}" = "gemini" ]; then
             [ -n "${GEMINI_API_KEY}" ] || { echo "::error title=Missing GEMINI_API_KEY::Set repository secret GEMINI_API_KEY for chatbot backend runtime."; exit 1; }
-            [ -n "${TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64}" ] || { echo "::error title=Missing TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64::Set repository secret TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64 with the Base64-encoded Google Cloud Text-to-Speech service account JSON."; exit 1; }
           fi
 
       - name: Checkout
@@ -268,8 +267,9 @@ jobs:
               --dry-run=client -o yaml | kubectl apply -f -
 
             TTS_GOOGLE_CREDENTIALS_CHECKSUM=""
-            if [ "$CHAT_PROVIDER" = "gemini" ]; then
-              [ -n "${TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64:-}" ] || { echo "TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64 is required when CHATBOT_PROVIDER resolves to gemini." >&2; exit 1; }
+            TTS_GOOGLE_CREDENTIALS_SECRET_NAME=""
+            if [ -n "${TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64:-}" ]; then
+              TTS_GOOGLE_CREDENTIALS_SECRET_NAME="google-tts-service-account"
               TTS_GOOGLE_CREDENTIALS_CHECKSUM=$(printf %s "$TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64" | sha256sum | awk '{print $1}')
               kubectl -n "$NAMESPACE" create secret generic google-tts-service-account \
                 --from-literal=service-account-json-b64="$TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64" \
@@ -300,7 +300,7 @@ jobs:
               --set auth.googleSecretName="$AUTH_GOOGLE_SECRET_NAME" \
               --set chat.geminiSecretName="gemini-api" \
               --set chat.provider="$CHAT_PROVIDER" \
-              --set ttsWorkbench.googleCredentialsSecretName="google-tts-service-account" \
+              --set ttsWorkbench.googleCredentialsSecretName="$TTS_GOOGLE_CREDENTIALS_SECRET_NAME" \
               --set ttsWorkbench.googleCredentialsChecksum="$TTS_GOOGLE_CREDENTIALS_CHECKSUM" \
               --set chat.realProviderOnFeatureBranches="$([ "$CHAT_PROVIDER" = "gemini" ] && echo true || echo false)"
 
