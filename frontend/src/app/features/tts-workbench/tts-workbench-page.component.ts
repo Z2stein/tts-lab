@@ -32,6 +32,9 @@ export class TtsWorkbenchPageComponent {
   singleSpeakerRenderPlan: SingleSpeakerRenderPlan | null = null;
   loadingAction: string | null = null;
   error: string | null = null;
+  fullPlanAudioLoading = false;
+  fullPlanAudioError: string | null = null;
+  renderRequestAudioStates: Record<number, { loading: boolean; error: string | null }> = {};
 
   constructor(private readonly ttsWorkbenchService: TtsWorkbenchService) {}
 
@@ -42,6 +45,7 @@ export class TtsWorkbenchPageComponent {
       this.annotatedTurns = [];
       this.finalRequest = null;
       this.singleSpeakerRenderPlan = null;
+      this.resetAudioStates();
     }, 'Speaker voice analysis failed.');
   }
 
@@ -51,6 +55,7 @@ export class TtsWorkbenchPageComponent {
       this.annotatedTurns = [];
       this.finalRequest = null;
       this.singleSpeakerRenderPlan = null;
+      this.resetAudioStates();
     }, 'Speaker split analysis failed.');
   }
 
@@ -59,6 +64,7 @@ export class TtsWorkbenchPageComponent {
       this.annotatedTurns = await this.ttsWorkbenchService.annotateEmotions(this.speakerTurns);
       this.finalRequest = null;
       this.singleSpeakerRenderPlan = null;
+      this.resetAudioStates();
     }, 'Emotion annotation analysis failed.');
   }
 
@@ -73,6 +79,7 @@ export class TtsWorkbenchPageComponent {
         audioEncoding: this.audioEncodingControl.value
       });
       this.singleSpeakerRenderPlan = null;
+      this.resetAudioStates();
     }, 'Final request preview failed.');
   }
 
@@ -83,6 +90,7 @@ export class TtsWorkbenchPageComponent {
 
     await this.runStep('render-plan', async () => {
       this.singleSpeakerRenderPlan = await this.ttsWorkbenchService.planSingleSpeakerRenderRequests(this.finalRequest!);
+      this.resetAudioStates();
     }, 'Single-speaker render plan preview failed.');
   }
 
@@ -91,10 +99,32 @@ export class TtsWorkbenchPageComponent {
       return;
     }
 
-    await this.runStep('create-audio', async () => {
-      const download = await this.ttsWorkbenchService.createAudio(this.singleSpeakerRenderPlan!);
+    this.fullPlanAudioLoading = true;
+    this.fullPlanAudioError = null;
+
+    try {
+      const download = await this.ttsWorkbenchService.createAudio(this.singleSpeakerRenderPlan);
       this.downloadBlob(download.blob, download.filename);
-    }, 'Audio creation failed.');
+    } catch (error) {
+      this.fullPlanAudioError = error instanceof Error ? error.message : 'Audio creation failed.';
+    } finally {
+      this.fullPlanAudioLoading = false;
+    }
+  }
+
+  async createAudioForRenderRequest(renderRequest: SingleSpeakerRenderRequest, requestIndex: number): Promise<void> {
+    const state = this.renderRequestAudioState(requestIndex);
+    state.loading = true;
+    state.error = null;
+
+    try {
+      const download = await this.ttsWorkbenchService.createAudioForRenderRequest(renderRequest);
+      this.downloadBlob(download.blob, `tts-render-request-${requestIndex + 1}.mp3`);
+    } catch (error) {
+      state.error = error instanceof Error ? error.message : 'Audio creation failed.';
+    } finally {
+      state.loading = false;
+    }
   }
 
   updateSpeakerName(speaker: SpeakerVoiceAnalysisItem, event: Event): void {
@@ -139,6 +169,23 @@ export class TtsWorkbenchPageComponent {
 
   isLoading(action: string): boolean {
     return this.loadingAction === action;
+  }
+
+  renderRequestAudioState(requestIndex: number): { loading: boolean; error: string | null } {
+    if (!this.renderRequestAudioStates[requestIndex]) {
+      this.renderRequestAudioStates[requestIndex] = { loading: false, error: null };
+    }
+    return this.renderRequestAudioStates[requestIndex];
+  }
+
+  anyAudioLoading(): boolean {
+    return this.fullPlanAudioLoading || Object.values(this.renderRequestAudioStates).some((state) => state.loading);
+  }
+
+  private resetAudioStates(): void {
+    this.fullPlanAudioLoading = false;
+    this.fullPlanAudioError = null;
+    this.renderRequestAudioStates = {};
   }
 
   private eventValue(event: Event): string {

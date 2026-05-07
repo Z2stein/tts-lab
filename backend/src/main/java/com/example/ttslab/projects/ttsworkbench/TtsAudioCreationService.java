@@ -43,9 +43,9 @@ public class TtsAudioCreationService {
 
         List<byte[]> audioParts = renderRequests.stream().map(this::createAudioPart).toList();
         if (audioParts.size() == 1) {
-            return new TtsAudioFile(audioParts.getFirst(), "audio/mpeg", "tts-workbench-audio.mp3");
+            return new TtsAudioFile(audioParts.getFirst(), "audio/mpeg", "tts-render-request-1.mp3");
         }
-        return new TtsAudioFile(zip(audioParts), "application/zip", "tts-workbench-audio.zip");
+        return new TtsAudioFile(zip(audioParts), "application/zip", "tts-render-plan.zip");
     }
 
     private byte[] createAudioPart(SingleSpeakerRenderRequest renderRequest) {
@@ -102,7 +102,7 @@ public class TtsAudioCreationService {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
             try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
                 for (int index = 0; index < audioParts.size(); index++) {
-                    zip.putNextEntry(new ZipEntry("render-request-" + (index + 1) + ".mp3"));
+                    zip.putNextEntry(new ZipEntry("tts-render-request-" + (index + 1) + ".mp3"));
                     zip.write(audioParts.get(index));
                     zip.closeEntry();
                 }

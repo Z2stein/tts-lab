@@ -28,7 +28,7 @@ class TtsAudioCreationServiceTest {
         TtsAudioFile audioFile = service.createAudio(new SingleSpeakerRenderPlanResponse(List.of(renderRequest("Hello"))));
 
         assertEquals("audio/mpeg", audioFile.contentType());
-        assertEquals("tts-workbench-audio.mp3", audioFile.filename());
+        assertEquals("tts-render-request-1.mp3", audioFile.filename());
         assertArrayEquals(new byte[] {'I', 'D', '3'}, new byte[] {audioFile.content()[0], audioFile.content()[1], audioFile.content()[2]});
         assertTrue(new String(audioFile.content(), StandardCharsets.UTF_8).contains("TTS-LAB-MOCK-MP3"));
         assertTrue(new String(audioFile.content(), StandardCharsets.UTF_8).contains("Hello"));
@@ -59,10 +59,10 @@ class TtsAudioCreationServiceTest {
         )));
 
         assertEquals("application/zip", audioFile.contentType());
-        assertEquals("tts-workbench-audio.zip", audioFile.filename());
+        assertEquals("tts-render-plan.zip", audioFile.filename());
         try (ZipInputStream zip = new ZipInputStream(new java.io.ByteArrayInputStream(audioFile.content()))) {
-            assertNotNull(zip.getNextEntry());
-            assertNotNull(zip.getNextEntry());
+            assertEquals("tts-render-request-1.mp3", zip.getNextEntry().getName());
+            assertEquals("tts-render-request-2.mp3", zip.getNextEntry().getName());
         }
     }
 

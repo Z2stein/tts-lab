@@ -121,8 +121,13 @@ export class TtsWorkbenchService {
 
     return {
       blob: await response.blob(),
-      filename: this.filenameFromContentDisposition(response.headers.get('Content-Disposition')) || 'tts-workbench-audio.mp3'
+      filename: this.filenameFromContentDisposition(response.headers.get('Content-Disposition')) || 'tts-render-request-1.mp3'
     };
+  }
+
+
+  async createAudioForRenderRequest(renderRequest: SingleSpeakerRenderRequest): Promise<CreatedAudioDownload> {
+    return this.createAudio({ renderRequests: [renderRequest] });
   }
 
   private async post<T>(url: string, body: unknown, errorPrefix: string): Promise<T> {

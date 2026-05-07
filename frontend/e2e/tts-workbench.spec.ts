@@ -50,6 +50,7 @@ test('tts workbench previews single-speaker render requests after final JSON gen
 
   let renderPlanRequest: { input: { prompt: string } } | null = null;
   let createAudioRequest: { renderRequests: unknown[] } | null = null;
+  let perRequestAudioRequest: { renderRequests: Array<{ input?: { text?: string } }> } | null = null;
 
   await page.route('**/api/projects/tts-workbench/speaker-voice-analysis', async (route) => {
     await route.fulfill({
@@ -154,11 +155,13 @@ test('tts workbench previews single-speaker render requests after final JSON gen
   });
 
   await page.route('**/api/projects/tts-workbench/create-audio', async (route) => {
-    createAudioRequest = route.request().postDataJSON();
+    const request = route.request().postDataJSON() as { renderRequests: unknown[] };
+    createAudioRequest = request;
+    const isSingleRequest = request.renderRequests.length === 1;
     await route.fulfill({
       status: 200,
-      contentType: 'audio/mpeg',
-      headers: { 'Content-Disposition': 'attachment; filename="tts-workbench-audio.mp3"' },
+      contentType: isSingleRequest ? 'audio/mpeg' : 'application/zip',
+      headers: { 'Content-Disposition': `attachment; filename="${isSingleRequest ? 'tts-render-request-2.mp3' : 'tts-render-plan.zip'}"` },
       body: 'mock mp3 bytes'
     });
   });
@@ -186,12 +189,21 @@ test('tts workbench previews single-speaker render requests after final JSON gen
   await expect(page.locator('article.request-chunk').nth(0)).toContainText('\"name\": \"Schedar\"');
   await expect(page.locator('article.request-chunk').nth(0)).toContainText('\"audioEncoding\": \"MP3\"');
 
+  const perRequestDownloadPromise = page.waitForEvent('download');
+  await page.getByRole('button', { name: 'Create audio for render request 2' }).click();
+  const perRequestDownload = await perRequestDownloadPromise;
+  perRequestAudioRequest = createAudioRequest as { renderRequests: Array<{ input?: { text?: string } }> };
+
+  expect(perRequestAudioRequest?.renderRequests).toHaveLength(1);
+  expect(perRequestAudioRequest?.renderRequests[0].input?.text).toBe('[sarcastic] So this is your surprise?');
+  expect(perRequestDownload.suggestedFilename()).toBe('tts-render-request-2.mp3');
+
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Create audio' }).click();
+  await page.getByRole('button', { name: 'Create audio', exact: true }).click();
   const download = await downloadPromise;
 
   expect(createAudioRequest?.renderRequests).toHaveLength(3);
-  expect(download.suggestedFilename()).toBe('tts-workbench-audio.mp3');
+  expect(download.suggestedFilename()).toBe('tts-render-plan.zip');
 });
 
 test('tts workbench route shows sign-in UI for unauthenticated users', async ({ page }) => {

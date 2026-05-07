@@ -115,7 +115,7 @@ class TtsWorkbenchControllerTest {
     @Test
     void createAudioReturnsDownloadableMp3() throws Exception {
         when(ttsWorkbenchService.createAudio(any(SingleSpeakerRenderPlanResponse.class)))
-            .thenReturn(new TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "tts-workbench-audio.mp3"));
+            .thenReturn(new TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "tts-render-request-1.mp3"));
 
         mockMvc.perform(post("/api/projects/tts-workbench/create-audio")
                 .contentType(MediaType.APPLICATION_JSON)

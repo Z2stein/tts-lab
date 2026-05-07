@@ -14,7 +14,8 @@ describe('TtsWorkbenchPageComponent', () => {
       'annotateEmotions',
       'generateFinalJson',
       'planSingleSpeakerRenderRequests',
-      'createAudio'
+      'createAudio',
+      'createAudioForRenderRequest'
     ]);
 
     await TestBed.configureTestingModule({
@@ -114,7 +115,7 @@ describe('TtsWorkbenchPageComponent', () => {
       }]
     };
     const blob = new Blob(['mp3'], { type: 'audio/mpeg' });
-    ttsWorkbenchService.createAudio.and.resolveTo({ blob, filename: 'tts-workbench-audio.mp3' });
+    ttsWorkbenchService.createAudio.and.resolveTo({ blob, filename: 'tts-render-request-1.mp3' });
     const clickSpy = jasmine.createSpy('click');
     const anchor = document.createElement('a');
     spyOn(anchor, 'click').and.callFake(clickSpy);
@@ -125,10 +126,50 @@ describe('TtsWorkbenchPageComponent', () => {
     await component.createAudio();
 
     expect(ttsWorkbenchService.createAudio).toHaveBeenCalledWith(component.singleSpeakerRenderPlan);
-    expect(anchor.download).toBe('tts-workbench-audio.mp3');
+    expect(anchor.download).toBe('tts-render-request-1.mp3');
     expect(anchor.href).toContain('blob:test-url');
     expect(clickSpy).toHaveBeenCalled();
     expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:test-url');
+  });
+
+
+
+  it('creates audio for an individual render request with an independent download filename', async () => {
+    const renderRequest = {
+      input: { text: 'Second' },
+      voice: { languageCode: 'en-US', name: 'Kore', modelName: '{{google-model}}' },
+      audioConfig: { audioEncoding: 'MP3' }
+    };
+    component.singleSpeakerRenderPlan = {
+      renderRequests: [{ input: { text: 'First' }, voice: {}, audioConfig: {} }, renderRequest]
+    };
+    const blob = new Blob(['mp3'], { type: 'audio/mpeg' });
+    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({ blob, filename: 'ignored-backend-single-name.mp3' });
+    const clickSpy = jasmine.createSpy('click');
+    const anchor = document.createElement('a');
+    spyOn(anchor, 'click').and.callFake(clickSpy);
+    spyOn(document, 'createElement').and.returnValue(anchor);
+    spyOn(window.URL, 'createObjectURL').and.returnValue('blob:request-url');
+    spyOn(window.URL, 'revokeObjectURL');
+
+    await component.createAudioForRenderRequest(renderRequest, 1);
+
+    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(renderRequest);
+    expect(anchor.download).toBe('tts-render-request-2.mp3');
+    expect(clickSpy).toHaveBeenCalled();
+  });
+
+  it('shows per-request audio errors separately from full-plan audio errors', async () => {
+    const renderRequest = { input: { text: 'Hello' }, voice: {}, audioConfig: {} };
+    component.singleSpeakerRenderPlan = { renderRequests: [renderRequest] };
+    ttsWorkbenchService.createAudioForRenderRequest.and.rejectWith(new Error('Request audio failed.'));
+
+    await component.createAudioForRenderRequest(renderRequest, 0);
+    fixture.detectChanges();
+
+    expect(component.renderRequestAudioState(0).error).toBe('Request audio failed.');
+    expect(component.fullPlanAudioError).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Request audio failed.');
   });
 
   it('shows an audio creation error when backend audio creation fails', async () => {

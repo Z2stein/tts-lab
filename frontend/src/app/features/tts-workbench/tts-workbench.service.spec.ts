@@ -86,7 +86,7 @@ describe('TtsWorkbenchService', () => {
     const blob = new Blob(['mp3'], { type: 'audio/mpeg' });
     spyOn(window, 'fetch').and.resolveTo(new Response(blob, {
       status: 200,
-      headers: { 'Content-Disposition': 'attachment; filename="tts-workbench-audio.mp3"' }
+      headers: { 'Content-Disposition': 'attachment; filename="tts-render-request-1.mp3"' }
     }));
 
     const download = await service.createAudio({
@@ -98,8 +98,24 @@ describe('TtsWorkbenchService', () => {
     });
 
     expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/create-audio', jasmine.objectContaining({ method: 'POST' }));
-    expect(download.filename).toBe('tts-workbench-audio.mp3');
+    expect(download.filename).toBe('tts-render-request-1.mp3');
     expect(await download.blob.text()).toBe('mp3');
+  });
+
+
+
+  it('posts one selected render request when creating per-request audio', async () => {
+    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
+    spyOn(window, 'fetch').and.resolveTo(new Response(new Blob(['mp3'], { type: 'audio/mpeg' }), {
+      status: 200,
+      headers: { 'Content-Disposition': 'attachment; filename="tts-render-request-1.mp3"' }
+    }));
+    const renderRequest = { input: { text: 'Only this request' }, voice: {}, audioConfig: {} };
+
+    await service.createAudioForRenderRequest(renderRequest);
+
+    const requestBody = JSON.parse((window.fetch as jasmine.Spy).calls.mostRecent().args[1].body);
+    expect(requestBody).toEqual({ renderRequests: [renderRequest] });
   });
 
   it('throws a user-facing error when analysis fails', async () => {
