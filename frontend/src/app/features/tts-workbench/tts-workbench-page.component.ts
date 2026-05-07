@@ -19,10 +19,42 @@ import {
   styleUrl: './tts-workbench-page.component.css'
 })
 export class TtsWorkbenchPageComponent {
+  readonly languageCodeOptions = [
+    { label: 'Arabic (Egypt) - ar-EG', value: 'ar-EG' },
+    { label: 'Dutch (Netherlands) - nl-NL', value: 'nl-NL' },
+    { label: 'English (India) - en-IN', value: 'en-IN' },
+    { label: 'English (US) - en-US', value: 'en-US' },
+    { label: 'French (France) - fr-FR', value: 'fr-FR' },
+    { label: 'German (Germany) - de-DE', value: 'de-DE' },
+    { label: 'Hindi (India) - hi-IN', value: 'hi-IN' },
+    { label: 'Indonesian (Indonesia) - id-ID', value: 'id-ID' },
+    { label: 'Italian (Italy) - it-IT', value: 'it-IT' },
+    { label: 'Japanese (Japan) - ja-JP', value: 'ja-JP' },
+    { label: 'Korean (South Korea) - ko-KR', value: 'ko-KR' },
+    { label: 'Marathi (India) - mr-IN', value: 'mr-IN' },
+    { label: 'Polish (Poland) - pl-PL', value: 'pl-PL' },
+    { label: 'Portuguese (Brazil) - pt-BR', value: 'pt-BR' },
+    { label: 'Romanian (Romania) - ro-RO', value: 'ro-RO' },
+    { label: 'Russian (Russia) - ru-RU', value: 'ru-RU' },
+    { label: 'Spanish (Spain) - es-ES', value: 'es-ES' },
+    { label: 'Tamil (India) - ta-IN', value: 'ta-IN' },
+    { label: 'Telugu (India) - te-IN', value: 'te-IN' },
+    { label: 'Thai (Thailand) - th-TH', value: 'th-TH' },
+    { label: 'Turkish (Turkey) - tr-TR', value: 'tr-TR' },
+    { label: 'Ukrainian (Ukraine) - uk-UA', value: 'uk-UA' },
+    { label: 'Vietnamese (Vietnam) - vi-VN', value: 'vi-VN' }
+  ];
+
+  readonly modelNameOptions = [
+    'gemini-3.1-flash-tts-preview',
+    'gemini-2.5-pro-tts',
+    'gemini-2.5-flash-tts'
+  ];
+
   rawDialogueControl = new FormControl('', { nonNullable: true });
   promptControl = new FormControl('A conversation between the detected speakers.', { nonNullable: true });
   languageCodeControl = new FormControl('en-US', { nonNullable: true });
-  modelNameControl = new FormControl('{{google-model}}', { nonNullable: true });
+  modelNameControl = new FormControl('gemini-3.1-flash-tts-preview', { nonNullable: true });
   audioEncodingControl = new FormControl('MP3', { nonNullable: true });
 
   speakers: SpeakerVoiceAnalysisItem[] = [];

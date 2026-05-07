@@ -92,9 +92,17 @@
       <label for="final-prompt">Prompt</label>
       <input id="final-prompt" [formControl]="promptControl" />
       <label for="language-code">Language code</label>
-      <input id="language-code" [formControl]="languageCodeControl" />
+      <select id="language-code" [formControl]="languageCodeControl">
+        <option *ngFor="let language of languageCodeOptions" [value]="language.value">
+          {{ language.label }}
+        </option>
+      </select>
       <label for="model-name">Model name</label>
-      <input id="model-name" [formControl]="modelNameControl" />
+      <select id="model-name" [formControl]="modelNameControl">
+        <option *ngFor="let modelName of modelNameOptions" [value]="modelName">
+          {{ modelName }}
+        </option>
+      </select>
       <label for="audio-encoding">Audio encoding</label>
       <input id="audio-encoding" [formControl]="audioEncodingControl" />
     </div>
