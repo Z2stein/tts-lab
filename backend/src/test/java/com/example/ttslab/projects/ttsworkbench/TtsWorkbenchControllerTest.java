@@ -113,6 +113,21 @@ class TtsWorkbenchControllerTest {
     }
 
     @Test
+    void createAudioReturnsDownloadableMp3() throws Exception {
+        when(ttsWorkbenchService.createAudio(any(SingleSpeakerRenderPlanResponse.class)))
+            .thenReturn(new TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "tts-workbench-audio.mp3"));
+
+        mockMvc.perform(post("/api/projects/tts-workbench/create-audio")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"renderRequests":[{"input":{"text":"Hello"},"voice":{"languageCode":"en-US","name":"Kore"},"audioConfig":{"audioEncoding":"MP3"}}]}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType("audio/mpeg"))
+            .andExpect(content().bytes(new byte[] {'I', 'D', '3'}));
+    }
+
+    @Test
     void apiExceptionReturnsStructuredErrorResponse() throws Exception {
         when(ttsWorkbenchService.analyze("Alice: Hello")).thenThrow(new ApiException(
             HttpStatus.BAD_GATEWAY,

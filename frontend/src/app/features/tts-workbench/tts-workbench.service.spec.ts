@@ -81,6 +81,27 @@ describe('TtsWorkbenchService', () => {
     expect((plan.renderRequests[0].voice as any).name).toBe('Kore');
   });
 
+  it('posts render requests to create audio and returns the downloadable blob filename', async () => {
+    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
+    const blob = new Blob(['mp3'], { type: 'audio/mpeg' });
+    spyOn(window, 'fetch').and.resolveTo(new Response(blob, {
+      status: 200,
+      headers: { 'Content-Disposition': 'attachment; filename="tts-workbench-audio.mp3"' }
+    }));
+
+    const download = await service.createAudio({
+      renderRequests: [{
+        input: { text: 'Hello' },
+        voice: { languageCode: 'en-US', name: 'Kore' },
+        audioConfig: { audioEncoding: 'MP3' }
+      }]
+    });
+
+    expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/create-audio', jasmine.objectContaining({ method: 'POST' }));
+    expect(download.filename).toBe('tts-workbench-audio.mp3');
+    expect(await download.blob.text()).toBe('mp3');
+  });
+
   it('throws a user-facing error when analysis fails', async () => {
     const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
     spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({

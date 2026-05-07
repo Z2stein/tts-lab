@@ -2,6 +2,8 @@ package com.example.ttslab.projects.ttsworkbench;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -43,5 +45,14 @@ public class TtsWorkbenchController {
         @RequestBody SingleSpeakerRenderPlanRequest request
     ) {
         return ttsWorkbenchService.planSingleSpeakerRenderRequests(request);
+    }
+
+    @PostMapping("/create-audio")
+    public ResponseEntity<byte[]> createAudio(@RequestBody SingleSpeakerRenderPlanResponse requestPlan) {
+        TtsAudioFile audioFile = ttsWorkbenchService.createAudio(requestPlan);
+        return ResponseEntity.ok()
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
+            .header(HttpHeaders.CONTENT_TYPE, audioFile.contentType())
+            .body(audioFile.content());
     }
 }

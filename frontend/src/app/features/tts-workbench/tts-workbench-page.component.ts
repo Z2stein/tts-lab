@@ -86,6 +86,17 @@ export class TtsWorkbenchPageComponent {
     }, 'Single-speaker render plan preview failed.');
   }
 
+  async createAudio(): Promise<void> {
+    if (!this.singleSpeakerRenderPlan || this.singleSpeakerRenderRequests.length === 0) {
+      return;
+    }
+
+    await this.runStep('create-audio', async () => {
+      const download = await this.ttsWorkbenchService.createAudio(this.singleSpeakerRenderPlan!);
+      this.downloadBlob(download.blob, download.filename);
+    }, 'Audio creation failed.');
+  }
+
   updateSpeakerName(speaker: SpeakerVoiceAnalysisItem, event: Event): void {
     speaker.speakerName = this.eventValue(event);
   }
@@ -134,6 +145,17 @@ export class TtsWorkbenchPageComponent {
     return event.target instanceof HTMLInputElement || event.target instanceof HTMLTextAreaElement
       ? event.target.value
       : '';
+  }
+
+  private downloadBlob(blob: Blob, filename: string): void {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    window.URL.revokeObjectURL(url);
   }
 
   private async runStep(action: string, step: () => Promise<void>, fallbackMessage: string): Promise<void> {

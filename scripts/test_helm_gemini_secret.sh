@@ -11,6 +11,8 @@ echo "$rendered_gemini" | rg -q "name: SPRING_AI_GOOGLE_GENAI_CHAT_OPTIONS_MODEL
 echo "$rendered_gemini" | rg -q "name: SPRING_AI_MODEL_CHAT"
 echo "$rendered_gemini" | rg -q "value: \"google-genai\""
 echo "$rendered_gemini" | rg -q "value: \"gemini-2.5-flash\""
+echo "$rendered_gemini" | rg -q "name: TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64"
+echo "$rendered_gemini" | rg -q "key: service-account-json-b64"
 
 echo "$rendered_mock" | rg -q "name: CHATBOT_PROVIDER"
 echo "$rendered_mock" | rg -q "value: \"mock\""
@@ -19,5 +21,15 @@ echo "$rendered_mock" | rg -q "name: SPRING_AI_MODEL_CHAT"
 
 if echo "$rendered_gemini" | rg -q "api-key:"; then
   echo "Found inline api-key in rendered manifests; expected secret reference only." >&2
+  exit 1
+fi
+
+if echo "$rendered_gemini" | rg -q "service-account-json-b64:"; then
+  echo "Found inline service account JSON in rendered manifests; expected secret reference only." >&2
+  exit 1
+fi
+
+if echo "$rendered_gemini" | rg -q "volumeMounts|/var/secrets/google|service-account\.json"; then
+  echo "Found old file-based Google TTS credentials mount; expected environment secret reference only." >&2
   exit 1
 fi

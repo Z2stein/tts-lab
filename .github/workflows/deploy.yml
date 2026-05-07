@@ -157,6 +157,7 @@ jobs:
           HETZNER_USER: ${{ secrets.HETZNER_USER }}
           HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64: ${{ secrets.TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64 }}
           CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
           DEPLOY_TYPE: ${{ needs.prepare-build.outputs.deploy_type }}
         run: |
@@ -171,6 +172,7 @@ jobs:
           REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
           if [ "${DEPLOY_TYPE}" = "main" ] || [ "${DEPLOY_TYPE}" = "develop" ] || [ "${REAL_PROVIDER_ON_FEATURE_BRANCHES}" = "true" ]; then
             [ -n "${GEMINI_API_KEY}" ] || { echo "::error title=Missing GEMINI_API_KEY::Set repository secret GEMINI_API_KEY for chatbot backend runtime."; exit 1; }
+            [ -n "${TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64}" ] || { echo "::error title=Missing TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64::Set repository secret TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64 with the Base64-encoded Google Cloud Text-to-Speech service account JSON."; exit 1; }
           fi
 
       - name: Checkout
@@ -200,6 +202,7 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           FRONTEND_IMAGE_NAME: ${{ needs.prepare-build.outputs.frontend_image_name }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64: ${{ secrets.TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64 }}
           CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
           APP_SLUG: ${{ needs.prepare-build.outputs.app_slug }}
         run: |
@@ -208,7 +211,7 @@ jobs:
           ssh "$USER@$HOST" "mkdir -p '$REMOTE_APP_DIR/charts'"
           scp -r charts/tts-lab "$USER@$HOST:$REMOTE_APP_DIR/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}" "$REMOTE_APP_DIR" <<'EOF'
+          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}" "$REMOTE_APP_DIR" "$TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -225,6 +228,7 @@ jobs:
             GEMINI_API_KEY="${13}"
             CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES="${14:-false}"
             REMOTE_APP_DIR="${15}"
+            TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64="${16}"
 
             REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
             if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
@@ -256,6 +260,10 @@ jobs:
               --from-literal=api-key="${GEMINI_API_KEY:-}" \
               --dry-run=client -o yaml | kubectl apply -f -
 
+            kubectl -n "$NAMESPACE" create secret generic google-tts-service-account \
+              --from-literal=service-account-json-b64="${TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64:-}" \
+              --dry-run=client -o yaml | kubectl apply -f -
+
             kubectl -n "$NAMESPACE" create secret docker-registry ghcr-pull-secret \
               --docker-server=ghcr.io \
               --docker-username="$GHCR_USERNAME" \
@@ -280,6 +288,7 @@ jobs:
               --set auth.googleSecretName="$AUTH_GOOGLE_SECRET_NAME" \
               --set chat.geminiSecretName="gemini-api" \
               --set chat.provider="$CHAT_PROVIDER" \
+              --set ttsWorkbench.googleCredentialsSecretName="google-tts-service-account" \
               --set chat.realProviderOnFeatureBranches="$REAL_PROVIDER_ON_FEATURE_BRANCHES"
 
             BACKEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-backend"

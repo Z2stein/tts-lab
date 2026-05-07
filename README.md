@@ -299,6 +299,7 @@ Backend endpoints:
 - `POST /api/projects/tts-workbench/emotion-annotation-analysis` with split turns returns annotated `turns` containing `speaker` and marked-up `text`.
 - `POST /api/projects/tts-workbench/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
 - `POST /api/projects/tts-workbench/single-speaker-render-plan` with the final request JSON returns `renderRequests`, where each item is provider-shaped JSON containing `input.text`, `voice.languageCode`, `voice.name`, `voice.modelName`, and `audioConfig.audioEncoding`.
+- `POST /api/projects/tts-workbench/create-audio` with the step 6 `renderRequests` returns a downloadable MP3 for one render request or a ZIP containing one MP3 per render request for multiple requests.
 
 Single-speaker render requests intentionally do not return internal planning metadata such as turn indexes or speaker aliases. The preview JSON matches the provider request shape, for example:
 
@@ -320,8 +321,9 @@ Single-speaker render requests intentionally do not return internal planning met
 
 Runtime behavior follows the existing chatbot provider mode where possible:
 
-- `CHATBOT_PROVIDER=mock` returns deterministic local speaker suggestions, speaker splitting, emotion annotation, and final JSON preview data. It never calls Gemini.
-- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice, speaker split, and emotion annotation output. Provider failures or invalid provider output now return structured API errors so the frontend can show a clear failure instead of silently displaying fallback data.
+- `CHATBOT_PROVIDER=mock` returns deterministic local speaker suggestions, speaker splitting, emotion annotation, final JSON preview data, and mock MP3 bytes for audio creation. It never calls Gemini or Google Cloud Text-to-Speech.
+- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice, speaker split, and emotion annotation output, and uses Google Cloud Text-to-Speech for `create-audio`. Provider failures or invalid provider output now return structured API errors so the frontend can show a clear failure instead of silently displaying fallback data.
+- Google Cloud Text-to-Speech credentials are loaded by the backend from the backend-only `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` environment variable, which contains the Base64-encoded service account JSON. It is injected from Kubernetes secrets and is never exposed to Angular.
 
 Prompts are accessed through a `TtsWorkbenchPromptProvider` abstraction. The current implementation returns static defaults, but the service structure is intentionally open for future prompts loaded from configuration, a database, an admin UI, project settings, or tenant-specific settings.
 
@@ -336,11 +338,13 @@ The frontend now includes a reusable chatbot widget component that calls `POST /
 - `chat.geminiModel` controls the Gemini model (`gemini-2.5-flash` by default).
 - `chat.provider` controls backend runtime provider (`gemini` or `mock`); the chart default is `mock` so local/feature-style installs do not require `GEMINI_API_KEY`.
 - `chat.realProviderOnFeatureBranches` defaults to `false` and is used by the deploy workflow to keep feature branches in mock chatbot mode by default.
+- `ttsWorkbench.googleCredentialsSecretName` controls the Kubernetes secret that provides `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` to the backend when `chat.provider=gemini`.
 - The frontend remains provider-agnostic and always calls `POST /api/chat`.
 
 ### Required secret
 
 - `GEMINI_API_KEY` is required for `main` and `develop` deployments (provider = `gemini`).
+- `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` is required for deployments using `CHATBOT_PROVIDER=gemini`; it must contain the Base64-encoded Google Cloud service account JSON so the backend can call Google Cloud Text-to-Speech.
 - Feature branch deployments run with provider = `mock` by default, so `GEMINI_API_KEY` is not required in that default mode.
 - If feature branches explicitly enable the real provider (`CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES=true` in GitHub Actions variables), then `GEMINI_API_KEY` is required there as well.
 - The key is injected via Kubernetes `secretKeyRef` only and is never exposed to Angular.
