@@ -23,6 +23,21 @@ export interface FinalTtsRequestPreview {
   audioConfig: unknown;
 }
 
+export interface SingleSpeakerRenderRequest {
+  input: unknown;
+  voice: unknown;
+  audioConfig: unknown;
+}
+
+export interface SingleSpeakerRenderPlan {
+  renderRequests: SingleSpeakerRenderRequest[];
+}
+
+export interface CreatedAudioDownload {
+  blob: Blob;
+  filename: string;
+}
+
 interface SpeakerVoiceAnalysisResponse {
   speakers: SpeakerVoiceAnalysisItem[];
 }
@@ -89,7 +104,39 @@ export class TtsWorkbenchService {
     );
   }
 
+  async planSingleSpeakerRenderRequests(finalRequest: FinalTtsRequestPreview): Promise<SingleSpeakerRenderPlan> {
+    return this.post<SingleSpeakerRenderPlan>(
+      '/api/projects/tts-workbench/single-speaker-render-plan',
+      finalRequest,
+      'Single-speaker render plan preview failed'
+    );
+  }
+
+  async createAudio(renderPlan: SingleSpeakerRenderPlan): Promise<CreatedAudioDownload> {
+    const response = await this.postResponse(
+      '/api/projects/tts-workbench/create-audio',
+      renderPlan,
+      'Audio creation failed'
+    );
+
+    return {
+      blob: await response.blob(),
+      filename: this.filenameFromContentDisposition(response.headers.get('Content-Disposition')) || 'tts-render-request-1.mp3'
+    };
+  }
+
+
+  async createAudioForRenderRequest(renderRequest: SingleSpeakerRenderRequest): Promise<CreatedAudioDownload> {
+    return this.createAudio({ renderRequests: [renderRequest] });
+  }
+
   private async post<T>(url: string, body: unknown, errorPrefix: string): Promise<T> {
+    const response = await this.postResponse(url, body, errorPrefix);
+
+    return (await response.json()) as T;
+  }
+
+  private async postResponse(url: string, body: unknown, errorPrefix: string): Promise<Response> {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
@@ -104,7 +151,16 @@ export class TtsWorkbenchService {
       throw new Error(apiError?.message || `${errorPrefix} (HTTP ${response.status}).`);
     }
 
-    return (await response.json()) as T;
+    return response;
+  }
+
+  private filenameFromContentDisposition(contentDisposition: string | null): string | null {
+    if (!contentDisposition) {
+      return null;
+    }
+
+    const match = /filename="?([^";]+)"?/i.exec(contentDisposition);
+    return match ? match[1] : null;
   }
 
   private async readApiError(response: Response): Promise<ApiErrorResponse | null> {

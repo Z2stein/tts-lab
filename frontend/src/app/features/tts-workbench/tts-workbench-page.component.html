@@ -92,9 +92,17 @@
       <label for="final-prompt">Prompt</label>
       <input id="final-prompt" [formControl]="promptControl" />
       <label for="language-code">Language code</label>
-      <input id="language-code" [formControl]="languageCodeControl" />
+      <select id="language-code" [formControl]="languageCodeControl">
+        <option *ngFor="let language of languageCodeOptions" [value]="language.value">
+          {{ language.label }}
+        </option>
+      </select>
       <label for="model-name">Model name</label>
-      <input id="model-name" [formControl]="modelNameControl" />
+      <select id="model-name" [formControl]="modelNameControl">
+        <option *ngFor="let modelName of modelNameOptions" [value]="modelName">
+          {{ modelName }}
+        </option>
+      </select>
       <label for="audio-encoding">Audio encoding</label>
       <input id="audio-encoding" [formControl]="audioEncodingControl" />
     </div>
@@ -108,5 +116,35 @@
     <h2 id="final-json-title">5. Final Request JSON Preview</h2>
     <p *ngIf="!finalRequest" class="empty-state">The final request JSON will appear after generation.</p>
     <pre *ngIf="finalRequest">{{ finalRequestJson }}</pre>
+  </section>
+
+  <section class="result-panel step-card" aria-labelledby="single-speaker-render-plan-title">
+    <h2 id="single-speaker-render-plan-title">6. Single-Speaker Render Plan Preview</h2>
+    <p *ngIf="!singleSpeakerRenderPlan" class="empty-state">
+      Create ordered single-speaker render requests after generating the final JSON. Consecutive turns from the same speaker are grouped together.
+    </p>
+    <button type="button" (click)="planSingleSpeakerRenderRequests()" [disabled]="loadingAction !== null || !finalRequest">
+      {{ isLoading('render-plan') ? 'Planning...' : 'Plan Single-Speaker Render Requests' }}
+    </button>
+    <div *ngIf="singleSpeakerRenderPlan" class="chunk-summary">
+      Render request count: {{ singleSpeakerRenderRequests.length }}
+    </div>
+    <button type="button" (click)="createAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || singleSpeakerRenderRequests.length === 0">
+      {{ fullPlanAudioLoading ? 'Creating full-plan audio...' : 'Create full-plan audio' }}
+    </button>
+    <p *ngIf="fullPlanAudioError" class="error">{{ fullPlanAudioError }}</p>
+    <article *ngFor="let renderRequest of singleSpeakerRenderRequests; let requestIndex = index" class="request-chunk">
+      <h3>Render request {{ requestIndex + 1 }}</h3>
+      <button
+        type="button"
+        (click)="createAudioForRenderRequest(renderRequest, requestIndex)"
+        [disabled]="loadingAction !== null || fullPlanAudioLoading || renderRequestAudioState(requestIndex).loading"
+        [attr.aria-label]="'Create audio for render request ' + (requestIndex + 1)"
+      >
+        {{ renderRequestAudioState(requestIndex).loading ? 'Creating audio...' : 'Create audio' }}
+      </button>
+      <p *ngIf="renderRequestAudioState(requestIndex).error" class="error">{{ renderRequestAudioState(requestIndex).error }}</p>
+      <pre>{{ singleSpeakerRenderRequestJson(renderRequest) }}</pre>
+    </article>
   </section>
 </section>

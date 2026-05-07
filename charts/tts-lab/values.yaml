@@ -75,6 +75,10 @@ chat:
   provider: mock
   realProviderOnFeatureBranches: false
 
+ttsWorkbench:
+  googleCredentialsSecretName: ""
+  googleCredentialsChecksum: ""
+
 chatbot:
   rateLimit:
     enabled: true

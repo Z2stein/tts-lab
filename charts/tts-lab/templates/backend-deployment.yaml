@@ -13,6 +13,9 @@ spec:
       app.kubernetes.io/component: backend
   template:
     metadata:
+      annotations:
+        tts-lab/chat-provider: {{ .Values.chat.provider | quote }}
+        tts-lab/google-tts-credentials-checksum: {{ .Values.ttsWorkbench.googleCredentialsChecksum | quote }}
       labels:
         app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/component: backend
@@ -68,6 +71,14 @@ spec:
                   name: {{ .Values.chat.geminiSecretName }}
                   key: api-key
                   optional: true
+            {{- if .Values.ttsWorkbench.googleCredentialsSecretName }}
+            - name: TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.ttsWorkbench.googleCredentialsSecretName }}
+                  key: service-account-json-b64
+                  optional: true
+            {{- end }}
             {{- if eq .Values.auth.mode "google" }}
             - name: GOOGLE_CLIENT_ID
               valueFrom:

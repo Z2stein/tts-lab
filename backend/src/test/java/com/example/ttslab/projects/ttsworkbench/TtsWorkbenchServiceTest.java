@@ -160,7 +160,9 @@ class TtsWorkbenchServiceTest {
             new SpeakerVoiceAnalysisService(chatService, objectMapper, promptProvider, fallbackService, provider),
             new SpeakerSplitAnalysisService(chatService, objectMapper, promptProvider, fallbackService, provider),
             new EmotionAnnotationService(chatService, objectMapper, promptProvider, fallbackService, provider),
-            new FinalTtsRequestBuilder()
+            new FinalTtsRequestBuilder(),
+            new SingleSpeakerRenderPlanner(objectMapper),
+            mock(TtsAudioCreationService.class)
         );
     }
 }

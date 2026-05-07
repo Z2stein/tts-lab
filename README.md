@@ -1,6 +1,23 @@
-# tts-lab
+﻿# tts-lab
 
 Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
+
+## Inhaltsverzeichnis
+
+- [Repo-Onboarding](#repo-onboarding-kurzer-config-block)
+- [Deployment-Status](#deployment-status)
+- [Runtime-Architektur](#runtime-architektur)
+- [Ziel-Umgebungen](#ziel-umgebungen)
+- [Branch-Slug-Regel](#branch-slug-regel)
+- [CI/CD (GitHub Actions)](#cicd-github-actions)
+- [Lokal entwickeln](#lokal-entwickeln)
+- [Akzeptanzkriterien (Textlänge)](#akzeptanzkriterien-textlänge)
+- [Health endpoints](#health-endpoints)
+- [API error responses](#api-error-responses)
+- [Authentication modes](#authentication-modes)
+- [TTS Workbench (MVP)](#tts-workbench-mvp)
+- [Chatbot (MVP)](#chatbot-mvp)
+- [Chatbot rate limiting (MVP)](#chatbot-rate-limiting-mvp)
 
 ## Repo-Onboarding (kurzer Config-Block)
 
@@ -104,12 +121,14 @@ Ablauf bei Push:
 3. Frontend/Backend Image bauen
 4. Images nach GHCR pushen
 5. SSH auf Hetzner
-6. Namespace idempotent anlegen/aktualisieren
-7. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
-8. `helm upgrade --install --wait --timeout 5m` ausführen
-9. Backend- und Frontend-Deployments per `kubectl rollout status` abwarten
-10. Backend- und Frontend-Pods per `kubectl wait --for=condition=Ready pod -l ...` abwarten
-11. Deployment-URL veröffentlichen; parallel zum Deployment-Pfad führt der separate Job `e2e-local` die mandatory Playwright-E2E-Tests lokal im GitHub-Actions-Runner mit Playwright-Webservern aus, inklusive realem Frontend-Backend-Check ohne Mock für die geprüfte Backend-Route
+6. Den effektiven Provider (`mock` oder `gemini`) einmal berechnen und durchgängig für Secret-Validierung, Secret-Reconciliation und Helm verwenden
+7. Namespace idempotent anlegen/aktualisieren
+8. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
+9. Wenn `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` gesetzt ist, die Google-TTS-Credentials vor dem Helm-Upgrade als Kubernetes Secret anlegen/aktualisieren; der Chat-Provider `gemini` funktioniert auch ohne dieses optionale TTS-Secret
+10. `helm upgrade --install --wait --timeout 5m` ausführen
+11. Backend- und Frontend-Deployments per `kubectl rollout status` abwarten
+12. Backend- und Frontend-Pods per `kubectl wait --for=condition=Ready pod -l ...` abwarten
+13. Deployment-URL veröffentlichen; parallel zum Deployment-Pfad führt der separate Job `e2e-local` die mandatory Playwright-E2E-Tests lokal im GitHub-Actions-Runner mit Playwright-Webservern aus, inklusive realem Frontend-Backend-Check ohne Mock für die geprüfte Backend-Route
 
 Die Pipeline schlägt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn der separate `e2e-local`-Job fehlschlägt. Feste Sleep-Zeiten sind nicht der primäre Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend).
 
@@ -273,6 +292,7 @@ The TTS Workbench page is a step-by-step development workbench for inspecting th
 3. Speaker split preview
 4. Emotion annotation preview with simple markup such as `[happy]`, `[sad]`, `[calm]`, `[urgent]`, `[sigh]`, `[short pause]`, and `[medium pause]`
 5. Final request JSON preview
+6. Single-speaker render plan preview that groups only consecutive turns from the same speaker and outputs provider-shaped render requests
 
 Backend endpoints:
 
@@ -280,11 +300,32 @@ Backend endpoints:
 - `POST /api/projects/tts-workbench/speaker-split-analysis` with raw dialogue and speaker suggestions returns `turns` containing `speaker` and `text`.
 - `POST /api/projects/tts-workbench/emotion-annotation-analysis` with split turns returns annotated `turns` containing `speaker` and marked-up `text`.
 - `POST /api/projects/tts-workbench/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
+- `POST /api/projects/tts-workbench/single-speaker-render-plan` with the final request JSON returns `renderRequests`, where each item is provider-shaped JSON containing `input.text`, `voice.languageCode`, `voice.name`, `voice.modelName`, and `audioConfig.audioEncoding`.
+- `POST /api/projects/tts-workbench/create-audio` with the step 6 `renderRequests` returns a downloadable MP3 for one render request or a ZIP containing one MP3 per render request for multiple requests. The UI keeps the full-plan button and also shows a per-render-request **Create audio** button. A per-request button sends only that one render request and downloads a filename such as `tts-render-request-2.mp3`; the full-plan flow downloads `tts-render-request-1.mp3` for a single request or `tts-render-plan.zip` for multiple requests.
+
+Single-speaker render requests intentionally do not return internal planning metadata such as turn indexes or speaker aliases. The preview JSON matches the provider request shape, for example:
+
+```json
+{
+  "input": {
+    "text": "[calm]The rain had turned the windows silver by the time they reached the old station café.\n[serious]Mara folded the letter twice, then unfolded it again."
+  },
+  "voice": {
+    "languageCode": "en-US",
+    "name": "Schedar",
+    "modelName": "{{google-model}}"
+  },
+  "audioConfig": {
+    "audioEncoding": "MP3"
+  }
+}
+```
 
 Runtime behavior follows the existing chatbot provider mode where possible:
 
-- `CHATBOT_PROVIDER=mock` returns deterministic local speaker suggestions, speaker splitting, emotion annotation, and final JSON preview data. It never calls Gemini.
-- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice, speaker split, and emotion annotation output. Provider failures or invalid provider output now return structured API errors so the frontend can show a clear failure instead of silently displaying fallback data.
+- `CHATBOT_PROVIDER=mock` returns deterministic local speaker suggestions, speaker splitting, emotion annotation, final JSON preview data, and mock MP3 bytes for audio creation. It starts without `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64`.
+- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice, speaker split, and emotion annotation output. Provider failures or invalid provider output return structured API errors so the frontend can show a clear failure instead of silently displaying fallback data.
+- Google Cloud Text-to-Speech credentials are loaded by the backend from the optional backend-only `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` environment variable, which contains the Base64-encoded service account JSON. When it is not configured, the backend still starts and Gemini chat works, but `create-audio` returns a structured TTS provider error instead of real Google Cloud audio. The secret is never exposed to Angular.
 
 Prompts are accessed through a `TtsWorkbenchPromptProvider` abstraction. The current implementation returns static defaults, but the service structure is intentionally open for future prompts loaded from configuration, a database, an admin UI, project settings, or tenant-specific settings.
 
@@ -299,13 +340,16 @@ The frontend now includes a reusable chatbot widget component that calls `POST /
 - `chat.geminiModel` controls the Gemini model (`gemini-2.5-flash` by default).
 - `chat.provider` controls backend runtime provider (`gemini` or `mock`); the chart default is `mock` so local/feature-style installs do not require `GEMINI_API_KEY`.
 - `chat.realProviderOnFeatureBranches` defaults to `false` and is used by the deploy workflow to keep feature branches in mock chatbot mode by default.
+- `ttsWorkbench.googleCredentialsSecretName` controls the optional Kubernetes secret that provides `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` to the backend. Leave it empty to run Gemini chat without Google Cloud TTS credentials.
+- `ttsWorkbench.googleCredentialsChecksum` is written to the backend pod template annotation so a Google TTS credential change creates a new backend ReplicaSet.
 - The frontend remains provider-agnostic and always calls `POST /api/chat`.
 
 ### Required secret
 
 - `GEMINI_API_KEY` is required for `main` and `develop` deployments (provider = `gemini`).
-- Feature branch deployments run with provider = `mock` by default, so `GEMINI_API_KEY` is not required in that default mode.
-- If feature branches explicitly enable the real provider (`CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES=true` in GitHub Actions variables), then `GEMINI_API_KEY` is required there as well.
+- `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` is optional for deployments using `CHATBOT_PROVIDER=gemini`; set it only when `create-audio` should call Google Cloud Text-to-Speech.
+- Feature branch deployments run with provider = `mock` by default, so `GEMINI_API_KEY` and `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` are not required in that default mode.
+- If feature branches explicitly enable the real provider (`CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES=true` in GitHub Actions variables), then `GEMINI_API_KEY` is required there as well. If `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` is also set, redeploying creates/updates the optional TTS secret before Helm runs; redeploying without it removes the backend TTS env wiring without deleting the namespace.
 - The key is injected via Kubernetes `secretKeyRef` only and is never exposed to Angular.
 
 ### Local development
@@ -322,6 +366,7 @@ To test with real Gemini locally:
 ```bash
 export CHATBOT_PROVIDER=gemini
 export GEMINI_API_KEY=your-gemini-api-key
+export TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64=base64-encoded-google-service-account-json
 cd backend
 ./gradlew bootRun
 ```

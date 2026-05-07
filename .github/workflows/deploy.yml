@@ -30,6 +30,7 @@ jobs:
       app_slug: ${{ steps.repo_config.outputs.app_slug }}
       backend_image_name: ${{ steps.repo_config.outputs.backend_image_name }}
       frontend_image_name: ${{ steps.repo_config.outputs.frontend_image_name }}
+      chat_provider: ${{ steps.effective_provider.outputs.chat_provider }}
     steps:
       - name: Validate required env and secrets
         env:
@@ -70,6 +71,19 @@ jobs:
           HETZNER_PUBLIC_IP="${HETZNER_PUBLIC_IP:-${{ vars.HETZNER_PUBLIC_IP }}}"
           scripts/deployment_vars.sh deploy "$BRANCH_NAME" "$HETZNER_PUBLIC_IP" "$GIT_SHA" >> "$GITHUB_OUTPUT"
 
+      - name: Compute effective chat provider
+        id: effective_provider
+        env:
+          DEPLOY_TYPE: ${{ steps.vars.outputs.deploy_type }}
+          CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
+        run: |
+          set -euo pipefail
+          REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
+          if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ] || [ "$REAL_PROVIDER_ON_FEATURE_BRANCHES" = "true" ]; then
+            echo "chat_provider=gemini" >> "$GITHUB_OUTPUT"
+          else
+            echo "chat_provider=mock" >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Compute registry owner
         id: registry
@@ -157,7 +171,8 @@ jobs:
           HETZNER_USER: ${{ secrets.HETZNER_USER }}
           HETZNER_SSH_KEY: ${{ secrets.HETZNER_SSH_KEY }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
+          TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64: ${{ secrets.TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64 }}
+          CHAT_PROVIDER: ${{ needs.prepare-build.outputs.chat_provider }}
           DEPLOY_TYPE: ${{ needs.prepare-build.outputs.deploy_type }}
         run: |
           set -euo pipefail
@@ -168,8 +183,7 @@ jobs:
           [ -n "${BASE_DOMAIN}" ] || { echo "::error title=Missing BASE_DOMAIN::Set repository variable BASE_DOMAIN for public ingress hostnames."; exit 1; }
           [ -n "${HETZNER_USER}" ] || { echo "::error title=Missing HETZNER_USER::Set repository secret HETZNER_USER for SSH deploy user."; exit 1; }
           [ -n "${HETZNER_SSH_KEY}" ] || { echo "::error title=Missing HETZNER_SSH_KEY::Set repository secret HETZNER_SSH_KEY for SSH authentication."; exit 1; }
-          REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
-          if [ "${DEPLOY_TYPE}" = "main" ] || [ "${DEPLOY_TYPE}" = "develop" ] || [ "${REAL_PROVIDER_ON_FEATURE_BRANCHES}" = "true" ]; then
+          if [ "${CHAT_PROVIDER}" = "gemini" ]; then
             [ -n "${GEMINI_API_KEY}" ] || { echo "::error title=Missing GEMINI_API_KEY::Set repository secret GEMINI_API_KEY for chatbot backend runtime."; exit 1; }
           fi
 
@@ -200,6 +214,8 @@ jobs:
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           FRONTEND_IMAGE_NAME: ${{ needs.prepare-build.outputs.frontend_image_name }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64: ${{ secrets.TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64 }}
+          CHAT_PROVIDER: ${{ needs.prepare-build.outputs.chat_provider }}
           CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
           APP_SLUG: ${{ needs.prepare-build.outputs.app_slug }}
         run: |
@@ -208,7 +224,7 @@ jobs:
           ssh "$USER@$HOST" "mkdir -p '$REMOTE_APP_DIR/charts'"
           scp -r charts/tts-lab "$USER@$HOST:$REMOTE_APP_DIR/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}" "$REMOTE_APP_DIR" <<'EOF'
+          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "$CHAT_PROVIDER" "$REMOTE_APP_DIR" "$TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -223,24 +239,18 @@ jobs:
             GOOGLE_CLIENT_ID="${11}"
             GOOGLE_CLIENT_SECRET="${12}"
             GEMINI_API_KEY="${13}"
-            CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES="${14:-false}"
+            CHAT_PROVIDER="${14}"
             REMOTE_APP_DIR="${15}"
+            TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64="${16}"
 
-            REAL_PROVIDER_ON_FEATURE_BRANCHES="${CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES:-false}"
             if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
               AUTH_MODE="google"
               AUTH_GOOGLE_SECRET_NAME="google-oauth"
               ENVIRONMENT=$([ "$DEPLOY_TYPE" = "main" ] && echo "main" || echo "dev")
-              CHAT_PROVIDER="gemini"
             else
               AUTH_MODE="mock"
               AUTH_GOOGLE_SECRET_NAME=""
               ENVIRONMENT="feature"
-              if [ "$REAL_PROVIDER_ON_FEATURE_BRANCHES" = "true" ]; then
-                CHAT_PROVIDER="gemini"
-              else
-                CHAT_PROVIDER="mock"
-              fi
             fi
 
             kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
@@ -255,6 +265,16 @@ jobs:
             kubectl -n "$NAMESPACE" create secret generic gemini-api \
               --from-literal=api-key="${GEMINI_API_KEY:-}" \
               --dry-run=client -o yaml | kubectl apply -f -
+
+            TTS_GOOGLE_CREDENTIALS_CHECKSUM=""
+            TTS_GOOGLE_CREDENTIALS_SECRET_NAME=""
+            if [ -n "${TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64:-}" ]; then
+              TTS_GOOGLE_CREDENTIALS_SECRET_NAME="google-tts-service-account"
+              TTS_GOOGLE_CREDENTIALS_CHECKSUM=$(printf %s "$TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64" | sha256sum | awk '{print $1}')
+              kubectl -n "$NAMESPACE" create secret generic google-tts-service-account \
+                --from-literal=service-account-json-b64="$TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64" \
+                --dry-run=client -o yaml | kubectl apply -f -
+            fi
 
             kubectl -n "$NAMESPACE" create secret docker-registry ghcr-pull-secret \
               --docker-server=ghcr.io \
@@ -280,7 +300,9 @@ jobs:
               --set auth.googleSecretName="$AUTH_GOOGLE_SECRET_NAME" \
               --set chat.geminiSecretName="gemini-api" \
               --set chat.provider="$CHAT_PROVIDER" \
-              --set chat.realProviderOnFeatureBranches="$REAL_PROVIDER_ON_FEATURE_BRANCHES"
+              --set ttsWorkbench.googleCredentialsSecretName="$TTS_GOOGLE_CREDENTIALS_SECRET_NAME" \
+              --set ttsWorkbench.googleCredentialsChecksum="$TTS_GOOGLE_CREDENTIALS_CHECKSUM" \
+              --set chat.realProviderOnFeatureBranches="$([ "$CHAT_PROVIDER" = "gemini" ] && echo true || echo false)"
 
             BACKEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-backend"
             FRONTEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-frontend"
@@ -323,6 +345,17 @@ jobs:
           node-version: 20
           cache: npm
           cache-dependency-path: frontend/package-lock.json
+
+      - name: Set up Java for mandatory E2E tests
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Set up Gradle for mandatory E2E tests
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: 8.8
 
       - name: Install frontend dependencies
         run: |
