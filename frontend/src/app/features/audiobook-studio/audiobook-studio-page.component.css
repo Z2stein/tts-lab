@@ -1010,7 +1010,7 @@ pre {
 
 .generated-audio-player {
   display: grid;
-  grid-template-columns: minmax(12rem, 0.65fr) auto minmax(16rem, 1fr) auto;
+  grid-template-columns: minmax(12rem, 0.65fr) auto minmax(16rem, 1fr) auto auto;
   align-items: center;
   gap: 1rem;
 }
@@ -1036,7 +1036,7 @@ pre {
 .render-player {
   display: grid;
   grid-column: 1 / -1;
-  grid-template-columns: auto minmax(12rem, 1fr) auto;
+  grid-template-columns: auto minmax(12rem, 1fr) auto auto;
   align-items: center;
   gap: 0.85rem;
   border: 1px solid rgba(195, 204, 255, 0.14);
@@ -1046,13 +1046,53 @@ pre {
 }
 
 .render-request {
-  grid-template-columns: minmax(12rem, 1fr) auto;
+  grid-template-columns: minmax(12rem, 1fr) auto auto;
   align-items: center;
 }
 
 .render-request audio,
-.render-request .error {
+.render-request .error,
+.render-request .render-player {
   grid-column: 1 / -1;
+}
+
+.part-meta {
+  margin: 0.25rem 0 0;
+  color: #c9d1e8;
+  font-size: 0.88rem;
+}
+
+.part-status {
+  justify-self: end;
+  min-width: 9.5rem;
+  margin: 0;
+  border: 1px solid rgba(195, 204, 255, 0.16);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d5d9e8;
+  font-size: 0.86rem;
+  font-weight: 900;
+  padding: 0.55rem 0.8rem;
+  text-align: center;
+}
+
+.part-status.ready {
+  border-color: rgba(143, 231, 189, 0.42);
+  color: #8fe7bd;
+}
+
+.part-status.failed {
+  border-color: rgba(255, 143, 143, 0.42);
+  color: #ffb4a8;
+}
+
+.part-status.generating {
+  border-color: rgba(255, 213, 145, 0.42);
+  color: #ffd591;
+}
+
+.download-button {
+  white-space: nowrap;
 }
 
 @media (max-width: 1120px) {

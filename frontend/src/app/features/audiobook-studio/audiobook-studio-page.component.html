@@ -347,6 +347,18 @@
           <strong>{{ renderRequests.length }}</strong>
         </div>
         <div>
+          <span>Ready parts</span>
+          <strong>{{ generatedPartCount() }} / {{ renderRequests.length }}</strong>
+        </div>
+        <div>
+          <span>Needs generation</span>
+          <strong>{{ missingPartCount() }}</strong>
+        </div>
+        <div>
+          <span>Failed parts</span>
+          <strong>{{ failedPartCount() }}</strong>
+        </div>
+        <div>
           <span>Language code</span>
           <strong>{{ languageCodeControl.value }}</strong>
         </div>
@@ -367,6 +379,9 @@
       <button type="button" class="primary-button next-action" (click)="generateAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || renderRequests.length === 0">
         {{ fullPlanAudioLoading ? 'Generating audiobook preview...' : 'Generate audiobook preview' }}
       </button>
+      <button type="button" class="secondary-button" (click)="generateAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || renderRequests.length === 0 || missingPartCount() === 0">
+        Generate missing parts
+      </button>
       <p *ngIf="fullPlanAudioError" class="error">{{ fullPlanAudioError }}</p>
 
       <div *ngIf="fullPlanAudioUrl" class="generated-audio-player framework-player">
@@ -380,6 +395,9 @@
         </button>
         <div #fullWaveform class="waveform-canvas generated-waveform" aria-hidden="true"></div>
         <span class="wave-time">00:00 / {{ fullPlanDurationLabel() }}</span>
+        <button type="button" class="secondary-button download-button" (click)="downloadFullPlanAudio()">
+          Download audiobook
+        </button>
       </div>
 
       <details *ngIf="renderRequests.length > 0" class="audio-parts-details">
@@ -387,17 +405,28 @@
         <div class="render-list">
           <article *ngFor="let renderRequest of renderRequests; let requestIndex = index" class="render-request">
             <div>
-              <span class="badge">Voice part {{ requestIndex + 1 }}</span>
+              <span class="badge">Voice part {{ renderRequestAudioState(requestIndex).partNumber }}</span>
               <h3>Preview part {{ requestIndex + 1 }}</h3>
+              <p class="part-meta" *ngIf="renderRequestAudioState(requestIndex).voice">
+                Voice: {{ renderRequestAudioState(requestIndex).voice }}
+              </p>
             </div>
+            <p
+              class="part-status"
+              [class.ready]="renderRequestAudioState(requestIndex).status === 'generated'"
+              [class.failed]="renderRequestAudioState(requestIndex).status === 'failed'"
+              [class.generating]="renderRequestAudioState(requestIndex).status === 'generating'"
+            >
+              {{ partStatusLabel(requestIndex) }}
+            </p>
             <button
               type="button"
               class="secondary-button"
               (click)="generateAudioForRenderRequest(renderRequest, requestIndex)"
-              [disabled]="loadingAction !== null || fullPlanAudioLoading || renderRequestAudioState(requestIndex).loading"
+              [disabled]="loadingAction !== null || fullPlanAudioLoading || renderRequestAudioState(requestIndex).status === 'generating'"
               [attr.aria-label]="'Generate audio for voice part ' + (requestIndex + 1)"
             >
-              {{ renderRequestAudioState(requestIndex).loading ? 'Generating...' : 'Generate this part' }}
+              {{ partActionLabel(requestIndex) }}
             </button>
             <p *ngIf="renderRequestAudioState(requestIndex).error" class="error">{{ renderRequestAudioState(requestIndex).error }}</p>
             <div *ngIf="renderRequestAudioState(requestIndex).audioUrl" class="render-player framework-player">
@@ -416,6 +445,9 @@
                 aria-hidden="true"
               ></div>
               <span class="wave-time">00:00 / {{ renderRequestDurationLabel(requestIndex) }}</span>
+              <button type="button" class="secondary-button download-button" (click)="downloadRenderRequestAudio(requestIndex)">
+                Download part
+              </button>
             </div>
           </article>
         </div>

@@ -41,6 +41,7 @@ interface JourneyStep {
 
 type WorkflowStepKey = 'story' | 'cast' | 'script' | 'performance' | 'audio';
 type WorkflowStepStatus = 'completed' | 'current' | 'warning' | 'locked' | 'upcoming';
+type RenderRequestStatus = 'not-generated' | 'generating' | 'generated' | 'failed';
 
 interface WorkflowStep {
   key: WorkflowStepKey;
@@ -57,10 +58,15 @@ interface CurrentTask {
 }
 
 interface RenderRequestAudioState {
-  loading: boolean;
+  status: RenderRequestStatus;
+  partNumber: number;
+  speaker: string | null;
+  voice: string | null;
+  blob: Blob | null;
   error: string | null;
   audioUrl: string | null;
   filename: string | null;
+  generatedAt: Date | null;
 }
 
 export function formatSpeakerDisplayName(speakerName: string): string {
@@ -470,27 +476,58 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     this.fullPlanAudioError = null;
 
     try {
-      const download = await this.ttsWorkbenchService.createAudio(this.audioProductionPlan);
-      this.setFullPlanAudio(download.blob, download.filename);
+      for (const [requestIndex, renderRequest] of this.renderRequests.entries()) {
+        const state = this.renderRequestAudioState(requestIndex);
+        if (state.status === 'generated' && state.blob) {
+          continue;
+        }
+        await this.generateAudioForRenderRequest(renderRequest, requestIndex, { keepFullLoading: true });
+      }
+
+      const unavailableParts = this.renderRequests
+        .map((_, requestIndex) => this.renderRequestAudioState(requestIndex))
+        .filter((state) => state.status !== 'generated' || !state.blob);
+
+      if (unavailableParts.length > 0) {
+        this.clearFullPlanAudio();
+        this.fullPlanAudioError = 'Some parts could not be generated. Retry failed parts before creating the full audiobook.';
+        return;
+      }
+
+      const audioParts = this.renderRequests.map((_, requestIndex) => this.renderRequestAudioState(requestIndex).blob as Blob);
+      this.setFullPlanAudio(new Blob(audioParts, { type: 'audio/mpeg' }), 'audiobook-preview.mp3');
     } catch (error) {
-      this.fullPlanAudioError = error instanceof Error ? error.message : 'Generate audio failed.';
+      this.fullPlanAudioError = 'One audio part could not be generated. The other parts are still available. You can retry this part or edit the text.';
     } finally {
       this.fullPlanAudioLoading = false;
     }
   }
 
-  async generateAudioForRenderRequest(renderRequest: SingleSpeakerRenderRequest, requestIndex: number): Promise<void> {
+  async generateAudioForRenderRequest(
+    renderRequest: SingleSpeakerRenderRequest,
+    requestIndex: number,
+    options: { keepFullLoading?: boolean } = {}
+  ): Promise<void> {
     const state = this.renderRequestAudioState(requestIndex);
-    state.loading = true;
+    state.status = 'generating';
     state.error = null;
+    this.clearFullPlanAudio();
 
     try {
       const download = await this.ttsWorkbenchService.createAudioForRenderRequest(renderRequest);
       this.setRenderRequestAudio(requestIndex, download.blob, `tts-audio-part-${requestIndex + 1}.mp3`);
     } catch (error) {
-      state.error = error instanceof Error ? error.message : 'Generate audio failed.';
+      if (state.blob && state.audioUrl) {
+        state.status = 'generated';
+        state.error = 'This part could not be regenerated. The previous audio is still available.';
+      } else {
+        state.status = 'failed';
+        state.error = 'One audio part could not be generated. The other parts are still available. You can retry this part or edit the text.';
+      }
     } finally {
-      state.loading = false;
+      if (!options.keepFullLoading) {
+        this.fullPlanAudioLoading = false;
+      }
     }
   }
 
@@ -510,13 +547,74 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
 
   renderRequestAudioState(requestIndex: number): RenderRequestAudioState {
     if (!this.renderRequestAudioStates[requestIndex]) {
-      this.renderRequestAudioStates[requestIndex] = { loading: false, error: null, audioUrl: null, filename: null };
+      const renderRequest = this.renderRequests[requestIndex];
+      this.renderRequestAudioStates[requestIndex] = {
+        status: 'not-generated',
+        partNumber: requestIndex + 1,
+        speaker: this.renderRequestSpeaker(renderRequest),
+        voice: this.renderRequestVoice(renderRequest),
+        blob: null,
+        error: null,
+        audioUrl: null,
+        filename: null,
+        generatedAt: null
+      };
     }
     return this.renderRequestAudioStates[requestIndex];
   }
 
   anyAudioLoading(): boolean {
-    return this.fullPlanAudioLoading || Object.values(this.renderRequestAudioStates).some((state) => state.loading);
+    return this.fullPlanAudioLoading || Object.values(this.renderRequestAudioStates).some((state) => state.status === 'generating');
+  }
+
+  generatedPartCount(): number {
+    return this.renderRequests.filter((_, requestIndex) => this.renderRequestAudioState(requestIndex).status === 'generated').length;
+  }
+
+  failedPartCount(): number {
+    return this.renderRequests.filter((_, requestIndex) => this.renderRequestAudioState(requestIndex).status === 'failed').length;
+  }
+
+  missingPartCount(): number {
+    return this.renderRequests.length - this.generatedPartCount();
+  }
+
+  partStatusLabel(requestIndex: number): string {
+    const state = this.renderRequestAudioState(requestIndex);
+    switch (state.status) {
+      case 'generating':
+        return 'Generating...';
+      case 'generated':
+        return 'Ready to listen';
+      case 'failed':
+        return 'Failed - retry this part';
+      default:
+        return 'Not generated yet';
+    }
+  }
+
+  partActionLabel(requestIndex: number): string {
+    const state = this.renderRequestAudioState(requestIndex);
+    if (state.status === 'generating') {
+      return 'Generating...';
+    }
+    if (state.status === 'failed') {
+      return 'Retry this part';
+    }
+    return 'Generate this part';
+  }
+
+  downloadRenderRequestAudio(requestIndex: number): void {
+    const state = this.renderRequestAudioState(requestIndex);
+    if (state.audioUrl && state.filename) {
+      this.downloadBlobUrl(state.audioUrl, state.filename);
+    }
+  }
+
+  downloadFullPlanAudio(): void {
+    if (this.fullPlanAudioUrl && this.fullPlanAudioFilename) {
+      this.downloadBlobUrl(this.fullPlanAudioUrl, this.fullPlanAudioFilename);
+    }
   }
 
   fullPlanDurationLabel(): string {
@@ -693,7 +791,6 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     }
     this.fullPlanAudioUrl = window.URL.createObjectURL(blob);
     this.fullPlanAudioFilename = filename;
-    this.downloadBlobUrl(this.fullPlanAudioUrl, filename);
     window.setTimeout(() => this.initializeFullWaveform());
   }
 
@@ -702,10 +799,27 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     if (state.audioUrl) {
       window.URL.revokeObjectURL(state.audioUrl);
     }
+    this.renderRequestWaveSurfers.get(requestIndex)?.destroy();
+    this.renderRequestWaveSurfers.delete(requestIndex);
+    this.renderRequestAudioPlayingStates[requestIndex] = false;
+    state.status = 'generated';
+    state.blob = blob;
     state.audioUrl = window.URL.createObjectURL(blob);
     state.filename = filename;
-    this.downloadBlobUrl(state.audioUrl, filename);
+    state.error = null;
+    state.generatedAt = new Date();
     window.setTimeout(() => this.initializeRenderRequestWaveforms());
+  }
+
+  private clearFullPlanAudio(): void {
+    if (this.fullPlanAudioUrl) {
+      window.URL.revokeObjectURL(this.fullPlanAudioUrl);
+    }
+    this.fullWaveSurfer?.destroy();
+    this.fullWaveSurfer = null;
+    this.fullPlanAudioUrl = null;
+    this.fullPlanAudioFilename = null;
+    this.fullPlanAudioPlaying = false;
   }
 
   private downloadBlobUrl(url: string, filename: string): void {
@@ -718,17 +832,29 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   }
 
   private revokeGeneratedAudioUrls(): void {
-    if (this.fullPlanAudioUrl) {
-      window.URL.revokeObjectURL(this.fullPlanAudioUrl);
-    }
+    this.clearFullPlanAudio();
     Object.values(this.renderRequestAudioStates).forEach((state) => {
       if (state.audioUrl) {
         window.URL.revokeObjectURL(state.audioUrl);
       }
     });
-    this.fullPlanAudioUrl = null;
-    this.fullPlanAudioFilename = null;
     this.renderRequestAudioStates = {};
+  }
+
+  private renderRequestSpeaker(renderRequest: SingleSpeakerRenderRequest | undefined): string | null {
+    const voice = this.objectRecord(renderRequest?.voice);
+    const speaker = voice?.['speakerName'] ?? voice?.['speaker'] ?? voice?.['name'];
+    return typeof speaker === 'string' && speaker.trim().length > 0 ? speaker : null;
+  }
+
+  private renderRequestVoice(renderRequest: SingleSpeakerRenderRequest | undefined): string | null {
+    const voice = this.objectRecord(renderRequest?.voice);
+    const voiceName = voice?.['name'] ?? voice?.['voiceName'];
+    return typeof voiceName === 'string' && voiceName.trim().length > 0 ? voiceName : null;
+  }
+
+  private objectRecord(value: unknown): Record<string, unknown> | null {
+    return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
   }
 
   private playAudioPath(path: string): void {

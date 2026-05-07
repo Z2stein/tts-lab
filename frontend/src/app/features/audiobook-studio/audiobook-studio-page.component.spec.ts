@@ -215,23 +215,103 @@ describe('AudiobookStudioPageComponent', () => {
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
   });
 
-  it('shows the framework audio player after the audiobook preview is generated', async () => {
+  it('shows the framework audio player and download action after the audiobook preview is generated', async () => {
+    const anchorClickSpy = spyOn(HTMLAnchorElement.prototype, 'click');
     component.audioProductionPlan = {
-      renderRequests: [{ input: {}, voice: {}, audioConfig: {} }]
+      renderRequests: [{ input: {}, voice: { name: 'Kore' }, audioConfig: {} }]
     };
-    ttsWorkbenchService.createAudio.and.resolveTo({
+    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['fake mp3'], { type: 'audio/mpeg' }),
-      filename: 'audiobook-preview.mp3'
+      filename: 'part.mp3'
     });
 
     await component.generateAudio();
     fixture.detectChanges();
 
     const player = fixture.nativeElement.querySelector('.generated-audio-player .waveform-canvas') as HTMLElement | null;
-    expect(ttsWorkbenchService.createAudio).toHaveBeenCalledWith(component.audioProductionPlan);
+    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(component.renderRequests[0]);
     expect(player).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
+    expect(fixture.nativeElement.textContent).toContain('Download audiobook');
     expect(component.fullPlanAudioFilename).toBe('audiobook-preview.mp3');
+    expect(anchorClickSpy).not.toHaveBeenCalled();
+  });
+
+  it('generating one part stores only that part and does not start a download', async () => {
+    const anchorClickSpy = spyOn(HTMLAnchorElement.prototype, 'click');
+    component.audioProductionPlan = {
+      renderRequests: [
+        { input: { text: 'First' }, voice: { name: 'Kore' }, audioConfig: {} },
+        { input: { text: 'Second' }, voice: { name: 'Iapetus' }, audioConfig: {} }
+      ]
+    };
+    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+      blob: new Blob(['part one'], { type: 'audio/mpeg' }),
+      filename: 'part-1.mp3'
+    });
+
+    await component.generateAudioForRenderRequest(component.renderRequests[0], 0);
+    fixture.detectChanges();
+
+    expect(component.renderRequestAudioState(0).status).toBe('generated');
+    expect(component.renderRequestAudioState(0).blob).not.toBeNull();
+    expect(component.renderRequestAudioState(1).status).toBe('not-generated');
+    expect(anchorClickSpy).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).toContain('Ready to listen');
+    expect(fixture.nativeElement.textContent).toContain('Download part');
+  });
+
+  it('generating the audiobook skips already generated parts', async () => {
+    component.audioProductionPlan = {
+      renderRequests: [
+        { input: { text: 'First' }, voice: { name: 'Kore' }, audioConfig: {} },
+        { input: { text: 'Second' }, voice: { name: 'Iapetus' }, audioConfig: {} },
+        { input: { text: 'Third' }, voice: { name: 'Kore' }, audioConfig: {} }
+      ]
+    };
+    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+      blob: new Blob(['mp3'], { type: 'audio/mpeg' }),
+      filename: 'part.mp3'
+    });
+
+    await component.generateAudioForRenderRequest(component.renderRequests[0], 0);
+    await component.generateAudioForRenderRequest(component.renderRequests[1], 1);
+    ttsWorkbenchService.createAudioForRenderRequest.calls.reset();
+
+    await component.generateAudio();
+
+    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(component.renderRequests[2]);
+    expect(component.fullPlanAudioUrl).not.toBeNull();
+  });
+
+  it('keeps successful parts when one audiobook part fails', async () => {
+    component.audioProductionPlan = {
+      renderRequests: [
+        { input: { text: 'First' }, voice: { name: 'Kore' }, audioConfig: {} },
+        { input: { text: 'Second' }, voice: { name: 'Iapetus' }, audioConfig: {} },
+        { input: { text: 'Third' }, voice: { name: 'Kore' }, audioConfig: {} }
+      ]
+    };
+    ttsWorkbenchService.createAudioForRenderRequest.and.callFake(async (renderRequest) => {
+      if (renderRequest === component.renderRequests[1]) {
+        throw new Error('Provider exploded');
+      }
+      return {
+        blob: new Blob(['mp3'], { type: 'audio/mpeg' }),
+        filename: 'part.mp3'
+      };
+    });
+
+    await component.generateAudio();
+    fixture.detectChanges();
+
+    expect(component.renderRequestAudioState(0).status).toBe('generated');
+    expect(component.renderRequestAudioState(1).status).toBe('failed');
+    expect(component.renderRequestAudioState(2).status).toBe('generated');
+    expect(component.fullPlanAudioUrl).toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Some parts could not be generated. Retry failed parts before creating the full audiobook.');
+    expect(fixture.nativeElement.textContent).toContain('Retry this part');
   });
 
   it('shows a user-facing backend error when analysis fails', async () => {
