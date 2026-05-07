@@ -51,7 +51,7 @@ test('audiobook studio shows cast cards after story analysis succeeds', async ({
 
   await page.goto('/audiobook-studio');
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
-  await page.getByRole('button', { name: 'Analyze story' }).click();
+  await page.locator('#story-section').getByRole('button', { name: 'Find characters' }).click();
 
   await expect(page.getByText('Detected character')).toHaveCount(2);
   await expect(page.getByRole('heading', { name: 'Mara' })).toBeVisible();
@@ -87,8 +87,8 @@ test('audiobook studio shows script preview turns after cast analysis continues'
 
   await page.goto('/audiobook-studio');
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
-  await page.getByRole('button', { name: 'Analyze story' }).click();
-  await page.getByRole('button', { name: 'Continue to script preview' }).click();
+  await page.locator('#story-section').getByRole('button', { name: 'Find characters' }).click();
+  await page.locator('#cast-section').getByRole('button', { name: 'Review script' }).click();
 
   await expect(page.getByRole('heading', { name: 'Review script preview' })).toBeVisible();
   await expect(page.getByText('We go now.')).toBeVisible();
@@ -136,8 +136,8 @@ test('audiobook studio edits a script preview turn without freezing the app', as
 
   await page.goto('/audiobook-studio');
   await page.getByRole('button', { name: 'Use sample story' }).click();
-  await page.getByRole('button', { name: 'Analyze story' }).click();
-  await page.getByRole('button', { name: 'Continue to script preview' }).click();
+  await page.locator('#story-section').getByRole('button', { name: 'Find characters' }).click();
+  await page.locator('#cast-section').getByRole('button', { name: 'Review script' }).click();
 
   await page.getByTestId('script-turn-edit-0').click();
   await expect(page.getByLabel('Speaker')).toBeVisible();
@@ -147,8 +147,8 @@ test('audiobook studio edits a script preview turn without freezing the app', as
   await page.getByRole('button', { name: 'Save' }).click();
 
   await expect(page.getByText('The last train had already left, and the station clock was wrong.')).toBeVisible();
-  await page.getByRole('button', { name: 'Approve script' }).click();
-  await page.getByRole('button', { name: 'Add performance notes' }).click();
+  await page.locator('#script-section').getByRole('button', { name: 'Approve script' }).click();
+  await page.locator('#script-section').getByRole('button', { name: 'Add emotion & pacing' }).click();
 
   await expect(page.getByText('[hushed]')).toBeVisible();
 });
@@ -171,7 +171,7 @@ test('audiobook studio shows structured backend errors without internal details'
 
   await page.goto('/audiobook-studio');
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: Hello');
-  await page.getByRole('button', { name: 'Analyze story' }).click();
+  await page.locator('#story-section').getByRole('button', { name: 'Find characters' }).click();
 
   await expect(page.getByText('The cast analysis provider is currently unavailable. Please try again later.')).toBeVisible();
   await expect(page.getByText('TTS_WORKBENCH_PROVIDER_FAILED')).toHaveCount(0);
