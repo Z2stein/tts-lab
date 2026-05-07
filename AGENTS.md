@@ -18,6 +18,9 @@ This repository is a deliberately simple learning project for:
 - Prefer learning value over production-level optimization.
 - Do not introduce unnecessary architecture, frameworks, infrastructure, or abstractions.
 - Fix the actual cause of broken behavior instead of hiding symptoms.
+- Prefer existing project capabilities over custom code: before writing new styling, utility logic, configuration, or infrastructure, check whether the project already has a simple established way to solve the task.
+
+
 
 ## Single source of truth
 
@@ -61,6 +64,16 @@ To run Playwright against an already deployed environment instead of local web s
 cd frontend
 E2E_BASE_URL="https://<deployed-host>" E2E_USE_LOCAL_SERVERS=false npm run test:e2e
 ```
+
+## Reuse existing project capabilities
+
+Before implementing a custom solution, inspect the existing project setup, dependencies, configuration, and coding conventions.
+
+Prefer using capabilities that are already available in the project when they make the change smaller, clearer, and easier to maintain.
+
+Do not write large amounts of custom styling, utility logic, configuration, or infrastructure code before checking whether the project already provides a simpler established way to solve the same problem.
+
+Only introduce a new dependency or approach when it clearly reduces complexity, fits the learning-oriented scope of the project, and can be explained briefly in the task summary.
 
 ### Mandatory CI/CD pipeline checks
 

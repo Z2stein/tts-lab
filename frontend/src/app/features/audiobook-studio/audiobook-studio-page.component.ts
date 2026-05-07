@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import {
   AnnotatedSpeakerTurn,
   FinalTtsRequestPreview,
@@ -13,7 +13,12 @@ import {
 
 interface ScriptGroup {
   speaker: string;
-  turns: SpeakerSplitTurn[];
+  turns: IndexedSpeakerSplitTurn[];
+}
+
+interface IndexedSpeakerSplitTurn {
+  index: number;
+  turn: SpeakerSplitTurn;
 }
 
 interface AnnotatedMarkup {
@@ -21,10 +26,19 @@ interface AnnotatedMarkup {
   text: string;
 }
 
+export function formatSpeakerDisplayName(speakerName: string): string {
+  return speakerName
+    .replace(/[_-]+/g, ' ')
+    .replace(/([a-z])([A-Z])/g, '$1 $2')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .replace(/\b\w/g, (character) => character.toUpperCase());
+}
+
 @Component({
   selector: 'app-audiobook-studio-page',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule],
   templateUrl: './audiobook-studio-page.component.html',
   styleUrl: './audiobook-studio-page.component.css'
 })
@@ -68,6 +82,13 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   fullPlanAudioLoading = false;
   fullPlanAudioError: string | null = null;
   renderRequestAudioStates: Record<number, { loading: boolean; error: string | null }> = {};
+  editingCastIndex: number | null = null;
+  castEditDraft: SpeakerVoiceAnalysisItem | null = null;
+  editingScriptTurnIndex: number | null = null;
+  scriptTurnEditDraft: SpeakerSplitTurn | null = null;
+  castReviewed = false;
+  scriptApproved = false;
+  performanceNotesStale = false;
 
   constructor(private readonly ttsWorkbenchService: TtsWorkbenchService) {}
 
@@ -80,15 +101,31 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   }
 
   get scriptGroups(): ScriptGroup[] {
-    return this.scriptTurns.reduce<ScriptGroup[]>((groups, turn) => {
+    return this.scriptTurns.reduce<ScriptGroup[]>((groups, turn, index) => {
       const lastGroup = groups[groups.length - 1];
       if (lastGroup?.speaker === turn.speaker) {
-        lastGroup.turns.push(turn);
+        lastGroup.turns.push({ index, turn });
       } else {
-        groups.push({ speaker: turn.speaker, turns: [turn] });
+        groups.push({ speaker: turn.speaker, turns: [{ index, turn }] });
       }
       return groups;
     }, []);
+  }
+
+  get speakerOptions(): string[] {
+    const speakers = new Set(this.cast.map((speaker) => speaker.speakerName).filter(Boolean));
+    const hasNarrator = this.scriptTurns.some((turn) => turn.speaker.toLowerCase() === 'narrator') ||
+      this.cast.some((speaker) => speaker.speakerName.toLowerCase() === 'narrator');
+
+    if (hasNarrator) {
+      speakers.add('Narrator');
+    }
+
+    if (this.scriptTurnEditDraft?.speaker) {
+      speakers.add(this.scriptTurnEditDraft.speaker);
+    }
+
+    return Array.from(speakers);
   }
 
   get renderRequests(): SingleSpeakerRenderRequest[] {
@@ -116,6 +153,11 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
       this.annotatedTurns = [];
       this.finalRequest = null;
       this.audioProductionPlan = null;
+      this.castReviewed = false;
+      this.scriptApproved = false;
+      this.performanceNotesStale = false;
+      this.cancelCastEdit();
+      this.cancelScriptTurnEdit();
       this.resetAudioStates();
     }, 'Story analysis failed.');
   }
@@ -126,6 +168,11 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
       this.annotatedTurns = [];
       this.finalRequest = null;
       this.audioProductionPlan = null;
+      this.castReviewed = true;
+      this.scriptApproved = false;
+      this.performanceNotesStale = false;
+      this.cancelCastEdit();
+      this.cancelScriptTurnEdit();
       this.resetAudioStates();
     }, 'Script preview failed.');
   }
@@ -135,6 +182,7 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
       this.annotatedTurns = await this.ttsWorkbenchService.annotateEmotions(this.scriptTurns);
       this.finalRequest = null;
       this.audioProductionPlan = null;
+      this.performanceNotesStale = false;
       this.resetAudioStates();
     }, 'Performance notes failed.');
   }
@@ -216,12 +264,77 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     return this.loadingAction === action;
   }
 
+  displaySpeakerName(speakerName: string): string {
+    return formatSpeakerDisplayName(speakerName);
+  }
+
+  startCastEdit(index: number): void {
+    this.editingCastIndex = index;
+    this.castEditDraft = { ...this.cast[index] };
+  }
+
+  saveCastEdit(index: number): void {
+    if (!this.castEditDraft) {
+      return;
+    }
+
+    const draft: SpeakerVoiceAnalysisItem = { ...this.castEditDraft };
+    this.cast = this.cast.map((speaker, speakerIndex) =>
+      speakerIndex === index ? draft : speaker
+    );
+    this.cancelCastEdit();
+  }
+
+  cancelCastEdit(): void {
+    this.editingCastIndex = null;
+    this.castEditDraft = null;
+  }
+
+  startScriptTurnEdit(index: number): void {
+    this.editingScriptTurnIndex = index;
+    this.scriptTurnEditDraft = { ...this.scriptTurns[index] };
+  }
+
+  saveScriptTurnEdit(index: number): void {
+    if (!this.scriptTurnEditDraft) {
+      return;
+    }
+
+    const draft: SpeakerSplitTurn = { ...this.scriptTurnEditDraft };
+    this.scriptTurns = this.scriptTurns.map((turn, turnIndex) =>
+      turnIndex === index ? draft : turn
+    );
+    this.cancelScriptTurnEdit();
+    this.scriptApproved = false;
+
+    if (this.annotatedTurns.length > 0) {
+      this.performanceNotesStale = true;
+      this.finalRequest = null;
+      this.audioProductionPlan = null;
+      this.resetAudioStates();
+    }
+  }
+
+  cancelScriptTurnEdit(): void {
+    this.editingScriptTurnIndex = null;
+    this.scriptTurnEditDraft = null;
+  }
+
+  approveScript(): void {
+    this.scriptApproved = true;
+  }
+
   private resetPipeline(): void {
     this.cast = [];
     this.scriptTurns = [];
     this.annotatedTurns = [];
     this.finalRequest = null;
     this.audioProductionPlan = null;
+    this.castReviewed = false;
+    this.scriptApproved = false;
+    this.performanceNotesStale = false;
+    this.cancelCastEdit();
+    this.cancelScriptTurnEdit();
     this.resetAudioStates();
   }
 

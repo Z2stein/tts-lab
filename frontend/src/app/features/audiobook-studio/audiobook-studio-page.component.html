@@ -49,13 +49,44 @@
       </div>
     </div>
 
+    <p *ngIf="cast.length > 0 && !castReviewed" class="review-status">Cast needs review</p>
     <p *ngIf="cast.length === 0" class="empty-state">Cast cards will appear after story analysis.</p>
     <div *ngIf="cast.length > 0" class="cast-grid" aria-label="Cast">
-      <article *ngFor="let speaker of cast" class="cast-card">
-        <span class="badge">Detected character</span>
-        <h3>{{ speaker.speakerName }}</h3>
-        <p>{{ speaker.roleDescription }}</p>
-        <strong>{{ speaker.voiceSuggestion }}</strong>
+      <article *ngFor="let speaker of cast; let speakerIndex = index" class="cast-card">
+        <div class="card-topline">
+          <span class="badge">Detected character</span>
+          <button
+            *ngIf="editingCastIndex !== speakerIndex"
+            type="button"
+            class="text-button"
+            (click)="startCastEdit(speakerIndex)"
+            [attr.aria-label]="'Edit cast card for ' + displaySpeakerName(speaker.speakerName)"
+          >
+            Edit
+          </button>
+        </div>
+
+        <ng-container *ngIf="editingCastIndex !== speakerIndex; else castEditForm">
+          <h3>{{ displaySpeakerName(speaker.speakerName) }}</h3>
+          <p>{{ speaker.roleDescription }}</p>
+          <strong>{{ speaker.voiceSuggestion }}</strong>
+        </ng-container>
+
+        <ng-template #castEditForm>
+          <label [for]="'cast-speaker-name-' + speakerIndex">Speaker name</label>
+          <input [id]="'cast-speaker-name-' + speakerIndex" [(ngModel)]="castEditDraft!.speakerName" />
+
+          <label [for]="'cast-role-description-' + speakerIndex">Role description</label>
+          <textarea [id]="'cast-role-description-' + speakerIndex" rows="3" [(ngModel)]="castEditDraft!.roleDescription"></textarea>
+
+          <label [for]="'cast-voice-suggestion-' + speakerIndex">Voice suggestion</label>
+          <input [id]="'cast-voice-suggestion-' + speakerIndex" [(ngModel)]="castEditDraft!.voiceSuggestion" />
+
+          <div class="button-row compact-actions">
+            <button type="button" class="primary-button small-button" (click)="saveCastEdit(speakerIndex)">Save</button>
+            <button type="button" class="secondary-button small-button" (click)="cancelCastEdit()">Cancel</button>
+          </div>
+        </ng-template>
       </article>
     </div>
 
@@ -73,15 +104,41 @@
       </div>
     </div>
 
+    <p *ngIf="scriptTurns.length > 0 && !scriptApproved" class="review-status">Script needs review</p>
     <p *ngIf="scriptTurns.length === 0" class="empty-state">Script preview turns will appear after cast discovery.</p>
     <div *ngIf="scriptTurns.length > 0" class="script-panel">
       <article *ngFor="let group of scriptGroups" class="script-group">
-        <h3>{{ group.speaker }}</h3>
-        <p *ngFor="let turn of group.turns">{{ turn.text }}</p>
+        <h3>{{ displaySpeakerName(group.speaker) }}</h3>
+        <div *ngFor="let indexedTurn of group.turns" class="script-turn">
+          <ng-container *ngIf="editingScriptTurnIndex !== indexedTurn.index; else scriptEditForm">
+            <p>{{ indexedTurn.turn.text }}</p>
+            <button type="button" class="text-button" (click)="startScriptTurnEdit(indexedTurn.index)">
+              Edit
+            </button>
+          </ng-container>
+
+          <ng-template #scriptEditForm>
+            <label [for]="'script-speaker-' + indexedTurn.index">Speaker</label>
+            <select [id]="'script-speaker-' + indexedTurn.index" [(ngModel)]="scriptTurnEditDraft!.speaker">
+              <option *ngFor="let speakerName of speakerOptions" [value]="speakerName">{{ displaySpeakerName(speakerName) }}</option>
+            </select>
+
+            <label [for]="'script-text-' + indexedTurn.index">Text</label>
+            <textarea [id]="'script-text-' + indexedTurn.index" rows="4" [(ngModel)]="scriptTurnEditDraft!.text"></textarea>
+
+            <div class="button-row compact-actions">
+              <button type="button" class="primary-button small-button" (click)="saveScriptTurnEdit(indexedTurn.index)">Save</button>
+              <button type="button" class="secondary-button small-button" (click)="cancelScriptTurnEdit()">Cancel</button>
+            </div>
+          </ng-template>
+        </div>
       </article>
     </div>
 
-    <button type="button" class="primary-button" (click)="createPerformanceNotes()" [disabled]="loadingAction !== null || scriptTurns.length === 0">
+    <button type="button" class="secondary-button" (click)="approveScript()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || scriptApproved">
+      {{ scriptApproved ? 'Script approved' : 'Approve script' }}
+    </button>
+    <button type="button" class="primary-button" (click)="createPerformanceNotes()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || !scriptApproved">
       {{ isLoading('notes') ? 'Adding performance notes...' : 'Add performance notes' }}
     </button>
   </section>
@@ -98,11 +155,14 @@
     <p *ngIf="annotatedTurns.length === 0" class="empty-state">Performance notes will appear after the script preview.</p>
     <ol *ngIf="annotatedTurns.length > 0" class="notes-list">
       <li *ngFor="let turn of annotatedTurns">
-        <span class="speaker-name">{{ turn.speaker }}</span>
+        <span class="speaker-name">{{ displaySpeakerName(turn.speaker) }}</span>
         <span *ngFor="let tag of markupFor(turn).tags" class="emotion-badge">[{{ tag }}]</span>
         <span>{{ markupFor(turn).text }}</span>
       </li>
     </ol>
+    <p *ngIf="performanceNotesStale" class="warning" role="status">
+      Script changed. Regenerate performance notes before creating the audio production plan.
+    </p>
 
     <div class="settings-grid">
       <label for="studio-prompt">Direction</label>
@@ -122,7 +182,7 @@
       <input id="studio-audio-encoding" [formControl]="audioEncodingControl" />
     </div>
 
-    <button type="button" class="primary-button" (click)="createAudioProductionPlan()" [disabled]="loadingAction !== null || annotatedTurns.length === 0">
+    <button type="button" class="primary-button" (click)="createAudioProductionPlan()" [disabled]="loadingAction !== null || annotatedTurns.length === 0 || performanceNotesStale">
       {{ isLoading('plan') ? 'Planning audio...' : 'Create audio production plan' }}
     </button>
   </section>

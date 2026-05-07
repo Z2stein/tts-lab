@@ -78,6 +78,10 @@ textarea {
   @apply grid gap-2 rounded-lg border border-studio-lineStrong bg-studio-panelSoft p-4;
 }
 
+.card-topline {
+  @apply flex items-center justify-between gap-3;
+}
+
 .cast-card h3,
 .render-request h3 {
   @apply mb-0;
@@ -106,6 +110,43 @@ textarea {
 
 .script-group p {
   @apply mb-2 text-studio-text leading-relaxed;
+}
+
+.script-turn {
+  @apply grid gap-2 rounded-lg border border-transparent p-2;
+}
+
+.script-turn:focus-within {
+  @apply border-studio-lineStrong bg-studio-panelSoft;
+}
+
+.review-status,
+.warning {
+  @apply rounded-lg border px-3 py-2 text-sm font-extrabold;
+}
+
+.review-status {
+  @apply border-studio-accent/50 bg-studio-accent/10 text-studio-accentSoft;
+}
+
+.warning {
+  @apply border-[#f7b267]/60 bg-[#3a2411] text-[#ffd8a8];
+}
+
+.text-button {
+  @apply justify-self-start rounded-md border border-studio-lineStrong bg-transparent px-3 py-1.5 text-sm font-extrabold text-studio-accentSoft;
+}
+
+.text-button:hover:not(:disabled) {
+  @apply border-studio-accent text-[#fff1d7];
+}
+
+.compact-actions {
+  @apply justify-start;
+}
+
+.small-button {
+  @apply px-3 py-2 text-sm;
 }
 
 .notes-list {
