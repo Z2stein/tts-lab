@@ -1,4 +1,4 @@
-# tts-lab
+﻿# tts-lab
 
 Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
@@ -124,7 +124,7 @@ Ablauf bei Push:
 6. Den effektiven Provider (`mock` oder `gemini`) einmal berechnen und durchgängig für Secret-Validierung, Secret-Reconciliation und Helm verwenden
 7. Namespace idempotent anlegen/aktualisieren
 8. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
-9. Bei Provider `gemini` die Google-TTS-Credentials aus `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` vor dem Helm-Upgrade als Kubernetes Secret anlegen/aktualisieren; bei Provider `mock` wird dieses Secret nicht benötigt
+9. Wenn `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` gesetzt ist, die Google-TTS-Credentials vor dem Helm-Upgrade als Kubernetes Secret anlegen/aktualisieren; der Chat-Provider `gemini` funktioniert auch ohne dieses optionale TTS-Secret
 10. `helm upgrade --install --wait --timeout 5m` ausführen
 11. Backend- und Frontend-Deployments per `kubectl rollout status` abwarten
 12. Backend- und Frontend-Pods per `kubectl wait --for=condition=Ready pod -l ...` abwarten
@@ -323,9 +323,9 @@ Single-speaker render requests intentionally do not return internal planning met
 
 Runtime behavior follows the existing chatbot provider mode where possible:
 
-- `CHATBOT_PROVIDER=mock` returns deterministic local speaker suggestions, speaker splitting, emotion annotation, final JSON preview data, and mock MP3 bytes for audio creation. It does not initialize the real Google Cloud Text-to-Speech client and starts without `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64`.
-- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice, speaker split, and emotion annotation output, and uses Google Cloud Text-to-Speech for `create-audio`. Missing or invalid Google TTS credentials fail backend startup with a clear structured configuration error. Provider failures or invalid provider output return structured API errors so the frontend can show a clear failure instead of silently displaying fallback data.
-- Google Cloud Text-to-Speech credentials are loaded by the backend from the backend-only `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` environment variable, which contains the Base64-encoded service account JSON. It is injected from Kubernetes secrets only when Helm renders `chat.provider=gemini` and is never exposed to Angular.
+- `CHATBOT_PROVIDER=mock` returns deterministic local speaker suggestions, speaker splitting, emotion annotation, final JSON preview data, and mock MP3 bytes for audio creation. It starts without `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64`.
+- `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice, speaker split, and emotion annotation output. Provider failures or invalid provider output return structured API errors so the frontend can show a clear failure instead of silently displaying fallback data.
+- Google Cloud Text-to-Speech credentials are loaded by the backend from the optional backend-only `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` environment variable, which contains the Base64-encoded service account JSON. When it is not configured, the backend still starts and Gemini chat works, but `create-audio` returns a structured TTS provider error instead of real Google Cloud audio. The secret is never exposed to Angular.
 
 Prompts are accessed through a `TtsWorkbenchPromptProvider` abstraction. The current implementation returns static defaults, but the service structure is intentionally open for future prompts loaded from configuration, a database, an admin UI, project settings, or tenant-specific settings.
 
@@ -340,16 +340,16 @@ The frontend now includes a reusable chatbot widget component that calls `POST /
 - `chat.geminiModel` controls the Gemini model (`gemini-2.5-flash` by default).
 - `chat.provider` controls backend runtime provider (`gemini` or `mock`); the chart default is `mock` so local/feature-style installs do not require `GEMINI_API_KEY`.
 - `chat.realProviderOnFeatureBranches` defaults to `false` and is used by the deploy workflow to keep feature branches in mock chatbot mode by default.
-- `ttsWorkbench.googleCredentialsSecretName` controls the Kubernetes secret that provides `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` to the backend when `chat.provider=gemini`.
+- `ttsWorkbench.googleCredentialsSecretName` controls the optional Kubernetes secret that provides `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` to the backend. Leave it empty to run Gemini chat without Google Cloud TTS credentials.
 - `ttsWorkbench.googleCredentialsChecksum` is written to the backend pod template annotation so a Google TTS credential change creates a new backend ReplicaSet.
 - The frontend remains provider-agnostic and always calls `POST /api/chat`.
 
 ### Required secret
 
 - `GEMINI_API_KEY` is required for `main` and `develop` deployments (provider = `gemini`).
-- `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` is required for deployments using `CHATBOT_PROVIDER=gemini`; it must contain the Base64-encoded Google Cloud service account JSON so the backend can call Google Cloud Text-to-Speech.
+- `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` is optional for deployments using `CHATBOT_PROVIDER=gemini`; set it only when `create-audio` should call Google Cloud Text-to-Speech.
 - Feature branch deployments run with provider = `mock` by default, so `GEMINI_API_KEY` and `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` are not required in that default mode.
-- If feature branches explicitly enable the real provider (`CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES=true` in GitHub Actions variables), then `GEMINI_API_KEY` and `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` are required there as well. Redeploying the same feature namespace from `mock` to `gemini` creates/updates the TTS secret before Helm runs; redeploying from `gemini` back to `mock` removes the backend env requirement without deleting the namespace.
+- If feature branches explicitly enable the real provider (`CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES=true` in GitHub Actions variables), then `GEMINI_API_KEY` is required there as well. If `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` is also set, redeploying creates/updates the optional TTS secret before Helm runs; redeploying without it removes the backend TTS env wiring without deleting the namespace.
 - The key is injected via Kubernetes `secretKeyRef` only and is never exposed to Angular.
 
 ### Local development

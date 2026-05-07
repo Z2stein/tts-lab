@@ -1,28 +1,22 @@
 package com.example.ttslab.projects.ttsworkbench;
 
-import com.example.ttslab.error.ApiException;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.texttospeech.v1.AudioConfig;
-import com.google.cloud.texttospeech.v1.AudioEncoding;
-import com.google.cloud.texttospeech.v1.SynthesisInput;
-import com.google.cloud.texttospeech.v1.SynthesizeSpeechResponse;
-import com.google.cloud.texttospeech.v1.TextToSpeechClient;
-import com.google.cloud.texttospeech.v1.TextToSpeechSettings;
-import com.google.cloud.texttospeech.v1.VoiceSelectionParams;
+import com.google.cloud.texttospeech.v1.*;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Map;
-import org.springframework.beans.factory.InitializingBean;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "chatbot.provider", havingValue = "gemini")
-public class GoogleCloudTtsClient implements GoogleTtsClient, InitializingBean {
+public class GoogleCloudTtsClient implements GoogleTtsClient {
+    private static final Logger log = LoggerFactory.getLogger(GoogleCloudTtsClient.class);
     private final String serviceAccountJsonBase64;
 
     public GoogleCloudTtsClient(
@@ -32,24 +26,18 @@ public class GoogleCloudTtsClient implements GoogleTtsClient, InitializingBean {
     }
 
     @Override
-    public void afterPropertiesSet() {
-        try {
-            credentials();
-        } catch (TtsAudioCreationException ex) {
-            throw new ApiException(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "TTS_GOOGLE_CREDENTIALS_INVALID",
-                "Google Cloud Text-to-Speech credentials are missing or invalid for gemini mode.",
-                null,
-                ex
-            );
-        }
-    }
-
-    @Override
     public byte[] synthesize(SingleSpeakerRenderRequest request) {
         try (TextToSpeechClient client = TextToSpeechClient.create(settings())) {
-            SynthesizeSpeechResponse response = client.synthesizeSpeech(input(request.input()), voice(request.voice()), audioConfig(request.audioConfig()));
+            SynthesizeSpeechRequest synthesizeSpeechRequest = SynthesizeSpeechRequest.newBuilder()
+                    .setInput(input(request.input()))
+                    .setVoice(voice(request.voice()))
+                    .setAudioConfig(audioConfig(request.audioConfig()))
+                    .build();
+
+            log.debug("sending Request to Google:" +synthesizeSpeechRequest.toString());
+
+            SynthesizeSpeechResponse response = client.synthesizeSpeech(synthesizeSpeechRequest);
+
             return response.getAudioContent().toByteArray();
         } catch (TtsAudioCreationException ex) {
             throw ex;
@@ -89,7 +77,8 @@ public class GoogleCloudTtsClient implements GoogleTtsClient, InitializingBean {
 
     private VoiceSelectionParams voice(Map<String, Object> voice) {
         VoiceSelectionParams.Builder builder = VoiceSelectionParams.newBuilder()
-            .setLanguageCode(stringValue(voice, "languageCode"));
+            .setLanguageCode(stringValue(voice, "languageCode"))
+            .setModelName(stringValue(voice,"modelName"));
         String name = stringValue(voice, "name");
         if (!name.isBlank()) {
             builder.setName(name);
