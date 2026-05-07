@@ -11,13 +11,14 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 - [Branch-Slug-Regel](#branch-slug-regel)
 - [CI/CD (GitHub Actions)](#cicd-github-actions)
 - [Lokal entwickeln](#lokal-entwickeln)
+- [Database and prompt history](#database-and-prompt-history)
 - [Akzeptanzkriterien (Textlänge)](#akzeptanzkriterien-textlänge)
 - [Health endpoints](#health-endpoints)
 - [API error responses](#api-error-responses)
 - [Authentication modes](#authentication-modes)
 - [TTS Workbench (MVP)](#tts-workbench-mvp)
 - [Chatbot (MVP)](#chatbot-mvp)
-- [Chatbot rate limiting (MVP)](#chatbot-rate-limiting-mvp)
+- [Request limits (MVP)](#request-limits-mvp)
 
 ## Repo-Onboarding (kurzer Config-Block)
 
@@ -57,12 +58,13 @@ Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
 
 - Helm Chart: `charts/tts-lab`
 - Ingress Controller: Traefik in k3s
+- PostgreSQL runs in-cluster for Helm deployments and is wired to the backend through Kubernetes Secrets.
 - Standard-Health-Probes im Helm-Chart:
   - Frontend: `GET /`
   - Backend: `GET /health`
 - Routing:
   - `/` → Frontend Service
-  - `/api` → Backend Service, including the unauthenticated `GET /api/health` endpoint used by real deployed E2E checks
+  - `/api` → Backend Service
   - `/oauth2` → Backend Service
   - `/login/oauth2` → Backend Service
   - `/logout` → Backend Service
@@ -190,6 +192,22 @@ E2E_BASE_URL="https://<deployed-host>" E2E_USE_LOCAL_SERVERS=false npm run test:
 
 Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory und läuft dort lokal im GitHub-Actions-Runner mit `E2E_USE_LOCAL_SERVERS=true`.
 
+## Database and prompt history
+
+Prompt history is now persisted with Flyway-managed tables:
+
+- `prompt_history` stores every submitted prompt with user id, optional email, model type, optional provider/model name, prompt text, request status, and timestamp.
+- `prompt_usage` stores per-user, per-model request counters so the backend can grow into personal rate limits later.
+
+Behavior by environment:
+
+- Local backend runs use the repository's default H2 file database unless `SPRING_DATASOURCE_*` is set.
+- Helm deployments use PostgreSQL in the namespace, with a StatefulSet and PVC.
+- `main` and `develop` keep their PostgreSQL data across upgrades.
+- Feature namespaces can be deleted cleanly, which removes their database with the namespace.
+
+Prompt history is visible in the frontend `Prompt History` tab and is filtered to the current authenticated user. The backend also records prompts from the text chat flow and the TTS workbench flow.
+
 
 ## Akzeptanzkriterien (Textlänge)
 
@@ -206,7 +224,7 @@ Bewusst unterstützte Fälle für both Text Length endpoints:
 ## Health endpoints
 
 - `GET /health` is the backend pod health endpoint used by Kubernetes probes.
-- `GET /api/health` returns the same `{ "status": "ok" }` payload through the public `/api` ingress route and is intentionally unauthenticated so deployed E2E can verify real frontend-to-backend connectivity without OAuth, CSRF, or external provider dependencies.
+- `GET /api/health` is protected like the rest of the API surface.
 
 ## API error responses
 
@@ -301,7 +319,7 @@ Backend endpoints:
 - `POST /api/projects/tts-workbench/emotion-annotation-analysis` with split turns returns annotated `turns` containing `speaker` and marked-up `text`.
 - `POST /api/projects/tts-workbench/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
 - `POST /api/projects/tts-workbench/single-speaker-render-plan` with the final request JSON returns `renderRequests`, where each item is provider-shaped JSON containing `input.text`, `voice.languageCode`, `voice.name`, `voice.modelName`, and `audioConfig.audioEncoding`.
-- `POST /api/projects/tts-workbench/create-audio` with the step 6 `renderRequests` returns a downloadable MP3 for one render request or a ZIP containing one MP3 per render request for multiple requests. The UI keeps the full-plan button and also shows a per-render-request **Create audio** button. A per-request button sends only that one render request and downloads a filename such as `tts-render-request-2.mp3`; the full-plan flow downloads `tts-render-request-1.mp3` for a single request or `tts-render-plan.zip` for multiple requests.
+- `POST /api/projects/tts-workbench/create-audio` with the step 6 `renderRequests` returns a downloadable MP3 for one render request or one concatenated MP3 for multiple requests. The UI keeps the full-plan button and also shows a per-render-request **Create audio** button. A per-request button sends only that one render request and downloads a filename such as `tts-render-request-2.mp3`; the full-plan flow downloads `tts-render-request-1.mp3` for a single request or `tts-render-plan.mp3` for multiple requests.
 
 Single-speaker render requests intentionally do not return internal planning metadata such as turn indexes or speaker aliases. The preview JSON matches the provider request shape, for example:
 
@@ -382,54 +400,40 @@ npm start
 Automated backend/frontend tests use mocks and do not call Gemini APIs.
 
 
-## Chatbot rate limiting (MVP)
+## Request limits (MVP)
 
-Backend chat requests (`POST /api/chat`) are protected by a fixed-window request limiter (in-memory storage).
+Every authenticated API request is counted against a per-user, per-model fixed window. The defaults are:
 
-### Config
+- `SPEECH_MODEL`: `600` words per `12h`
+- `TEXT_MODEL`: `600` words per `12h`
 
-Spring env vars:
+The request unit is `WORDS` by default, but the backend can also measure `TOKENS` if that deployment setting changes.
 
-- `CHAT_LIMIT_ENABLED` (default `true`)
-- `CHAT_LIMIT_WINDOW` (default `1h`)
-- `CHAT_LIMIT_MAX_REQUESTS` (default `5`)
-- `CHAT_LIMIT_ID_HEADER` (default `X-User-Id`)
+How the limit works:
 
-Helm values:
+1. New users start with the deployment defaults from `request-limits.*` / `REQUEST_LIMITS_*`.
+2. A per-user override in the database wins over the deployment default.
+3. Usage is tracked separately for `TEXT_MODEL` and `SPEECH_MODEL`.
+4. The remaining amount is shown in the top bar after login.
+5. All `/api/*` endpoints require login.
 
-```yaml
-chatbot:
-  rateLimit:
-    enabled: true
-    window: 1h
-    maxRequests: 5
-    idHeader: X-User-Id
-```
+Deployment config:
 
-Identity resolution order:
+- `REQUEST_LIMITS_ENABLED` (default `true`)
+- `REQUEST_LIMITS_WINDOW` (default `12h`)
+- `REQUEST_LIMITS_SPEECH_MODEL_LIMIT` (default `600`)
+- `REQUEST_LIMITS_TEXT_MODEL_MULTIPLIER` (default `1`)
+- `REQUEST_LIMITS_UNIT` (default `WORDS`)
 
-1. Authenticated principal id (`sub`)
-2. Configured header (`CHAT_LIMIT_ID_HEADER`)
-3. Client IP fallback
+Database override table:
 
-When exceeded, backend returns HTTP `429` with `Retry-After` and JSON:
+- `request_rate_limit_overrides`
 
-```json
-{
-  "error": "RATE_LIMIT_EXCEEDED",
-  "message": "Chat usage limit exceeded. Please try again later.",
-  "retry_after": 1234,
-  "limit": {
-    "window": "PT1H",
-    "max_requests": 5
-  }
-}
-```
+If a request exceeds the remaining amount, the backend returns HTTP `429` with a structured error response and `Retry-After`.
 
-Limitations of current in-memory store:
+The prompt history shows the model type that was actually used:
 
-- Works per pod only
-- Counters are lost on restart
-- Not consistent across multiple replicas
+- `TEXT_MODEL` for chat and Gemini-based analysis requests
+- `SPEECH_MODEL` for TTS audio creation
 
-For multi-replica environments, Redis is the recommended next step (store interface is already separated).
+That keeps the history table, top-bar counters, and backend enforcement lined up.
