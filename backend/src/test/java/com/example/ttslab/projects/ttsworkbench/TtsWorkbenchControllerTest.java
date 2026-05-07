@@ -1,5 +1,8 @@
 package com.example.ttslab.projects.ttsworkbench;
 
+import com.example.ttslab.auth.CurrentUser;
+import com.example.ttslab.prompts.CurrentUserResolver;
+import com.example.ttslab.prompts.PromptHistoryService;
 import java.util.List;
 import com.example.ttslab.error.ApiException;
 import java.util.Map;
@@ -13,6 +16,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -28,6 +33,17 @@ class TtsWorkbenchControllerTest {
     @MockBean
     private TtsWorkbenchService ttsWorkbenchService;
 
+    @MockBean
+    private CurrentUserResolver currentUserResolver;
+
+    @MockBean
+    private PromptHistoryService promptHistoryService;
+
+    @org.junit.jupiter.api.BeforeEach
+    void setupCurrentUser() {
+        when(currentUserResolver.resolve(any())).thenReturn(new CurrentUser("u1", "u1@example.com", "User One", List.of("USER"), "mock"));
+    }
+
     @Test
     void speakerVoiceAnalysisReturnsSuggestedVoices() throws Exception {
         when(ttsWorkbenchService.analyze("Alice: Hello")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
@@ -41,6 +57,8 @@ class TtsWorkbenchControllerTest {
             .andExpect(content().json("""
                 {"speakers":[{"speakerName":"Alice","roleDescription":"Detected dialogue speaker","voiceSuggestion":"ACHIRD"}]}
                 """));
+
+        verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.SPEECH_MODEL), eq("mock"), eq("Alice: Hello"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
     }
 
     @Test

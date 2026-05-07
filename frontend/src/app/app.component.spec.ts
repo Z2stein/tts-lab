@@ -38,6 +38,7 @@ describe('AppComponent layout and chatbot visibility', () => {
     expect(text).toContain('Home');
     expect(text).toContain('Text Length');
     expect(text).toContain('TTS Workbench');
+    expect(text).toContain('Prompt History');
   });
 
   it('chatbot widget is not visible when unauthenticated', () => {

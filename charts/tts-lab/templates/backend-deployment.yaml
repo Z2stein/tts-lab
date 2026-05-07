@@ -24,6 +24,31 @@ spec:
       imagePullSecrets:
         {{- toYaml . | nindent 8 }}
       {{- end }}
+      {{- if .Values.postgresql.enabled }}
+      initContainers:
+        - name: wait-for-postgresql
+          image: "{{ .Values.postgresql.image.repository }}:{{ .Values.postgresql.image.tag }}"
+          imagePullPolicy: {{ .Values.postgresql.image.pullPolicy }}
+          env:
+            - name: PGHOST
+              value: {{ include "tts-lab.postgresqlHost" . | quote }}
+            - name: PGPORT
+              value: {{ .Values.postgresql.service.port | quote }}
+            - name: PGDATABASE
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tts-lab.postgresqlSecretName" . }}
+                  key: database
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tts-lab.postgresqlSecretName" . }}
+                  key: username
+          command:
+            - sh
+            - -c
+            - until pg_isready -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE"; do sleep 2; done
+      {{- end }}
       containers:
         - name: backend
           image: "{{ .Values.backend.image.repository }}:{{ .Values.backend.image.tag }}"
@@ -65,6 +90,22 @@ spec:
               value: "google-genai"
             - name: SPRING_AI_GOOGLE_GENAI_CHAT_OPTIONS_MODEL
               value: {{ .Values.chat.geminiModel | quote }}
+            {{- if .Values.postgresql.enabled }}
+            - name: SPRING_DATASOURCE_URL
+              value: "jdbc:postgresql://{{ include "tts-lab.postgresqlHost" . }}:{{ .Values.postgresql.service.port }}/{{ .Values.postgresql.auth.database }}"
+            - name: SPRING_DATASOURCE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tts-lab.postgresqlSecretName" . }}
+                  key: username
+            - name: SPRING_DATASOURCE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tts-lab.postgresqlSecretName" . }}
+                  key: password
+            - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+              value: "org.postgresql.Driver"
+            {{- end }}
             - name: GEMINI_API_KEY
               valueFrom:
                 secretKeyRef:

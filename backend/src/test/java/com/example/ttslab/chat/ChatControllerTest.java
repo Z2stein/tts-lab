@@ -1,6 +1,11 @@
 package com.example.ttslab.chat;
 
+import com.example.ttslab.auth.CurrentUser;
+import com.example.ttslab.prompts.CurrentUserResolver;
+import com.example.ttslab.prompts.PromptHistoryService;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
@@ -35,6 +40,12 @@ class ChatControllerTest {
     @MockBean
     private ChatUsageIdentityResolver chatUsageIdentityResolver;
 
+    @MockBean
+    private CurrentUserResolver currentUserResolver;
+
+    @MockBean
+    private PromptHistoryService promptHistoryService;
+
 
     @BeforeEach
     void setupRateLimitDefaults() {
@@ -43,6 +54,7 @@ class ChatControllerTest {
         when(chatRateLimitProperties.maxRequests()).thenReturn(100);
         when(chatUsageIdentityResolver.resolve(any(), any(), any())).thenReturn("u1");
         when(chatRateLimitService.checkAndConsume("u1")).thenReturn(new ChatRateLimitResult(true, 1, 0, 1));
+        when(currentUserResolver.resolve(any())).thenReturn(new CurrentUser("u1", "u1@example.com", "User One", java.util.List.of("USER"), "mock"));
     }
 
     @Test
@@ -60,6 +72,8 @@ class ChatControllerTest {
                 .content("{\"message\":\"hi\"}"))
             .andExpect(status().isOk())
             .andExpect(content().json("{\"answer\":\"hello\",\"conversationId\":\"c-1\"}"));
+
+        verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq("mock"), eq("hi"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
     }
 
     @Test

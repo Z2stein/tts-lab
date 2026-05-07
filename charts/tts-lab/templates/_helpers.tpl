@@ -16,3 +16,15 @@ helm.sh/chart: {{ .Chart.Name }}-{{ .Chart.Version | replace "+" "_" }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 app.kubernetes.io/managed-by: {{ .Release.Service }}
 {{- end -}}
+
+{{- define "tts-lab.postgresqlSecretName" -}}
+{{- if .Values.postgresql.auth.existingSecretName -}}
+{{- .Values.postgresql.auth.existingSecretName -}}
+{{- else -}}
+{{- include "tts-lab.fullname" . }}-postgresql
+{{- end -}}
+{{- end -}}
+
+{{- define "tts-lab.postgresqlHost" -}}
+{{- include "tts-lab.fullname" . }}-postgresql
+{{- end -}}
