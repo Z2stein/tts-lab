@@ -1,64 +1,38 @@
 .history {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 1.5rem;
+  @apply rounded-xl border border-studio-line bg-studio-panel p-6 text-studio-text;
 }
 
 .history-header {
-  align-items: end;
-  display: flex;
-  gap: 1rem;
-  justify-content: space-between;
-}
-
-.eyebrow {
-  color: #315cbe;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  margin: 0 0 0.5rem;
-  text-transform: uppercase;
+  @apply flex items-end justify-between gap-4;
 }
 
 h1 {
-  margin: 0;
+  @apply m-0;
 }
 
 label {
-  display: grid;
-  gap: 0.35rem;
-  font-weight: 700;
+  @apply grid gap-1 font-bold;
 }
 
 select {
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  font: inherit;
-  min-width: 10rem;
-  padding: 0.65rem 0.75rem;
+  @apply min-w-40 rounded-lg border border-studio-lineStrong bg-studio-field px-3 py-2.5 font-sans text-studio-text;
 }
 
 .table-wrap {
-  margin-top: 1.5rem;
-  overflow-x: auto;
+  @apply mt-6 overflow-x-auto;
 }
 
 table {
-  border-collapse: collapse;
-  width: 100%;
+  @apply w-full border-collapse;
 }
 
 th,
 td {
-  border-bottom: 1px solid #e5e7eb;
-  padding: 0.75rem;
-  text-align: left;
-  vertical-align: top;
+  @apply border-b border-studio-line p-3 text-left align-top;
 }
 
 th {
-  background: #f8fafc;
+  @apply bg-studio-field text-studio-accentSoft;
 }
 
 .prompt-text {
@@ -66,21 +40,13 @@ th {
   white-space: pre-wrap;
 }
 
-.empty-state {
-  color: #4b5563;
-  line-height: 1.6;
-  margin-top: 1.5rem;
-}
-
+.empty-state,
 .error {
-  color: #c62828;
-  font-weight: 700;
-  margin-top: 1.5rem;
+  @apply mt-6;
 }
 
 @media (max-width: 720px) {
   .history-header {
-    align-items: stretch;
-    display: grid;
+    @apply grid items-stretch;
   }
 }

@@ -82,4 +82,11 @@ describe('AudiobookStudioPageComponent', () => {
 
     expect(fixture.nativeElement.textContent).toContain('The cast analysis provider is currently unavailable. Please try again later.');
   });
+
+  it('renders every leading performance tag as inline markup', () => {
+    const markup = component.markupFor({ speaker: 'Mara', text: '[serious] [curious] Jonas, listen.' });
+
+    expect(markup.tags).toEqual(['serious', 'curious']);
+    expect(markup.text).toBe('Jonas, listen.');
+  });
 });

@@ -99,7 +99,7 @@
     <ol *ngIf="annotatedTurns.length > 0" class="notes-list">
       <li *ngFor="let turn of annotatedTurns">
         <span class="speaker-name">{{ turn.speaker }}</span>
-        <span *ngIf="markupFor(turn).emotion" class="emotion-badge">[{{ markupFor(turn).emotion }}]</span>
+        <span *ngFor="let tag of markupFor(turn).tags" class="emotion-badge">[{{ tag }}]</span>
         <span>{{ markupFor(turn).text }}</span>
       </li>
     </ol>

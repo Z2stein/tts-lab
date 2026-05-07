@@ -1,67 +1,32 @@
 .feature-page {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
-  padding: 1.5rem;
+  @apply rounded-xl border border-studio-line bg-studio-panel p-6 text-studio-text;
 }
 
 .page-heading {
-  margin-bottom: 1.5rem;
-}
-
-.eyebrow {
-  color: #315cbe;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  margin: 0 0 0.5rem;
-  text-transform: uppercase;
+  @apply mb-6;
 }
 
 h1 {
-  margin: 0 0 0.5rem;
+  @apply mb-2 mt-0;
 }
 
 .page-heading p:last-child {
-  color: #4b5563;
-  margin: 0;
+  @apply m-0 text-studio-muted;
 }
 
 .text-length-form {
-  display: grid;
-  gap: 0.75rem;
+  @apply grid gap-3;
 }
 
 label {
-  font-weight: 700;
+  @apply font-bold;
 }
 
 textarea {
-  border: 1px solid #cbd5e1;
-  border-radius: 10px;
-  font: inherit;
-  padding: 0.75rem;
+  @apply rounded-lg border border-studio-lineStrong bg-studio-field p-3 font-sans text-studio-text;
   resize: vertical;
 }
 
 button {
-  align-self: start;
-  background: #1d4ed8;
-  border: 0;
-  border-radius: 999px;
-  color: #ffffff;
-  cursor: pointer;
-  font: inherit;
-  font-weight: 700;
-  padding: 0.65rem 1.25rem;
-}
-
-.result {
-  color: #047857;
-  font-weight: 700;
-}
-
-.error {
-  color: #c62828;
-  font-weight: 700;
+  @apply self-start rounded-full border-0 bg-studio-accent px-5 py-2.5 font-extrabold text-studio-field;
 }

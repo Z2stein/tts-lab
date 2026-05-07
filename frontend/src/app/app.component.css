@@ -4,15 +4,15 @@
 }
 
 .app-shell {
-  background: #f3f6fb;
-  color: #111827;
+  background: #120f14;
+  color: #f8efe5;
   min-height: 100vh;
 }
 
 .app-header {
   align-items: center;
-  background: #ffffff;
-  border-bottom: 1px solid #e5e7eb;
+  background: #17131a;
+  border-bottom: 1px solid #392d36;
   display: flex;
   gap: 1rem;
   justify-content: space-between;
@@ -23,7 +23,7 @@
 }
 
 .brand {
-  color: #111827;
+  color: #f8efe5;
   font-size: 1.2rem;
   font-weight: 800;
   text-decoration: none;
@@ -39,7 +39,7 @@
 
 .main-nav a {
   border-radius: 999px;
-  color: #374151;
+  color: #cbbdb0;
   font-weight: 700;
   padding: 0.45rem 0.8rem;
   text-decoration: none;
@@ -47,8 +47,8 @@
 
 .main-nav a.active,
 .main-nav a:hover {
-  background: #e0e7ff;
-  color: #1d4ed8;
+  background: #2a2025;
+  color: #f0ad5d;
 }
 
 .auth-summary {
@@ -61,7 +61,7 @@
 }
 
 .auth-summary span {
-  color: #4b5563;
+  color: #cbbdb0;
   font-size: 0.9rem;
 }
 
@@ -74,10 +74,10 @@
 }
 
 .limit-summary span {
-  background: #eef2ff;
-  border: 1px solid #c7d2fe;
+  background: #2a2025;
+  border: 1px solid #57414a;
   border-radius: 999px;
-  color: #1e3a8a;
+  color: #f4c78e;
   font-size: 0.78rem;
   font-weight: 800;
   padding: 0.25rem 0.55rem;
@@ -85,10 +85,10 @@
 }
 
 button {
-  background: #1d4ed8;
+  background: #f0ad5d;
   border: 0;
   border-radius: 999px;
-  color: #ffffff;
+  color: #100d12;
   cursor: pointer;
   font: inherit;
   font-weight: 700;
@@ -96,7 +96,7 @@ button {
 }
 
 button:hover {
-  background: #1e40af;
+  background: #f4c78e;
 }
 
 .app-main {
@@ -106,9 +106,9 @@ button:hover {
 }
 
 .status-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 16px;
+  background: #1a161d;
+  border: 1px solid #392d36;
+  border-radius: 12px;
   margin: 2rem auto;
   max-width: 36rem;
   padding: 2rem;
@@ -120,8 +120,12 @@ button:hover {
 }
 
 .error {
-  color: #c62828;
-  font-weight: 700;
+  background: #3a1618;
+  border: 1px solid #834047;
+  border-radius: 8px;
+  color: #ffd7d7;
+  font-weight: 800;
+  padding: 0.75rem;
 }
 
 @media (max-width: 720px) {

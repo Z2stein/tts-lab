@@ -17,7 +17,7 @@ interface ScriptGroup {
 }
 
 interface AnnotatedMarkup {
-  emotion: string | null;
+  tags: string[];
   text: string;
 }
 
@@ -188,8 +188,17 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   }
 
   markupFor(turn: AnnotatedSpeakerTurn): AnnotatedMarkup {
-    const match = /^\s*\[([^\]]+)]\s*(.*)$/s.exec(turn.text);
-    return match ? { emotion: match[1], text: match[2] } : { emotion: null, text: turn.text };
+    const tags: string[] = [];
+    let remainingText = turn.text.trimStart();
+    let match = /^\[([^\]]+)]\s*/.exec(remainingText);
+
+    while (match) {
+      tags.push(match[1]);
+      remainingText = remainingText.slice(match[0].length).trimStart();
+      match = /^\[([^\]]+)]\s*/.exec(remainingText);
+    }
+
+    return { tags, text: remainingText };
   }
 
   renderRequestAudioState(requestIndex: number): { loading: boolean; error: string | null } {
