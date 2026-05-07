@@ -324,6 +324,22 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     this.scriptApproved = true;
   }
 
+  trackCastByIndex(index: number): number {
+    return index;
+  }
+
+  trackScriptGroup(_: number, group: ScriptGroup): string {
+    return `${group.speaker}:${group.turns[0]?.index ?? 0}`;
+  }
+
+  trackScriptTurn(_: number, indexedTurn: IndexedSpeakerSplitTurn): number {
+    return indexedTurn.index;
+  }
+
+  trackSpeakerOption(_: number, speakerName: string): string {
+    return speakerName;
+  }
+
   private resetPipeline(): void {
     this.cast = [];
     this.scriptTurns = [];

@@ -95,6 +95,64 @@ test('audiobook studio shows script preview turns after cast analysis continues'
   await expect(page.getByText('Together.')).toBeVisible();
 });
 
+test('audiobook studio edits a script preview turn without freezing the app', async ({ context, page }) => {
+  await authenticate(context, page);
+  await page.route('**/api/projects/tts-workbench/speaker-voice-analysis', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        speakers: [
+          { speakerName: 'Narrator', roleDescription: 'Story voice', voiceSuggestion: 'Clear narrator' },
+          { speakerName: 'Mara', roleDescription: 'Determined lead', voiceSuggestion: 'Warm alto voice' }
+        ]
+      })
+    });
+  });
+  await page.route('**/api/projects/tts-workbench/speaker-split-analysis', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        turns: [
+          { speaker: 'Narrator', text: 'The last train had already left when Mara found the brass key under the station clock.' },
+          { speaker: 'Mara', text: 'Jonas, tell me you did not hide this here all winter.' }
+        ]
+      })
+    });
+  });
+  await page.route('**/api/projects/tts-workbench/emotion-annotation-analysis', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        turns: [
+          { speaker: 'Narrator', text: '[hushed] The last train had already left.' },
+          { speaker: 'Mara', text: '[worried] Jonas, answer me.' }
+        ]
+      })
+    });
+  });
+
+  await page.goto('/audiobook-studio');
+  await page.getByRole('button', { name: 'Use sample story' }).click();
+  await page.getByRole('button', { name: 'Analyze story' }).click();
+  await page.getByRole('button', { name: 'Continue to script preview' }).click();
+
+  await page.getByTestId('script-turn-edit-0').click();
+  await expect(page.getByLabel('Speaker')).toBeVisible();
+  await expect(page.locator('#script-text-0')).toBeVisible();
+
+  await page.locator('#script-text-0').fill('The last train had already left, and the station clock was wrong.');
+  await page.getByRole('button', { name: 'Save' }).click();
+
+  await expect(page.getByText('The last train had already left, and the station clock was wrong.')).toBeVisible();
+  await page.getByRole('button', { name: 'Approve script' }).click();
+  await page.getByRole('button', { name: 'Add performance notes' }).click();
+
+  await expect(page.getByText('[hushed]')).toBeVisible();
+});
+
 test('audiobook studio shows structured backend errors without internal details', async ({ context, page }) => {
   await authenticate(context, page);
   await page.route('**/api/projects/tts-workbench/speaker-voice-analysis', async (route) => {

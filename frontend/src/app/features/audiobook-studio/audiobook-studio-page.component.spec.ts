@@ -149,6 +149,27 @@ describe('AudiobookStudioPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('We wait for the signal.');
   });
 
+  it('opens the first script turn editor without activating cast editing', () => {
+    component.cast = [
+      { speakerName: 'Narrator', roleDescription: 'Story voice', voiceSuggestion: 'Clear narrator' },
+      { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }
+    ];
+    component.scriptTurns = [
+      { speaker: 'Narrator', text: 'The last train had already left.' },
+      { speaker: 'Mara', text: 'Jonas, tell me you did not hide this here all winter.' }
+    ];
+    fixture.detectChanges();
+
+    getByTestId('script-turn-edit-0').click();
+    fixture.detectChanges();
+
+    expect(component.editingScriptTurnIndex).toBe(0);
+    expect(component.editingCastIndex).toBeNull();
+    expect(fixture.nativeElement.querySelector('#script-speaker-0')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#script-text-0')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('#cast-speaker-name-0')).toBeNull();
+  });
+
   it('disables the production plan button when script edits make performance notes stale', async () => {
     component.cast = [
       { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }
@@ -236,5 +257,15 @@ describe('AudiobookStudioPageComponent', () => {
     const select = fixture.nativeElement.querySelector(selector) as HTMLSelectElement;
     select.value = value;
     select.dispatchEvent(new Event('change'));
+  }
+
+  function getByTestId(testId: string): HTMLElement {
+    const element = fixture.nativeElement.querySelector(`[data-testid="${testId}"]`) as HTMLElement | null;
+
+    if (!element) {
+      throw new Error(`Could not find element with data-testid: ${testId}`);
+    }
+
+    return element;
   }
 });
