@@ -12,7 +12,8 @@ describe('TtsWorkbenchPageComponent', () => {
       'analyzeSpeakers',
       'splitDialogue',
       'annotateEmotions',
-      'generateFinalJson'
+      'generateFinalJson',
+      'planSingleSpeakerRenderRequests'
     ]);
 
     await TestBed.configureTestingModule({
@@ -76,6 +77,31 @@ describe('TtsWorkbenchPageComponent', () => {
 
     expect(ttsWorkbenchService.generateFinalJson).toHaveBeenCalled();
     expect(fixture.nativeElement.textContent).toContain('"audioEncoding": "MP3"');
+  });
+
+
+  it('displays single-speaker render plan requests', async () => {
+    component.finalRequest = {
+      input: { prompt: 'Prompt' },
+      voice: { languageCode: 'en-US' },
+      audioConfig: { audioEncoding: 'MP3' }
+    };
+    ttsWorkbenchService.planSingleSpeakerRenderRequests.and.resolveTo({
+      renderRequests: [{
+        input: { text: 'Hello' },
+        voice: { languageCode: 'en-US', name: 'Kore', modelName: '{{google-model}}' },
+        audioConfig: { audioEncoding: 'MP3' }
+      }]
+    });
+
+    await component.planSingleSpeakerRenderRequests();
+    fixture.detectChanges();
+
+    expect(ttsWorkbenchService.planSingleSpeakerRenderRequests).toHaveBeenCalledWith(component.finalRequest);
+    expect(fixture.nativeElement.textContent).toContain('Single-Speaker Render Plan Preview');
+    expect(fixture.nativeElement.textContent).toContain('Render request count: 1');
+    expect(fixture.nativeElement.textContent).toContain('Render request 1');
+    expect(fixture.nativeElement.textContent).toContain('\"name\": \"Kore\"');
   });
 
   it('keeps editable preview fields in component state', () => {

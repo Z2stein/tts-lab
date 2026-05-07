@@ -119,3 +119,21 @@ pre {
     grid-template-columns: 1fr;
   }
 }
+
+.chunk-summary {
+  color: #1f2937;
+  font-weight: 700;
+}
+
+.request-chunk {
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  display: grid;
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.request-chunk h3,
+.request-chunk p {
+  margin: 0;
+}
