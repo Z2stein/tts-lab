@@ -1,6 +1,5 @@
 package com.example.ttslab.projects.ttsworkbench;
 
-import com.example.ttslab.error.ApiException;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.texttospeech.v1.AudioConfig;
@@ -17,15 +16,11 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
-import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Component;
 
 @Component
-@ConditionalOnProperty(name = "chatbot.provider", havingValue = "gemini")
-public class GoogleCloudTtsClient implements GoogleTtsClient, InitializingBean {
+public class GoogleCloudTtsClient implements GoogleTtsClient {
     private static final Logger log = LoggerFactory.getLogger(GoogleCloudTtsClient.class);
     private final String serviceAccountJsonBase64;
 
@@ -33,21 +28,6 @@ public class GoogleCloudTtsClient implements GoogleTtsClient, InitializingBean {
         @Value("${tts-workbench.google.service-account-json-b64:}") String serviceAccountJsonBase64
     ) {
         this.serviceAccountJsonBase64 = serviceAccountJsonBase64 == null ? "" : serviceAccountJsonBase64.trim();
-    }
-
-    @Override
-    public void afterPropertiesSet() {
-        try {
-            credentials();
-        } catch (TtsAudioCreationException ex) {
-            throw new ApiException(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "TTS_GOOGLE_CREDENTIALS_INVALID",
-                "Google Cloud Text-to-Speech credentials are missing or invalid for gemini mode.",
-                null,
-                ex
-            );
-        }
     }
 
     @Override
