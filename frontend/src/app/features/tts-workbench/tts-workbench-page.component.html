@@ -122,7 +122,7 @@
       Render request count: {{ singleSpeakerRenderRequests.length }}
     </div>
     <button type="button" (click)="createAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || singleSpeakerRenderRequests.length === 0">
-      {{ fullPlanAudioLoading ? 'Creating full-plan audio...' : 'Create audio' }}
+      {{ fullPlanAudioLoading ? 'Creating full-plan audio...' : 'Create full-plan audio' }}
     </button>
     <p *ngIf="fullPlanAudioError" class="error">{{ fullPlanAudioError }}</p>
     <article *ngFor="let renderRequest of singleSpeakerRenderRequests; let requestIndex = index" class="request-chunk">
