@@ -77,13 +77,12 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
 
     private VoiceSelectionParams voice(Map<String, Object> voice) {
         VoiceSelectionParams.Builder builder = VoiceSelectionParams.newBuilder()
-            .setLanguageCode(stringValue(voice, "languageCode"));
+            .setLanguageCode(stringValue(voice, "languageCode"))
+            .setModelName(stringValue(voice,"modelName"));
         String name = stringValue(voice, "name");
         if (!name.isBlank()) {
             builder.setName(name);
         }
-        builder.setCustomVoice(CustomVoiceParams.newBuilder()
-                .setModel(stringValue(voice,"modelName")).build());
         return builder.build();
     }
 
