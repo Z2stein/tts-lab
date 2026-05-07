@@ -1,0 +1,42 @@
+<section class="history" aria-labelledby="prompt-history-title">
+  <div class="history-header">
+    <div>
+      <p class="eyebrow">User data</p>
+      <h1 id="prompt-history-title">Prompt History</h1>
+    </div>
+
+    <label>
+      <span>Model type</span>
+      <select [formControl]="modelTypeControl" (change)="loadHistory()">
+        <option value="ALL">All</option>
+        <option value="TEXT_MODEL">Text model</option>
+        <option value="SPEECH_MODEL">Speech model</option>
+      </select>
+    </label>
+  </div>
+
+  <p *ngIf="loading" class="empty-state">Loading prompt history...</p>
+  <p *ngIf="error" class="error">{{ error }}</p>
+  <p *ngIf="!loading && !error && prompts.length === 0" class="empty-state">No prompts have been submitted yet.</p>
+
+  <div *ngIf="!loading && !error && prompts.length > 0" class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Timestamp</th>
+          <th>Model type</th>
+          <th>Model/provider</th>
+          <th>Prompt</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let prompt of prompts">
+          <td>{{ formatTimestamp(prompt.createdAt) }}</td>
+          <td>{{ prompt.modelType }}</td>
+          <td>{{ prompt.providerModelName || 'n/a' }}</td>
+          <td class="prompt-text">{{ prompt.promptText }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</section>

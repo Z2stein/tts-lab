@@ -45,6 +45,25 @@ backend:
     createAlias: true
     aliasName: backend
 
+postgresql:
+  enabled: true
+  image:
+    repository: postgres
+    tag: "16-alpine"
+    pullPolicy: IfNotPresent
+  service:
+    port: 5432
+  auth:
+    database: ttslab
+    username: ttslab
+    password: ttslab-local-password
+    existingSecretName: ""
+  persistence:
+    enabled: true
+    size: 2Gi
+    storageClassName: ""
+  resources: {}
+
 ingress:
   enabled: true
   className: traefik

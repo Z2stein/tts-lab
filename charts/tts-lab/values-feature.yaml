@@ -1,0 +1,8 @@
+app:
+  environment: feature
+
+postgresql:
+  enabled: true
+  persistence:
+    enabled: true
+    size: 1Gi
