@@ -2,11 +2,8 @@ package com.example.ttslab.projects.ttsworkbench;
 
 import com.example.ttslab.error.ApiException;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipOutputStream;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -45,7 +42,7 @@ public class TtsAudioCreationService {
         if (audioParts.size() == 1) {
             return new TtsAudioFile(audioParts.getFirst(), "audio/mpeg", "tts-render-request-1.mp3");
         }
-        return new TtsAudioFile(zip(audioParts), "application/zip", "tts-render-plan.zip");
+        return new TtsAudioFile(concatenateMp3(audioParts), "audio/mpeg", "tts-render-plan.mp3");
     }
 
     private byte[] createAudioPart(SingleSpeakerRenderRequest renderRequest) {
@@ -97,25 +94,11 @@ public class TtsAudioCreationService {
         return output.toByteArray();
     }
 
-    private byte[] zip(List<byte[]> audioParts) {
-        try {
-            ByteArrayOutputStream bytes = new ByteArrayOutputStream();
-            try (ZipOutputStream zip = new ZipOutputStream(bytes)) {
-                for (int index = 0; index < audioParts.size(); index++) {
-                    zip.putNextEntry(new ZipEntry("tts-render-request-" + (index + 1) + ".mp3"));
-                    zip.write(audioParts.get(index));
-                    zip.closeEntry();
-                }
-            }
-            return bytes.toByteArray();
-        } catch (IOException ex) {
-            throw new ApiException(
-                HttpStatus.INTERNAL_SERVER_ERROR,
-                "TTS_AUDIO_ARCHIVE_FAILED",
-                "Audio was created, but packaging it for download failed. Please try again later.",
-                null,
-                ex
-            );
+    private byte[] concatenateMp3(List<byte[]> audioParts) {
+        ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+        for (byte[] audioPart : audioParts) {
+            bytes.writeBytes(audioPart);
         }
+        return bytes.toByteArray();
     }
 }

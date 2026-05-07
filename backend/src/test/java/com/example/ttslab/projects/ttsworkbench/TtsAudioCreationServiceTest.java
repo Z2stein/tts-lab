@@ -4,7 +4,6 @@ import com.example.ttslab.error.ApiException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
-import java.util.zip.ZipInputStream;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
 
@@ -50,7 +49,7 @@ class TtsAudioCreationServiceTest {
     }
 
     @Test
-    void multipleRequestsReturnZipOfMp3Parts() throws Exception {
+    void multipleRequestsReturnSingleConcatenatedMp3() {
         TtsAudioCreationService service = new TtsAudioCreationService(provider(null), "mock");
 
         TtsAudioFile audioFile = service.createAudio(new SingleSpeakerRenderPlanResponse(List.of(
@@ -58,12 +57,12 @@ class TtsAudioCreationServiceTest {
             renderRequest("Second")
         )));
 
-        assertEquals("application/zip", audioFile.contentType());
-        assertEquals("tts-render-plan.zip", audioFile.filename());
-        try (ZipInputStream zip = new ZipInputStream(new java.io.ByteArrayInputStream(audioFile.content()))) {
-            assertEquals("tts-render-request-1.mp3", zip.getNextEntry().getName());
-            assertEquals("tts-render-request-2.mp3", zip.getNextEntry().getName());
-        }
+        assertEquals("audio/mpeg", audioFile.contentType());
+        assertEquals("tts-render-plan.mp3", audioFile.filename());
+        String content = new String(audioFile.content(), StandardCharsets.UTF_8);
+        assertTrue(content.contains("First"));
+        assertTrue(content.contains("Second"));
+        assertTrue(content.indexOf("First") < content.indexOf("Second"));
     }
 
     @Test
