@@ -161,7 +161,7 @@ class TtsWorkbenchServiceTest {
             new SpeakerSplitAnalysisService(chatService, objectMapper, promptProvider, fallbackService, provider),
             new EmotionAnnotationService(chatService, objectMapper, promptProvider, fallbackService, provider),
             new FinalTtsRequestBuilder(),
-            new ProviderCompatibleRequestPlanner(objectMapper)
+            new SingleSpeakerRenderPlanner(objectMapper)
         );
     }
 }

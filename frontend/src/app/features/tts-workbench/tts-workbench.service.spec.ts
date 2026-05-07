@@ -61,28 +61,29 @@ describe('TtsWorkbenchService', () => {
   });
 
 
-  it('posts final request JSON to the provider-compatible request plan endpoint', async () => {
+  it('posts final request JSON to the single-speaker render plan endpoint', async () => {
     const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
     spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
-      chunks: [{
-        chunkNumber: 1,
-        speakers: ['Alice'],
-        request: {
-          input: { prompt: 'Prompt' },
-          voice: { languageCode: 'en-US' },
-          audioConfig: { audioEncoding: 'MP3' }
-        }
+      renderRequests: [{
+        renderIndex: 1,
+        originalTurnIndexes: [0],
+        speakerName: 'Alice',
+        voiceId: 'Kore',
+        text: 'Hello',
+        languageCode: 'en-US',
+        modelName: '{{google-model}}',
+        audioEncoding: 'MP3'
       }]
     }), { status: 200 }));
 
-    const plan = await service.planProviderCompatibleRequests({
+    const plan = await service.planSingleSpeakerRenderRequests({
       input: { prompt: 'Prompt' },
       voice: { languageCode: 'en-US' },
       audioConfig: { audioEncoding: 'MP3' }
     });
 
-    expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/provider-compatible-request-plan', jasmine.objectContaining({ method: 'POST' }));
-    expect(plan.chunks[0].speakers).toEqual(['Alice']);
+    expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/single-speaker-render-plan', jasmine.objectContaining({ method: 'POST' }));
+    expect(plan.renderRequests[0].speakerName).toBe('Alice');
   });
 
   it('throws a user-facing error when analysis fails', async () => {

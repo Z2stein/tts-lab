@@ -38,10 +38,10 @@ public class TtsWorkbenchController {
         return ttsWorkbenchService.buildFinalRequest(request);
     }
 
-    @PostMapping("/provider-compatible-request-plan")
-    public ProviderCompatibleRequestPlanResponse previewProviderCompatibleRequestPlan(
-        @RequestBody ProviderCompatibleRequestPlanRequest request
+    @PostMapping("/single-speaker-render-plan")
+    public SingleSpeakerRenderPlanResponse previewSingleSpeakerRenderPlan(
+        @RequestBody SingleSpeakerRenderPlanRequest request
     ) {
-        return ttsWorkbenchService.planProviderCompatibleRequests(request);
+        return ttsWorkbenchService.planSingleSpeakerRenderRequests(request);
     }
 }

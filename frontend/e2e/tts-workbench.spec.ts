@@ -45,10 +45,10 @@ test('tts workbench displays speaker voice analysis results for authenticated us
   await expect(page.getByRole('textbox', { name: 'Voice suggestion' })).toHaveValue('Warm neutral voice');
 });
 
-test('tts workbench previews provider-compatible request splitting after final JSON generation', async ({ context, page }) => {
+test('tts workbench previews single-speaker render requests after final JSON generation', async ({ context, page }) => {
   await authenticate(context, page);
 
-  let providerPlanRequest: { input: { prompt: string } } | null = null;
+  let renderPlanRequest: { input: { prompt: string } } | null = null;
 
   await page.route('**/api/projects/tts-workbench/speaker-voice-analysis', async (route) => {
     await route.fulfill({
@@ -125,46 +125,42 @@ test('tts workbench previews provider-compatible request splitting after final J
     });
   });
 
-  await page.route('**/api/projects/tts-workbench/provider-compatible-request-plan', async (route) => {
-    providerPlanRequest = route.request().postDataJSON();
+  await page.route('**/api/projects/tts-workbench/single-speaker-render-plan', async (route) => {
+    renderPlanRequest = route.request().postDataJSON();
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
       body: JSON.stringify({
-        chunks: [
+        renderRequests: [
           {
-            chunkNumber: 1,
-            speakers: ['Narrator', 'Mara'],
-            request: {
-              ...finalRequest,
-              input: {
-                ...finalRequest.input,
-                multiSpeakerMarkup: { turns: finalRequest.input.multiSpeakerMarkup.turns.slice(0, 2) }
-              },
-              voice: {
-                ...finalRequest.voice,
-                multiSpeakerVoiceConfig: {
-                  speakerVoiceConfigs: finalRequest.voice.multiSpeakerVoiceConfig.speakerVoiceConfigs.slice(0, 2)
-                }
-              }
-            }
+            renderIndex: 1,
+            originalTurnIndexes: [0],
+            speakerName: 'Narrator',
+            voiceId: 'Schedar',
+            text: '[calm] The rain hit the windows.',
+            languageCode: 'en-US',
+            modelName: '{{google-model}}',
+            audioEncoding: 'MP3'
           },
           {
-            chunkNumber: 2,
-            speakers: ['Jonas'],
-            request: {
-              ...finalRequest,
-              input: {
-                ...finalRequest.input,
-                multiSpeakerMarkup: { turns: finalRequest.input.multiSpeakerMarkup.turns.slice(2) }
-              },
-              voice: {
-                ...finalRequest.voice,
-                multiSpeakerVoiceConfig: {
-                  speakerVoiceConfigs: finalRequest.voice.multiSpeakerVoiceConfig.speakerVoiceConfigs.slice(2)
-                }
-              }
-            }
+            renderIndex: 2,
+            originalTurnIndexes: [1],
+            speakerName: 'Mara',
+            voiceId: 'Kore',
+            text: '[sarcastic] So this is your surprise?',
+            languageCode: 'en-US',
+            modelName: '{{google-model}}',
+            audioEncoding: 'MP3'
+          },
+          {
+            renderIndex: 3,
+            originalTurnIndexes: [2],
+            speakerName: 'Jonas',
+            voiceId: 'Iapetus',
+            text: '[serious] I thought you would be pleased.',
+            languageCode: 'en-US',
+            modelName: '{{google-model}}',
+            audioEncoding: 'MP3'
           }
         ]
       })
@@ -173,8 +169,8 @@ test('tts workbench previews provider-compatible request splitting after final J
 
   await page.goto('/tts-workbench');
 
-  await expect(page.getByRole('heading', { name: '6. Provider-Compatible Request Splitting Preview' })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Plan Provider-Compatible Requests' })).toBeDisabled();
+  await expect(page.getByRole('heading', { name: '6. Single-Speaker Render Plan Preview' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Plan Single-Speaker Render Requests' })).toBeDisabled();
 
   await page.getByRole('textbox', { name: 'Raw dialogue' }).fill('Narrator: The rain hit the windows.\nMara: So this is your surprise?\nJonas: I thought you would be pleased.');
   await page.getByRole('button', { name: 'Analyze Speakers' }).click();
@@ -185,14 +181,15 @@ test('tts workbench previews provider-compatible request splitting after final J
   await expect(page.getByRole('heading', { name: '5. Final Request JSON Preview' })).toBeVisible();
   await expect(page.locator('pre').filter({ hasText: 'A tense café conversation.' })).toBeVisible();
 
-  await page.getByRole('button', { name: 'Plan Provider-Compatible Requests' }).click();
+  await page.getByRole('button', { name: 'Plan Single-Speaker Render Requests' }).click();
 
-  expect(providerPlanRequest?.input.prompt).toBe('A tense café conversation.');
-  await expect(page.getByText('Chunk count: 2')).toBeVisible();
-  await expect(page.getByText('Included speakers: Narrator, Mara')).toBeVisible();
-  await expect(page.getByText('Included speakers: Jonas')).toBeVisible();
-  await expect(page.locator('article.request-chunk').nth(0)).toContainText('"speakerAlias": "Narrator"');
-  await expect(page.locator('article.request-chunk').nth(0)).not.toContainText('"speakerAlias": "Jonas"');
+  expect(renderPlanRequest?.input.prompt).toBe('A tense café conversation.');
+  await expect(page.getByText('Render request count: 3')).toBeVisible();
+  await expect(page.getByText('Speaker: Narrator')).toBeVisible();
+  await expect(page.getByText('Voice ID: Schedar')).toBeVisible();
+  await expect(page.getByText('Original turn indexes: 0')).toBeVisible();
+  await expect(page.locator('article.request-chunk').nth(0)).toContainText('"speakerName": "Narrator"');
+  await expect(page.locator('article.request-chunk').nth(0)).toContainText('"voiceId": "Schedar"');
 });
 
 test('tts workbench route shows sign-in UI for unauthenticated users', async ({ page }) => {

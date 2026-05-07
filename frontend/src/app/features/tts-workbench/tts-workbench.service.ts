@@ -23,14 +23,19 @@ export interface FinalTtsRequestPreview {
   audioConfig: unknown;
 }
 
-export interface ProviderCompatibleRequestChunk {
-  chunkNumber: number;
-  speakers: string[];
-  request: FinalTtsRequestPreview;
+export interface SingleSpeakerRenderRequest {
+  renderIndex: number;
+  originalTurnIndexes: number[];
+  speakerName: string;
+  voiceId: string;
+  text: string;
+  languageCode: string;
+  modelName: string;
+  audioEncoding: string;
 }
 
-export interface ProviderCompatibleRequestPlan {
-  chunks: ProviderCompatibleRequestChunk[];
+export interface SingleSpeakerRenderPlan {
+  renderRequests: SingleSpeakerRenderRequest[];
 }
 
 interface SpeakerVoiceAnalysisResponse {
@@ -99,11 +104,11 @@ export class TtsWorkbenchService {
     );
   }
 
-  async planProviderCompatibleRequests(finalRequest: FinalTtsRequestPreview): Promise<ProviderCompatibleRequestPlan> {
-    return this.post<ProviderCompatibleRequestPlan>(
-      '/api/projects/tts-workbench/provider-compatible-request-plan',
+  async planSingleSpeakerRenderRequests(finalRequest: FinalTtsRequestPreview): Promise<SingleSpeakerRenderPlan> {
+    return this.post<SingleSpeakerRenderPlan>(
+      '/api/projects/tts-workbench/single-speaker-render-plan',
       finalRequest,
-      'Provider-compatible request plan preview failed'
+      'Single-speaker render plan preview failed'
     );
   }
 

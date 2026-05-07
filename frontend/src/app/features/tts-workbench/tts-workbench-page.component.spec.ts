@@ -13,7 +13,7 @@ describe('TtsWorkbenchPageComponent', () => {
       'splitDialogue',
       'annotateEmotions',
       'generateFinalJson',
-      'planProviderCompatibleRequests'
+      'planSingleSpeakerRenderRequests'
     ]);
 
     await TestBed.configureTestingModule({
@@ -80,27 +80,33 @@ describe('TtsWorkbenchPageComponent', () => {
   });
 
 
-  it('displays provider-compatible request plan chunks', async () => {
+  it('displays single-speaker render plan requests', async () => {
     component.finalRequest = {
       input: { prompt: 'Prompt' },
       voice: { languageCode: 'en-US' },
       audioConfig: { audioEncoding: 'MP3' }
     };
-    ttsWorkbenchService.planProviderCompatibleRequests.and.resolveTo({
-      chunks: [{
-        chunkNumber: 1,
-        speakers: ['Alice'],
-        request: component.finalRequest
+    ttsWorkbenchService.planSingleSpeakerRenderRequests.and.resolveTo({
+      renderRequests: [{
+        renderIndex: 1,
+        originalTurnIndexes: [0],
+        speakerName: 'Alice',
+        voiceId: 'Kore',
+        text: 'Hello',
+        languageCode: 'en-US',
+        modelName: '{{google-model}}',
+        audioEncoding: 'MP3'
       }]
     });
 
-    await component.planProviderCompatibleRequests();
+    await component.planSingleSpeakerRenderRequests();
     fixture.detectChanges();
 
-    expect(ttsWorkbenchService.planProviderCompatibleRequests).toHaveBeenCalledWith(component.finalRequest);
-    expect(fixture.nativeElement.textContent).toContain('Provider-Compatible Request Splitting Preview');
-    expect(fixture.nativeElement.textContent).toContain('Chunk count: 1');
-    expect(fixture.nativeElement.textContent).toContain('Included speakers: Alice');
+    expect(ttsWorkbenchService.planSingleSpeakerRenderRequests).toHaveBeenCalledWith(component.finalRequest);
+    expect(fixture.nativeElement.textContent).toContain('Single-Speaker Render Plan Preview');
+    expect(fixture.nativeElement.textContent).toContain('Render request count: 1');
+    expect(fixture.nativeElement.textContent).toContain('Speaker: Alice');
+    expect(fixture.nativeElement.textContent).toContain('Voice ID: Kore');
   });
 
   it('keeps editable preview fields in component state', () => {

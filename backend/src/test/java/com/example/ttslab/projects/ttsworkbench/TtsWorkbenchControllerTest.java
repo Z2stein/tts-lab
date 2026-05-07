@@ -91,28 +91,29 @@ class TtsWorkbenchControllerTest {
     }
 
     @Test
-    void providerCompatibleRequestPlanReturnsChunks() throws Exception {
-        when(ttsWorkbenchService.planProviderCompatibleRequests(any(ProviderCompatibleRequestPlanRequest.class)))
-            .thenReturn(new ProviderCompatibleRequestPlanResponse(List.of(
-                new ProviderCompatibleRequestChunk(
+    void singleSpeakerRenderPlanReturnsRenderRequests() throws Exception {
+        when(ttsWorkbenchService.planSingleSpeakerRenderRequests(any(SingleSpeakerRenderPlanRequest.class)))
+            .thenReturn(new SingleSpeakerRenderPlanResponse(List.of(
+                new SingleSpeakerRenderRequest(
                     1,
-                    List.of("Alice"),
-                    new FinalTtsRequestPreviewResponse(
-                        Map.of("prompt", "Prompt", "multiSpeakerMarkup", Map.of("turns", List.of(Map.of("speaker", "Alice", "text", "Hello")))),
-                        Map.of("languageCode", "en-US", "multiSpeakerVoiceConfig", Map.of("speakerVoiceConfigs", List.of(Map.of("speakerAlias", "Alice", "speakerId", "Kore")))),
-                        Map.of("audioEncoding", "MP3")
-                    )
+                    List.of(0),
+                    "Alice",
+                    "Kore",
+                    "Hello",
+                    "en-US",
+                    "{{google-model}}",
+                    "MP3"
                 )
             )));
 
-        mockMvc.perform(post("/api/projects/tts-workbench/provider-compatible-request-plan")
+        mockMvc.perform(post("/api/projects/tts-workbench/single-speaker-render-plan")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("""
                     {"input":{"prompt":"Prompt","multiSpeakerMarkup":{"turns":[]}},"voice":{},"audioConfig":{}}
                     """))
             .andExpect(status().isOk())
             .andExpect(content().json("""
-                {"chunks":[{"chunkNumber":1,"speakers":["Alice"],"request":{"input":{"prompt":"Prompt","multiSpeakerMarkup":{"turns":[{"speaker":"Alice","text":"Hello"}]}},"voice":{"languageCode":"en-US","multiSpeakerVoiceConfig":{"speakerVoiceConfigs":[{"speakerAlias":"Alice","speakerId":"Kore"}]}},"audioConfig":{"audioEncoding":"MP3"}}}]}
+                {"renderRequests":[{"renderIndex":1,"originalTurnIndexes":[0],"speakerName":"Alice","voiceId":"Kore","text":"Hello","languageCode":"en-US","modelName":"{{google-model}}","audioEncoding":"MP3"}]}
                 """));
     }
 

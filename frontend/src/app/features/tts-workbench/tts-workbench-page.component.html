@@ -110,21 +110,23 @@
     <pre *ngIf="finalRequest">{{ finalRequestJson }}</pre>
   </section>
 
-  <section class="result-panel step-card" aria-labelledby="provider-request-plan-title">
-    <h2 id="provider-request-plan-title">6. Provider-Compatible Request Splitting Preview</h2>
-    <p *ngIf="!providerRequestPlan" class="empty-state">
-      Split the final request into provider-compatible chunks after generating the final JSON. This keeps the final request preview unchanged.
+  <section class="result-panel step-card" aria-labelledby="single-speaker-render-plan-title">
+    <h2 id="single-speaker-render-plan-title">6. Single-Speaker Render Plan Preview</h2>
+    <p *ngIf="!singleSpeakerRenderPlan" class="empty-state">
+      Create ordered single-speaker render requests after generating the final JSON. Consecutive turns from the same speaker are grouped together.
     </p>
-    <button type="button" (click)="planProviderCompatibleRequests()" [disabled]="loadingAction !== null || !finalRequest">
-      {{ isLoading('provider-plan') ? 'Planning...' : 'Plan Provider-Compatible Requests' }}
+    <button type="button" (click)="planSingleSpeakerRenderRequests()" [disabled]="loadingAction !== null || !finalRequest">
+      {{ isLoading('render-plan') ? 'Planning...' : 'Plan Single-Speaker Render Requests' }}
     </button>
-    <div *ngIf="providerRequestPlan" class="chunk-summary">
-      Chunk count: {{ providerRequestChunks.length }}
+    <div *ngIf="singleSpeakerRenderPlan" class="chunk-summary">
+      Render request count: {{ singleSpeakerRenderRequests.length }}
     </div>
-    <article *ngFor="let chunk of providerRequestChunks" class="request-chunk">
-      <h3>Chunk {{ chunk.chunkNumber }}</h3>
-      <p><strong>Included speakers:</strong> {{ chunk.speakers.join(', ') || 'None' }}</p>
-      <pre>{{ providerRequestChunkJson(chunk) }}</pre>
+    <article *ngFor="let renderRequest of singleSpeakerRenderRequests" class="request-chunk">
+      <h3>Render request {{ renderRequest.renderIndex }}</h3>
+      <p><strong>Speaker:</strong> {{ renderRequest.speakerName || 'None' }}</p>
+      <p><strong>Voice ID:</strong> {{ renderRequest.voiceId || 'None' }}</p>
+      <p><strong>Original turn indexes:</strong> {{ renderRequest.originalTurnIndexes.join(', ') }}</p>
+      <pre>{{ singleSpeakerRenderRequestJson(renderRequest) }}</pre>
     </article>
   </section>
 </section>
