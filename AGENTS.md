@@ -97,6 +97,37 @@ Use these non-Docker validation commands where applicable:
 - Frontend unit tests: `cd frontend && CHROME_BIN="${CHROME_BIN:-/tmp/chrome-no-sandbox}" npm test`
 - Frontend build: `cd frontend && npm run build`
 
+
+## Codex app validation rule
+
+The Codex app may run inside Docker Desktop's internal Linux environment. This is visible from prompts like:
+
+```bash
+docker-desktop:/tmp/docker-desktop-root/run/desktop/mnt/host/c/Users/Chris/Documents/Codex/tts-lab#
+```
+
+In that environment, Windows-installed Java and Gradle are not available through `PATH`. If `java` or `gradle` returns `not found`, do not install Java or Gradle into the Docker Desktop internal shell.
+
+For backend validation in the Codex app, use a Docker image that already contains Java 21 and Gradle 8.14:
+
+```bash
+docker run --rm -v "$PWD:/workspace" -w /workspace gradle:8.14-jdk21 gradle clean test
+```
+
+If the project has a Gradle wrapper, prefer the wrapper inside the same container:
+
+```bash
+docker run --rm -v "$PWD:/workspace" -w /workspace gradle:8.14-jdk21 ./gradlew clean test
+```
+
+For a full backend build, use:
+
+```bash
+docker run --rm -v "$PWD:/workspace" -w /workspace gradle:8.14-jdk21 gradle build
+```
+
+Only run `java`, `gradle`, or `./gradlew` directly when the Codex app was started from an environment where those commands are already available, for example Windows PowerShell with a correctly configured `PATH`.
+
 ## Error handling and observability
 
 Silent exception swallowing is forbidden in production code.

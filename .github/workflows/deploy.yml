@@ -247,11 +247,14 @@ jobs:
               AUTH_MODE="google"
               AUTH_GOOGLE_SECRET_NAME="google-oauth"
               ENVIRONMENT=$([ "$DEPLOY_TYPE" = "main" ] && echo "main" || echo "dev")
+              VALUES_FILE=$([ "$DEPLOY_TYPE" = "main" ] && echo "values-main.yaml" || echo "values-develop.yaml")
             else
               AUTH_MODE="mock"
               AUTH_GOOGLE_SECRET_NAME=""
               ENVIRONMENT="feature"
+              VALUES_FILE="values-feature.yaml"
             fi
+            POSTGRES_PASSWORD=$(printf '%s:%s:postgresql' "$NAMESPACE" "$RELEASE_NAME" | sha256sum | awk '{print $1}')
 
             kubectl create namespace "$NAMESPACE" --dry-run=client -o yaml | kubectl apply -f -
 
@@ -284,6 +287,7 @@ jobs:
 
             helm upgrade --install "$RELEASE_NAME" "$REMOTE_APP_DIR/charts/tts-lab" \
               --namespace "$NAMESPACE" \
+              --values "$REMOTE_APP_DIR/charts/tts-lab/$VALUES_FILE" \
               --wait \
               --timeout 5m \
               --set ingress.host="$APP_HOST" \
@@ -298,6 +302,7 @@ jobs:
               --set app.baseUrl="https://$APP_HOST" \
               --set auth.mode="$AUTH_MODE" \
               --set auth.googleSecretName="$AUTH_GOOGLE_SECRET_NAME" \
+              --set-string postgresql.auth.password="$POSTGRES_PASSWORD" \
               --set chat.geminiSecretName="gemini-api" \
               --set chat.provider="$CHAT_PROVIDER" \
               --set ttsWorkbench.googleCredentialsSecretName="$TTS_GOOGLE_CREDENTIALS_SECRET_NAME" \
