@@ -95,14 +95,9 @@ class TtsWorkbenchControllerTest {
         when(ttsWorkbenchService.planSingleSpeakerRenderRequests(any(SingleSpeakerRenderPlanRequest.class)))
             .thenReturn(new SingleSpeakerRenderPlanResponse(List.of(
                 new SingleSpeakerRenderRequest(
-                    1,
-                    List.of(0),
-                    "Alice",
-                    "Kore",
-                    "Hello",
-                    "en-US",
-                    "{{google-model}}",
-                    "MP3"
+                    Map.of("text", "Hello"),
+                    Map.of("languageCode", "en-US", "name", "Kore", "modelName", "{{google-model}}"),
+                    Map.of("audioEncoding", "MP3")
                 )
             )));
 
@@ -113,7 +108,7 @@ class TtsWorkbenchControllerTest {
                     """))
             .andExpect(status().isOk())
             .andExpect(content().json("""
-                {"renderRequests":[{"renderIndex":1,"originalTurnIndexes":[0],"speakerName":"Alice","voiceId":"Kore","text":"Hello","languageCode":"en-US","modelName":"{{google-model}}","audioEncoding":"MP3"}]}
+                {"renderRequests":[{"input":{"text":"Hello"},"voice":{"languageCode":"en-US","name":"Kore","modelName":"{{google-model}}"},"audioConfig":{"audioEncoding":"MP3"}}]}
                 """));
     }
 

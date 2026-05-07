@@ -26,7 +26,7 @@ public class SingleSpeakerRenderPlanner {
             return new SingleSpeakerRenderPlanResponse(List.of());
         }
 
-        Map<String, String> voiceIdsBySpeaker = voiceIdsBySpeaker(request.voice());
+        Map<String, String> voiceNamesBySpeaker = voiceNamesBySpeaker(request.voice());
         String languageCode = stringValue(request.voice() == null ? null : request.voice().get("languageCode"));
         String modelName = stringValue(request.voice() == null ? null : request.voice().get("modelName"));
         String audioEncoding = stringValue(request.audioConfig() == null ? null : request.audioConfig().get("audioEncoding"));
@@ -41,7 +41,7 @@ public class SingleSpeakerRenderPlanner {
 
             if (currentGroup == null || !currentGroup.speakerName().equals(speakerName)) {
                 if (currentGroup != null) {
-                    renderRequests.add(toRenderRequest(renderRequests.size() + 1, currentGroup, voiceIdsBySpeaker, languageCode, modelName, audioEncoding));
+                    renderRequests.add(toRenderRequest(currentGroup, voiceNamesBySpeaker, languageCode, modelName, audioEncoding));
                 }
                 currentGroup = new RenderGroup(speakerName);
             }
@@ -50,30 +50,31 @@ public class SingleSpeakerRenderPlanner {
         }
 
         if (currentGroup != null) {
-            renderRequests.add(toRenderRequest(renderRequests.size() + 1, currentGroup, voiceIdsBySpeaker, languageCode, modelName, audioEncoding));
+            renderRequests.add(toRenderRequest(currentGroup, voiceNamesBySpeaker, languageCode, modelName, audioEncoding));
         }
 
         return new SingleSpeakerRenderPlanResponse(renderRequests);
     }
 
     private SingleSpeakerRenderRequest toRenderRequest(
-        int renderIndex,
         RenderGroup group,
-        Map<String, String> voiceIdsBySpeaker,
+        Map<String, String> voiceNamesBySpeaker,
         String languageCode,
         String modelName,
         String audioEncoding
     ) {
-        return new SingleSpeakerRenderRequest(
-            renderIndex,
-            group.originalTurnIndexes(),
-            group.speakerName(),
-            voiceIdsBySpeaker.getOrDefault(group.speakerName(), ""),
-            group.text(),
-            languageCode,
-            modelName,
-            audioEncoding
-        );
+        Map<String, Object> input = new LinkedHashMap<>();
+        input.put("text", group.text());
+
+        Map<String, Object> voice = new LinkedHashMap<>();
+        voice.put("languageCode", languageCode);
+        voice.put("name", voiceNamesBySpeaker.getOrDefault(group.speakerName(), ""));
+        voice.put("modelName", modelName);
+
+        Map<String, Object> audioConfig = new LinkedHashMap<>();
+        audioConfig.put("audioEncoding", audioEncoding);
+
+        return new SingleSpeakerRenderRequest(input, voice, audioConfig);
     }
 
     private List<Map<String, Object>> turns(Map<String, Object> input) {
@@ -93,7 +94,7 @@ public class SingleSpeakerRenderPlanner {
             .toList();
     }
 
-    private Map<String, String> voiceIdsBySpeaker(Map<String, Object> voice) {
+    private Map<String, String> voiceNamesBySpeaker(Map<String, Object> voice) {
         if (voice == null) {
             return Map.of();
         }
@@ -108,16 +109,16 @@ public class SingleSpeakerRenderPlanner {
             return Map.of();
         }
 
-        Map<String, String> voiceIdsBySpeaker = new LinkedHashMap<>();
+        Map<String, String> voiceNamesBySpeaker = new LinkedHashMap<>();
         for (Object config : configList) {
             if (config instanceof Map<?, ?> configMap) {
                 String speakerAlias = stringValue(configMap.get("speakerAlias"));
                 if (!speakerAlias.isBlank()) {
-                    voiceIdsBySpeaker.put(speakerAlias, stringValue(configMap.get("speakerId")));
+                    voiceNamesBySpeaker.put(speakerAlias, stringValue(configMap.get("speakerId")));
                 }
             }
         }
-        return voiceIdsBySpeaker;
+        return voiceNamesBySpeaker;
     }
 
     private String stringValue(Object value) {
@@ -126,7 +127,6 @@ public class SingleSpeakerRenderPlanner {
 
     private static final class RenderGroup {
         private final String speakerName;
-        private final List<Integer> originalTurnIndexes = new ArrayList<>();
         private final List<String> texts = new ArrayList<>();
 
         private RenderGroup(String speakerName) {
@@ -138,12 +138,7 @@ public class SingleSpeakerRenderPlanner {
         }
 
         private void addTurn(int originalTurnIndex, String text) {
-            originalTurnIndexes.add(originalTurnIndex);
             texts.add(text);
-        }
-
-        private List<Integer> originalTurnIndexes() {
-            return List.copyOf(originalTurnIndexes);
         }
 
         private String text() {

@@ -12,24 +12,24 @@ class SingleSpeakerRenderPlannerTest {
     private final SingleSpeakerRenderPlanner planner = new SingleSpeakerRenderPlanner(new ObjectMapper());
 
     @Test
-    void groupsOnlyConsecutiveTurnsFromSameSpeakerIntoSingleSpeakerRenderRequests() {
+    void groupsOnlyConsecutiveTurnsFromSameSpeakerIntoProviderRenderRequests() {
         SingleSpeakerRenderPlanResponse response = planner.plan(exampleRequest());
 
         assertEquals(4, response.renderRequests().size());
-        assertRenderRequest(response.renderRequests().get(0), 1, List.of(0, 1), "Narrator", "Schedar", "The rain hit the windows.\nThe café was nearly empty.");
-        assertRenderRequest(response.renderRequests().get(1), 2, List.of(2), "Mara", "Kore", "So this is your surprise?");
-        assertRenderRequest(response.renderRequests().get(2), 3, List.of(3), "Jonas", "Iapetus", "I thought you would be pleased.");
-        assertRenderRequest(response.renderRequests().get(3), 4, List.of(4), "Mara", "Kore", "Pleased is a generous word.");
+        assertRenderRequest(response.renderRequests().get(0), "Schedar", "The rain hit the windows.\nThe café was nearly empty.");
+        assertRenderRequest(response.renderRequests().get(1), "Kore", "So this is your surprise?");
+        assertRenderRequest(response.renderRequests().get(2), "Iapetus", "I thought you would be pleased.");
+        assertRenderRequest(response.renderRequests().get(3), "Kore", "Pleased is a generous word.");
     }
 
     @Test
-    void everyRenderRequestIncludesProviderSettings() {
+    void everyRenderRequestUsesProviderRequestShapeAndSettings() {
         SingleSpeakerRenderPlanResponse response = planner.plan(exampleRequest());
 
         for (SingleSpeakerRenderRequest renderRequest : response.renderRequests()) {
-            assertEquals("en-US", renderRequest.languageCode());
-            assertEquals("{{google-model}}", renderRequest.modelName());
-            assertEquals("MP3", renderRequest.audioEncoding());
+            assertEquals("en-US", renderRequest.voice().get("languageCode"));
+            assertEquals("{{google-model}}", renderRequest.voice().get("modelName"));
+            assertEquals("MP3", renderRequest.audioConfig().get("audioEncoding"));
         }
     }
 
@@ -37,22 +37,27 @@ class SingleSpeakerRenderPlannerTest {
     void turnOrderIsPreservedWithoutLossOrDuplication() {
         SingleSpeakerRenderPlanResponse response = planner.plan(exampleRequest());
 
-        List<Integer> originalTurnIndexes = response.renderRequests().stream()
-            .flatMap(renderRequest -> renderRequest.originalTurnIndexes().stream())
+        List<String> texts = response.renderRequests().stream()
+            .map(renderRequest -> (String) renderRequest.input().get("text"))
             .toList();
 
-        assertEquals(List.of(0, 1, 2, 3, 4), originalTurnIndexes);
+        assertEquals(List.of(
+            "The rain hit the windows.\nThe café was nearly empty.",
+            "So this is your surprise?",
+            "I thought you would be pleased.",
+            "Pleased is a generous word."
+        ), texts);
     }
 
     @Test
-    void missingVoiceConfigFallsBackToBlankVoiceId() {
+    void missingVoiceConfigFallsBackToBlankVoiceName() {
         SingleSpeakerRenderPlanResponse response = planner.plan(new SingleSpeakerRenderPlanRequest(
             Map.of("multiSpeakerMarkup", Map.of("turns", List.of(Map.of("speaker", "Unknown", "text", "Hello")))),
             Map.of("languageCode", "en-US", "modelName", "model", "multiSpeakerVoiceConfig", Map.of("speakerVoiceConfigs", List.of())),
             Map.of("audioEncoding", "MP3")
         ));
 
-        assertEquals("", response.renderRequests().getFirst().voiceId());
+        assertEquals("", response.renderRequests().getFirst().voice().get("name"));
     }
 
     @Test
@@ -62,19 +67,12 @@ class SingleSpeakerRenderPlannerTest {
         assertTrue(planner.plan(new SingleSpeakerRenderPlanRequest(Map.of(), Map.of(), Map.of())).renderRequests().isEmpty());
     }
 
-    private void assertRenderRequest(
-        SingleSpeakerRenderRequest renderRequest,
-        int renderIndex,
-        List<Integer> originalTurnIndexes,
-        String speakerName,
-        String voiceId,
-        String text
-    ) {
-        assertEquals(renderIndex, renderRequest.renderIndex());
-        assertEquals(originalTurnIndexes, renderRequest.originalTurnIndexes());
-        assertEquals(speakerName, renderRequest.speakerName());
-        assertEquals(voiceId, renderRequest.voiceId());
-        assertEquals(text, renderRequest.text());
+    private void assertRenderRequest(SingleSpeakerRenderRequest renderRequest, String voiceName, String text) {
+        assertEquals(Map.of("text", text), renderRequest.input());
+        assertEquals("en-US", renderRequest.voice().get("languageCode"));
+        assertEquals(voiceName, renderRequest.voice().get("name"));
+        assertEquals("{{google-model}}", renderRequest.voice().get("modelName"));
+        assertEquals(Map.of("audioEncoding", "MP3"), renderRequest.audioConfig());
     }
 
     private SingleSpeakerRenderPlanRequest exampleRequest() {

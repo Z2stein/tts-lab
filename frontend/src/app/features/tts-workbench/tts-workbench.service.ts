@@ -24,14 +24,9 @@ export interface FinalTtsRequestPreview {
 }
 
 export interface SingleSpeakerRenderRequest {
-  renderIndex: number;
-  originalTurnIndexes: number[];
-  speakerName: string;
-  voiceId: string;
-  text: string;
-  languageCode: string;
-  modelName: string;
-  audioEncoding: string;
+  input: unknown;
+  voice: unknown;
+  audioConfig: unknown;
 }
 
 export interface SingleSpeakerRenderPlan {

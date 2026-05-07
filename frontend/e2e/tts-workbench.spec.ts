@@ -133,34 +133,19 @@ test('tts workbench previews single-speaker render requests after final JSON gen
       body: JSON.stringify({
         renderRequests: [
           {
-            renderIndex: 1,
-            originalTurnIndexes: [0],
-            speakerName: 'Narrator',
-            voiceId: 'Schedar',
-            text: '[calm] The rain hit the windows.',
-            languageCode: 'en-US',
-            modelName: '{{google-model}}',
-            audioEncoding: 'MP3'
+            input: { text: '[calm] The rain hit the windows.' },
+            voice: { languageCode: 'en-US', name: 'Schedar', modelName: '{{google-model}}' },
+            audioConfig: { audioEncoding: 'MP3' }
           },
           {
-            renderIndex: 2,
-            originalTurnIndexes: [1],
-            speakerName: 'Mara',
-            voiceId: 'Kore',
-            text: '[sarcastic] So this is your surprise?',
-            languageCode: 'en-US',
-            modelName: '{{google-model}}',
-            audioEncoding: 'MP3'
+            input: { text: '[sarcastic] So this is your surprise?' },
+            voice: { languageCode: 'en-US', name: 'Kore', modelName: '{{google-model}}' },
+            audioConfig: { audioEncoding: 'MP3' }
           },
           {
-            renderIndex: 3,
-            originalTurnIndexes: [2],
-            speakerName: 'Jonas',
-            voiceId: 'Iapetus',
-            text: '[serious] I thought you would be pleased.',
-            languageCode: 'en-US',
-            modelName: '{{google-model}}',
-            audioEncoding: 'MP3'
+            input: { text: '[serious] I thought you would be pleased.' },
+            voice: { languageCode: 'en-US', name: 'Iapetus', modelName: '{{google-model}}' },
+            audioConfig: { audioEncoding: 'MP3' }
           }
         ]
       })
@@ -185,11 +170,10 @@ test('tts workbench previews single-speaker render requests after final JSON gen
 
   expect(renderPlanRequest?.input.prompt).toBe('A tense café conversation.');
   await expect(page.getByText('Render request count: 3')).toBeVisible();
-  await expect(page.getByText('Speaker: Narrator')).toBeVisible();
-  await expect(page.getByText('Voice ID: Schedar')).toBeVisible();
-  await expect(page.getByText('Original turn indexes: 0')).toBeVisible();
-  await expect(page.locator('article.request-chunk').nth(0)).toContainText('"speakerName": "Narrator"');
-  await expect(page.locator('article.request-chunk').nth(0)).toContainText('"voiceId": "Schedar"');
+  await expect(page.locator('article.request-chunk').nth(0)).toContainText('\"input\"');
+  await expect(page.locator('article.request-chunk').nth(0)).toContainText('\"text\": \"[calm] The rain hit the windows.\"');
+  await expect(page.locator('article.request-chunk').nth(0)).toContainText('\"name\": \"Schedar\"');
+  await expect(page.locator('article.request-chunk').nth(0)).toContainText('\"audioEncoding\": \"MP3\"');
 });
 
 test('tts workbench route shows sign-in UI for unauthenticated users', async ({ page }) => {

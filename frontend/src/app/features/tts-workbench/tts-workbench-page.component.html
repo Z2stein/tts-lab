@@ -121,11 +121,8 @@
     <div *ngIf="singleSpeakerRenderPlan" class="chunk-summary">
       Render request count: {{ singleSpeakerRenderRequests.length }}
     </div>
-    <article *ngFor="let renderRequest of singleSpeakerRenderRequests" class="request-chunk">
-      <h3>Render request {{ renderRequest.renderIndex }}</h3>
-      <p><strong>Speaker:</strong> {{ renderRequest.speakerName || 'None' }}</p>
-      <p><strong>Voice ID:</strong> {{ renderRequest.voiceId || 'None' }}</p>
-      <p><strong>Original turn indexes:</strong> {{ renderRequest.originalTurnIndexes.join(', ') }}</p>
+    <article *ngFor="let renderRequest of singleSpeakerRenderRequests; let requestIndex = index" class="request-chunk">
+      <h3>Render request {{ requestIndex + 1 }}</h3>
       <pre>{{ singleSpeakerRenderRequestJson(renderRequest) }}</pre>
     </article>
   </section>

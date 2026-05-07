@@ -65,14 +65,9 @@ describe('TtsWorkbenchService', () => {
     const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
     spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
       renderRequests: [{
-        renderIndex: 1,
-        originalTurnIndexes: [0],
-        speakerName: 'Alice',
-        voiceId: 'Kore',
-        text: 'Hello',
-        languageCode: 'en-US',
-        modelName: '{{google-model}}',
-        audioEncoding: 'MP3'
+        input: { text: 'Hello' },
+        voice: { languageCode: 'en-US', name: 'Kore', modelName: '{{google-model}}' },
+        audioConfig: { audioEncoding: 'MP3' }
       }]
     }), { status: 200 }));
 
@@ -83,7 +78,7 @@ describe('TtsWorkbenchService', () => {
     });
 
     expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/single-speaker-render-plan', jasmine.objectContaining({ method: 'POST' }));
-    expect(plan.renderRequests[0].speakerName).toBe('Alice');
+    expect((plan.renderRequests[0].voice as any).name).toBe('Kore');
   });
 
   it('throws a user-facing error when analysis fails', async () => {

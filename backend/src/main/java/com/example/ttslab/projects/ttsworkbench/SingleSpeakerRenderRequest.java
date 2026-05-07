@@ -1,15 +1,10 @@
 package com.example.ttslab.projects.ttsworkbench;
 
-import java.util.List;
+import java.util.Map;
 
 public record SingleSpeakerRenderRequest(
-    int renderIndex,
-    List<Integer> originalTurnIndexes,
-    String speakerName,
-    String voiceId,
-    String text,
-    String languageCode,
-    String modelName,
-    String audioEncoding
+    Map<String, Object> input,
+    Map<String, Object> voice,
+    Map<String, Object> audioConfig
 ) {
 }

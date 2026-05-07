@@ -88,14 +88,9 @@ describe('TtsWorkbenchPageComponent', () => {
     };
     ttsWorkbenchService.planSingleSpeakerRenderRequests.and.resolveTo({
       renderRequests: [{
-        renderIndex: 1,
-        originalTurnIndexes: [0],
-        speakerName: 'Alice',
-        voiceId: 'Kore',
-        text: 'Hello',
-        languageCode: 'en-US',
-        modelName: '{{google-model}}',
-        audioEncoding: 'MP3'
+        input: { text: 'Hello' },
+        voice: { languageCode: 'en-US', name: 'Kore', modelName: '{{google-model}}' },
+        audioConfig: { audioEncoding: 'MP3' }
       }]
     });
 
@@ -105,8 +100,8 @@ describe('TtsWorkbenchPageComponent', () => {
     expect(ttsWorkbenchService.planSingleSpeakerRenderRequests).toHaveBeenCalledWith(component.finalRequest);
     expect(fixture.nativeElement.textContent).toContain('Single-Speaker Render Plan Preview');
     expect(fixture.nativeElement.textContent).toContain('Render request count: 1');
-    expect(fixture.nativeElement.textContent).toContain('Speaker: Alice');
-    expect(fixture.nativeElement.textContent).toContain('Voice ID: Kore');
+    expect(fixture.nativeElement.textContent).toContain('Render request 1');
+    expect(fixture.nativeElement.textContent).toContain('\"name\": \"Kore\"');
   });
 
   it('keeps editable preview fields in component state', () => {
