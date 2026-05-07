@@ -14,6 +14,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Base64;
 import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Component;
 @Component
 @ConditionalOnProperty(name = "chatbot.provider", havingValue = "gemini")
 public class GoogleCloudTtsClient implements GoogleTtsClient, InitializingBean {
+    private static final Logger log = LoggerFactory.getLogger(GoogleCloudTtsClient.class);
     private final String serviceAccountJsonBase64;
 
     public GoogleCloudTtsClient(
@@ -49,6 +53,7 @@ public class GoogleCloudTtsClient implements GoogleTtsClient, InitializingBean {
     @Override
     public byte[] synthesize(SingleSpeakerRenderRequest request) {
         try (TextToSpeechClient client = TextToSpeechClient.create(settings())) {
+            log.debug("sending Request to Google:" +request);
             SynthesizeSpeechResponse response = client.synthesizeSpeech(input(request.input()), voice(request.voice()), audioConfig(request.audioConfig()));
             return response.getAudioContent().toByteArray();
         } catch (TtsAudioCreationException ex) {
