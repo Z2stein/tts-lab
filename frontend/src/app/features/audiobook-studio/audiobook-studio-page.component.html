@@ -1,12 +1,92 @@
 <section class="studio" aria-labelledby="audiobook-studio-title">
-  <div class="studio-intro">
-    <p class="eyebrow">AI audiobook studio</p>
-    <h1 id="audiobook-studio-title">Audiobook Studio</h1>
-    <p>Shape a story into cast, script, performance notes, and downloadable multi-speaker audio.</p>
-  </div>
+  <section class="studio-hero" aria-labelledby="audiobook-studio-title">
+    <div class="hero-copy">
+      <p class="hero-badge">AI Audiobook Studio</p>
+      <h1 id="audiobook-studio-title">Give every character in your story <span>a voice.</span></h1>
+      <p class="hero-subheadline">
+        Paste a novel chapter. AI detects the narrator, discovers the cast, assigns voices, and turns it into multi-speaker audio.
+      </p>
+      <div class="hero-actions" aria-label="Audiobook studio actions">
+        <button type="button" class="primary-button hero-primary" (click)="focusStoryInput($event)">Create audio story</button>
+        <button type="button" class="secondary-button hero-secondary" (click)="playDemo($event)">
+          <span class="play-dot" aria-hidden="true"></span>
+          Listen to demo
+        </button>
+      </div>
+      <div class="benefit-chips" aria-label="Studio benefits">
+        <span *ngFor="let chip of benefitChips">{{ chip }}</span>
+      </div>
+    </div>
+
+    <div class="hero-demo" aria-label="Story to cast audio preview">
+      <div class="demo-flow">
+        <article class="demo-card story-demo-card">
+          <div class="demo-card-title">
+            <span class="demo-icon" aria-hidden="true">S</span>
+            <h2>Your story</h2>
+          </div>
+          <p>
+            The rain tapped against the train window as Mara clutched the letter.
+          </p>
+          <p>
+            Jonas leaned forward. "Are you sure this is the right place?"
+          </p>
+          <p>
+            The old station keeper looked up from his ledger and smiled.
+          </p>
+        </article>
+
+        <div class="flow-arrow" aria-hidden="true">
+          <svg viewBox="0 0 92 24" role="img">
+            <path d="M2 12H82" />
+            <path d="M72 3L82 12L72 21" />
+          </svg>
+        </div>
+
+        <article class="demo-card cast-demo-card">
+          <div class="demo-card-title">
+            <span class="demo-spark" aria-hidden="true">✦</span>
+            <h2>Detected cast</h2>
+          </div>
+          <div class="hero-cast-list">
+            <div *ngFor="let member of heroCast" class="hero-cast-row">
+              <span class="hero-avatar">{{ member.initials }}</span>
+              <span>
+                <strong>{{ member.name }}</strong>
+                <small>{{ member.tone }}</small>
+              </span>
+              <button type="button" [attr.aria-label]="'Preview voice for ' + member.name">
+                <span aria-hidden="true">▶</span>
+              </button>
+            </div>
+          </div>
+        </article>
+      </div>
+
+      <div class="waveform-preview" aria-label="Audio preview waveform">
+        <button type="button" aria-label="Play audio preview"><span aria-hidden="true">▶</span></button>
+        <div class="wave-bars" aria-hidden="true">
+          <span *ngFor="let bar of [16, 28, 36, 22, 44, 30, 52, 26, 38, 18, 46, 34, 24, 50, 32, 42, 20, 36, 48, 28, 40, 18, 32, 24]"></span>
+        </div>
+        <span class="wave-time">01:28 / 02:45</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="journey-section" aria-labelledby="journey-title">
+    <h2 id="journey-title">From plain text to performed story</h2>
+    <div class="journey-grid">
+      <article *ngFor="let step of journeySteps" class="journey-card">
+        <span class="journey-icon">{{ step.icon }}</span>
+        <h3>{{ step.title }}</h3>
+        <p>{{ step.description }}</p>
+      </article>
+    </div>
+  </section>
 
   <p *ngIf="error" class="error" role="alert">{{ error }}</p>
 
+  <div class="workflow-shell" aria-label="Audiobook production workflow">
   <section class="step-card story-card" aria-labelledby="story-input-title">
     <div class="step-heading">
       <span class="step-number">1</span>
@@ -40,7 +120,7 @@
     </div>
   </section>
 
-  <section class="step-card" aria-labelledby="discover-cast-title">
+  <section class="step-card cast-review-section" aria-labelledby="discover-cast-title">
     <div class="step-heading">
       <span class="step-number">2</span>
       <div>
@@ -52,9 +132,13 @@
     <p *ngIf="cast.length > 0 && !castReviewed" class="review-status">Cast needs review</p>
     <p *ngIf="cast.length === 0" class="empty-state">Cast cards will appear after story analysis.</p>
     <div *ngIf="cast.length > 0" class="cast-grid" aria-label="Cast">
-      <article *ngFor="let speaker of cast; let speakerIndex = index; trackBy: trackCastByIndex" class="cast-card">
+      <article
+        *ngFor="let speaker of cast; let speakerIndex = index; trackBy: trackCastByIndex"
+        class="cast-card"
+        [ngClass]="castAccentClass(speakerIndex)"
+      >
         <div class="card-topline">
-          <span class="badge">Detected character</span>
+          <span class="cast-avatar" aria-hidden="true">{{ speakerInitials(speaker.speakerName) }}</span>
           <button
             *ngIf="editingCastIndex !== speakerIndex"
             type="button"
@@ -68,9 +152,12 @@
         </div>
 
         <ng-container *ngIf="editingCastIndex !== speakerIndex; else castEditForm">
-          <h3>{{ displaySpeakerName(speaker.speakerName) }}</h3>
-          <p>{{ speaker.roleDescription }}</p>
-          <strong>{{ speaker.voiceSuggestion }}</strong>
+          <div class="cast-content">
+            <span class="badge">Detected character</span>
+            <h3>{{ displaySpeakerName(speaker.speakerName) }}</h3>
+            <p>{{ speaker.roleDescription }}</p>
+            <strong class="voice-badge">{{ speaker.voiceSuggestion }}</strong>
+          </div>
         </ng-container>
 
         <ng-template #castEditForm>
@@ -171,23 +258,28 @@
       Script changed. Regenerate performance notes before creating the audio production plan.
     </p>
 
-    <div class="settings-grid">
+    <div class="settings-grid direction-setting">
       <label for="studio-prompt">Direction</label>
       <input id="studio-prompt" [formControl]="promptControl" />
-
-      <label for="studio-language-code">Language code</label>
-      <select id="studio-language-code" [formControl]="languageCodeControl">
-        <option *ngFor="let language of languageCodeOptions" [value]="language.value">{{ language.label }}</option>
-      </select>
-
-      <label for="studio-model-name">Model name</label>
-      <select id="studio-model-name" [formControl]="modelNameControl">
-        <option *ngFor="let modelName of modelNameOptions" [value]="modelName">{{ modelName }}</option>
-      </select>
-
-      <label for="studio-audio-encoding">Audio encoding</label>
-      <input id="studio-audio-encoding" [formControl]="audioEncodingControl" />
     </div>
+
+    <details class="advanced-settings">
+      <summary>Advanced production settings</summary>
+      <div class="settings-grid">
+        <label for="studio-language-code">Language code</label>
+        <select id="studio-language-code" [formControl]="languageCodeControl">
+          <option *ngFor="let language of languageCodeOptions" [value]="language.value">{{ language.label }}</option>
+        </select>
+
+        <label for="studio-model-name">Model name</label>
+        <select id="studio-model-name" [formControl]="modelNameControl">
+          <option *ngFor="let modelName of modelNameOptions" [value]="modelName">{{ modelName }}</option>
+        </select>
+
+        <label for="studio-audio-encoding">Audio encoding</label>
+        <input id="studio-audio-encoding" [formControl]="audioEncodingControl" />
+      </div>
+    </details>
 
     <button type="button" class="primary-button" (click)="createAudioProductionPlan()" [disabled]="loadingAction !== null || annotatedTurns.length === 0 || performanceNotesStale">
       {{ isLoading('plan') ? 'Planning audio...' : 'Create audio production plan' }}
@@ -248,4 +340,5 @@
       </article>
     </div>
   </section>
+  </div>
 </section>

@@ -26,6 +26,18 @@ interface AnnotatedMarkup {
   text: string;
 }
 
+interface HeroCastMember {
+  name: string;
+  tone: string;
+  initials: string;
+}
+
+interface JourneyStep {
+  icon: string;
+  title: string;
+  description: string;
+}
+
 export function formatSpeakerDisplayName(speakerName: string): string {
   return speakerName
     .replace(/[_-]+/g, ' ')
@@ -43,6 +55,38 @@ export function formatSpeakerDisplayName(speakerName: string): string {
   styleUrl: './audiobook-studio-page.component.css'
 })
 export class AudiobookStudioPageComponent {
+  readonly benefitChips = ['Multi-speaker', 'Scene detection', 'Voice previews', 'Export MP3'];
+
+  readonly heroCast: HeroCastMember[] = [
+    { name: 'Narrator', tone: 'warm calm', initials: 'N' },
+    { name: 'Mara', tone: 'young tense', initials: 'M' },
+    { name: 'Jonas', tone: 'soft nervous', initials: 'J' },
+    { name: 'Station Keeper', tone: 'old gravelly', initials: 'SK' }
+  ];
+
+  readonly journeySteps: JourneyStep[] = [
+    {
+      icon: '01',
+      title: 'Paste your story',
+      description: 'Drop in a chapter, scene, or script and keep the original story flow intact.'
+    },
+    {
+      icon: '02',
+      title: 'Discover the cast',
+      description: 'AI identifies the narrator and characters, then suggests fitting voice directions.'
+    },
+    {
+      icon: '03',
+      title: 'Direct the performance',
+      description: 'Review dialogue, approve pacing, and add emotional notes before production.'
+    },
+    {
+      icon: '04',
+      title: 'Generate audio',
+      description: 'Create a multi-speaker MP3 from the final production plan.'
+    }
+  ];
+
   readonly sampleStory = `Narrator: The last train had already left when Mara found the brass key under the station clock.
 Mara: Jonas, tell me you did not hide this here all winter.
 Jonas: I was protecting it. The map said the keeper would know when the hour came.
@@ -144,6 +188,19 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     this.storyTextControl.setValue(this.sampleStory);
     this.resetPipeline();
     this.error = null;
+  }
+
+  focusStoryInput(event?: Event): void {
+    event?.preventDefault();
+    const storyTextArea = document.getElementById('story-text') as HTMLTextAreaElement | null;
+    storyTextArea?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    storyTextArea?.focus({ preventScroll: true });
+  }
+
+  playDemo(event?: Event): void {
+    event?.preventDefault();
+    this.useSampleStory();
+    this.focusStoryInput();
   }
 
   async analyzeStory(): Promise<void> {
@@ -266,6 +323,20 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
 
   displaySpeakerName(speakerName: string): string {
     return formatSpeakerDisplayName(speakerName);
+  }
+
+  speakerInitials(speakerName: string): string {
+    return this.displaySpeakerName(speakerName)
+      .split(' ')
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((part) => part[0])
+      .join('')
+      .toUpperCase();
+  }
+
+  castAccentClass(index: number): string {
+    return `cast-accent-${index % 4}`;
   }
 
   startCastEdit(index: number): void {
