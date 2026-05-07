@@ -89,6 +89,29 @@ class TtsWorkbenchControllerTest {
                 {"input":{"prompt":"Prompt","multiSpeakerMarkup":{"turns":[]}},"voice":{"languageCode":"en-US","modelName":"{{google-model}}","multiSpeakerVoiceConfig":{"speakerVoiceConfigs":[]}},"audioConfig":{"audioEncoding":"MP3"}}
                 """));
     }
+
+    @Test
+    void singleSpeakerRenderPlanReturnsRenderRequests() throws Exception {
+        when(ttsWorkbenchService.planSingleSpeakerRenderRequests(any(SingleSpeakerRenderPlanRequest.class)))
+            .thenReturn(new SingleSpeakerRenderPlanResponse(List.of(
+                new SingleSpeakerRenderRequest(
+                    Map.of("text", "Hello"),
+                    Map.of("languageCode", "en-US", "name", "Kore", "modelName", "{{google-model}}"),
+                    Map.of("audioEncoding", "MP3")
+                )
+            )));
+
+        mockMvc.perform(post("/api/projects/tts-workbench/single-speaker-render-plan")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"input":{"prompt":"Prompt","multiSpeakerMarkup":{"turns":[]}},"voice":{},"audioConfig":{}}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(content().json("""
+                {"renderRequests":[{"input":{"text":"Hello"},"voice":{"languageCode":"en-US","name":"Kore","modelName":"{{google-model}}"},"audioConfig":{"audioEncoding":"MP3"}}]}
+                """));
+    }
+
     @Test
     void apiExceptionReturnsStructuredErrorResponse() throws Exception {
         when(ttsWorkbenchService.analyze("Alice: Hello")).thenThrow(new ApiException(

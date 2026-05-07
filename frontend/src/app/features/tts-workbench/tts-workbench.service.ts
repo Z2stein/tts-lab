@@ -23,6 +23,16 @@ export interface FinalTtsRequestPreview {
   audioConfig: unknown;
 }
 
+export interface SingleSpeakerRenderRequest {
+  input: unknown;
+  voice: unknown;
+  audioConfig: unknown;
+}
+
+export interface SingleSpeakerRenderPlan {
+  renderRequests: SingleSpeakerRenderRequest[];
+}
+
 interface SpeakerVoiceAnalysisResponse {
   speakers: SpeakerVoiceAnalysisItem[];
 }
@@ -86,6 +96,14 @@ export class TtsWorkbenchService {
       '/api/projects/tts-workbench/final-request-preview',
       request,
       'Final request preview failed'
+    );
+  }
+
+  async planSingleSpeakerRenderRequests(finalRequest: FinalTtsRequestPreview): Promise<SingleSpeakerRenderPlan> {
+    return this.post<SingleSpeakerRenderPlan>(
+      '/api/projects/tts-workbench/single-speaker-render-plan',
+      finalRequest,
+      'Single-speaker render plan preview failed'
     );
   }
 

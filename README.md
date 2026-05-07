@@ -2,6 +2,23 @@
 
 Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
+## Inhaltsverzeichnis
+
+- [Repo-Onboarding](#repo-onboarding-kurzer-config-block)
+- [Deployment-Status](#deployment-status)
+- [Runtime-Architektur](#runtime-architektur)
+- [Ziel-Umgebungen](#ziel-umgebungen)
+- [Branch-Slug-Regel](#branch-slug-regel)
+- [CI/CD (GitHub Actions)](#cicd-github-actions)
+- [Lokal entwickeln](#lokal-entwickeln)
+- [Akzeptanzkriterien (Textlänge)](#akzeptanzkriterien-textlänge)
+- [Health endpoints](#health-endpoints)
+- [API error responses](#api-error-responses)
+- [Authentication modes](#authentication-modes)
+- [TTS Workbench (MVP)](#tts-workbench-mvp)
+- [Chatbot (MVP)](#chatbot-mvp)
+- [Chatbot rate limiting (MVP)](#chatbot-rate-limiting-mvp)
+
 ## Repo-Onboarding (kurzer Config-Block)
 
 Für ein neues Repository muss nur ein kleiner Satz an Variablen gesetzt werden (statt Shell-Logik zu ändern):
@@ -273,6 +290,7 @@ The TTS Workbench page is a step-by-step development workbench for inspecting th
 3. Speaker split preview
 4. Emotion annotation preview with simple markup such as `[happy]`, `[sad]`, `[calm]`, `[urgent]`, `[sigh]`, `[short pause]`, and `[medium pause]`
 5. Final request JSON preview
+6. Single-speaker render plan preview that groups only consecutive turns from the same speaker and outputs provider-shaped render requests
 
 Backend endpoints:
 
@@ -280,6 +298,25 @@ Backend endpoints:
 - `POST /api/projects/tts-workbench/speaker-split-analysis` with raw dialogue and speaker suggestions returns `turns` containing `speaker` and `text`.
 - `POST /api/projects/tts-workbench/emotion-annotation-analysis` with split turns returns annotated `turns` containing `speaker` and marked-up `text`.
 - `POST /api/projects/tts-workbench/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
+- `POST /api/projects/tts-workbench/single-speaker-render-plan` with the final request JSON returns `renderRequests`, where each item is provider-shaped JSON containing `input.text`, `voice.languageCode`, `voice.name`, `voice.modelName`, and `audioConfig.audioEncoding`.
+
+Single-speaker render requests intentionally do not return internal planning metadata such as turn indexes or speaker aliases. The preview JSON matches the provider request shape, for example:
+
+```json
+{
+  "input": {
+    "text": "[calm]The rain had turned the windows silver by the time they reached the old station café.\n[serious]Mara folded the letter twice, then unfolded it again."
+  },
+  "voice": {
+    "languageCode": "en-US",
+    "name": "Schedar",
+    "modelName": "{{google-model}}"
+  },
+  "audioConfig": {
+    "audioEncoding": "MP3"
+  }
+}
+```
 
 Runtime behavior follows the existing chatbot provider mode where possible:
 

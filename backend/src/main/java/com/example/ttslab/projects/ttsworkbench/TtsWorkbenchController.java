@@ -37,4 +37,11 @@ public class TtsWorkbenchController {
     public FinalTtsRequestPreviewResponse previewFinalRequest(@RequestBody FinalTtsRequestPreviewRequest request) {
         return ttsWorkbenchService.buildFinalRequest(request);
     }
+
+    @PostMapping("/single-speaker-render-plan")
+    public SingleSpeakerRenderPlanResponse previewSingleSpeakerRenderPlan(
+        @RequestBody SingleSpeakerRenderPlanRequest request
+    ) {
+        return ttsWorkbenchService.planSingleSpeakerRenderRequests(request);
+    }
 }

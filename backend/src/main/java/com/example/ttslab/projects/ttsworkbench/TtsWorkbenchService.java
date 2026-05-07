@@ -9,17 +9,20 @@ public class TtsWorkbenchService {
     private final SpeakerSplitAnalysisService speakerSplitAnalysisService;
     private final EmotionAnnotationService emotionAnnotationService;
     private final FinalTtsRequestBuilder finalTtsRequestBuilder;
+    private final SingleSpeakerRenderPlanner singleSpeakerRenderPlanner;
 
     public TtsWorkbenchService(
         SpeakerVoiceAnalysisService speakerVoiceAnalysisService,
         SpeakerSplitAnalysisService speakerSplitAnalysisService,
         EmotionAnnotationService emotionAnnotationService,
-        FinalTtsRequestBuilder finalTtsRequestBuilder
+        FinalTtsRequestBuilder finalTtsRequestBuilder,
+        SingleSpeakerRenderPlanner singleSpeakerRenderPlanner
     ) {
         this.speakerVoiceAnalysisService = speakerVoiceAnalysisService;
         this.speakerSplitAnalysisService = speakerSplitAnalysisService;
         this.emotionAnnotationService = emotionAnnotationService;
         this.finalTtsRequestBuilder = finalTtsRequestBuilder;
+        this.singleSpeakerRenderPlanner = singleSpeakerRenderPlanner;
     }
 
     public SpeakerVoiceAnalysisResponse analyze(String rawDialogue) {
@@ -36,5 +39,9 @@ public class TtsWorkbenchService {
 
     public FinalTtsRequestPreviewResponse buildFinalRequest(FinalTtsRequestPreviewRequest request) {
         return finalTtsRequestBuilder.build(request);
+    }
+
+    public SingleSpeakerRenderPlanResponse planSingleSpeakerRenderRequests(SingleSpeakerRenderPlanRequest request) {
+        return singleSpeakerRenderPlanner.plan(request);
     }
 }
