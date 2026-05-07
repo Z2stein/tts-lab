@@ -121,8 +121,21 @@
     <div *ngIf="singleSpeakerRenderPlan" class="chunk-summary">
       Render request count: {{ singleSpeakerRenderRequests.length }}
     </div>
+    <button type="button" (click)="createAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || singleSpeakerRenderRequests.length === 0">
+      {{ fullPlanAudioLoading ? 'Creating full-plan audio...' : 'Create audio' }}
+    </button>
+    <p *ngIf="fullPlanAudioError" class="error">{{ fullPlanAudioError }}</p>
     <article *ngFor="let renderRequest of singleSpeakerRenderRequests; let requestIndex = index" class="request-chunk">
       <h3>Render request {{ requestIndex + 1 }}</h3>
+      <button
+        type="button"
+        (click)="createAudioForRenderRequest(renderRequest, requestIndex)"
+        [disabled]="loadingAction !== null || fullPlanAudioLoading || renderRequestAudioState(requestIndex).loading"
+        [attr.aria-label]="'Create audio for render request ' + (requestIndex + 1)"
+      >
+        {{ renderRequestAudioState(requestIndex).loading ? 'Creating audio...' : 'Create audio' }}
+      </button>
+      <p *ngIf="renderRequestAudioState(requestIndex).error" class="error">{{ renderRequestAudioState(requestIndex).error }}</p>
       <pre>{{ singleSpeakerRenderRequestJson(renderRequest) }}</pre>
     </article>
   </section>
