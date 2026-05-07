@@ -14,8 +14,7 @@ public record RequestRateLimitProperties(
     public RequestRateLimitProperties {
         window = window == null ? Duration.ofHours(12) : window;
         speechModelLimit = speechModelLimit <= 0 ? 600 : speechModelLimit;
-        textModelMultiplier = textModelMultiplier <= 0 ? 5 : textModelMultiplier;
+        textModelMultiplier = textModelMultiplier <= 0 ? 1 : textModelMultiplier;
         unit = unit == null ? RequestRateLimitUnit.WORDS : unit;
     }
 }
-

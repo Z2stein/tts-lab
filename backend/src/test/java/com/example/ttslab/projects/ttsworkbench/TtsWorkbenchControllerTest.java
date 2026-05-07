@@ -58,7 +58,7 @@ class TtsWorkbenchControllerTest {
         when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.SPEECH_MODEL), eq(1L)))
             .thenReturn(new RequestRateLimitResult(ModelType.SPEECH_MODEL, true, 1, 600, 599, 1, 0, 1, RequestRateLimitUnit.WORDS));
         when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.TEXT_MODEL), eq(1L)))
-            .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, true, 1, 3000, 2999, 1, 0, 1, RequestRateLimitUnit.WORDS));
+            .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, true, 1, 600, 599, 1, 0, 1, RequestRateLimitUnit.WORDS));
     }
 
     @Test

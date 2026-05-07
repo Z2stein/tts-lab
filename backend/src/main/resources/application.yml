@@ -45,7 +45,7 @@ request-limits:
   enabled: ${REQUEST_LIMITS_ENABLED:true}
   window: ${REQUEST_LIMITS_WINDOW:12h}
   speech-model-limit: ${REQUEST_LIMITS_SPEECH_MODEL_LIMIT:600}
-  text-model-multiplier: ${REQUEST_LIMITS_TEXT_MODEL_MULTIPLIER:5}
+  text-model-multiplier: ${REQUEST_LIMITS_TEXT_MODEL_MULTIPLIER:1}
   unit: ${REQUEST_LIMITS_UNIT:WORDS}
 
 logging:
