@@ -29,7 +29,7 @@ describe('AudiobookStudioPageComponent', () => {
   });
 
   it('fills the textarea when the sample story is selected', () => {
-    fixture.nativeElement.querySelector('button.secondary-button').click();
+    clickButton('Use sample story');
     fixture.detectChanges();
 
     const textarea = fixture.nativeElement.querySelector('#story-text') as HTMLTextAreaElement;
@@ -185,7 +185,7 @@ describe('AudiobookStudioPageComponent', () => {
     clickButton('Save');
     fixture.detectChanges();
 
-    const planButton = buttonByText('Create audio production plan');
+    const planButton = buttonByText('Prepare audio generation');
     expect(fixture.nativeElement.textContent).toContain('Script changed. Regenerate performance notes before creating the audio production plan.');
     expect(planButton.disabled).toBeTrue();
 
@@ -195,7 +195,7 @@ describe('AudiobookStudioPageComponent', () => {
     fixture.detectChanges();
 
     expect(component.performanceNotesStale).toBeFalse();
-    expect(buttonByText('Create audio production plan').disabled).toBeFalse();
+    expect(buttonByText('Prepare audio generation').disabled).toBeFalse();
   });
 
   it('continues the emotion annotation flow after the user approves the script', async () => {
@@ -203,16 +203,34 @@ describe('AudiobookStudioPageComponent', () => {
     ttsWorkbenchService.annotateEmotions.and.resolveTo([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
     fixture.detectChanges();
 
-    expect(buttonByText('Add performance notes').disabled).toBeTrue();
+    expect(buttonByText('Add emotion & pacing').disabled).toBeTrue();
 
     clickButton('Approve script');
     fixture.detectChanges();
-    clickButton('Add performance notes');
+    clickButton('Add emotion & pacing');
     fixture.detectChanges();
     await fixture.whenStable();
 
     expect(ttsWorkbenchService.annotateEmotions).toHaveBeenCalledWith(component.scriptTurns);
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
+  });
+
+  it('shows an in-page audio player after the audiobook preview is generated', async () => {
+    component.audioProductionPlan = {
+      renderRequests: [{ input: {}, voice: {}, audioConfig: {} }]
+    };
+    ttsWorkbenchService.createAudio.and.resolveTo({
+      blob: new Blob(['fake mp3'], { type: 'audio/mpeg' }),
+      filename: 'audiobook-preview.mp3'
+    });
+
+    await component.generateAudio();
+    fixture.detectChanges();
+
+    const audio = fixture.nativeElement.querySelector('.generated-audio-player audio') as HTMLAudioElement | null;
+    expect(ttsWorkbenchService.createAudio).toHaveBeenCalledWith(component.audioProductionPlan);
+    expect(audio).not.toBeNull();
+    expect(component.fullPlanAudioFilename).toBe('audiobook-preview.mp3');
   });
 
   it('shows a user-facing backend error when analysis fails', async () => {
