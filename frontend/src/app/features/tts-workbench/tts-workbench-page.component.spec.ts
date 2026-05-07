@@ -112,10 +112,14 @@ describe('TtsWorkbenchPageComponent', () => {
         input: { text: 'Hello' },
         voice: { languageCode: 'en-US', name: 'Kore', modelName: '{{google-model}}' },
         audioConfig: { audioEncoding: 'MP3' }
+      }, {
+        input: { text: 'Again' },
+        voice: { languageCode: 'en-US', name: 'Kore', modelName: '{{google-model}}' },
+        audioConfig: { audioEncoding: 'MP3' }
       }]
     };
     const blob = new Blob(['mp3'], { type: 'audio/mpeg' });
-    ttsWorkbenchService.createAudio.and.resolveTo({ blob, filename: 'tts-render-request-1.mp3' });
+    ttsWorkbenchService.createAudio.and.resolveTo({ blob, filename: 'tts-render-plan.mp3' });
     const clickSpy = jasmine.createSpy('click');
     const anchor = document.createElement('a');
     spyOn(anchor, 'click').and.callFake(clickSpy);
@@ -126,7 +130,7 @@ describe('TtsWorkbenchPageComponent', () => {
     await component.createAudio();
 
     expect(ttsWorkbenchService.createAudio).toHaveBeenCalledWith(component.singleSpeakerRenderPlan);
-    expect(anchor.download).toBe('tts-render-request-1.mp3');
+    expect(anchor.download).toBe('tts-render-plan.mp3');
     expect(anchor.href).toContain('blob:test-url');
     expect(clickSpy).toHaveBeenCalled();
     expect(window.URL.revokeObjectURL).toHaveBeenCalledWith('blob:test-url');

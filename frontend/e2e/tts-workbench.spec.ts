@@ -160,8 +160,8 @@ test('tts workbench previews single-speaker render requests after final JSON gen
     const isSingleRequest = request.renderRequests.length === 1;
     await route.fulfill({
       status: 200,
-      contentType: isSingleRequest ? 'audio/mpeg' : 'application/zip',
-      headers: { 'Content-Disposition': `attachment; filename="${isSingleRequest ? 'tts-render-request-2.mp3' : 'tts-render-plan.zip'}"` },
+      contentType: 'audio/mpeg',
+      headers: { 'Content-Disposition': `attachment; filename="${isSingleRequest ? 'tts-render-request-2.mp3' : 'tts-render-plan.mp3'}"` },
       body: 'mock mp3 bytes'
     });
   });
@@ -199,11 +199,11 @@ test('tts workbench previews single-speaker render requests after final JSON gen
   expect(perRequestDownload.suggestedFilename()).toBe('tts-render-request-2.mp3');
 
   const downloadPromise = page.waitForEvent('download');
-  await page.getByRole('button', { name: 'Create audio', exact: true }).click();
+  await page.getByRole('button', { name: 'Create full-plan audio' }).click();
   const download = await downloadPromise;
 
   expect(createAudioRequest?.renderRequests).toHaveLength(3);
-  expect(download.suggestedFilename()).toBe('tts-render-plan.zip');
+  expect(download.suggestedFilename()).toBe('tts-render-plan.mp3');
 });
 
 test('tts workbench route shows sign-in UI for unauthenticated users', async ({ page }) => {
