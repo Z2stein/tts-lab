@@ -5,6 +5,10 @@ import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;
 import com.example.ttslab.prompts.PromptRequestStatus;
+import com.example.ttslab.ratelimit.RequestRateLimitExceededException;
+import com.example.ttslab.ratelimit.RequestRateLimitResult;
+import com.example.ttslab.ratelimit.RequestRateLimitService;
+import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
@@ -24,18 +28,24 @@ public class TtsWorkbenchController {
     private final TtsWorkbenchService ttsWorkbenchService;
     private final CurrentUserResolver currentUserResolver;
     private final PromptHistoryService promptHistoryService;
+    private final RequestRateLimitService requestRateLimitService;
+    private final RequestUsageMeasurer requestUsageMeasurer;
     private final String analysisProviderModelName;
 
     public TtsWorkbenchController(
         TtsWorkbenchService ttsWorkbenchService,
         CurrentUserResolver currentUserResolver,
         PromptHistoryService promptHistoryService,
+        RequestRateLimitService requestRateLimitService,
+        RequestUsageMeasurer requestUsageMeasurer,
         @Value("${chatbot.provider:mock}") String chatbotProvider,
         @Value("${spring.ai.google.genai.chat.options.model:}") String chatModelName
     ) {
         this.ttsWorkbenchService = ttsWorkbenchService;
         this.currentUserResolver = currentUserResolver;
         this.promptHistoryService = promptHistoryService;
+        this.requestRateLimitService = requestRateLimitService;
+        this.requestUsageMeasurer = requestUsageMeasurer;
         this.analysisProviderModelName = providerModelName(chatbotProvider, chatModelName);
     }
 
@@ -43,12 +53,13 @@ public class TtsWorkbenchController {
     public SpeakerVoiceAnalysisResponse analyzeSpeakers(@RequestBody SpeakerVoiceAnalysisRequest request, Authentication authentication) {
         log.debug("/speaker-voice-analysis will send request "+request.toString());
         CurrentUser user = currentUserResolver.resolve(authentication);
+        enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
             SpeakerVoiceAnalysisResponse response = ttsWorkbenchService.analyze(request.rawDialogue());
-            promptHistoryService.record(user, ModelType.SPEECH_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
+            promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return response;
         } catch (RuntimeException ex) {
-            promptHistoryService.record(user, ModelType.SPEECH_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.FAILED);
+            promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.FAILED);
             throw ex;
         }
     }
@@ -56,12 +67,13 @@ public class TtsWorkbenchController {
     @PostMapping("/speaker-split-analysis")
     public SpeakerSplitAnalysisResponse splitDialogue(@RequestBody SpeakerSplitAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
+        enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
             SpeakerSplitAnalysisResponse response = ttsWorkbenchService.split(request.rawDialogue(), request.speakers());
-            promptHistoryService.record(user, ModelType.SPEECH_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
+            promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return response;
         } catch (RuntimeException ex) {
-            promptHistoryService.record(user, ModelType.SPEECH_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.FAILED);
+            promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.FAILED);
             throw ex;
         }
     }
@@ -88,6 +100,7 @@ public class TtsWorkbenchController {
         CurrentUser user = currentUserResolver.resolve(authentication);
         String promptText = renderPromptText(requestPlan);
         String providerModelName = renderProviderModelName(requestPlan);
+        enforceLimit(user, ModelType.SPEECH_MODEL, promptText, providerModelName);
         try {
             TtsAudioFile audioFile = ttsWorkbenchService.createAudio(requestPlan);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
@@ -98,6 +111,18 @@ public class TtsWorkbenchController {
         } catch (RuntimeException ex) {
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.FAILED);
             throw ex;
+        }
+    }
+
+    private void enforceLimit(CurrentUser user, ModelType modelType, String promptText, String providerModelName) {
+        RequestRateLimitResult result = requestRateLimitService.checkAndConsume(
+            user,
+            modelType,
+            requestUsageMeasurer.measure(promptText, requestRateLimitService.unit())
+        );
+        if (!result.allowed()) {
+            promptHistoryService.record(user, modelType, providerModelName, promptText, PromptRequestStatus.RATE_LIMITED);
+            throw new RequestRateLimitExceededException(result);
         }
     }
 

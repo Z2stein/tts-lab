@@ -5,19 +5,36 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 ## Inhaltsverzeichnis
 
 - [Repo-Onboarding](#repo-onboarding-kurzer-config-block)
+- [What’s new](#whats-new)
 - [Deployment-Status](#deployment-status)
 - [Runtime-Architektur](#runtime-architektur)
 - [Ziel-Umgebungen](#ziel-umgebungen)
 - [Branch-Slug-Regel](#branch-slug-regel)
 - [CI/CD (GitHub Actions)](#cicd-github-actions)
 - [Lokal entwickeln](#lokal-entwickeln)
+- [Database and prompt history](#database-and-prompt-history)
 - [Akzeptanzkriterien (Textlänge)](#akzeptanzkriterien-textlänge)
 - [Health endpoints](#health-endpoints)
 - [API error responses](#api-error-responses)
 - [Authentication modes](#authentication-modes)
+- [Audiobook Studio MVP](#audiobook-studio-mvp)
 - [TTS Workbench (MVP)](#tts-workbench-mvp)
 - [Chatbot (MVP)](#chatbot-mvp)
-- [Chatbot rate limiting (MVP)](#chatbot-rate-limiting-mvp)
+- [Request limits (MVP)](#request-limits-mvp)
+
+## What’s new
+
+This chat upgraded the existing Audiobook Studio MVP from an internal workflow page into a more premium, cinematic AI audiobook studio experience:
+
+- `/audiobook-studio` now opens with a frontend-only hero section: “Give every character in your story a voice.”
+- The first viewport shows the intended product promise visually: pasted story text flows into a detected cast card and an audio waveform preview.
+- The hero includes `Create audio story` and `Listen to demo` actions; the primary CTA scrolls to and focuses the existing story textarea.
+- A new “From plain text to performed story” section explains the four-step journey: paste story, discover cast, direct performance, generate audio.
+- The existing functional workflow remains below the motivational sections and still uses the same Angular component state and backend APIs.
+- Detected cast cards now feel more like creative character/voice cards, with initials, stronger hierarchy, voice badges, and subtle per-card accent glows.
+- Technical production fields such as language code, model name, and audio encoding are tucked behind `Advanced production settings`, while the story direction stays visible.
+- This was a frontend-only UX/UI pass. No backend endpoints, database tables, provider behavior, Helm config, or business logic changed.
+- Verification run for this chat: `npm run build`, `npm run test -- --watch=false --browsers=ChromeHeadless`, and `npm run test:e2e -- e2e/audiobook-studio.spec.ts`.
 
 ## Repo-Onboarding (kurzer Config-Block)
 
@@ -57,12 +74,13 @@ Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
 
 - Helm Chart: `charts/tts-lab`
 - Ingress Controller: Traefik in k3s
+- PostgreSQL runs in-cluster for Helm deployments and is wired to the backend through Kubernetes Secrets.
 - Standard-Health-Probes im Helm-Chart:
   - Frontend: `GET /`
   - Backend: `GET /health`
 - Routing:
   - `/` → Frontend Service
-  - `/api` → Backend Service, including the unauthenticated `GET /api/health` endpoint used by real deployed E2E checks
+  - `/api` → Backend Service
   - `/oauth2` → Backend Service
   - `/login/oauth2` → Backend Service
   - `/logout` → Backend Service
@@ -190,6 +208,22 @@ E2E_BASE_URL="https://<deployed-host>" E2E_USE_LOCAL_SERVERS=false npm run test:
 
 Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory und läuft dort lokal im GitHub-Actions-Runner mit `E2E_USE_LOCAL_SERVERS=true`.
 
+## Database and prompt history
+
+Prompt history is now persisted with Flyway-managed tables:
+
+- `prompt_history` stores every submitted prompt with user id, optional email, model type, optional provider/model name, prompt text, request status, and timestamp.
+- `prompt_usage` stores per-user, per-model request counters so the backend can grow into personal rate limits later.
+
+Behavior by environment:
+
+- Local backend runs use the repository's default H2 file database unless `SPRING_DATASOURCE_*` is set.
+- Helm deployments use PostgreSQL in the namespace, with a StatefulSet and PVC.
+- `main` and `develop` keep their PostgreSQL data across upgrades.
+- Feature namespaces can be deleted cleanly, which removes their database with the namespace.
+
+Prompt history is visible in the frontend `Prompt History` tab and is filtered to the current authenticated user. The backend also records prompts from the text chat flow and the TTS workbench flow.
+
 
 ## Akzeptanzkriterien (Textlänge)
 
@@ -206,7 +240,7 @@ Bewusst unterstützte Fälle für both Text Length endpoints:
 ## Health endpoints
 
 - `GET /health` is the backend pod health endpoint used by Kubernetes probes.
-- `GET /api/health` returns the same `{ "status": "ok" }` payload through the public `/api` ingress route and is intentionally unauthenticated so deployed E2E can verify real frontend-to-backend connectivity without OAuth, CSRF, or external provider dependencies.
+- `GET /api/health` is protected like the rest of the API surface.
 
 ## API error responses
 
@@ -277,11 +311,34 @@ Feature deployments do not create or inject Google OAuth secrets.
 Frontend behavior note:
 
 - On startup, the frontend first checks `/api/me` and shows a short loading state until auth is resolved. If `/api/me` fails (for example due to CORS/network issues), the UI no longer hangs in loading and falls back to unauthenticated with a visible error message and browser console logs.
-- The authenticated app uses a shared header and client-side routes: `/` for the landing page, `/text-length` for the existing text-length UI, and `/tts-workbench` for the TTS Workbench speaker/voice analysis MVP. Unknown frontend routes redirect to `/`.
+- The authenticated app uses a shared header and client-side routes: `/` for the landing page, `/audiobook-studio` for the Audiobook Studio MVP, `/text-length` for the existing text-length UI, and `/tts-workbench` for the TTS Workbench speaker/voice analysis MVP. Unknown frontend routes redirect to `/`.
 - Only authenticated users see the routed app pages and chatbot widget.
 - Unauthenticated users see only the sign-in UI, which starts OAuth via `/oauth2/authorization/google`.
 - Logged-in users also see their auth state in the header and a logout button that calls `/logout` and returns to `/`.
 
+
+## Audiobook Studio MVP
+
+Audiobook Studio is a user-friendly frontend flow built on top of the existing TTS Workbench endpoints. It is available at `/audiobook-studio` and reframes the same pipeline as story input, cast discovery, script preview, performance notes, an audio production plan, and generated audio.
+
+The MVP does not add database tables or new backend endpoints. It reuses the existing speaker analysis, speaker split, emotion annotation, final request preview, single-speaker render plan, and audio creation APIs while presenting story-focused language and a dark cinematic studio interface.
+
+The page now starts with a product-led landing/workflow layer:
+
+- A premium hero with the headline “Give every character in your story a voice.”
+- A static visual demo that shows story text transforming into a detected cast and an audio waveform.
+- Benefit chips for `Multi-speaker`, `Scene detection`, `Voice previews`, and `Export MP3`.
+- A four-card “From plain text to performed story” journey section.
+- Hero CTAs that keep the existing workflow reachable: `Create audio story` focuses the story input, and `Listen to demo` loads the sample story before focusing the textarea.
+
+The page now includes a frontend-only review and correction layer before generation:
+
+- Cast cards support `Edit`, `Save`, and `Cancel` for `speakerName`, `roleDescription`, and `voiceSuggestion`.
+- Speaker names are formatted for display while preserving their original backend/internal value unless saved by the user.
+- Script turns support one-at-a-time editing for `speaker` and `text`.
+- Script approval is required before performance notes can be generated.
+- Editing the script after performance notes exist marks those notes stale and blocks audio production planning until notes are regenerated.
+- These review states are local component state only; no persistence, auth, deployment, database, provider, or Helm behavior changed.
 
 ## TTS Workbench (MVP)
 
@@ -301,7 +358,7 @@ Backend endpoints:
 - `POST /api/projects/tts-workbench/emotion-annotation-analysis` with split turns returns annotated `turns` containing `speaker` and marked-up `text`.
 - `POST /api/projects/tts-workbench/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
 - `POST /api/projects/tts-workbench/single-speaker-render-plan` with the final request JSON returns `renderRequests`, where each item is provider-shaped JSON containing `input.text`, `voice.languageCode`, `voice.name`, `voice.modelName`, and `audioConfig.audioEncoding`.
-- `POST /api/projects/tts-workbench/create-audio` with the step 6 `renderRequests` returns a downloadable MP3 for one render request or a ZIP containing one MP3 per render request for multiple requests. The UI keeps the full-plan button and also shows a per-render-request **Create audio** button. A per-request button sends only that one render request and downloads a filename such as `tts-render-request-2.mp3`; the full-plan flow downloads `tts-render-request-1.mp3` for a single request or `tts-render-plan.zip` for multiple requests.
+- `POST /api/projects/tts-workbench/create-audio` with the step 6 `renderRequests` returns a downloadable MP3 for one render request or one concatenated MP3 for multiple requests. The UI keeps the full-plan button and also shows a per-render-request **Create audio** button. A per-request button sends only that one render request and downloads a filename such as `tts-render-request-2.mp3`; the full-plan flow downloads `tts-render-request-1.mp3` for a single request or `tts-render-plan.mp3` for multiple requests.
 
 Single-speaker render requests intentionally do not return internal planning metadata such as turn indexes or speaker aliases. The preview JSON matches the provider request shape, for example:
 
@@ -382,54 +439,40 @@ npm start
 Automated backend/frontend tests use mocks and do not call Gemini APIs.
 
 
-## Chatbot rate limiting (MVP)
+## Request limits (MVP)
 
-Backend chat requests (`POST /api/chat`) are protected by a fixed-window request limiter (in-memory storage).
+Every authenticated API request is counted against a per-user, per-model fixed window. The defaults are:
 
-### Config
+- `SPEECH_MODEL`: `600` words per `12h`
+- `TEXT_MODEL`: `600` words per `12h`
 
-Spring env vars:
+The request unit is `WORDS` by default, but the backend can also measure `TOKENS` if that deployment setting changes.
 
-- `CHAT_LIMIT_ENABLED` (default `true`)
-- `CHAT_LIMIT_WINDOW` (default `1h`)
-- `CHAT_LIMIT_MAX_REQUESTS` (default `5`)
-- `CHAT_LIMIT_ID_HEADER` (default `X-User-Id`)
+How the limit works:
 
-Helm values:
+1. New users start with the deployment defaults from `request-limits.*` / `REQUEST_LIMITS_*`.
+2. A per-user override in the database wins over the deployment default.
+3. Usage is tracked separately for `TEXT_MODEL` and `SPEECH_MODEL`.
+4. The remaining amount is shown in the top bar after login.
+5. All `/api/*` endpoints require login.
 
-```yaml
-chatbot:
-  rateLimit:
-    enabled: true
-    window: 1h
-    maxRequests: 5
-    idHeader: X-User-Id
-```
+Deployment config:
 
-Identity resolution order:
+- `REQUEST_LIMITS_ENABLED` (default `true`)
+- `REQUEST_LIMITS_WINDOW` (default `12h`)
+- `REQUEST_LIMITS_SPEECH_MODEL_LIMIT` (default `600`)
+- `REQUEST_LIMITS_TEXT_MODEL_MULTIPLIER` (default `1`)
+- `REQUEST_LIMITS_UNIT` (default `WORDS`)
 
-1. Authenticated principal id (`sub`)
-2. Configured header (`CHAT_LIMIT_ID_HEADER`)
-3. Client IP fallback
+Database override table:
 
-When exceeded, backend returns HTTP `429` with `Retry-After` and JSON:
+- `request_rate_limit_overrides`
 
-```json
-{
-  "error": "RATE_LIMIT_EXCEEDED",
-  "message": "Chat usage limit exceeded. Please try again later.",
-  "retry_after": 1234,
-  "limit": {
-    "window": "PT1H",
-    "max_requests": 5
-  }
-}
-```
+If a request exceeds the remaining amount, the backend returns HTTP `429` with a structured error response and `Retry-After`.
 
-Limitations of current in-memory store:
+The prompt history shows the model type that was actually used:
 
-- Works per pod only
-- Counters are lost on restart
-- Not consistent across multiple replicas
+- `TEXT_MODEL` for chat and Gemini-based analysis requests
+- `SPEECH_MODEL` for TTS audio creation
 
-For multi-replica environments, Redis is the recommended next step (store interface is already separated).
+That keeps the history table, top-bar counters, and backend enforcement lined up.

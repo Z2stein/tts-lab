@@ -4,6 +4,7 @@
 
     <nav class="main-nav" aria-label="Primary navigation">
       <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
+      <a routerLink="/audiobook-studio" routerLinkActive="active">Audiobook Studio</a>
       <a routerLink="/text-length" routerLinkActive="active">Text Length</a>
       <a routerLink="/tts-workbench" routerLinkActive="active">TTS Workbench</a>
       <a routerLink="/prompt-history" routerLinkActive="active">Prompt History</a>
@@ -12,6 +13,10 @@
     <div class="auth-summary" aria-live="polite">
       <span *ngIf="authStatus === 'loading'">Loading...</span>
       <ng-container *ngIf="authStatus === 'authenticated' && currentUser">
+        <div class="limit-summary" aria-label="Remaining usage">
+          <span>Speech {{ formatRemaining(limitFor('SPEECH_MODEL')) }}</span>
+          <span>Text {{ formatRemaining(limitFor('TEXT_MODEL')) }}</span>
+        </div>
         <span>Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</span>
         <button type="button" (click)="logout()">Logout</button>
       </ng-container>

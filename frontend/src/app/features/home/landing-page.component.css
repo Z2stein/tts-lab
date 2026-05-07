@@ -1,17 +1,8 @@
 .hero {
-  background: linear-gradient(135deg, #eef4ff, #ffffff);
-  border: 1px solid #dbe6ff;
-  border-radius: 16px;
+  background: linear-gradient(135deg, #211720, #16151d 58%, #2d1f17);
+  border: 1px solid #3c303a;
+  border-radius: 12px;
   padding: 2rem;
-}
-
-.eyebrow {
-  color: #315cbe;
-  font-size: 0.8rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  margin: 0 0 0.5rem;
-  text-transform: uppercase;
 }
 
 .hero h1 {
@@ -20,7 +11,7 @@
 }
 
 .hero p:last-child {
-  color: #4b5563;
+  color: #cbbdb0;
   font-size: 1.1rem;
   line-height: 1.6;
   margin: 0;
@@ -35,10 +26,16 @@
 }
 
 .feature-card {
-  background: #ffffff;
-  border: 1px solid #e5e7eb;
-  border-radius: 14px;
+  background: #1a161d;
+  border: 1px solid #392d36;
+  border-radius: 8px;
+  color: #f8efe5;
   padding: 1.25rem;
+}
+
+.feature-card-primary {
+  background: #211b23;
+  border-color: #57414a;
 }
 
 .feature-card h2 {
@@ -46,11 +43,11 @@
 }
 
 .feature-card p {
-  color: #4b5563;
+  color: #cbbdb0;
   line-height: 1.5;
 }
 
 .feature-card a {
-  color: #1d4ed8;
+  color: #f0ad5d;
   font-weight: 700;
 }

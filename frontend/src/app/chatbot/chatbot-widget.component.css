@@ -1,8 +1,39 @@
-.chat-toggle { position: fixed; right: 1rem; bottom: 1rem; z-index: 10; }
-.chatbox { position: fixed; right: 1rem; bottom: 4rem; width: 320px; background: #fff; border: 1px solid #ccc; padding: .75rem; }
-.messages { max-height: 220px; overflow: auto; margin-bottom: .5rem; }
-.user { text-align: right; }
-.assistant { text-align: left; }
-.controls { display: flex; gap: .5rem; }
-.controls input { flex: 1; }
-.error { color: #c62828; }
+.chat-toggle {
+  @apply fixed bottom-4 right-4 z-10 rounded-full border-0 bg-studio-accent px-4 py-2 font-extrabold text-studio-field;
+}
+
+.chatbox {
+  @apply fixed bottom-16 right-4 z-10 w-80 rounded-lg border border-studio-lineStrong bg-studio-panel p-3 text-studio-text shadow-2xl;
+}
+
+.messages {
+  @apply mb-2 max-h-56 overflow-auto;
+}
+
+.user {
+  @apply text-right text-studio-accentSoft;
+}
+
+.assistant {
+  @apply text-left text-studio-text;
+}
+
+.controls {
+  @apply flex gap-2;
+}
+
+.controls input {
+  @apply min-w-0 flex-1 rounded-lg border border-studio-lineStrong bg-studio-field px-3 py-2 text-studio-text outline-none;
+}
+
+.controls input:focus {
+  @apply border-studio-accent ring-2 ring-studio-accent/25;
+}
+
+.controls button {
+  @apply rounded-full border-0 bg-studio-accent px-4 py-2 font-extrabold text-studio-field;
+}
+
+.error {
+  @apply mt-2 rounded-lg border border-studio-dangerLine bg-studio-dangerBg p-2 font-extrabold text-studio-danger;
+}

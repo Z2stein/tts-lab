@@ -3,6 +3,11 @@ package com.example.ttslab.projects.ttsworkbench;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.PromptHistoryService;
+import com.example.ttslab.prompts.ModelType;
+import com.example.ttslab.ratelimit.RequestRateLimitResult;
+import com.example.ttslab.ratelimit.RequestRateLimitService;
+import com.example.ttslab.ratelimit.RequestRateLimitUnit;
+import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import java.util.List;
 import com.example.ttslab.error.ApiException;
 import java.util.Map;
@@ -39,9 +44,21 @@ class TtsWorkbenchControllerTest {
     @MockBean
     private PromptHistoryService promptHistoryService;
 
+    @MockBean
+    private RequestRateLimitService requestRateLimitService;
+
+    @MockBean
+    private RequestUsageMeasurer requestUsageMeasurer;
+
     @org.junit.jupiter.api.BeforeEach
     void setupCurrentUser() {
         when(currentUserResolver.resolve(any())).thenReturn(new CurrentUser("u1", "u1@example.com", "User One", List.of("USER"), "mock"));
+        when(requestRateLimitService.unit()).thenReturn(RequestRateLimitUnit.WORDS);
+        when(requestUsageMeasurer.measure(any(), eq(RequestRateLimitUnit.WORDS))).thenReturn(1L);
+        when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.SPEECH_MODEL), eq(1L)))
+            .thenReturn(new RequestRateLimitResult(ModelType.SPEECH_MODEL, true, 1, 600, 599, 1, 0, 1, RequestRateLimitUnit.WORDS));
+        when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.TEXT_MODEL), eq(1L)))
+            .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, true, 1, 600, 599, 1, 0, 1, RequestRateLimitUnit.WORDS));
     }
 
     @Test
@@ -58,7 +75,7 @@ class TtsWorkbenchControllerTest {
                 {"speakers":[{"speakerName":"Alice","roleDescription":"Detected dialogue speaker","voiceSuggestion":"ACHIRD"}]}
                 """));
 
-        verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.SPEECH_MODEL), eq("mock"), eq("Alice: Hello"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
+        verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq("mock"), eq("Alice: Hello"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
     }
 
     @Test

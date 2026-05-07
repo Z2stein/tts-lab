@@ -145,6 +145,7 @@ export class TtsWorkbenchService {
       },
       body: JSON.stringify(body)
     });
+    await this.refreshRequestLimits();
 
     if (!response.ok) {
       const apiError = await this.readApiError(response);
@@ -161,6 +162,13 @@ export class TtsWorkbenchService {
 
     const match = /filename="?([^";]+)"?/i.exec(contentDisposition);
     return match ? match[1] : null;
+  }
+
+  private async refreshRequestLimits(): Promise<void> {
+    const service = this.currentUserService as CurrentUserService & {
+      refreshRequestLimits?: () => Promise<unknown>;
+    };
+    await service.refreshRequestLimits?.();
   }
 
   private async readApiError(response: Response): Promise<ApiErrorResponse | null> {

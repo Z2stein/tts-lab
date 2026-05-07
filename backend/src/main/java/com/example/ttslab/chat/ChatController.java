@@ -5,7 +5,10 @@ import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;
 import com.example.ttslab.prompts.PromptRequestStatus;
-import jakarta.servlet.http.HttpServletRequest;
+import com.example.ttslab.ratelimit.RequestRateLimitExceededException;
+import com.example.ttslab.ratelimit.RequestRateLimitResult;
+import com.example.ttslab.ratelimit.RequestRateLimitService;
+import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,35 +20,36 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/chat")
 public class ChatController {
     private final ChatService chatService;
-    private final ChatRateLimitService chatRateLimitService;
-    private final ChatRateLimitProperties chatRateLimitProperties;
-    private final ChatUsageIdentityResolver chatUsageIdentityResolver;
     private final CurrentUserResolver currentUserResolver;
     private final PromptHistoryService promptHistoryService;
+    private final RequestRateLimitService requestRateLimitService;
+    private final RequestUsageMeasurer requestUsageMeasurer;
     private final String providerModelName;
 
-    public ChatController(ChatService chatService, ChatRateLimitService chatRateLimitService,
-                          ChatRateLimitProperties chatRateLimitProperties, ChatUsageIdentityResolver chatUsageIdentityResolver,
-                          CurrentUserResolver currentUserResolver, PromptHistoryService promptHistoryService,
+    public ChatController(ChatService chatService, CurrentUserResolver currentUserResolver,
+                          PromptHistoryService promptHistoryService, RequestRateLimitService requestRateLimitService,
+                          RequestUsageMeasurer requestUsageMeasurer,
                           @Value("${chatbot.provider:mock}") String chatbotProvider,
                           @Value("${spring.ai.google.genai.chat.options.model:}") String chatModelName) {
         this.chatService = chatService;
-        this.chatRateLimitService = chatRateLimitService;
-        this.chatRateLimitProperties = chatRateLimitProperties;
-        this.chatUsageIdentityResolver = chatUsageIdentityResolver;
         this.currentUserResolver = currentUserResolver;
         this.promptHistoryService = promptHistoryService;
+        this.requestRateLimitService = requestRateLimitService;
+        this.requestUsageMeasurer = requestUsageMeasurer;
         this.providerModelName = providerModelName(chatbotProvider, chatModelName);
     }
 
     @PostMapping
-    public ChatResponse chat(@Valid @RequestBody ChatRequest request, org.springframework.security.core.Authentication authentication, HttpServletRequest httpRequest) {
-        String identifier = chatUsageIdentityResolver.resolve(authentication, httpRequest, chatRateLimitProperties.idHeader());
-        ChatRateLimitResult result = chatRateLimitService.checkAndConsume(identifier);
+    public ChatResponse chat(@Valid @RequestBody ChatRequest request, org.springframework.security.core.Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
+        RequestRateLimitResult result = requestRateLimitService.checkAndConsume(
+            user,
+            ModelType.TEXT_MODEL,
+            requestUsageMeasurer.measure(request.message(), requestRateLimitService.unit())
+        );
         if (!result.allowed()) {
             promptHistoryService.record(user, ModelType.TEXT_MODEL, providerModelName, request.message(), PromptRequestStatus.RATE_LIMITED);
-            throw new ChatRateLimitExceededException(result.retryAfterSeconds(), chatRateLimitProperties.window().toString(), chatRateLimitProperties.maxRequests());
+            throw new RequestRateLimitExceededException(result);
         }
         try {
             ChatResponse response = chatService.ask(request);

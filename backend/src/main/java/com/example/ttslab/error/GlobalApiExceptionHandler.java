@@ -2,6 +2,7 @@ package com.example.ttslab.error;
 
 import com.example.ttslab.chat.ChatProviderException;
 import com.example.ttslab.chat.ChatRateLimitExceededException;
+import com.example.ttslab.ratelimit.RequestRateLimitExceededException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.ConstraintViolationException;
 import java.util.Map;
@@ -59,6 +60,23 @@ public class GlobalApiExceptionHandler {
                 "RATE_LIMIT_EXCEEDED",
                 "Chat usage limit exceeded. Please try again later.",
                 "Retry after " + ex.retryAfterSeconds() + " seconds. Limit: " + ex.maxRequests() + " requests per " + ex.window() + ".",
+                requestId
+            ));
+    }
+
+    @ExceptionHandler(RequestRateLimitExceededException.class)
+    public ResponseEntity<ApiErrorResponse> handleRequestRateLimitExceeded(RequestRateLimitExceededException ex, HttpServletRequest request) {
+        String requestId = requestId(request);
+        log.info("Request rate limit exceeded (requestId={}, modelType={}, limit={}, remaining={}, unit={}, retryAfterSeconds={})",
+            requestId, ex.modelType(), ex.limit(), ex.remaining(), ex.unit(), ex.retryAfterSeconds());
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .header(REQUEST_ID_HEADER, requestId)
+            .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.retryAfterSeconds()))
+            .body(new ApiErrorResponse(
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                "RATE_LIMIT_EXCEEDED",
+                "Usage limit exceeded. Please try again later.",
+                "Remaining " + ex.unit().name().toLowerCase() + ": " + ex.remaining() + ". Limit: " + ex.limit() + " per 12h.",
                 requestId
             ));
     }
