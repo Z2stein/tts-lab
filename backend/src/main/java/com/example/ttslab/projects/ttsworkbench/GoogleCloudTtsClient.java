@@ -2,13 +2,8 @@ package com.example.ttslab.projects.ttsworkbench;
 
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
-import com.google.cloud.texttospeech.v1.AudioConfig;
-import com.google.cloud.texttospeech.v1.AudioEncoding;
-import com.google.cloud.texttospeech.v1.SynthesisInput;
-import com.google.cloud.texttospeech.v1.SynthesizeSpeechResponse;
-import com.google.cloud.texttospeech.v1.TextToSpeechClient;
-import com.google.cloud.texttospeech.v1.TextToSpeechSettings;
-import com.google.cloud.texttospeech.v1.VoiceSelectionParams;
+import com.google.cloud.texttospeech.v1.*;
+
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.util.Base64;
@@ -33,8 +28,16 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
     @Override
     public byte[] synthesize(SingleSpeakerRenderRequest request) {
         try (TextToSpeechClient client = TextToSpeechClient.create(settings())) {
-            log.debug("sending Request to Google:" +request);
-            SynthesizeSpeechResponse response = client.synthesizeSpeech(input(request.input()), voice(request.voice()), audioConfig(request.audioConfig()));
+            SynthesizeSpeechRequest synthesizeSpeechRequest = SynthesizeSpeechRequest.newBuilder()
+                    .setInput(input(request.input()))
+                    .setVoice(voice(request.voice()))
+                    .setAudioConfig(audioConfig(request.audioConfig()))
+                    .build();
+
+            log.debug("sending Request to Google:" +synthesizeSpeechRequest.toString());
+
+            SynthesizeSpeechResponse response = client.synthesizeSpeech(synthesizeSpeechRequest);
+
             return response.getAudioContent().toByteArray();
         } catch (TtsAudioCreationException ex) {
             throw ex;
