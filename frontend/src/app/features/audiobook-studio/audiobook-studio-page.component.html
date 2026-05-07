@@ -1,0 +1,184 @@
+<section class="studio" aria-labelledby="audiobook-studio-title">
+  <div class="studio-intro">
+    <p class="eyebrow">AI audiobook studio</p>
+    <h1 id="audiobook-studio-title">Audiobook Studio</h1>
+    <p>Shape a story into cast, script, performance notes, and downloadable multi-speaker audio.</p>
+  </div>
+
+  <p *ngIf="error" class="error" role="alert">{{ error }}</p>
+
+  <section class="step-card story-card" aria-labelledby="story-input-title">
+    <div class="step-heading">
+      <span class="step-number">1</span>
+      <div>
+        <h2 id="story-input-title">Story input</h2>
+        <p>Start with narration and character dialogue.</p>
+      </div>
+    </div>
+
+    <label for="story-text">Story text</label>
+    <textarea
+      id="story-text"
+      rows="12"
+      [formControl]="storyTextControl"
+      placeholder="Narrator: The platform lights flickered...&#10;Mara: Did you hear that?"
+    ></textarea>
+
+    <div class="story-tools">
+      <div class="stats" aria-label="Story text stats">
+        <span>{{ wordCount }} words</span>
+        <span>{{ characterCount }} characters</span>
+      </div>
+      <div class="button-row">
+        <button type="button" class="secondary-button" (click)="useSampleStory()" [disabled]="loadingAction !== null">
+          Use sample story
+        </button>
+        <button type="button" class="primary-button" (click)="analyzeStory()" [disabled]="loadingAction !== null || storyTextControl.value.trim().length === 0">
+          {{ isLoading('cast') ? 'Analyzing story...' : 'Analyze story' }}
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <section class="step-card" aria-labelledby="discover-cast-title">
+    <div class="step-heading">
+      <span class="step-number">2</span>
+      <div>
+        <h2 id="discover-cast-title">Discover cast</h2>
+        <p>Review the detected voices before building the script preview.</p>
+      </div>
+    </div>
+
+    <p *ngIf="cast.length === 0" class="empty-state">Cast cards will appear after story analysis.</p>
+    <div *ngIf="cast.length > 0" class="cast-grid" aria-label="Cast">
+      <article *ngFor="let speaker of cast" class="cast-card">
+        <span class="badge">Detected character</span>
+        <h3>{{ speaker.speakerName }}</h3>
+        <p>{{ speaker.roleDescription }}</p>
+        <strong>{{ speaker.voiceSuggestion }}</strong>
+      </article>
+    </div>
+
+    <button type="button" class="primary-button" (click)="createScriptPreview()" [disabled]="loadingAction !== null || cast.length === 0">
+      {{ isLoading('script') ? 'Creating script preview...' : 'Continue to script preview' }}
+    </button>
+  </section>
+
+  <section class="step-card" aria-labelledby="script-preview-title">
+    <div class="step-heading">
+      <span class="step-number">3</span>
+      <div>
+        <h2 id="script-preview-title">Review script preview</h2>
+        <p>Speaker turns are grouped into a readable script view.</p>
+      </div>
+    </div>
+
+    <p *ngIf="scriptTurns.length === 0" class="empty-state">Script preview turns will appear after cast discovery.</p>
+    <div *ngIf="scriptTurns.length > 0" class="script-panel">
+      <article *ngFor="let group of scriptGroups" class="script-group">
+        <h3>{{ group.speaker }}</h3>
+        <p *ngFor="let turn of group.turns">{{ turn.text }}</p>
+      </article>
+    </div>
+
+    <button type="button" class="primary-button" (click)="createPerformanceNotes()" [disabled]="loadingAction !== null || scriptTurns.length === 0">
+      {{ isLoading('notes') ? 'Adding performance notes...' : 'Add performance notes' }}
+    </button>
+  </section>
+
+  <section class="step-card" aria-labelledby="performance-notes-title">
+    <div class="step-heading">
+      <span class="step-number">4</span>
+      <div>
+        <h2 id="performance-notes-title">Performance notes</h2>
+        <p>Emotion markup stays inline so the read remains easy to scan.</p>
+      </div>
+    </div>
+
+    <p *ngIf="annotatedTurns.length === 0" class="empty-state">Performance notes will appear after the script preview.</p>
+    <ol *ngIf="annotatedTurns.length > 0" class="notes-list">
+      <li *ngFor="let turn of annotatedTurns">
+        <span class="speaker-name">{{ turn.speaker }}</span>
+        <span *ngIf="markupFor(turn).emotion" class="emotion-badge">[{{ markupFor(turn).emotion }}]</span>
+        <span>{{ markupFor(turn).text }}</span>
+      </li>
+    </ol>
+
+    <div class="settings-grid">
+      <label for="studio-prompt">Direction</label>
+      <input id="studio-prompt" [formControl]="promptControl" />
+
+      <label for="studio-language-code">Language code</label>
+      <select id="studio-language-code" [formControl]="languageCodeControl">
+        <option *ngFor="let language of languageCodeOptions" [value]="language.value">{{ language.label }}</option>
+      </select>
+
+      <label for="studio-model-name">Model name</label>
+      <select id="studio-model-name" [formControl]="modelNameControl">
+        <option *ngFor="let modelName of modelNameOptions" [value]="modelName">{{ modelName }}</option>
+      </select>
+
+      <label for="studio-audio-encoding">Audio encoding</label>
+      <input id="studio-audio-encoding" [formControl]="audioEncodingControl" />
+    </div>
+
+    <button type="button" class="primary-button" (click)="createAudioProductionPlan()" [disabled]="loadingAction !== null || annotatedTurns.length === 0">
+      {{ isLoading('plan') ? 'Planning audio...' : 'Create audio production plan' }}
+    </button>
+  </section>
+
+  <section class="step-card" aria-labelledby="generate-audio-title">
+    <div class="step-heading">
+      <span class="step-number">5</span>
+      <div>
+        <h2 id="generate-audio-title">Generate audio</h2>
+        <p>Render the full plan, or a single request when you need a focused take.</p>
+      </div>
+    </div>
+
+    <p *ngIf="!audioProductionPlan" class="empty-state">The audio production plan will appear after performance notes.</p>
+    <div *ngIf="audioProductionPlan" class="plan-summary" aria-label="Audio production plan">
+      <div>
+        <span>Render requests</span>
+        <strong>{{ renderRequests.length }}</strong>
+      </div>
+      <div>
+        <span>Language code</span>
+        <strong>{{ languageCodeControl.value }}</strong>
+      </div>
+      <div>
+        <span>Audio encoding</span>
+        <strong>{{ audioEncodingControl.value }}</strong>
+      </div>
+    </div>
+
+    <details *ngIf="audioProductionPlan" class="advanced-details">
+      <summary>Advanced details</summary>
+      <h3>Final request preview</h3>
+      <pre>{{ finalRequestJson }}</pre>
+      <h3>Audio production plan</h3>
+      <pre>{{ audioProductionPlanJson }}</pre>
+    </details>
+
+    <button type="button" class="primary-button" (click)="generateAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || renderRequests.length === 0">
+      {{ fullPlanAudioLoading ? 'Generating audio...' : 'Generate full audio' }}
+    </button>
+    <p *ngIf="fullPlanAudioError" class="error">{{ fullPlanAudioError }}</p>
+
+    <div *ngIf="renderRequests.length > 0" class="render-list">
+      <article *ngFor="let renderRequest of renderRequests; let requestIndex = index" class="render-request">
+        <h3>Render request {{ requestIndex + 1 }}</h3>
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="generateAudioForRenderRequest(renderRequest, requestIndex)"
+          [disabled]="loadingAction !== null || fullPlanAudioLoading || renderRequestAudioState(requestIndex).loading"
+          [attr.aria-label]="'Generate audio for render request ' + (requestIndex + 1)"
+        >
+          {{ renderRequestAudioState(requestIndex).loading ? 'Generating...' : 'Generate audio' }}
+        </button>
+        <p *ngIf="renderRequestAudioState(requestIndex).error" class="error">{{ renderRequestAudioState(requestIndex).error }}</p>
+      </article>
+    </div>
+  </section>
+</section>

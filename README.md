@@ -16,6 +16,7 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 - [Health endpoints](#health-endpoints)
 - [API error responses](#api-error-responses)
 - [Authentication modes](#authentication-modes)
+- [Audiobook Studio MVP](#audiobook-studio-mvp)
 - [TTS Workbench (MVP)](#tts-workbench-mvp)
 - [Chatbot (MVP)](#chatbot-mvp)
 - [Request limits (MVP)](#request-limits-mvp)
@@ -295,11 +296,17 @@ Feature deployments do not create or inject Google OAuth secrets.
 Frontend behavior note:
 
 - On startup, the frontend first checks `/api/me` and shows a short loading state until auth is resolved. If `/api/me` fails (for example due to CORS/network issues), the UI no longer hangs in loading and falls back to unauthenticated with a visible error message and browser console logs.
-- The authenticated app uses a shared header and client-side routes: `/` for the landing page, `/text-length` for the existing text-length UI, and `/tts-workbench` for the TTS Workbench speaker/voice analysis MVP. Unknown frontend routes redirect to `/`.
+- The authenticated app uses a shared header and client-side routes: `/` for the landing page, `/audiobook-studio` for the Audiobook Studio MVP, `/text-length` for the existing text-length UI, and `/tts-workbench` for the TTS Workbench speaker/voice analysis MVP. Unknown frontend routes redirect to `/`.
 - Only authenticated users see the routed app pages and chatbot widget.
 - Unauthenticated users see only the sign-in UI, which starts OAuth via `/oauth2/authorization/google`.
 - Logged-in users also see their auth state in the header and a logout button that calls `/logout` and returns to `/`.
 
+
+## Audiobook Studio MVP
+
+Audiobook Studio is a user-friendly frontend flow built on top of the existing TTS Workbench endpoints. It is available at `/audiobook-studio` and reframes the same pipeline as story input, cast discovery, script preview, performance notes, an audio production plan, and generated audio.
+
+The MVP does not add database tables or new backend endpoints. It reuses the existing speaker analysis, speaker split, emotion annotation, final request preview, single-speaker render plan, and audio creation APIs while presenting story-focused language and a dark studio-style interface.
 
 ## TTS Workbench (MVP)
 

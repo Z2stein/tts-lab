@@ -36,6 +36,7 @@ describe('AppComponent layout and chatbot visibility', () => {
 
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Home');
+    expect(text).toContain('Audiobook Studio');
     expect(text).toContain('Text Length');
     expect(text).toContain('TTS Workbench');
     expect(text).toContain('Prompt History');

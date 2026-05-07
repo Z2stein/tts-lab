@@ -41,6 +41,12 @@
   padding: 1.25rem;
 }
 
+.feature-card-primary {
+  background: #17131a;
+  border-color: #4c3945;
+  color: #fff7ec;
+}
+
 .feature-card h2 {
   margin: 0 0 0.5rem;
 }
@@ -50,7 +56,15 @@
   line-height: 1.5;
 }
 
+.feature-card-primary p {
+  color: #d7c6b4;
+}
+
 .feature-card a {
   color: #1d4ed8;
   font-weight: 700;
+}
+
+.feature-card-primary a {
+  color: #f0ad5d;
 }
