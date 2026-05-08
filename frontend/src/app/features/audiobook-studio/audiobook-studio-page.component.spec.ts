@@ -1,4 +1,4 @@
-import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks } from '@angular/core/testing';
 import { AudiobookStudioPageComponent, formatSpeakerDisplayName } from './audiobook-studio-page.component';
 import { TtsWorkbenchService } from '../tts-workbench/tts-workbench.service';
 
@@ -215,6 +215,121 @@ describe('AudiobookStudioPageComponent', () => {
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
   });
 
+  it('cancels an in-flight part generation and keeps already generated parts', async () => {
+    component.audioProductionPlan = {
+      renderRequests: [
+        { input: { text: 'First' }, voice: { name: 'Kore' }, audioConfig: {} },
+        { input: { text: 'Second' }, voice: { name: 'Iapetus' }, audioConfig: {} }
+      ]
+    };
+    prepareGeneratedPart(0, 'part-1.mp3', 'part one');
+    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+      return new Promise<never>((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
+      });
+    });
+
+    const inFlight = component.generateAudioForRenderRequest(component.renderRequests[1], 1);
+    fixture.detectChanges();
+    expect(component.renderRequestAudioState(1).status).toBe('generating');
+
+    component.cancelRenderRequestGeneration(1);
+    await inFlight;
+    fixture.detectChanges();
+
+    expect(component.renderRequestAudioState(0).status).toBe('generated');
+    expect(component.renderRequestAudioState(1).status).toBe('canceled');
+    expect(component.renderRequestAudioState(1).error).toBe('Generation canceled. You can retry this part.');
+    expect(fixture.nativeElement.textContent).toContain('Canceled - retry available');
+  });
+
+  it('marks a stuck part as timed out', fakeAsync(() => {
+    component.partGenerationTimeoutMs = 5;
+    component.audioProductionPlan = {
+      renderRequests: [{ input: { text: 'Only part' }, voice: { name: 'Kore' }, audioConfig: {} }]
+    };
+    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+      return new Promise<never>((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
+      });
+    });
+
+    void component.generateAudioForRenderRequest(component.renderRequests[0], 0);
+    tick(6);
+    flushMicrotasks();
+    fixture.detectChanges();
+
+    expect(component.renderRequestAudioState(0).status).toBe('timed-out');
+    expect(component.renderRequestAudioState(0).error).toBe('This part took too long and was stopped. Try again or edit the text.');
+  }));
+
+  it('prevents duplicate generation requests for the same part', async () => {
+    component.audioProductionPlan = {
+      renderRequests: [{ input: { text: 'Only part' }, voice: { name: 'Kore' }, audioConfig: {} }]
+    };
+    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+      return new Promise<never>((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
+      });
+    });
+
+    const first = component.generateAudioForRenderRequest(component.renderRequests[0], 0);
+    const second = component.generateAudioForRenderRequest(component.renderRequests[0], 0);
+
+    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    component.cancelRenderRequestGeneration(0);
+    await Promise.all([first, second]);
+  });
+
+  it('cancels full generation without discarding ready parts and resumes the missing part later', async () => {
+    component.audioProductionPlan = {
+      renderRequests: [
+        { input: { text: 'First' }, voice: { name: 'Kore' }, audioConfig: {} },
+        { input: { text: 'Second' }, voice: { name: 'Iapetus' }, audioConfig: {} },
+        { input: { text: 'Third' }, voice: { name: 'Rasalgethi' }, audioConfig: {} }
+      ]
+    };
+    prepareGeneratedPart(0, 'part-1.mp3', 'part one');
+    prepareGeneratedPart(1, 'part-2.mp3', 'part two');
+    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+      return new Promise<never>((_resolve, reject) => {
+        options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
+      });
+    });
+
+    const firstRun = component.generateAudio();
+    fixture.detectChanges();
+    expect(component.fullPlanAudioLoading).toBeTrue();
+    expect(component.renderRequestAudioState(2).status).toBe('generating');
+
+    component.cancelFullAudioGeneration();
+    await firstRun;
+    fixture.detectChanges();
+
+    expect(component.renderRequestAudioState(0).status).toBe('generated');
+    expect(component.renderRequestAudioState(1).status).toBe('generated');
+    expect(component.renderRequestAudioState(2).status).toBe('canceled');
+    expect(component.fullPlanAudioLoading).toBeFalse();
+    expect(component.fullPlanAudioStatusMessage).toBe('Generation canceled. You can retry the pending part.');
+
+    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+      blob: new Blob(['part three'], { type: 'audio/mpeg' }),
+      filename: 'part-3.mp3'
+    });
+    ttsWorkbenchService.createAudioForRenderRequest.calls.reset();
+
+    await component.generateAudio();
+    fixture.detectChanges();
+
+    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
+      component.renderRequests[2],
+      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) })
+    );
+    expect(component.renderRequestAudioState(2).status).toBe('generated');
+    expect(component.fullPlanAudioUrl).not.toBeNull();
+  });
+
   it('shows the framework audio player and download action after the audiobook preview is generated', async () => {
     const anchorClickSpy = spyOn(HTMLAnchorElement.prototype, 'click');
     component.audioProductionPlan = {
@@ -229,7 +344,10 @@ describe('AudiobookStudioPageComponent', () => {
     fixture.detectChanges();
 
     const player = fixture.nativeElement.querySelector('.generated-audio-player .waveform-canvas') as HTMLElement | null;
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(component.renderRequests[0]);
+    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
+      component.renderRequests[0],
+      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) })
+    );
     expect(player).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
     expect(fixture.nativeElement.textContent).toContain('Download audiobook');
@@ -281,7 +399,10 @@ describe('AudiobookStudioPageComponent', () => {
     await component.generateAudio();
 
     expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(component.renderRequests[2]);
+    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
+      component.renderRequests[2],
+      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) })
+    );
     expect(component.fullPlanAudioUrl).not.toBeNull();
   });
 
@@ -297,8 +418,8 @@ describe('AudiobookStudioPageComponent', () => {
     fixture.detectChanges();
 
     expect(component.audiobookReadinessSummary()).toBe('0 of 3 parts ready - 2 missing, 1 failed');
-    expect(fixture.nativeElement.textContent).toContain('Generate audiobook preview will use the parts that are already ready');
-    expect(fixture.nativeElement.textContent).toContain('only generate the 3 missing or failed parts before merging');
+    expect(component.currentGenerationStatusLabel()).toBe('0 of 3 parts ready - 2 missing, 1 failed');
+    expect(component.currentGenerationDetails()).toBe('Generate audiobook preview will use the parts that are already ready and only generate the 3 missing, canceled, failed, or timed-out parts before merging.');
   });
 
   it('leads render part cards with the speaker identity mapped from the voice', () => {
@@ -343,8 +464,8 @@ describe('AudiobookStudioPageComponent', () => {
     expect(component.renderRequestAudioState(1).status).toBe('failed');
     expect(component.renderRequestAudioState(2).status).toBe('generated');
     expect(component.fullPlanAudioUrl).toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('Some parts could not be generated. Retry failed parts before creating the full audiobook.');
-    expect(fixture.nativeElement.textContent).toContain('Retry this part');
+    expect(component.currentGenerationStatusLabel()).toBe('2 of 3 parts ready - 1 failed');
+    expect(component.currentGenerationDetails()).toBe('Generate audiobook preview will use the parts that are already ready and only generate the 1 missing, canceled, failed, or timed-out part before merging.');
   });
 
   it('shows a user-facing backend error when analysis fails', async () => {
@@ -399,5 +520,24 @@ describe('AudiobookStudioPageComponent', () => {
     }
 
     return element;
+  }
+
+  function abortError(): DOMException {
+    return new DOMException('Aborted', 'AbortError');
+  }
+
+  function prepareGeneratedPart(index: number, filename: string, body: string): void {
+    const state = component.renderRequestAudioState(index);
+    state.status = 'generated';
+    state.blob = new Blob([body], { type: 'audio/mpeg' });
+    state.audioUrl = `blob:${filename}`;
+    state.filename = filename;
+    state.generatedAt = new Date();
+    state.requestId = 0;
+    state.startedAt = null;
+    state.timeoutHandle = null;
+    state.controller = null;
+    state.cancelReason = null;
+    state.inFlightPromise = null;
   }
 });

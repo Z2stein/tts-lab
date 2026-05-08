@@ -42,7 +42,8 @@ interface JourneyStep {
 
 type WorkflowStepKey = 'story' | 'cast' | 'script' | 'performance' | 'audio';
 type WorkflowStepStatus = 'completed' | 'current' | 'warning' | 'locked' | 'upcoming';
-type RenderRequestStatus = 'not-generated' | 'generating' | 'generated' | 'failed';
+type RenderRequestStatus = 'not-generated' | 'generating' | 'generated' | 'failed' | 'canceled' | 'timed-out';
+type RequestCancelReason = 'cancel' | 'timeout' | null;
 
 interface WorkflowStep {
   key: WorkflowStepKey;
@@ -69,6 +70,12 @@ interface RenderRequestAudioState {
   audioUrl: string | null;
   filename: string | null;
   generatedAt: Date | null;
+  startedAt: number | null;
+  requestId: number;
+  timeoutHandle: number | null;
+  controller: AbortController | null;
+  cancelReason: RequestCancelReason;
+  inFlightPromise: Promise<void> | null;
 }
 
 interface SpeakerAccent {
@@ -93,6 +100,8 @@ export function formatSpeakerDisplayName(speakerName: string): string {
   styleUrl: './audiobook-studio-page.component.css'
 })
 export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
+  partGenerationTimeoutMs = 120_000;
+
   readonly benefitChips = ['Multi-speaker', 'Scene detection', 'Voice previews', 'Export MP3'];
 
   readonly heroCast: HeroCastMember[] = [
@@ -176,6 +185,8 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   error: string | null = null;
   fullPlanAudioLoading = false;
   fullPlanAudioError: string | null = null;
+  fullPlanAudioStale = false;
+  fullPlanAudioStatusMessage: string | null = null;
   fullPlanAudioUrl: string | null = null;
   fullPlanAudioFilename: string | null = null;
   renderRequestAudioStates: Record<number, RenderRequestAudioState> = {};
@@ -190,12 +201,19 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
   activeSampleKey: string | null = null;
+  generationClockTick = 0;
+
   private activeSampleAudio: HTMLAudioElement | null = null;
   private demoWaveformElement: ElementRef<HTMLElement> | null = null;
   private fullWaveformElement: ElementRef<HTMLElement> | null = null;
   private demoWaveSurfer: WaveSurfer | null = null;
   private fullWaveSurfer: WaveSurfer | null = null;
   private renderRequestWaveSurfers = new Map<number, WaveSurfer>();
+  private renderRequestGenerationCounter = 0;
+  private fullAudioGenerationRunId = 0;
+  private fullAudioGenerationCanceled = false;
+  private fullAudioGenerationActiveRequestIndex: number | null = null;
+  private generationClockHandle: number | null = null;
 
   @ViewChild('demoWaveform')
   set demoWaveform(ref: ElementRef<HTMLElement> | undefined) {
@@ -501,61 +519,178 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
       return;
     }
 
+    if (this.fullPlanAudioLoading || this.anyAudioLoading()) {
+      return;
+    }
+
+    const runId = ++this.fullAudioGenerationRunId;
+    this.fullAudioGenerationCanceled = false;
+    this.fullAudioGenerationActiveRequestIndex = null;
     this.fullPlanAudioLoading = true;
     this.fullPlanAudioError = null;
+    this.fullPlanAudioStale = this.fullPlanAudioUrl !== null;
+    this.fullPlanAudioStatusMessage = this.fullPlanAudioUrl
+      ? 'Rebuilding the audiobook preview. Existing audio stays available until the new preview is ready.'
+      : 'Building the audiobook preview from the generated parts.';
+    this.startGenerationClock();
 
     try {
       for (const [requestIndex, renderRequest] of this.renderRequests.entries()) {
+        if (runId !== this.fullAudioGenerationRunId || this.fullAudioGenerationCanceled) {
+          break;
+        }
+
         const state = this.renderRequestAudioState(requestIndex);
         if (state.status === 'generated' && state.blob) {
           continue;
         }
-        await this.generateAudioForRenderRequest(renderRequest, requestIndex, { keepFullLoading: true });
+        this.fullAudioGenerationActiveRequestIndex = requestIndex;
+        await this.generateAudioForRenderRequest(renderRequest, requestIndex, { fullRunId: runId });
       }
 
-      const unavailableParts = this.renderRequests
+      if (runId !== this.fullAudioGenerationRunId) {
+        return;
+      }
+
+      if (this.fullAudioGenerationCanceled) {
+        this.fullPlanAudioLoading = false;
+        this.fullPlanAudioStatusMessage = 'Generation canceled. You can retry the pending part.';
+        return;
+      }
+
+      const incompleteParts = this.renderRequests
         .map((_, requestIndex) => this.renderRequestAudioState(requestIndex))
         .filter((state) => state.status !== 'generated' || !state.blob);
 
-      if (unavailableParts.length > 0) {
-        this.clearFullPlanAudio();
-        this.fullPlanAudioError = 'Some parts could not be generated. Retry failed parts before creating the full audiobook.';
+      if (incompleteParts.length > 0) {
+        this.fullPlanAudioLoading = false;
+        this.fullPlanAudioStatusMessage = this.audiobookReadinessSummary();
         return;
       }
 
       const audioParts = this.renderRequests.map((_, requestIndex) => this.renderRequestAudioState(requestIndex).blob as Blob);
       this.setFullPlanAudio(new Blob(audioParts, { type: 'audio/mpeg' }), 'audiobook-preview.mp3');
+      this.fullPlanAudioStatusMessage = 'Audiobook preview is ready.';
     } catch (error) {
-      this.fullPlanAudioError = 'One audio part could not be generated. The other parts are still available. You can retry this part or edit the text.';
+      if (!this.fullAudioGenerationCanceled) {
+        this.fullPlanAudioError = 'One audio part could not be generated. The other parts are still available. You can retry this part or edit the text.';
+      }
     } finally {
-      this.fullPlanAudioLoading = false;
+      if (runId === this.fullAudioGenerationRunId) {
+        this.fullPlanAudioLoading = false;
+        this.fullAudioGenerationActiveRequestIndex = null;
+        this.stopGenerationClockIfIdle();
+      }
     }
   }
 
   async generateAudioForRenderRequest(
     renderRequest: SingleSpeakerRenderRequest,
     requestIndex: number,
-    options: { keepFullLoading?: boolean } = {}
+    options: { fullRunId?: number } = {}
   ): Promise<void> {
     const state = this.renderRequestAudioState(requestIndex);
+    if (state.status === 'generating' && state.inFlightPromise) {
+      return state.inFlightPromise;
+    }
+
+    const requestId = ++this.renderRequestGenerationCounter;
+    const controller = new AbortController();
+    const timeoutHandle = window.setTimeout(() => {
+      const activeState = this.renderRequestAudioState(requestIndex);
+      if (activeState.requestId !== requestId || activeState.status !== 'generating') {
+        return;
+      }
+      activeState.cancelReason = 'timeout';
+      activeState.controller?.abort();
+    }, this.partGenerationTimeoutMs);
+
     state.status = 'generating';
     state.error = null;
-    this.clearFullPlanAudio();
+    state.startedAt = Date.now();
+    state.requestId = requestId;
+    state.timeoutHandle = timeoutHandle;
+    state.controller = controller;
+    state.cancelReason = null;
+    state.inFlightPromise = this.runRenderRequestGeneration(renderRequest, requestIndex, requestId, controller, options.fullRunId);
+    this.startGenerationClock();
+    return state.inFlightPromise;
+  }
+
+  cancelRenderRequestGeneration(requestIndex: number): void {
+    const state = this.renderRequestAudioState(requestIndex);
+    if (state.status !== 'generating') {
+      return;
+    }
+
+    state.cancelReason = 'cancel';
+    state.controller?.abort();
+  }
+
+  cancelFullAudioGeneration(): void {
+    if (!this.fullPlanAudioLoading) {
+      return;
+    }
+
+    this.fullAudioGenerationCanceled = true;
+    const activeIndex = this.fullAudioGenerationActiveRequestIndex;
+    if (activeIndex !== null) {
+      this.cancelRenderRequestGeneration(activeIndex);
+    }
+    this.fullPlanAudioLoading = false;
+    this.fullPlanAudioStatusMessage = 'Generation canceled. You can retry the pending part.';
+    this.stopGenerationClockIfIdle();
+  }
+
+  private async runRenderRequestGeneration(
+    renderRequest: SingleSpeakerRenderRequest,
+    requestIndex: number,
+    requestId: number,
+    controller: AbortController,
+    fullRunId?: number
+  ): Promise<void> {
+    const state = this.renderRequestAudioState(requestIndex);
 
     try {
-      const download = await this.ttsWorkbenchService.createAudioForRenderRequest(renderRequest);
+      const download = await this.ttsWorkbenchService.createAudioForRenderRequest(renderRequest, { signal: controller.signal });
+      if (!this.isCurrentRenderRequestGeneration(requestIndex, requestId)) {
+        return;
+      }
+
       this.setRenderRequestAudio(requestIndex, download.blob, `tts-audio-part-${requestIndex + 1}.mp3`);
+      state.status = 'generated';
+      state.error = null;
+      state.cancelReason = null;
+      if (this.fullPlanAudioUrl) {
+        this.fullPlanAudioStale = true;
+        this.fullPlanAudioStatusMessage = 'Audiobook preview needs regeneration because one or more parts changed.';
+      } else {
+        this.fullPlanAudioStatusMessage = null;
+      }
     } catch (error) {
-      if (state.blob && state.audioUrl) {
-        state.status = 'generated';
-        state.error = 'This part could not be regenerated. The previous audio is still available.';
+      if (!this.isCurrentRenderRequestGeneration(requestIndex, requestId)) {
+        return;
+      }
+
+      if (this.isAbortError(error)) {
+        if (state.cancelReason === 'timeout') {
+          state.status = 'timed-out';
+          state.error = 'This part took too long and was stopped. Try again or edit the text.';
+        } else {
+          state.status = 'canceled';
+          state.error = 'Generation canceled. You can retry this part.';
+        }
       } else {
         state.status = 'failed';
-        state.error = 'One audio part could not be generated. The other parts are still available. You can retry this part or edit the text.';
+        state.error = 'One part failed. Other generated parts are still available.';
       }
     } finally {
-      if (!options.keepFullLoading) {
-        this.fullPlanAudioLoading = false;
+      if (this.isCurrentRenderRequestGeneration(requestIndex, requestId)) {
+        this.clearRenderRequestGeneration(requestIndex, requestId);
+        if (fullRunId !== undefined && this.fullAudioGenerationRunId === fullRunId && this.fullAudioGenerationActiveRequestIndex === requestIndex) {
+          this.fullAudioGenerationActiveRequestIndex = null;
+        }
+        this.stopGenerationClockIfIdle();
       }
     }
   }
@@ -586,7 +721,13 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
         error: null,
         audioUrl: null,
         filename: null,
-        generatedAt: null
+        generatedAt: null,
+        startedAt: null,
+        requestId: 0,
+        timeoutHandle: null,
+        controller: null,
+        cancelReason: null,
+        inFlightPromise: null
       };
     }
     return this.renderRequestAudioStates[requestIndex];
@@ -597,11 +738,22 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   }
 
   generatedPartCount(): number {
-    return this.renderRequests.filter((_, requestIndex) => this.renderRequestAudioState(requestIndex).status === 'generated').length;
+    return this.renderRequests.filter((_, requestIndex) => {
+      const state = this.renderRequestAudioState(requestIndex);
+      return state.status === 'generated' || (state.blob !== null && state.status !== 'generating');
+    }).length;
   }
 
   failedPartCount(): number {
     return this.renderRequests.filter((_, requestIndex) => this.renderRequestAudioState(requestIndex).status === 'failed').length;
+  }
+
+  canceledPartCount(): number {
+    return this.renderRequests.filter((_, requestIndex) => this.renderRequestAudioState(requestIndex).status === 'canceled').length;
+  }
+
+  timedOutPartCount(): number {
+    return this.renderRequests.filter((_, requestIndex) => this.renderRequestAudioState(requestIndex).status === 'timed-out').length;
   }
 
   missingPartCount(): number {
@@ -609,7 +761,7 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   }
 
   partsToGenerateCount(): number {
-    return this.missingPartCount() + this.failedPartCount();
+    return this.missingPartCount() + this.failedPartCount() + this.canceledPartCount() + this.timedOutPartCount();
   }
 
   audiobookReadinessSummary(): string {
@@ -617,6 +769,8 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     const total = this.renderRequests.length;
     const missing = this.missingPartCount();
     const failed = this.failedPartCount();
+    const canceled = this.canceledPartCount();
+    const timedOut = this.timedOutPartCount();
 
     if (total === 0) {
       return 'No audio parts prepared yet';
@@ -633,6 +787,12 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     if (failed > 0) {
       details.push(`${failed} failed`);
     }
+    if (canceled > 0) {
+      details.push(`${canceled} canceled`);
+    }
+    if (timedOut > 0) {
+      details.push(`${timedOut} timed out`);
+    }
 
     return `${ready} of ${total} parts ready - ${details.join(', ')}`;
   }
@@ -640,21 +800,27 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   audiobookGenerationExplanation(): string {
     const remaining = this.partsToGenerateCount();
     if (remaining === 0) {
-      return 'All parts are ready. Generate audiobook preview will merge them into the final preview.';
+      return this.fullPlanAudioStale
+        ? 'All parts are ready. Generate audiobook preview will rebuild the final preview from the latest parts.'
+        : 'All parts are ready. Generate audiobook preview will merge them into the final preview.';
     }
 
-    return `Generate audiobook preview will use the parts that are already ready and only generate the ${remaining} missing or failed ${remaining === 1 ? 'part' : 'parts'} before merging.`;
+    return `Generate audiobook preview will use the parts that are already ready and only generate the ${remaining} missing, canceled, failed, or timed-out ${remaining === 1 ? 'part' : 'parts'} before merging.`;
   }
 
   partStatusLabel(requestIndex: number): string {
     const state = this.renderRequestAudioState(requestIndex);
     switch (state.status) {
       case 'generating':
-        return 'Generating...';
+        return `Generating... ${this.partElapsedLabel(requestIndex)}`;
       case 'generated':
         return 'Ready to listen';
       case 'failed':
         return 'Failed - retry this part';
+      case 'canceled':
+        return 'Canceled - retry available';
+      case 'timed-out':
+        return 'Timed out - retry available';
       default:
         return 'Not generated yet';
     }
@@ -663,12 +829,91 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   partActionLabel(requestIndex: number): string {
     const state = this.renderRequestAudioState(requestIndex);
     if (state.status === 'generating') {
-      return 'Generating...';
+      return 'Cancel';
     }
-    if (state.status === 'failed') {
+    if (state.status === 'failed' || state.status === 'canceled' || state.status === 'timed-out') {
       return 'Retry this part';
     }
+    if (state.status === 'generated') {
+      return 'Regenerate part';
+    }
     return 'Generate this part';
+  }
+
+  partElapsedLabel(requestIndex: number): string {
+    const state = this.renderRequestAudioState(requestIndex);
+    if (state.status !== 'generating' || state.startedAt === null) {
+      return '';
+    }
+
+    return this.formatElapsedTime(Date.now() - state.startedAt);
+  }
+
+  currentGenerationStatusLabel(): string {
+    const currentIndex = this.currentGeneratingRequestIndex();
+    if (currentIndex !== null) {
+      const readyCount = this.generatedPartCount();
+      return `Generating part ${currentIndex + 1} of ${this.renderRequests.length} - ${readyCount} parts already ready`;
+    }
+
+    if (this.fullPlanAudioLoading) {
+      return 'Generating audiobook preview...';
+    }
+
+    if (this.fullPlanAudioError) {
+      return this.fullPlanAudioError;
+    }
+
+    if (this.fullPlanAudioStatusMessage) {
+      return this.fullPlanAudioStatusMessage;
+    }
+
+    if (this.fullPlanAudioUrl && this.fullPlanAudioStale) {
+      return 'Audiobook preview needs regeneration after part updates.';
+    }
+
+    if (this.fullPlanAudioUrl) {
+      return 'Audiobook preview ready.';
+    }
+
+    return this.audiobookReadinessSummary();
+  }
+
+  currentGenerationDetails(): string {
+    if (this.currentGeneratingRequestIndex() !== null) {
+      return 'You can cancel the active part generation. Completed parts stay available, and canceled, timed-out, or failed parts can be retried.';
+    }
+
+    if (this.fullPlanAudioLoading) {
+      return this.audiobookGenerationExplanation();
+    }
+
+    if (this.fullPlanAudioStale) {
+      return 'Regenerate the audiobook preview to rebuild the final MP3 from the latest part audio.';
+    }
+
+    if (this.fullPlanAudioUrl) {
+      return 'You can play or download the current audiobook preview, or regenerate it after changing parts.';
+    }
+
+    return this.audiobookGenerationExplanation();
+  }
+
+  currentGenerationActionLabel(): string {
+    const currentIndex = this.currentGeneratingRequestIndex();
+    if (this.fullPlanAudioLoading && currentIndex !== null) {
+      return `Generating part ${currentIndex + 1} of ${this.renderRequests.length}`;
+    }
+
+    return this.fullPlanAudioStale ? 'Rebuild audiobook preview' : 'Generate audiobook preview';
+  }
+
+  currentGenerationCanCancel(): boolean {
+    return this.fullPlanAudioLoading && this.currentGeneratingRequestIndex() !== null;
+  }
+
+  currentGenerationCancelLabel(): string {
+    return this.fullPlanAudioLoading ? 'Cancel generation' : '';
   }
 
   downloadRenderRequestAudio(requestIndex: number): void {
@@ -682,6 +927,11 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     if (this.fullPlanAudioUrl && this.fullPlanAudioFilename) {
       this.downloadBlobUrl(this.fullPlanAudioUrl, this.fullPlanAudioFilename);
     }
+  }
+
+  currentGeneratingRequestIndex(): number | null {
+    const activeIndex = Object.entries(this.renderRequestAudioStates).find(([, state]) => state.status === 'generating');
+    return activeIndex ? Number(activeIndex[0]) : null;
   }
 
   fullPlanDurationLabel(): string {
@@ -810,6 +1060,12 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
   }
 
   ngOnDestroy(): void {
+    this.fullAudioGenerationCanceled = true;
+    this.abortAllRenderRequestGenerations();
+    if (this.generationClockHandle !== null) {
+      window.clearInterval(this.generationClockHandle);
+      this.generationClockHandle = null;
+    }
     this.activeSampleAudio?.pause();
     this.demoWaveSurfer?.destroy();
     this.fullWaveSurfer?.destroy();
@@ -857,20 +1113,31 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     this.castReviewed = false;
     this.scriptApproved = false;
     this.performanceNotesStale = false;
+    this.fullPlanAudioStale = false;
+    this.fullPlanAudioStatusMessage = null;
     this.cancelCastEdit();
     this.cancelScriptTurnEdit();
     this.resetAudioStates();
   }
 
   private resetAudioStates(): void {
+    this.abortAllRenderRequestGenerations();
     this.fullPlanAudioLoading = false;
     this.fullPlanAudioError = null;
+    this.fullPlanAudioStale = false;
+    this.fullPlanAudioStatusMessage = null;
     this.fullPlanAudioPlaying = false;
     this.renderRequestAudioPlayingStates = {};
     this.fullWaveSurfer?.destroy();
     this.fullWaveSurfer = null;
     this.renderRequestWaveSurfers.forEach((waveSurfer) => waveSurfer.destroy());
     this.renderRequestWaveSurfers.clear();
+    this.fullAudioGenerationCanceled = false;
+    this.fullAudioGenerationActiveRequestIndex = null;
+    if (this.generationClockHandle !== null) {
+      window.clearInterval(this.generationClockHandle);
+      this.generationClockHandle = null;
+    }
     this.revokeGeneratedAudioUrls();
   }
 
@@ -880,6 +1147,7 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     }
     this.fullPlanAudioUrl = window.URL.createObjectURL(blob);
     this.fullPlanAudioFilename = filename;
+    this.fullPlanAudioStale = false;
     window.setTimeout(() => this.initializeFullWaveform());
   }
 
@@ -891,11 +1159,9 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
     this.renderRequestWaveSurfers.get(requestIndex)?.destroy();
     this.renderRequestWaveSurfers.delete(requestIndex);
     this.renderRequestAudioPlayingStates[requestIndex] = false;
-    state.status = 'generated';
     state.blob = blob;
     state.audioUrl = window.URL.createObjectURL(blob);
     state.filename = filename;
-    state.error = null;
     state.generatedAt = new Date();
     window.setTimeout(() => this.initializeRenderRequestWaveforms());
   }
@@ -928,6 +1194,61 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
       }
     });
     this.renderRequestAudioStates = {};
+  }
+
+  private clearRenderRequestGeneration(requestIndex: number, requestId: number): void {
+    const state = this.renderRequestAudioState(requestIndex);
+    if (state.requestId !== requestId) {
+      return;
+    }
+
+    if (state.timeoutHandle !== null) {
+      window.clearTimeout(state.timeoutHandle);
+    }
+
+    state.controller = null;
+    state.timeoutHandle = null;
+    state.startedAt = null;
+    state.inFlightPromise = null;
+  }
+
+  private abortAllRenderRequestGenerations(): void {
+    Object.values(this.renderRequestAudioStates).forEach((state) => {
+      state.controller?.abort();
+      if (state.timeoutHandle !== null) {
+        window.clearTimeout(state.timeoutHandle);
+      }
+      state.controller = null;
+      state.timeoutHandle = null;
+      state.startedAt = null;
+      state.inFlightPromise = null;
+    });
+    this.fullAudioGenerationActiveRequestIndex = null;
+  }
+
+  private isCurrentRenderRequestGeneration(requestIndex: number, requestId: number): boolean {
+    return this.renderRequestAudioState(requestIndex).requestId === requestId;
+  }
+
+  private isAbortError(error: unknown): boolean {
+    return error instanceof DOMException && error.name === 'AbortError';
+  }
+
+  private startGenerationClock(): void {
+    if (this.generationClockHandle !== null) {
+      return;
+    }
+
+    this.generationClockHandle = window.setInterval(() => {
+      this.generationClockTick += 1;
+    }, 1000);
+  }
+
+  private stopGenerationClockIfIdle(): void {
+    if (!this.anyAudioLoading() && this.generationClockHandle !== null) {
+      window.clearInterval(this.generationClockHandle);
+      this.generationClockHandle = null;
+    }
   }
 
   private renderRequestSpeaker(renderRequest: SingleSpeakerRenderRequest | undefined): string | null {
@@ -1093,6 +1414,13 @@ Station Keeper: Together, and quietly. Stories travel faster underground.`;
 
   private normalizedSpeakerKey(value: string): string {
     return this.displaySpeakerName(value).toLowerCase();
+  }
+
+  private formatElapsedTime(milliseconds: number): string {
+    const totalSeconds = Math.max(0, Math.floor(milliseconds / 1000));
+    const minutes = Math.floor(totalSeconds / 60).toString().padStart(2, '0');
+    const seconds = (totalSeconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${seconds}`;
   }
 
   private durationLabelFor(waveSurfer: WaveSurfer | null): string {

@@ -118,6 +118,19 @@ describe('TtsWorkbenchService', () => {
     expect(requestBody).toEqual({ renderRequests: [renderRequest] });
   });
 
+  it('passes an abort signal through to audio generation requests', async () => {
+    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
+    const controller = new AbortController();
+    spyOn(window, 'fetch').and.resolveTo(new Response(new Blob(['mp3'], { type: 'audio/mpeg' }), {
+      status: 200,
+      headers: { 'Content-Disposition': 'attachment; filename="tts-render-request-1.mp3"' }
+    }));
+
+    await service.createAudioForRenderRequest({ input: { text: 'Only this request' }, voice: {}, audioConfig: {} }, { signal: controller.signal });
+
+    expect((window.fetch as jasmine.Spy).calls.mostRecent().args[1].signal).toBe(controller.signal);
+  });
+
   it('throws a user-facing error when analysis fails', async () => {
     const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
     spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({

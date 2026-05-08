@@ -384,15 +384,20 @@
       </details>
 
       <div *ngIf="audioProductionPlan" class="generation-guidance" role="status">
-        <strong>{{ audiobookReadinessSummary() }}</strong>
-        <p>{{ audiobookGenerationExplanation() }}</p>
+        <strong>{{ currentGenerationStatusLabel() }}</strong>
+        <p>{{ currentGenerationDetails() }}</p>
+        <div *ngIf="currentGenerationCanCancel()" class="button-row compact-actions">
+          <button type="button" class="secondary-button" (click)="cancelFullAudioGeneration()">
+            {{ currentGenerationCancelLabel() }}
+          </button>
+        </div>
       </div>
 
-      <button type="button" class="primary-button next-action" (click)="generateAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || renderRequests.length === 0">
-        {{ fullPlanAudioLoading ? 'Generating audiobook preview...' : 'Generate audiobook preview' }}
+      <button type="button" class="primary-button next-action" (click)="generateAudio()" [disabled]="loadingAction !== null || fullPlanAudioLoading || anyAudioLoading() || renderRequests.length === 0">
+        {{ currentGenerationActionLabel() }}
       </button>
-      <button type="button" class="secondary-button" (click)="generateAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || renderRequests.length === 0 || partsToGenerateCount() === 0">
-        {{ partsToGenerateCount() > 0 ? 'Generate missing or failed parts' : 'All parts ready' }}
+      <button type="button" class="secondary-button" (click)="generateAudio()" [disabled]="loadingAction !== null || fullPlanAudioLoading || anyAudioLoading() || renderRequests.length === 0 || partsToGenerateCount() === 0">
+        {{ partsToGenerateCount() > 0 ? 'Generate pending parts' : 'All parts ready' }}
       </button>
       <p *ngIf="fullPlanAudioError" class="error">{{ fullPlanAudioError }}</p>
 
@@ -440,9 +445,9 @@
             <button
               type="button"
               class="secondary-button"
-              (click)="generateAudioForRenderRequest(renderRequest, requestIndex)"
-              [disabled]="loadingAction !== null || fullPlanAudioLoading || renderRequestAudioState(requestIndex).status === 'generating'"
-              [attr.aria-label]="'Generate audio for voice part ' + (requestIndex + 1)"
+              (click)="renderRequestAudioState(requestIndex).status === 'generating' ? cancelRenderRequestGeneration(requestIndex) : generateAudioForRenderRequest(renderRequest, requestIndex)"
+              [disabled]="loadingAction !== null || (renderRequestAudioState(requestIndex).status !== 'generating' && (fullPlanAudioLoading || anyAudioLoading()))"
+              [attr.aria-label]="renderRequestAudioState(requestIndex).status === 'generating' ? 'Cancel generation for voice part ' + (requestIndex + 1) : 'Generate audio for voice part ' + (requestIndex + 1)"
             >
               {{ partActionLabel(requestIndex) }}
             </button>

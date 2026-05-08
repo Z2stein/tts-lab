@@ -58,6 +58,10 @@ interface ApiErrorResponse {
   requestId?: string;
 }
 
+interface RequestOptions {
+  signal?: AbortSignal;
+}
+
 @Injectable({ providedIn: 'root' })
 export class TtsWorkbenchService {
   constructor(private readonly currentUserService: CurrentUserService) {}
@@ -112,11 +116,12 @@ export class TtsWorkbenchService {
     );
   }
 
-  async createAudio(renderPlan: SingleSpeakerRenderPlan): Promise<CreatedAudioDownload> {
+  async createAudio(renderPlan: SingleSpeakerRenderPlan, options: RequestOptions = {}): Promise<CreatedAudioDownload> {
     const response = await this.postResponse(
       '/api/projects/tts-workbench/create-audio',
       renderPlan,
-      'Audio creation failed'
+      'Audio creation failed',
+      options
     );
 
     return {
@@ -126,24 +131,28 @@ export class TtsWorkbenchService {
   }
 
 
-  async createAudioForRenderRequest(renderRequest: SingleSpeakerRenderRequest): Promise<CreatedAudioDownload> {
-    return this.createAudio({ renderRequests: [renderRequest] });
+  async createAudioForRenderRequest(
+    renderRequest: SingleSpeakerRenderRequest,
+    options: RequestOptions = {}
+  ): Promise<CreatedAudioDownload> {
+    return this.createAudio({ renderRequests: [renderRequest] }, options);
   }
 
-  private async post<T>(url: string, body: unknown, errorPrefix: string): Promise<T> {
-    const response = await this.postResponse(url, body, errorPrefix);
+  private async post<T>(url: string, body: unknown, errorPrefix: string, options: RequestOptions = {}): Promise<T> {
+    const response = await this.postResponse(url, body, errorPrefix, options);
 
     return (await response.json()) as T;
   }
 
-  private async postResponse(url: string, body: unknown, errorPrefix: string): Promise<Response> {
+  private async postResponse(url: string, body: unknown, errorPrefix: string, options: RequestOptions = {}): Promise<Response> {
     const response = await fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'X-XSRF-TOKEN': await this.currentUserService.ensureCsrfToken()
       },
-      body: JSON.stringify(body)
+      body: JSON.stringify(body),
+      signal: options.signal
     });
     await this.refreshRequestLimits();
 
