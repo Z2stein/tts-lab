@@ -285,6 +285,39 @@ describe('AudiobookStudioPageComponent', () => {
     expect(component.fullPlanAudioUrl).not.toBeNull();
   });
 
+  it('explains how many audiobook parts are ready before merging', async () => {
+    component.audioProductionPlan = {
+      renderRequests: [
+        { input: { text: 'First' }, voice: { name: 'Kore' }, audioConfig: {} },
+        { input: { text: 'Second' }, voice: { name: 'Iapetus' }, audioConfig: {} },
+        { input: { text: 'Third' }, voice: { name: 'Rasalgethi' }, audioConfig: {} }
+      ]
+    };
+    component.renderRequestAudioState(1).status = 'failed';
+    fixture.detectChanges();
+
+    expect(component.audiobookReadinessSummary()).toBe('0 of 3 parts ready - 2 missing, 1 failed');
+    expect(fixture.nativeElement.textContent).toContain('Generate audiobook preview will use the parts that are already ready');
+    expect(fixture.nativeElement.textContent).toContain('only generate the 3 missing or failed parts before merging');
+  });
+
+  it('leads render part cards with the speaker identity mapped from the voice', () => {
+    component.cast = [
+      { speakerName: 'Mara', roleDescription: 'Determined lead', voiceSuggestion: 'Kore' },
+      { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Iapetus' }
+    ];
+    component.audioProductionPlan = {
+      renderRequests: [
+        { input: { text: 'Then we go now.' }, voice: { name: 'Kore' }, audioConfig: {} }
+      ]
+    };
+    fixture.detectChanges();
+
+    expect(component.renderRequestSpeakerName(0)).toBe('Mara');
+    expect(fixture.nativeElement.textContent).toContain('Part 1 of 1');
+    expect(fixture.nativeElement.textContent).toContain('Determined lead');
+  });
+
   it('keeps successful parts when one audiobook part fails', async () => {
     component.audioProductionPlan = {
       renderRequests: [

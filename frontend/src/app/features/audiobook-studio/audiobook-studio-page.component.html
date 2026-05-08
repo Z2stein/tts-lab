@@ -8,9 +8,9 @@
       </p>
       <div class="hero-actions" aria-label="Audiobook studio actions">
         <button type="button" class="primary-button hero-primary" (click)="focusStoryInput($event)">Create audio story</button>
-        <button type="button" class="secondary-button hero-secondary" (click)="playDemo($event)">
+        <button type="button" class="secondary-button hero-secondary" [class.is-playing]="demoPlaying" (click)="playDemo($event)">
           <span class="play-dot" aria-hidden="true"></span>
-          Listen to demo
+          {{ demoPlaying ? 'Pause demo' : 'Listen to demo' }}
         </button>
       </div>
       <div class="benefit-chips" aria-label="Studio benefits">
@@ -43,13 +43,13 @@
             <h2>Detected cast</h2>
           </div>
           <div class="hero-cast-list">
-            <div *ngFor="let member of heroCast" class="hero-cast-row">
+            <div *ngFor="let member of heroCast" class="hero-cast-row" [ngStyle]="speakerStyle(member.name)">
               <span class="hero-avatar">{{ member.initials }}</span>
               <span>
                 <strong>{{ member.name }}</strong>
                 <small>{{ member.tone }}</small>
               </span>
-              <button type="button" (click)="playVoiceSample(member.name, $event)" [attr.aria-label]="'Preview voice for ' + member.name">
+              <button type="button" [class.is-playing]="isVoiceSamplePlaying(member.name)" (click)="playVoiceSample(member.name, $event)" [attr.aria-label]="isVoiceSamplePlaying(member.name) ? 'Pause voice for ' + member.name : 'Preview voice for ' + member.name">
                 <span class="play-icon" aria-hidden="true"></span>
               </button>
             </div>
@@ -58,7 +58,7 @@
       </div>
 
       <div class="waveform-preview framework-player" aria-label="Audio preview player">
-        <button type="button" [attr.aria-label]="demoPlaying ? 'Pause audio preview' : 'Play audio preview'" (click)="playDemo($event)">
+        <button type="button" [class.is-playing]="demoPlaying" [attr.aria-label]="demoPlaying ? 'Pause audio preview' : 'Play audio preview'" (click)="playDemo($event)">
           <span class="play-icon" aria-hidden="true"></span>
         </button>
         <div class="player-copy">
@@ -74,11 +74,11 @@
   <section class="journey-section" aria-labelledby="journey-title">
     <h2 id="journey-title">From plain text to performed story</h2>
     <div class="journey-grid">
-      <article *ngFor="let step of journeySteps" class="journey-card">
+      <button *ngFor="let step of journeySteps" type="button" class="journey-card helper-jump" (click)="scrollToSection(step.sectionId, $event)">
         <span class="journey-icon">{{ step.icon }}</span>
         <h3>{{ step.title }}</h3>
         <p>{{ step.description }}</p>
-      </article>
+      </button>
     </div>
   </section>
 
@@ -105,11 +105,13 @@
       </button>
     </nav>
 
-    <aside class="current-task" aria-live="polite">
-      <span class="task-label">You are here</span>
-      <h2>{{ currentTask.title }}</h2>
-      <p>{{ currentTask.body }}</p>
-      <strong>{{ currentTask.nextAction }}</strong>
+    <aside aria-live="polite">
+      <button type="button" class="current-task helper-jump" (click)="scrollToSection(currentTask.sectionId, $event)">
+        <span class="task-label">You are here</span>
+        <h2>{{ currentTask.title }}</h2>
+        <p>{{ currentTask.body }}</p>
+        <strong>{{ currentTask.nextAction }}</strong>
+      </button>
     </aside>
 
     <section id="story-section" class="step-card story-card anchor-section" aria-labelledby="story-input-title">
@@ -161,13 +163,14 @@
           *ngFor="let speaker of cast; let speakerIndex = index; trackBy: trackCastByIndex"
           class="cast-card"
           [ngClass]="castAccentClass(speakerIndex)"
+          [ngStyle]="speakerStyle(speaker.speakerName)"
         >
           <ng-container *ngIf="editingCastIndex !== speakerIndex; else castEditForm">
             <div class="voice-card-media">
               <span class="cast-avatar" aria-hidden="true">{{ speakerInitials(speaker.speakerName) }}</span>
-              <button type="button" class="preview-voice-button" (click)="playVoiceSample(speaker.speakerName, $event)">
+              <button type="button" class="preview-voice-button" [class.is-playing]="isVoiceSamplePlaying(speaker.speakerName)" (click)="playVoiceSample(speaker.speakerName, $event)">
                 <span class="play-icon" aria-hidden="true"></span>
-                Preview voice
+                {{ isVoiceSamplePlaying(speaker.speakerName) ? 'Pause voice' : 'Preview voice' }}
               </button>
             </div>
             <div class="card-topline">
@@ -224,7 +227,7 @@
       <p *ngIf="scriptTurns.length > 0 && !scriptApproved" class="review-status">Script needs review</p>
       <p *ngIf="scriptTurns.length === 0" class="empty-state">Script preview turns will appear after cast discovery.</p>
       <div *ngIf="scriptTurns.length > 0" class="script-panel">
-        <article *ngFor="let group of scriptGroups; trackBy: trackScriptGroup" class="script-group">
+        <article *ngFor="let group of scriptGroups; trackBy: trackScriptGroup" class="script-group" [ngStyle]="speakerStyle(group.speaker)">
           <h3>{{ displaySpeakerName(group.speaker) }}</h3>
           <div *ngFor="let indexedTurn of group.turns; trackBy: trackScriptTurn" class="script-turn">
             <ng-container *ngIf="editingScriptTurnIndex !== indexedTurn.index; else scriptEditForm">
@@ -277,7 +280,7 @@
 
       <p *ngIf="annotatedTurns.length === 0" class="empty-state">Performance notes will appear after the script preview.</p>
       <ol *ngIf="annotatedTurns.length > 0" class="notes-list">
-        <li *ngFor="let turn of annotatedTurns">
+        <li *ngFor="let turn of annotatedTurns" [ngStyle]="speakerStyle(turn.speaker)">
           <span class="speaker-name">{{ displaySpeakerName(turn.speaker) }}</span>
           <span *ngFor="let tag of markupFor(turn).tags" class="emotion-badge">[{{ tag }}]</span>
           <span>{{ markupFor(turn).text }}</span>
@@ -342,6 +345,10 @@
 
       <p *ngIf="!audioProductionPlan" class="empty-state">The audio production plan will appear after performance notes.</p>
       <div *ngIf="audioProductionPlan" class="plan-summary" aria-label="Audio production plan">
+        <div class="plan-summary-status">
+          <span>Generation state</span>
+          <strong>{{ audiobookReadinessSummary() }}</strong>
+        </div>
         <div>
           <span>Audio parts</span>
           <strong>{{ renderRequests.length }}</strong>
@@ -376,11 +383,16 @@
         <pre>{{ audioProductionPlanJson }}</pre>
       </details>
 
+      <div *ngIf="audioProductionPlan" class="generation-guidance" role="status">
+        <strong>{{ audiobookReadinessSummary() }}</strong>
+        <p>{{ audiobookGenerationExplanation() }}</p>
+      </div>
+
       <button type="button" class="primary-button next-action" (click)="generateAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || renderRequests.length === 0">
         {{ fullPlanAudioLoading ? 'Generating audiobook preview...' : 'Generate audiobook preview' }}
       </button>
-      <button type="button" class="secondary-button" (click)="generateAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || renderRequests.length === 0 || missingPartCount() === 0">
-        Generate missing parts
+      <button type="button" class="secondary-button" (click)="generateAudio()" [disabled]="loadingAction !== null || anyAudioLoading() || renderRequests.length === 0 || partsToGenerateCount() === 0">
+        {{ partsToGenerateCount() > 0 ? 'Generate missing or failed parts' : 'All parts ready' }}
       </button>
       <p *ngIf="fullPlanAudioError" class="error">{{ fullPlanAudioError }}</p>
 
@@ -390,7 +402,7 @@
           <h3>Audiobook preview</h3>
           <p>{{ fullPlanAudioFilename }}</p>
         </div>
-        <button type="button" class="player-button" [attr.aria-label]="fullPlanAudioPlaying ? 'Pause audiobook preview' : 'Play audiobook preview'" (click)="toggleFullGeneratedAudio()">
+        <button type="button" class="player-button" [class.is-playing]="fullPlanAudioPlaying" [attr.aria-label]="fullPlanAudioPlaying ? 'Pause audiobook preview' : 'Play audiobook preview'" (click)="toggleFullGeneratedAudio()">
           <span class="play-icon" aria-hidden="true"></span>
         </button>
         <div #fullWaveform class="waveform-canvas generated-waveform" aria-hidden="true"></div>
@@ -403,13 +415,19 @@
       <details *ngIf="renderRequests.length > 0" class="audio-parts-details">
         <summary>Audio parts and individual previews</summary>
         <div class="render-list">
-          <article *ngFor="let renderRequest of renderRequests; let requestIndex = index" class="render-request">
-            <div>
-              <span class="badge">Voice part {{ renderRequestAudioState(requestIndex).partNumber }}</span>
-              <h3>Preview part {{ requestIndex + 1 }}</h3>
-              <p class="part-meta" *ngIf="renderRequestAudioState(requestIndex).voice">
-                Voice: {{ renderRequestAudioState(requestIndex).voice }}
-              </p>
+          <article *ngFor="let renderRequest of renderRequests; let requestIndex = index" class="render-request" [ngStyle]="speakerStyle(renderRequestSpeakerName(requestIndex))">
+            <div class="render-identity">
+              <span class="cast-avatar part-avatar" aria-hidden="true">{{ speakerInitials(renderRequestSpeakerName(requestIndex)) }}</span>
+              <div>
+                <span class="badge">Part {{ requestIndex + 1 }} of {{ renderRequests.length }}</span>
+                <h3>{{ renderRequestSpeakerName(requestIndex) }}</h3>
+                <p class="part-meta" *ngIf="renderRequestRoleLabel(requestIndex)">
+                  {{ renderRequestRoleLabel(requestIndex) }}
+                </p>
+                <p class="part-meta" *ngIf="renderRequestAudioState(requestIndex).voice">
+                  Voice: {{ renderRequestAudioState(requestIndex).voice }}
+                </p>
+              </div>
             </div>
             <p
               class="part-status"
@@ -433,6 +451,7 @@
               <button
                 type="button"
                 class="player-button"
+                [class.is-playing]="renderRequestAudioPlayingStates[requestIndex]"
                 [attr.aria-label]="renderRequestAudioPlayingStates[requestIndex] ? 'Pause voice part ' + (requestIndex + 1) : 'Play voice part ' + (requestIndex + 1)"
                 (click)="toggleRenderRequestAudio(requestIndex)"
               >
