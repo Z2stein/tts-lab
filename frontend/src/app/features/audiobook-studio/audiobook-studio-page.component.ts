@@ -31,8 +31,6 @@ import {
   HeroCastMember,
   IndexedSpeakerSplitTurn,
   RenderRequestAudioState,
-  RequestCancelReason,
-  RenderRequestStatus,
   ScriptGroup,
   SpeakerAccent,
   SpeakerSplitTurn,
@@ -43,6 +41,10 @@ import {
 import { durationLabelFor, formatElapsedTime } from './utils/audio-format';
 import { markupFor } from './utils/annotated-markup';
 import { formatSpeakerDisplayName, normalizedSpeakerKey, speakerInitials } from './utils/speaker-name';
+import { FullAudioGenerationService } from './services/full-audio-generation.service';
+import { RenderRequestAudioService } from './services/render-request-audio.service';
+import { VoiceSampleService } from './services/voice-sample.service';
+import { WaveSurferService } from './services/wave-surfer.service';
 
 // Re-export so the spec can import formatSpeakerDisplayName from this file path unchanged.
 export { formatSpeakerDisplayName };
@@ -61,11 +63,19 @@ export { formatSpeakerDisplayName };
     ScriptReviewComponent,
     PerformanceNotesComponent
   ],
+  providers: [
+    WaveSurferService,
+    VoiceSampleService,
+    RenderRequestAudioService,
+    FullAudioGenerationService,
+  ],
   templateUrl: './audiobook-studio-page.component.html',
   styleUrl: './audiobook-studio-page.component.css'
 })
 export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
-  partGenerationTimeoutMs = 120_000;
+  // Proxy to service so spec can write component.partGenerationTimeoutMs = 5
+  get partGenerationTimeoutMs(): number { return this.renderRequestAudioService.partGenerationTimeoutMs; }
+  set partGenerationTimeoutMs(ms: number) { this.renderRequestAudioService.partGenerationTimeoutMs = ms; }
 
   readonly speakerStyleFn = (name: string | null | undefined) => this.speakerStyle(name);
 
@@ -90,13 +100,6 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   audioProductionPlan: SingleSpeakerRenderPlan | null = null;
   loadingAction: string | null = null;
   error: string | null = null;
-  fullPlanAudioLoading = false;
-  fullPlanAudioError: string | null = null;
-  fullPlanAudioStale = false;
-  fullPlanAudioStatusMessage: string | null = null;
-  fullPlanAudioUrl: string | null = null;
-  fullPlanAudioFilename: string | null = null;
-  renderRequestAudioStates: Record<number, RenderRequestAudioState> = {};
   editingCastIndex: number | null = null;
   castEditDraft: SpeakerVoiceAnalysisItem | null = null;
   editingScriptTurnIndex: number | null = null;
@@ -107,20 +110,20 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   demoPlaying = false;
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
-  activeSampleKey: string | null = null;
-  generationClockTick = 0;
 
-  private activeSampleAudio: HTMLAudioElement | null = null;
+  // ── Full-audio delegated state (spec reads these directly) ────────────────
+  get fullPlanAudioLoading(): boolean { return this.fullAudioGenerationService.loading; }
+  get fullPlanAudioError(): string | null { return this.fullAudioGenerationService.error; }
+  get fullPlanAudioStale(): boolean { return this.fullAudioGenerationService.stale; }
+  get fullPlanAudioStatusMessage(): string | null { return this.fullAudioGenerationService.statusMessage; }
+  get fullPlanAudioUrl(): string | null { return this.fullAudioGenerationService.audioUrl; }
+  get fullPlanAudioFilename(): string | null { return this.fullAudioGenerationService.filename; }
+
+  // ── Voice-sample delegated state ──────────────────────────────────────────
+  get activeSampleKey(): string | null { return this.voiceSampleService.activeSampleKey; }
+
   private demoWaveformElement: ElementRef<HTMLElement> | null = null;
   private fullWaveformElement: ElementRef<HTMLElement> | null = null;
-  private demoWaveSurfer: WaveSurfer | null = null;
-  private fullWaveSurfer: WaveSurfer | null = null;
-  private renderRequestWaveSurfers = new Map<number, WaveSurfer>();
-  private renderRequestGenerationCounter = 0;
-  private fullAudioGenerationRunId = 0;
-  private fullAudioGenerationCanceled = false;
-  private fullAudioGenerationActiveRequestIndex: number | null = null;
-  private generationClockHandle: number | null = null;
 
   @ViewChild('demoWaveform')
   set demoWaveform(ref: ElementRef<HTMLElement> | undefined) {
@@ -137,15 +140,13 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   @ViewChildren('renderRequestWaveform')
   renderRequestWaveformElements!: QueryList<ElementRef<HTMLElement>>;
 
-  constructor(private readonly ttsWorkbenchService: TtsWorkbenchService) {}
-
-  get wordCount(): number {
-    return this.storyTextControl.value.trim().split(/\s+/).filter(Boolean).length;
-  }
-
-  get characterCount(): number {
-    return this.storyTextControl.value.length;
-  }
+  constructor(
+    private readonly ttsWorkbenchService: TtsWorkbenchService,
+    private readonly waveSurferService: WaveSurferService,
+    private readonly voiceSampleService: VoiceSampleService,
+    private readonly renderRequestAudioService: RenderRequestAudioService,
+    private readonly fullAudioGenerationService: FullAudioGenerationService,
+  ) {}
 
   get scriptGroups(): ScriptGroup[] {
     return this.scriptTurns.reduce<ScriptGroup[]>((groups, turn, index) => {
@@ -320,8 +321,9 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   playDemo(event?: Event): void {
     event?.preventDefault();
-    if (this.demoWaveSurfer) {
-      void this.demoWaveSurfer.playPause();
+    const demoWs = this.waveSurferService.get('demo');
+    if (demoWs) {
+      void demoWs.playPause();
       return;
     }
     this.playAudioPath('/assets/audio/voice-samples/full-text-preview.mp3', 'demo:fallback');
@@ -422,72 +424,10 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   async generateAudio(): Promise<void> {
-    if (!this.audioProductionPlan || this.renderRequests.length === 0) {
-      return;
-    }
-
-    if (this.fullPlanAudioLoading || this.anyAudioLoading()) {
-      return;
-    }
-
-    const runId = ++this.fullAudioGenerationRunId;
-    this.fullAudioGenerationCanceled = false;
-    this.fullAudioGenerationActiveRequestIndex = null;
-    this.fullPlanAudioLoading = true;
-    this.fullPlanAudioError = null;
-    this.fullPlanAudioStale = this.fullPlanAudioUrl !== null;
-    this.fullPlanAudioStatusMessage = this.fullPlanAudioUrl
-      ? 'Rebuilding the audiobook preview. Existing audio stays available until the new preview is ready.'
-      : 'Building the audiobook preview from the generated parts.';
-    this.startGenerationClock();
-
-    try {
-      for (const [requestIndex, renderRequest] of this.renderRequests.entries()) {
-        if (runId !== this.fullAudioGenerationRunId || this.fullAudioGenerationCanceled) {
-          break;
-        }
-
-        const state = this.renderRequestAudioState(requestIndex);
-        if (state.status === 'generated' && state.blob) {
-          continue;
-        }
-        this.fullAudioGenerationActiveRequestIndex = requestIndex;
-        await this.generateAudioForRenderRequest(renderRequest, requestIndex, { fullRunId: runId });
-      }
-
-      if (runId !== this.fullAudioGenerationRunId) {
-        return;
-      }
-
-      if (this.fullAudioGenerationCanceled) {
-        this.fullPlanAudioLoading = false;
-        this.fullPlanAudioStatusMessage = 'Generation canceled. You can retry the pending part.';
-        return;
-      }
-
-      const incompleteParts = this.renderRequests
-        .map((_, requestIndex) => this.renderRequestAudioState(requestIndex))
-        .filter((state) => state.status !== 'generated' || !state.blob);
-
-      if (incompleteParts.length > 0) {
-        this.fullPlanAudioLoading = false;
-        this.fullPlanAudioStatusMessage = this.audiobookReadinessSummary();
-        return;
-      }
-
-      const audioParts = this.renderRequests.map((_, requestIndex) => this.renderRequestAudioState(requestIndex).blob as Blob);
-      this.setFullPlanAudio(new Blob(audioParts, { type: 'audio/mpeg' }), 'audiobook-preview.mp3');
-      this.fullPlanAudioStatusMessage = 'Audiobook preview is ready.';
-    } catch (error) {
-      if (!this.fullAudioGenerationCanceled) {
-        this.fullPlanAudioError = 'One audio part could not be generated. The other parts are still available. You can retry this part or edit the text.';
-      }
-    } finally {
-      if (runId === this.fullAudioGenerationRunId) {
-        this.fullPlanAudioLoading = false;
-        this.fullAudioGenerationActiveRequestIndex = null;
-        this.stopGenerationClockIfIdle();
-      }
+    if (!this.audioProductionPlan || this.renderRequests.length === 0) return;
+    await this.fullAudioGenerationService.generate(this.renderRequests);
+    if (this.fullAudioGenerationService.audioUrl) {
+      window.setTimeout(() => this.initializeFullWaveform());
     }
   }
 
@@ -496,57 +436,29 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     requestIndex: number,
     options: { fullRunId?: number } = {}
   ): Promise<void> {
-    const state = this.renderRequestAudioState(requestIndex);
-    if (state.status === 'generating' && state.inFlightPromise) {
-      return state.inFlightPromise;
-    }
+    await this.renderRequestAudioService.generate(renderRequest, requestIndex, options);
 
-    const requestId = ++this.renderRequestGenerationCounter;
-    const controller = new AbortController();
-    const timeoutHandle = window.setTimeout(() => {
-      const activeState = this.renderRequestAudioState(requestIndex);
-      if (activeState.requestId !== requestId || activeState.status !== 'generating') {
-        return;
+    const state = this.renderRequestAudioService.audioStates[requestIndex];
+    if (state?.status === 'generated') {
+      if (this.fullAudioGenerationService.audioUrl) {
+        this.fullAudioGenerationService.markStale(
+          'Audiobook preview needs regeneration because one or more parts changed.'
+        );
+      } else {
+        // Clear any leftover status message from a previous run
+        if (this.fullAudioGenerationService.statusMessage === null) {
+          // nothing to do
+        }
       }
-      activeState.cancelReason = 'timeout';
-      activeState.controller?.abort();
-    }, this.partGenerationTimeoutMs);
-
-    state.status = 'generating';
-    state.error = null;
-    state.startedAt = Date.now();
-    state.requestId = requestId;
-    state.timeoutHandle = timeoutHandle;
-    state.controller = controller;
-    state.cancelReason = null;
-    state.inFlightPromise = this.runRenderRequestGeneration(renderRequest, requestIndex, requestId, controller, options.fullRunId);
-    this.startGenerationClock();
-    return state.inFlightPromise;
+    }
   }
 
   cancelRenderRequestGeneration(requestIndex: number): void {
-    const state = this.renderRequestAudioState(requestIndex);
-    if (state.status !== 'generating') {
-      return;
-    }
-
-    state.cancelReason = 'cancel';
-    state.controller?.abort();
+    this.renderRequestAudioService.cancel(requestIndex);
   }
 
   cancelFullAudioGeneration(): void {
-    if (!this.fullPlanAudioLoading) {
-      return;
-    }
-
-    this.fullAudioGenerationCanceled = true;
-    const activeIndex = this.fullAudioGenerationActiveRequestIndex;
-    if (activeIndex !== null) {
-      this.cancelRenderRequestGeneration(activeIndex);
-    }
-    this.fullPlanAudioLoading = false;
-    this.fullPlanAudioStatusMessage = 'Generation canceled. You can retry the pending part.';
-    this.stopGenerationClockIfIdle();
+    this.fullAudioGenerationService.cancel();
   }
 
   markupFor(turn: AnnotatedSpeakerTurn): AnnotatedMarkup {
@@ -554,54 +466,35 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   renderRequestAudioState(requestIndex: number): RenderRequestAudioState {
-    if (!this.renderRequestAudioStates[requestIndex]) {
-      const renderRequest = this.renderRequests[requestIndex];
-      this.renderRequestAudioStates[requestIndex] = {
-        status: 'not-generated',
-        partNumber: requestIndex + 1,
-        speaker: this.renderRequestSpeaker(renderRequest),
-        voice: this.renderRequestVoice(renderRequest),
-        blob: null,
-        error: null,
-        audioUrl: null,
-        filename: null,
-        generatedAt: null,
-        startedAt: null,
-        requestId: 0,
-        timeoutHandle: null,
-        controller: null,
-        cancelReason: null,
-        inFlightPromise: null
-      };
-    }
-    return this.renderRequestAudioStates[requestIndex];
+    return this.renderRequestAudioService.getState(
+      requestIndex,
+      this.renderRequests[requestIndex],
+      this.cast
+    );
   }
 
   anyAudioLoading(): boolean {
-    return this.fullPlanAudioLoading || Object.values(this.renderRequestAudioStates).some((state) => state.status === 'generating');
+    return this.fullAudioGenerationService.loading || this.renderRequestAudioService.anyLoading();
   }
 
   generatedPartCount(): number {
-    return this.renderRequests.filter((_, requestIndex) => {
-      const state = this.renderRequestAudioState(requestIndex);
-      return state.status === 'generated' || (state.blob !== null && state.status !== 'generating');
-    }).length;
+    return this.renderRequestAudioService.generatedCount();
   }
 
   failedPartCount(): number {
-    return this.renderRequests.filter((_, requestIndex) => this.renderRequestAudioState(requestIndex).status === 'failed').length;
+    return this.renderRequestAudioService.failedCount();
   }
 
   canceledPartCount(): number {
-    return this.renderRequests.filter((_, requestIndex) => this.renderRequestAudioState(requestIndex).status === 'canceled').length;
+    return this.renderRequestAudioService.canceledCount();
   }
 
   timedOutPartCount(): number {
-    return this.renderRequests.filter((_, requestIndex) => this.renderRequestAudioState(requestIndex).status === 'timed-out').length;
+    return this.renderRequestAudioService.timedOutCount();
   }
 
   missingPartCount(): number {
-    return this.renderRequests.filter((_, requestIndex) => this.renderRequestAudioState(requestIndex).status === 'not-generated').length;
+    return this.renderRequestAudioService.missingCount(this.renderRequests.length);
   }
 
   partsToGenerateCount(): number {
@@ -625,18 +518,10 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     }
 
     const details: string[] = [];
-    if (missing > 0) {
-      details.push(`${missing} missing`);
-    }
-    if (failed > 0) {
-      details.push(`${failed} failed`);
-    }
-    if (canceled > 0) {
-      details.push(`${canceled} canceled`);
-    }
-    if (timedOut > 0) {
-      details.push(`${timedOut} timed out`);
-    }
+    if (missing > 0) details.push(`${missing} missing`);
+    if (failed > 0) details.push(`${failed} failed`);
+    if (canceled > 0) details.push(`${canceled} canceled`);
+    if (timedOut > 0) details.push(`${timedOut} timed out`);
 
     return `${ready} of ${total} parts ready - ${details.join(', ')}`;
   }
@@ -672,24 +557,15 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   partActionLabel(requestIndex: number): string {
     const state = this.renderRequestAudioState(requestIndex);
-    if (state.status === 'generating') {
-      return 'Cancel';
-    }
-    if (state.status === 'failed' || state.status === 'canceled' || state.status === 'timed-out') {
-      return 'Retry this part';
-    }
-    if (state.status === 'generated') {
-      return 'Regenerate part';
-    }
+    if (state.status === 'generating') return 'Cancel';
+    if (state.status === 'failed' || state.status === 'canceled' || state.status === 'timed-out') return 'Retry this part';
+    if (state.status === 'generated') return 'Regenerate part';
     return 'Generate this part';
   }
 
   partElapsedLabel(requestIndex: number): string {
     const state = this.renderRequestAudioState(requestIndex);
-    if (state.status !== 'generating' || state.startedAt === null) {
-      return '';
-    }
-
+    if (state.status !== 'generating' || state.startedAt === null) return '';
     return formatElapsedTime(Date.now() - state.startedAt);
   }
 
@@ -700,26 +576,15 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
       return `Generating part ${currentIndex + 1} of ${this.renderRequests.length} - ${readyCount} parts already ready`;
     }
 
-    if (this.fullPlanAudioLoading) {
-      return 'Generating audiobook preview...';
-    }
-
-    if (this.fullPlanAudioError) {
-      return this.fullPlanAudioError;
-    }
-
-    if (this.fullPlanAudioStatusMessage) {
-      return this.fullPlanAudioStatusMessage;
-    }
+    if (this.fullPlanAudioLoading) return 'Generating audiobook preview...';
+    if (this.fullPlanAudioError) return this.fullPlanAudioError;
+    if (this.fullPlanAudioStatusMessage) return this.fullPlanAudioStatusMessage;
 
     if (this.fullPlanAudioUrl && this.fullPlanAudioStale) {
       return 'Audiobook preview needs regeneration after part updates.';
     }
 
-    if (this.fullPlanAudioUrl) {
-      return 'Audiobook preview ready.';
-    }
-
+    if (this.fullPlanAudioUrl) return 'Audiobook preview ready.';
     return this.audiobookReadinessSummary();
   }
 
@@ -728,9 +593,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
       return 'You can cancel the active part generation. Completed parts stay available, and canceled, timed-out, or failed parts can be retried.';
     }
 
-    if (this.fullPlanAudioLoading) {
-      return this.audiobookGenerationExplanation();
-    }
+    if (this.fullPlanAudioLoading) return this.audiobookGenerationExplanation();
 
     if (this.fullPlanAudioStale) {
       return 'Regenerate the audiobook preview to rebuild the final MP3 from the latest part audio.';
@@ -748,7 +611,6 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     if (this.fullPlanAudioLoading && currentIndex !== null) {
       return `Generating part ${currentIndex + 1} of ${this.renderRequests.length}`;
     }
-
     return this.fullPlanAudioStale ? 'Rebuild audiobook preview' : 'Generate audiobook preview';
   }
 
@@ -774,24 +636,25 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   currentGeneratingRequestIndex(): number | null {
-    const activeIndex = Object.entries(this.renderRequestAudioStates).find(([, state]) => state.status === 'generating');
-    return activeIndex ? Number(activeIndex[0]) : null;
+    const entry = Object.entries(this.renderRequestAudioService.audioStates)
+      .find(([, state]) => state.status === 'generating');
+    return entry ? Number(entry[0]) : null;
   }
 
   fullPlanDurationLabel(): string {
-    return durationLabelFor(this.fullWaveSurfer);
+    return durationLabelFor(this.waveSurferService.get('full'));
   }
 
   renderRequestDurationLabel(requestIndex: number): string {
-    return durationLabelFor(this.renderRequestWaveSurfers.get(requestIndex) ?? null);
+    return durationLabelFor(this.waveSurferService.get(`part:${requestIndex}`));
   }
 
   toggleFullGeneratedAudio(): void {
-    void this.fullWaveSurfer?.playPause();
+    void this.waveSurferService.get('full')?.playPause();
   }
 
   toggleRenderRequestAudio(requestIndex: number): void {
-    void this.renderRequestWaveSurfers.get(requestIndex)?.playPause();
+    void this.waveSurferService.get(`part:${requestIndex}`)?.playPause();
   }
 
   isLoading(action: string): boolean {
@@ -820,7 +683,10 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   playVoiceSample(speakerName: string, event?: Event): void {
     event?.preventDefault();
-    this.playAudioPath(this.voiceSamplePathFor(speakerName), `voice:${this.displaySpeakerName(speakerName)}`);
+    const displayName = this.displaySpeakerName(speakerName);
+    const path = this.voiceSamplePathFor(displayName);
+    this.waveSurferService.pauseAll();
+    this.voiceSampleService.play(path, `voice:${displayName}`, () => this.scrollToSection('cast-section'));
   }
 
   isVoiceSamplePlaying(speakerName: string): boolean {
@@ -828,16 +694,10 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   voiceSamplePathFor(speakerName: string): string {
-    const normalizedName = this.displaySpeakerName(speakerName).toLowerCase();
-    if (normalizedName.includes('mara')) {
-      return '/assets/audio/voice-samples/mara.mp3';
-    }
-    if (normalizedName.includes('jonas')) {
-      return '/assets/audio/voice-samples/jonas.mp3';
-    }
-    if (normalizedName.includes('station keeper')) {
-      return '/assets/audio/voice-samples/station-keeper.mp3';
-    }
+    const normalizedName = speakerName.toLowerCase();
+    if (normalizedName.includes('mara')) return '/assets/audio/voice-samples/mara.mp3';
+    if (normalizedName.includes('jonas')) return '/assets/audio/voice-samples/jonas.mp3';
+    if (normalizedName.includes('station keeper')) return '/assets/audio/voice-samples/station-keeper.mp3';
     return '/assets/audio/voice-samples/narrator.mp3';
   }
 
@@ -847,14 +707,9 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   saveCastEdit(index: number): void {
-    if (!this.castEditDraft) {
-      return;
-    }
-
+    if (!this.castEditDraft) return;
     const draft: SpeakerVoiceAnalysisItem = { ...this.castEditDraft };
-    this.cast = this.cast.map((speaker, speakerIndex) =>
-      speakerIndex === index ? draft : speaker
-    );
+    this.cast = this.cast.map((speaker, speakerIndex) => speakerIndex === index ? draft : speaker);
     this.cancelCastEdit();
   }
 
@@ -869,14 +724,9 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   saveScriptTurnEdit(index: number): void {
-    if (!this.scriptTurnEditDraft) {
-      return;
-    }
-
+    if (!this.scriptTurnEditDraft) return;
     const draft: SpeakerSplitTurn = { ...this.scriptTurnEditDraft };
-    this.scriptTurns = this.scriptTurns.map((turn, turnIndex) =>
-      turnIndex === index ? draft : turn
-    );
+    this.scriptTurns = this.scriptTurns.map((turn, turnIndex) => turnIndex === index ? draft : turn);
     this.cancelScriptTurnEdit();
     this.scriptApproved = false;
 
@@ -898,20 +748,22 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.fullAudioGenerationCanceled = true;
-    this.abortAllRenderRequestGenerations();
-    if (this.generationClockHandle !== null) {
-      window.clearInterval(this.generationClockHandle);
-      this.generationClockHandle = null;
-    }
-    this.activeSampleAudio?.pause();
-    this.demoWaveSurfer?.destroy();
-    this.fullWaveSurfer?.destroy();
-    this.renderRequestWaveSurfers.forEach((waveSurfer) => waveSurfer.destroy());
-    this.revokeGeneratedAudioUrls();
+    this.fullAudioGenerationService.cancel();
+    this.renderRequestAudioService.destroy();
+    this.voiceSampleService.destroy();
+    this.waveSurferService.destroyAll();
+    this.fullAudioGenerationService.clearAudio();
   }
 
   ngAfterViewInit(): void {
+    this.fullAudioGenerationService.onAudioReady = () => {
+      window.setTimeout(() => this.initializeFullWaveform());
+    };
+    this.renderRequestAudioService.onPartReady = (requestIndex: number) => {
+      this.waveSurferService.destroy(`part:${requestIndex}`);
+      this.renderRequestAudioPlayingStates[requestIndex] = false;
+      window.setTimeout(() => this.initializeRenderRequestWaveforms());
+    };
     this.initializeDemoWaveform();
     this.renderRequestWaveformElements.changes.subscribe(() => this.initializeRenderRequestWaveforms());
   }
@@ -951,68 +803,63 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     this.castReviewed = false;
     this.scriptApproved = false;
     this.performanceNotesStale = false;
-    this.fullPlanAudioStale = false;
-    this.fullPlanAudioStatusMessage = null;
     this.cancelCastEdit();
     this.cancelScriptTurnEdit();
     this.resetAudioStates();
   }
 
   private resetAudioStates(): void {
-    this.abortAllRenderRequestGenerations();
-    this.fullPlanAudioLoading = false;
-    this.fullPlanAudioError = null;
-    this.fullPlanAudioStale = false;
-    this.fullPlanAudioStatusMessage = null;
+    this.renderRequestAudioService.abortAll();
+    this.renderRequestAudioService.revokeUrls();
+    this.fullAudioGenerationService.clearAudio();
+    // Destroy all part wavesurfers (demo stays alive)
+    Object.keys(this.renderRequestAudioPlayingStates).forEach((k) => {
+      this.waveSurferService.destroy(`part:${k}`);
+    });
+    this.waveSurferService.destroy('full');
     this.fullPlanAudioPlaying = false;
     this.renderRequestAudioPlayingStates = {};
-    this.fullWaveSurfer?.destroy();
-    this.fullWaveSurfer = null;
-    this.renderRequestWaveSurfers.forEach((waveSurfer) => waveSurfer.destroy());
-    this.renderRequestWaveSurfers.clear();
-    this.fullAudioGenerationCanceled = false;
-    this.fullAudioGenerationActiveRequestIndex = null;
-    if (this.generationClockHandle !== null) {
-      window.clearInterval(this.generationClockHandle);
-      this.generationClockHandle = null;
-    }
-    this.revokeGeneratedAudioUrls();
   }
 
-  private setFullPlanAudio(blob: Blob, filename: string): void {
-    if (this.fullPlanAudioUrl) {
-      window.URL.revokeObjectURL(this.fullPlanAudioUrl);
-    }
-    this.fullPlanAudioUrl = window.URL.createObjectURL(blob);
-    this.fullPlanAudioFilename = filename;
-    this.fullPlanAudioStale = false;
-    window.setTimeout(() => this.initializeFullWaveform());
+  private playAudioPath(path: string, sampleKey: string): void {
+    this.waveSurferService.pauseAll();
+    this.voiceSampleService.play(path, sampleKey, () => this.scrollToSection('cast-section'));
   }
 
-  private setRenderRequestAudio(requestIndex: number, blob: Blob, filename: string): void {
-    const state = this.renderRequestAudioState(requestIndex);
-    if (state.audioUrl) {
-      window.URL.revokeObjectURL(state.audioUrl);
-    }
-    this.renderRequestWaveSurfers.get(requestIndex)?.destroy();
-    this.renderRequestWaveSurfers.delete(requestIndex);
-    this.renderRequestAudioPlayingStates[requestIndex] = false;
-    state.blob = blob;
-    state.audioUrl = window.URL.createObjectURL(blob);
-    state.filename = filename;
-    state.generatedAt = new Date();
-    window.setTimeout(() => this.initializeRenderRequestWaveforms());
+  private initializeDemoWaveform(): void {
+    if (!this.demoWaveformElement || this.waveSurferService.get('demo')) return;
+    const ws = this.waveSurferService.create('demo', this.demoWaveformElement.nativeElement, '/assets/audio/voice-samples/full-text-preview.mp3');
+    this.waveSurferService.bind(ws, () => {
+      this.voiceSampleService.pause();
+      this.waveSurferService.pauseAll(ws);
+    }, (playing) => { this.demoPlaying = playing; });
   }
 
-  private clearFullPlanAudio(): void {
-    if (this.fullPlanAudioUrl) {
-      window.URL.revokeObjectURL(this.fullPlanAudioUrl);
-    }
-    this.fullWaveSurfer?.destroy();
-    this.fullWaveSurfer = null;
-    this.fullPlanAudioUrl = null;
-    this.fullPlanAudioFilename = null;
-    this.fullPlanAudioPlaying = false;
+  private initializeFullWaveform(): void {
+    if (!this.fullWaveformElement || !this.fullPlanAudioUrl) return;
+    this.waveSurferService.destroy('full');
+    const ws = this.waveSurferService.create('full', this.fullWaveformElement.nativeElement, this.fullPlanAudioUrl);
+    this.waveSurferService.bind(ws, () => {
+      this.voiceSampleService.pause();
+      this.waveSurferService.pauseAll(ws);
+    }, (playing) => { this.fullPlanAudioPlaying = playing; });
+  }
+
+  private initializeRenderRequestWaveforms(): void {
+    if (!this.renderRequestWaveformElements) return;
+
+    this.renderRequestWaveformElements.forEach((waveformElement) => {
+      const requestIndex = Number(waveformElement.nativeElement.dataset['requestIndex']);
+      const audioUrl = this.renderRequestAudioService.audioStates[requestIndex]?.audioUrl;
+
+      if (!Number.isFinite(requestIndex) || !audioUrl || this.waveSurferService.get(`part:${requestIndex}`)) return;
+
+      const ws = this.waveSurferService.create(`part:${requestIndex}`, waveformElement.nativeElement, audioUrl);
+      this.waveSurferService.bind(ws, () => {
+        this.voiceSampleService.pause();
+        this.waveSurferService.pauseAll(ws);
+      }, (playing) => { this.renderRequestAudioPlayingStates[requestIndex] = playing; });
+    });
   }
 
   private downloadBlobUrl(url: string, filename: string): void {
@@ -1022,249 +869,6 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     document.body.appendChild(link);
     link.click();
     link.remove();
-  }
-
-  private revokeGeneratedAudioUrls(): void {
-    this.clearFullPlanAudio();
-    Object.values(this.renderRequestAudioStates).forEach((state) => {
-      if (state.audioUrl) {
-        window.URL.revokeObjectURL(state.audioUrl);
-      }
-    });
-    this.renderRequestAudioStates = {};
-  }
-
-  private clearRenderRequestGeneration(requestIndex: number, requestId: number): void {
-    const state = this.renderRequestAudioState(requestIndex);
-    if (state.requestId !== requestId) {
-      return;
-    }
-
-    if (state.timeoutHandle !== null) {
-      window.clearTimeout(state.timeoutHandle);
-    }
-
-    state.controller = null;
-    state.timeoutHandle = null;
-    state.startedAt = null;
-    state.inFlightPromise = null;
-  }
-
-  private abortAllRenderRequestGenerations(): void {
-    Object.values(this.renderRequestAudioStates).forEach((state) => {
-      state.controller?.abort();
-      if (state.timeoutHandle !== null) {
-        window.clearTimeout(state.timeoutHandle);
-      }
-      state.controller = null;
-      state.timeoutHandle = null;
-      state.startedAt = null;
-      state.inFlightPromise = null;
-    });
-    this.fullAudioGenerationActiveRequestIndex = null;
-  }
-
-  private async runRenderRequestGeneration(
-    renderRequest: SingleSpeakerRenderRequest,
-    requestIndex: number,
-    requestId: number,
-    controller: AbortController,
-    fullRunId?: number
-  ): Promise<void> {
-    const state = this.renderRequestAudioState(requestIndex);
-
-    try {
-      const download = await this.ttsWorkbenchService.createAudioForRenderRequest(renderRequest, { signal: controller.signal });
-      if (!this.isCurrentRenderRequestGeneration(requestIndex, requestId)) {
-        return;
-      }
-
-      this.setRenderRequestAudio(requestIndex, download.blob, `tts-audio-part-${requestIndex + 1}.mp3`);
-      state.status = 'generated';
-      state.error = null;
-      state.cancelReason = null;
-      if (this.fullPlanAudioUrl) {
-        this.fullPlanAudioStale = true;
-        this.fullPlanAudioStatusMessage = 'Audiobook preview needs regeneration because one or more parts changed.';
-      } else {
-        this.fullPlanAudioStatusMessage = null;
-      }
-    } catch (error) {
-      if (!this.isCurrentRenderRequestGeneration(requestIndex, requestId)) {
-        return;
-      }
-
-      if (this.isAbortError(error)) {
-        if (state.cancelReason === 'timeout') {
-          state.status = 'timed-out';
-          state.error = 'This part took too long and was stopped. Try again or edit the text.';
-        } else {
-          state.status = 'canceled';
-          state.error = 'Generation canceled. You can retry this part.';
-        }
-      } else {
-        state.status = 'failed';
-        state.error = 'One part failed. Other generated parts are still available.';
-      }
-    } finally {
-      if (this.isCurrentRenderRequestGeneration(requestIndex, requestId)) {
-        this.clearRenderRequestGeneration(requestIndex, requestId);
-        if (fullRunId !== undefined && this.fullAudioGenerationRunId === fullRunId && this.fullAudioGenerationActiveRequestIndex === requestIndex) {
-          this.fullAudioGenerationActiveRequestIndex = null;
-        }
-        this.stopGenerationClockIfIdle();
-      }
-    }
-  }
-
-  private isCurrentRenderRequestGeneration(requestIndex: number, requestId: number): boolean {
-    return this.renderRequestAudioState(requestIndex).requestId === requestId;
-  }
-
-  private isAbortError(error: unknown): boolean {
-    return error instanceof DOMException && error.name === 'AbortError';
-  }
-
-  private startGenerationClock(): void {
-    if (this.generationClockHandle !== null) {
-      return;
-    }
-
-    this.generationClockHandle = window.setInterval(() => {
-      this.generationClockTick += 1;
-    }, 1000);
-  }
-
-  private stopGenerationClockIfIdle(): void {
-    if (!this.anyAudioLoading() && this.generationClockHandle !== null) {
-      window.clearInterval(this.generationClockHandle);
-      this.generationClockHandle = null;
-    }
-  }
-
-  private renderRequestSpeaker(renderRequest: SingleSpeakerRenderRequest | undefined): string | null {
-    const voice = this.objectRecord(renderRequest?.voice);
-    const speaker = voice?.['speakerName'] ?? voice?.['speaker'] ?? voice?.['name'];
-    if (typeof speaker === 'string' && speaker.trim().length > 0) {
-      return this.castSpeakerForVoice(speaker) ?? speaker;
-    }
-    return null;
-  }
-
-  private renderRequestVoice(renderRequest: SingleSpeakerRenderRequest | undefined): string | null {
-    const voice = this.objectRecord(renderRequest?.voice);
-    const voiceName = voice?.['name'] ?? voice?.['voiceName'];
-    return typeof voiceName === 'string' && voiceName.trim().length > 0 ? voiceName : null;
-  }
-
-  private objectRecord(value: unknown): Record<string, unknown> | null {
-    return value !== null && typeof value === 'object' && !Array.isArray(value) ? value as Record<string, unknown> : null;
-  }
-
-  private playAudioPath(path: string, sampleKey: string): void {
-    if (this.activeSampleKey === sampleKey && this.activeSampleAudio && !this.activeSampleAudio.paused) {
-      this.activeSampleAudio.pause();
-      this.activeSampleKey = null;
-      return;
-    }
-
-    this.pauseWaveSurfers();
-    this.activeSampleAudio?.pause();
-    this.activeSampleAudio = new Audio(path);
-    this.activeSampleKey = sampleKey;
-    this.activeSampleAudio.addEventListener('pause', () => {
-      if (this.activeSampleAudio?.paused) {
-        this.activeSampleKey = null;
-      }
-    });
-    this.activeSampleAudio.addEventListener('ended', () => {
-      this.activeSampleKey = null;
-    });
-    this.activeSampleAudio.play().catch(() => {
-      this.activeSampleKey = null;
-      this.scrollToSection('cast-section');
-    });
-  }
-
-  private initializeDemoWaveform(): void {
-    if (!this.demoWaveformElement || this.demoWaveSurfer) {
-      return;
-    }
-
-    this.demoWaveSurfer = this.createWaveSurfer(this.demoWaveformElement.nativeElement, '/assets/audio/voice-samples/full-text-preview.mp3');
-    this.bindPlaybackState(this.demoWaveSurfer, (playing) => {
-      this.demoPlaying = playing;
-    }, this.demoWaveSurfer);
-  }
-
-  private initializeFullWaveform(): void {
-    if (!this.fullWaveformElement || !this.fullPlanAudioUrl) {
-      return;
-    }
-
-    this.fullWaveSurfer?.destroy();
-    this.fullWaveSurfer = this.createWaveSurfer(this.fullWaveformElement.nativeElement, this.fullPlanAudioUrl);
-    this.bindPlaybackState(this.fullWaveSurfer, (playing) => {
-      this.fullPlanAudioPlaying = playing;
-    }, this.fullWaveSurfer);
-  }
-
-  private initializeRenderRequestWaveforms(): void {
-    if (!this.renderRequestWaveformElements) {
-      return;
-    }
-
-    this.renderRequestWaveformElements.forEach((waveformElement) => {
-      const requestIndex = Number(waveformElement.nativeElement.dataset['requestIndex']);
-      const audioUrl = this.renderRequestAudioState(requestIndex).audioUrl;
-
-      if (!Number.isFinite(requestIndex) || !audioUrl || this.renderRequestWaveSurfers.has(requestIndex)) {
-        return;
-      }
-
-      const waveSurfer = this.createWaveSurfer(waveformElement.nativeElement, audioUrl);
-      this.renderRequestWaveSurfers.set(requestIndex, waveSurfer);
-      this.bindPlaybackState(waveSurfer, (playing) => {
-        this.renderRequestAudioPlayingStates[requestIndex] = playing;
-      }, waveSurfer);
-    });
-  }
-
-  private createWaveSurfer(container: HTMLElement, url: string): WaveSurfer {
-    container.innerHTML = '';
-    return WaveSurfer.create({
-      container,
-      url,
-      height: 58,
-      waveColor: '#596174',
-      progressColor: '#f0ad5d',
-      cursorColor: '#ffd591',
-      cursorWidth: 2,
-      barWidth: 3,
-      barGap: 3,
-      barRadius: 3,
-      normalize: true,
-      dragToSeek: true
-    });
-  }
-
-  private bindPlaybackState(waveSurfer: WaveSurfer, update: (playing: boolean) => void, current: WaveSurfer): void {
-    waveSurfer.on('play', () => {
-      this.activeSampleAudio?.pause();
-      this.activeSampleKey = null;
-      this.pauseWaveSurfers(current);
-      update(true);
-    });
-    waveSurfer.on('pause', () => update(false));
-    waveSurfer.on('finish', () => update(false));
-  }
-
-  private pauseWaveSurfers(except: WaveSurfer | null = null): void {
-    for (const waveSurfer of [this.demoWaveSurfer, this.fullWaveSurfer, ...this.renderRequestWaveSurfers.values()]) {
-      if (waveSurfer && waveSurfer !== except && waveSurfer.isPlaying()) {
-        waveSurfer.pause();
-      }
-    }
   }
 
   private speakerAccentFor(speakerName: string | null | undefined): SpeakerAccent {
@@ -1277,9 +881,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   private knownSpeakerNames(): string[] {
     const names: string[] = [];
     const add = (speakerName: string | null | undefined) => {
-      if (!speakerName) {
-        return;
-      }
+      if (!speakerName) return;
       const displayName = formatSpeakerDisplayName(speakerName);
       if (!names.some((name) => normalizedSpeakerKey(name) === normalizedSpeakerKey(displayName))) {
         names.push(displayName);
@@ -1295,12 +897,6 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   private castMemberForSpeaker(speakerName: string): SpeakerVoiceAnalysisItem | null {
     const key = normalizedSpeakerKey(speakerName);
     return this.cast.find((speaker) => normalizedSpeakerKey(speaker.speakerName) === key) ?? null;
-  }
-
-  private castSpeakerForVoice(voiceName: string): string | null {
-    const key = normalizedSpeakerKey(voiceName);
-    const castMember = this.cast.find((speaker) => normalizedSpeakerKey(speaker.voiceSuggestion) === key);
-    return castMember?.speakerName ?? null;
   }
 
   private async runStep(action: string, step: () => Promise<void>, fallbackMessage: string): Promise<void> {
