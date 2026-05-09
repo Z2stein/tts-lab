@@ -1,3 +1,8 @@
+<ng-container *ngIf="isPublicRoute; else authenticatedAppShell">
+  <router-outlet></router-outlet>
+</ng-container>
+
+<ng-template #authenticatedAppShell>
 <div class="app-shell">
   <header class="app-header">
     <a class="brand" routerLink="/" aria-label="TTS Lab home">TTS Lab</a>
@@ -46,3 +51,4 @@
     </ng-container>
   </main>
 </div>
+</ng-template>
