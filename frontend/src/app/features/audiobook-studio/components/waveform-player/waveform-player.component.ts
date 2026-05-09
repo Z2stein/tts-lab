@@ -42,6 +42,7 @@ import { WaveSurferService } from '../../services/wave-surfer.service';
     <span class="wave-time">00:00 / {{ durationLabel }}</span>
     <ng-content></ng-content>
   `,
+  styleUrl: './../../audiobook-studio-page.component.css',
 })
 export class WaveformPlayerComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ required: true }) key!: string;
