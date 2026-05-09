@@ -2,6 +2,7 @@ package com.example.ttslab.projects.ttsworkbench;
 
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.audiobooks.AudiobookLibraryService;
+import com.example.ttslab.common.DurationEstimator;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;
@@ -110,6 +111,9 @@ public class TtsWorkbenchController {
         String providerModelName = renderProviderModelName(requestPlan);
         enforceLimit(user, ModelType.SPEECH_MODEL, promptText, providerModelName);
         try {
+            int speakerCount = requestPlan.renderRequests() != null ? requestPlan.renderRequests().size() : 0;
+            Integer estimatedDuration = DurationEstimator.estimateSpeakingDurationSeconds(promptText);
+
             TtsAudioFile audioFile = ttsWorkbenchService.createAudio(requestPlan);
 
             com.example.ttslab.audiobooks.AudiobookProject project;
@@ -119,7 +123,7 @@ public class TtsWorkbenchController {
                 project = audiobookLibraryService.getProjectForUser(projectId, user);
             }
 
-            audiobookLibraryService.persistAudioAsset(project, audioFile, 1);
+            audiobookLibraryService.persistAudioAsset(project, audioFile, 1, speakerCount, estimatedDuration);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")

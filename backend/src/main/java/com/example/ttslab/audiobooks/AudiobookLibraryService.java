@@ -105,7 +105,7 @@ public class AudiobookLibraryService {
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIOBOOK_NOT_FOUND", "The audiobook project was not found."));
     }
 
-    public AudioAsset persistAudioAsset(AudiobookProject project, TtsAudioFile audioFile, int version) {
+    public AudioAsset persistAudioAsset(AudiobookProject project, TtsAudioFile audioFile, int version, Integer speakerCount, Integer totalDurationSeconds) {
         String assetId = UUID.randomUUID().toString();
         String sceneId = UUID.randomUUID().toString();
         String storageKey = storageKeyBuilder.projectAsset(project.userId(), project.id(), AudioAssetType.PREVIEW_MP3, version, "mp3");
@@ -115,6 +115,8 @@ public class AudiobookLibraryService {
         } catch (IOException ex) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_ASSET_WRITE_FAILED", "The generated audio could not be saved.", null, ex);
         }
+
+        repository.updateProjectMetadata(project.id(), speakerCount, totalDurationSeconds);
 
         AudiobookScene scene = new AudiobookScene(
             sceneId,
@@ -136,7 +138,7 @@ public class AudiobookLibraryService {
             audioFile.filename(),
             audioFile.contentType(),
             audioFile.content().length,
-            null,
+            totalDurationSeconds,
             AudioAssetStatus.READY,
             null
         );
@@ -145,7 +147,7 @@ public class AudiobookLibraryService {
         return asset;
     }
 
-    public void persistGeneratedPreview(CurrentUser user, TtsAudioFile audioFile) {
+    public void persistGeneratedPreview(CurrentUser user, TtsAudioFile audioFile, Integer speakerCount, Integer totalDurationSeconds) {
         String projectId = UUID.randomUUID().toString();
         String sceneId = UUID.randomUUID().toString();
         String assetId = UUID.randomUUID().toString();
@@ -164,8 +166,8 @@ public class AudiobookLibraryService {
             AudiobookProjectStatus.NEEDS_REVIEW,
             "TTS_WORKBENCH",
             1,
-            null,
-            null,
+            speakerCount,
+            totalDurationSeconds,
             null,
             null
         );
@@ -189,7 +191,7 @@ public class AudiobookLibraryService {
             audioFile.filename(),
             audioFile.contentType(),
             audioFile.content().length,
-            null,
+            totalDurationSeconds,
             AudioAssetStatus.READY,
             null
         );

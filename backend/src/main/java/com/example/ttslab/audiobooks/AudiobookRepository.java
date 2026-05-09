@@ -73,6 +73,15 @@ public class AudiobookRepository {
             project.speakerCount(), project.totalDurationSeconds());
     }
 
+    public void updateProjectMetadata(String projectId, Integer speakerCount, Integer totalDurationSeconds) {
+        jdbcTemplate.update("""
+            UPDATE audiobook_project
+            SET speaker_count = ?, total_duration_seconds = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """,
+            speakerCount, totalDurationSeconds, projectId);
+    }
+
     public void addScene(AudiobookScene scene) {
         jdbcTemplate.update("""
             INSERT INTO audiobook_scene (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at)

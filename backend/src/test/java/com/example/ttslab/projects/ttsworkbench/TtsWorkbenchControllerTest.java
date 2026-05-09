@@ -101,7 +101,7 @@ class TtsWorkbenchControllerTest {
             AudioAssetStatus.READY,
             null
         );
-        when(audiobookLibraryService.persistAudioAsset(any(AudiobookProject.class), any(), eq(1)))
+        when(audiobookLibraryService.persistAudioAsset(any(AudiobookProject.class), any(), eq(1), any(Integer.class), any(Integer.class)))
             .thenReturn(testAsset);
     }
 
