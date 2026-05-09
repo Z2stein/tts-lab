@@ -122,10 +122,10 @@ describe('AudiobookStudioPageComponent', () => {
     fixture.detectChanges();
 
     expect(ttsWorkbenchService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast);
-    expect(fixture.nativeElement.textContent).toContain('Review script preview');
+    expect(fixture.nativeElement.textContent).toContain('Review script');
     expect(fixture.nativeElement.textContent).toContain('We go now.');
     expect(fixture.nativeElement.textContent).toContain('Together.');
-    expect(fixture.nativeElement.textContent).toContain('Script needs review');
+    expect(fixture.nativeElement.textContent).toContain('Script needs your approval');
   });
 
   it('shows an edited script turn after saving the speaker and text', async () => {
@@ -185,17 +185,17 @@ describe('AudiobookStudioPageComponent', () => {
     clickButton('Save');
     fixture.detectChanges();
 
-    const planButton = buttonByText('Prepare audio generation');
-    expect(fixture.nativeElement.textContent).toContain('Script changed. Regenerate performance notes before creating the audio production plan.');
+    const planButton = buttonByText('Next: Prepare audiobook');
+    expect(fixture.nativeElement.textContent).toContain('Script changed. Update the emotion & pacing before generating the audiobook.');
     expect(planButton.disabled).toBeTrue();
 
-    clickButton('Approve script');
+    clickButton('Approve script & continue');
     ttsWorkbenchService.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '[hopeful] We go at sunrise.' }]);
     await component.createPerformanceNotes();
     fixture.detectChanges();
 
     expect(component.performanceNotesStale).toBeFalse();
-    expect(buttonByText('Prepare audio generation').disabled).toBeFalse();
+    expect(buttonByText('Next: Prepare audiobook').disabled).toBeFalse();
   });
 
   it('continues the emotion annotation flow after the user approves the script', async () => {
@@ -205,7 +205,7 @@ describe('AudiobookStudioPageComponent', () => {
 
     expect(buttonByText('Add emotion & pacing').disabled).toBeTrue();
 
-    clickButton('Approve script');
+    clickButton('Approve script & continue');
     fixture.detectChanges();
     clickButton('Add emotion & pacing');
     fixture.detectChanges();
@@ -350,7 +350,7 @@ describe('AudiobookStudioPageComponent', () => {
     );
     expect(player).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
-    expect(fixture.nativeElement.textContent).toContain('Download audiobook');
+    expect(fixture.nativeElement.textContent).toContain('Download MP3');
     expect(component.fullPlanAudioFilename).toBe('audiobook-preview.mp3');
     expect(anchorClickSpy).not.toHaveBeenCalled();
   });

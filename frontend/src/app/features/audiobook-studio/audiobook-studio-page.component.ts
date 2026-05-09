@@ -223,71 +223,71 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   get currentTask(): CurrentTask {
     if (this.storyTextControl.value.trim().length === 0) {
       return {
-        title: 'Current task: Add your story',
-        body: 'Paste a chapter or scene with narration and dialogue. This gives the studio enough material to discover speakers.',
-        nextAction: 'Paste text or use the sample story, then choose Find characters.',
+        title: 'Current task: Start with your story',
+        body: 'Paste your text or use the sample story. TTS Lab will find the narrator and characters for you.',
+        nextAction: 'Paste text or use the sample story, then click Find narrator & characters.',
         sectionId: 'story-section'
       };
     }
 
     if (this.facade.cast().length === 0) {
       return {
-        title: 'Current task: Find characters',
-        body: 'The studio will detect the narrator and speaking characters, then suggest voice directions for each one.',
-        nextAction: 'Choose Find characters to build the cast.',
+        title: 'Current task: Find narrator & characters',
+        body: 'TTS Lab will detect who is speaking in your story and suggest matching voices.',
+        nextAction: 'Click Find narrator & characters to get started.',
         sectionId: 'story-section'
       };
     }
 
     if (!this.facade.castReviewed()) {
       return {
-        title: 'Current task: Review the cast',
-        body: 'Check each character and preview the closest matching sample voice before the script is created.',
-        nextAction: 'Edit any voice card that needs cleanup, then choose Review script.',
+        title: 'Current task: Choose your voices',
+        body: 'We found the speakers in your story. Preview each voice or change it to something that fits better.',
+        nextAction: 'Approve the voices or make changes, then continue to review the script.',
         sectionId: 'cast-section'
       };
     }
 
     if (this.facade.scriptTurns().length === 0) {
       return {
-        title: 'Current task: Create the script preview',
-        body: 'The story will be split into speaker turns so every line can be performed by the right voice.',
-        nextAction: 'Choose Review script to inspect the scene line by line.',
+        title: 'Current task: Creating the script',
+        body: 'TTS Lab is preparing your story, splitting it into speaker turns so every line can be performed by the right voice.',
+        nextAction: 'Click Next: Review script when ready.',
         sectionId: 'cast-section'
       };
     }
 
     if (!this.facade.scriptApproved()) {
       return {
-        title: 'Current task: Review the script',
-        body: 'Check that every line is assigned to the correct speaker. The generated audio uses these speaker assignments.',
-        nextAction: 'Edit any incorrect turn, then choose Approve script.',
+        title: 'Current task: Check the script',
+        body: 'Each line has been assigned to a speaker. Verify this looks correct.',
+        nextAction: 'Approve the script or go back to adjust voices.',
         sectionId: 'script-section'
       };
     }
 
     if (this.facade.annotatedTurns().length === 0 || this.facade.performanceNotesStale()) {
       return {
-        title: 'Current task: Add emotion and pacing',
-        body: 'Performance notes add emotional intent and pauses so the audiobook sounds directed instead of flat.',
-        nextAction: this.facade.performanceNotesStale() ? 'Regenerate emotion and pacing before preparing audio.' : 'Choose Add emotion & pacing.',
+        title: 'Current task: Add emotion & pacing',
+        body: 'Fine-tune how each line should sound. Add notes like calm, urgent, or whispered to guide the voice generation.',
+        nextAction: this.facade.performanceNotesStale() ? 'Update emotion & pacing, then continue.' : 'Add emotion notes or skip if you\'re ready to generate.',
         sectionId: 'performance-section'
       };
     }
 
     if (!this.facade.audioProductionPlan()) {
       return {
-        title: 'Current task: Prepare audio generation',
-        body: 'The studio will convert your reviewed script and performance notes into voice parts ready for MP3 generation.',
-        nextAction: 'Choose Prepare audio generation.',
+        title: 'Current task: Preparing audiobook',
+        body: 'TTS Lab is converting your script and performance notes into an audiobook, ready to preview.',
+        nextAction: 'Click Next: Prepare audiobook when ready.',
         sectionId: 'performance-section'
       };
     }
 
     return {
-      title: 'Current task: Generate and listen',
-      body: 'Create the audiobook preview, then listen directly in the page or generate individual voice parts as needed.',
-      nextAction: 'Choose Generate audiobook preview.',
+      title: 'Current task: Generate your audiobook preview',
+      body: 'Your script, voices, and performance notes are ready. Generate a preview and listen before downloading.',
+      nextAction: 'Generate a preview to hear how it sounds. You can always edit and regenerate.',
       sectionId: 'audio-section'
     };
   }
@@ -546,7 +546,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     if (this.fullPlanAudioLoading && currentIndex !== null) {
       return `Generating part ${currentIndex + 1} of ${this.renderRequests.length}`;
     }
-    return this.fullPlanAudioStale ? 'Rebuild audiobook preview' : 'Generate audiobook preview';
+    return this.fullPlanAudioStale ? 'Regenerate preview' : 'Generate preview';
   }
 
   currentGenerationCanCancel(): boolean {

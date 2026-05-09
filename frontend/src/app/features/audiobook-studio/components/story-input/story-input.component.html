@@ -24,7 +24,7 @@
       Use sample story
     </button>
     <button type="button" class="primary-button next-action" (click)="analyzeStory.emit()" [disabled]="loadingAction !== null || storyControl.value.trim().length === 0">
-      {{ isLoading('cast') ? 'Finding characters...' : 'Find characters' }}
+      {{ isLoading('cast') ? 'Finding narrator & characters...' : 'Find narrator & characters' }}
     </button>
   </div>
 </div>

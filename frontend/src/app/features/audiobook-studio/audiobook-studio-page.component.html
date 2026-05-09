@@ -104,8 +104,8 @@
         </div>
       </div>
 
-      <p *ngIf="!audioProductionPlan" class="empty-state">The audio production plan will appear after performance notes.</p>
-      <div *ngIf="audioProductionPlan" class="plan-summary" aria-label="Audio production plan">
+      <p *ngIf="!audioProductionPlan" class="empty-state">The audiobook setup will appear after performance notes.</p>
+      <div *ngIf="audioProductionPlan" class="plan-summary" aria-label="Audiobook setup">
         <div class="plan-summary-status">
           <span>Generation state</span>
           <strong>{{ audiobookReadinessSummary() }}</strong>
@@ -140,7 +140,7 @@
         <summary>Advanced details</summary>
         <h3>Final request preview</h3>
         <pre>{{ finalRequestJson }}</pre>
-        <h3>Audio production plan</h3>
+        <h3>Audiobook setup</h3>
         <pre>{{ audioProductionPlanJson }}</pre>
       </details>
 
@@ -177,7 +177,7 @@
           <p>{{ fullPlanAudioFilename }}</p>
         </div>
         <button type="button" class="secondary-button download-button" (click)="downloadFullPlanAudio()">
-          Download audiobook
+          Download MP3
         </button>
       </app-waveform-player>
 

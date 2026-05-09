@@ -12,26 +12,32 @@ export const HERO_CAST: readonly HeroCastMember[] = [
 export const JOURNEY_STEPS: readonly JourneyStep[] = [
   {
     icon: '01',
-    title: 'Paste your story',
-    description: 'Drop in a chapter, scene, or script and keep the original story flow intact.',
+    title: 'Add story',
+    description: 'Paste your text. We\'ll keep the original wording and structure it for audio.',
     sectionId: 'story-section'
   },
   {
     icon: '02',
-    title: 'Discover the cast',
-    description: 'AI identifies the narrator and characters, then suggests fitting voice directions.',
+    title: 'Choose voices',
+    description: 'We found the speakers in your story. Preview each voice or change it.',
     sectionId: 'cast-section'
   },
   {
     icon: '03',
-    title: 'Direct the performance',
-    description: 'Review dialogue, approve pacing, and add emotional notes before production.',
+    title: 'Review script',
+    description: 'Check that each line is assigned to the correct speaker.',
     sectionId: 'script-section'
   },
   {
     icon: '04',
-    title: 'Generate audio',
-    description: 'Create a multi-speaker MP3 from the final production plan.',
+    title: 'Add emotion & pacing',
+    description: 'Fine-tune how each line should be spoken, for example calm, urgent, or whispered.',
+    sectionId: 'performance-section'
+  },
+  {
+    icon: '05',
+    title: 'Generate audiobook',
+    description: 'Create a preview. You can still go back and edit before downloading.',
     sectionId: 'audio-section'
   }
 ];
