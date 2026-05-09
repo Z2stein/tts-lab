@@ -1,0 +1,91 @@
+<section class="studio-hero" aria-labelledby="audiobook-studio-title">
+  <div class="hero-copy">
+    <p class="hero-badge">AI Audiobook Studio</p>
+    <h1 id="audiobook-studio-title">Give every character in your story <span>a voice.</span></h1>
+    <p class="hero-subheadline">
+      Paste a novel chapter. AI detects the narrator, discovers the cast, assigns voices, and turns it into multi-speaker audio.
+    </p>
+    <div class="hero-actions" aria-label="Audiobook studio actions">
+      <button
+        #ctaBtn
+        type="button"
+        class="primary-button hero-primary"
+        (click)="focusStoryInput.emit($event)"
+      >Create audio story</button>
+      <button
+        type="button"
+        class="secondary-button hero-secondary"
+        [class.is-playing]="demoPlaying"
+        (click)="playDemo($event)"
+      >
+        <span class="play-dot" aria-hidden="true"></span>
+        {{ demoPlaying ? 'Pause demo' : 'Listen to demo' }}
+      </button>
+    </div>
+    <div class="benefit-chips" aria-label="Studio benefits">
+      <span *ngFor="let chip of benefitChips">{{ chip }}</span>
+    </div>
+  </div>
+
+  <div class="hero-demo" aria-label="Story to cast audio preview">
+    <div class="demo-flow">
+      <article class="demo-card story-demo-card">
+        <div class="demo-card-title">
+          <span class="demo-icon" aria-hidden="true">S</span>
+          <h2>Your story</h2>
+        </div>
+        <p>The rain tapped against the train window as Mara clutched the letter.</p>
+        <p>Jonas leaned forward. "Are you sure this is the right place?"</p>
+        <p>The old station keeper looked up from his ledger and smiled.</p>
+      </article>
+
+      <div class="flow-arrow" aria-hidden="true">
+        <svg viewBox="0 0 92 24" role="img">
+          <path d="M2 12H82" />
+          <path d="M72 3L82 12L72 21" />
+        </svg>
+      </div>
+
+      <article class="demo-card cast-demo-card">
+        <div class="demo-card-title">
+          <span class="demo-spark" aria-hidden="true">*</span>
+          <h2>Detected cast</h2>
+        </div>
+        <div class="hero-cast-list">
+          <div *ngFor="let member of heroCast" class="hero-cast-row" [ngStyle]="speakerStyleFn(member.name)">
+            <span class="hero-avatar">{{ member.initials }}</span>
+            <span>
+              <strong>{{ member.name }}</strong>
+              <small>{{ member.tone }}</small>
+            </span>
+            <button
+              type="button"
+              [class.is-playing]="isVoiceSamplePlaying(member.name)"
+              (click)="onPlayVoiceSample(member.name, $event)"
+              [attr.aria-label]="isVoiceSamplePlaying(member.name) ? 'Pause voice for ' + member.name : 'Preview voice for ' + member.name"
+            >
+              <span class="play-icon" aria-hidden="true"></span>
+            </button>
+          </div>
+        </div>
+      </article>
+    </div>
+
+    <div class="waveform-preview framework-player" aria-label="Audio preview player">
+      <button
+        type="button"
+        [class.is-playing]="demoPlaying"
+        [attr.aria-label]="demoPlaying ? 'Pause audio preview' : 'Play audio preview'"
+        (click)="playDemo($event)"
+      >
+        <span class="play-icon" aria-hidden="true"></span>
+      </button>
+      <div class="player-copy">
+        <strong>{{ demoPlaying ? 'Playing demo' : 'Demo preview' }}</strong>
+        <span>Multi-speaker sample</span>
+      </div>
+      <div #demoWaveform class="waveform-canvas" aria-hidden="true"></div>
+      <span class="wave-time">00:00 / 02:45</span>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,10 @@
+<section class="journey-section" aria-labelledby="journey-title">
+  <h2 id="journey-title">From plain text to performed story</h2>
+  <div class="journey-grid">
+    <button *ngFor="let step of steps" type="button" class="journey-card helper-jump" (click)="onStepClick(step.sectionId, $event)">
+      <span class="journey-icon">{{ step.icon }}</span>
+      <h3>{{ step.title }}</h3>
+      <p>{{ step.description }}</p>
+    </button>
+  </div>
+</section>

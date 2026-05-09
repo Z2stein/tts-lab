@@ -2,7 +2,7 @@
 
 Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
-⚠️
+⚠️ ⚠️
 
 ## Inhaltsverzeichnis
 

@@ -1,5 +1,15 @@
 # AGENTS.md
 
+## Main engineering priorities
+
+The three most important engineering priorities are:
+
+1. Single responsibility: each component, class, function, workflow, and configuration file should have one clear purpose.
+2. High test coverage: important behavior must be protected by meaningful automated tests, preferably written or adjusted before the implementation.
+3. Easy maintenance: solutions should stay simple, understandable, easy to review, and easy to change later.
+
+When these priorities conflict, prefer the solution that keeps the codebase easier to understand and safer to change.
+
 Project rules for future Codex tasks in this repository.
 
 ## Project goal
@@ -20,6 +30,15 @@ This repository is a deliberately simple learning project for:
 - Fix the actual cause of broken behavior instead of hiding symptoms.
 - Prefer existing project capabilities over custom code: before writing new styling, utility logic, configuration, or infrastructure, check whether the project already has a simple established way to solve the task.
 
+## Frontend-specific rules
+
+- Structure frontend changes component-first: split UI into small, meaningful Angular components with clear responsibilities instead of growing large page-level templates.
+- When frontend behavior is changed, run the frontend unit tests, frontend build, and end-to-end tests.
+- Do not treat a frontend change as done until E2E tests have passed, unless the environment technically cannot run them. If they cannot be run, clearly state why.
+- Avoid expensive, mutating, regex-heavy, or non-memoized methods in templates/render paths.
+- Derived UI state should be precomputed, memoized, signal-based, selector-based, or otherwise cheap and pure.
+- New UI components should be small, focused, and compatible with the project’s preferred change-detection/rendering strategy.
+- Prefer stable test selectors such as `data-testid` over brittle tests based only on visible text, CSS classes, or DOM position.
 
 
 ## Single source of truth

@@ -1,0 +1,46 @@
+<div class="step-heading">
+  <span class="step-number">4</span>
+  <div>
+    <h2 id="performance-notes-title">Performance notes</h2>
+    <p>Emotion markup stays inline so the read remains easy to scan.</p>
+  </div>
+</div>
+
+<p *ngIf="annotatedTurns.length === 0" class="empty-state">Performance notes will appear after the script preview.</p>
+<ol *ngIf="annotatedTurns.length > 0" class="notes-list">
+  <li *ngFor="let turn of annotatedTurns" [ngStyle]="speakerStyleFn(turn.speaker)">
+    <span class="speaker-name">{{ displayName(turn.speaker) }}</span>
+    <span *ngFor="let tag of markupFor(turn).tags" class="emotion-badge">[{{ tag }}]</span>
+    <span>{{ markupFor(turn).text }}</span>
+  </li>
+</ol>
+<p *ngIf="performanceNotesStale" class="warning" role="status">
+  Script changed. Regenerate performance notes before creating the audio production plan.
+</p>
+
+<div class="settings-grid direction-setting">
+  <label for="studio-prompt">Direction</label>
+  <input id="studio-prompt" [formControl]="promptControl" />
+</div>
+
+<details class="advanced-settings">
+  <summary>Advanced production settings</summary>
+  <div class="settings-grid">
+    <label for="studio-language-code">Language code</label>
+    <select id="studio-language-code" [formControl]="languageCodeControl">
+      <option *ngFor="let language of languageCodeOptions" [value]="language.value">{{ language.label }}</option>
+    </select>
+
+    <label for="studio-model-name">Model name</label>
+    <select id="studio-model-name" [formControl]="modelNameControl">
+      <option *ngFor="let modelName of modelNameOptions" [value]="modelName">{{ modelName }}</option>
+    </select>
+
+    <label for="studio-audio-encoding">Audio encoding</label>
+    <input id="studio-audio-encoding" [formControl]="audioEncodingControl" />
+  </div>
+</details>
+
+<button type="button" class="primary-button next-action" (click)="createAudioProductionPlan.emit()" [disabled]="loadingAction !== null || annotatedTurns.length === 0 || performanceNotesStale">
+  {{ isLoading('plan') ? 'Preparing audio generation...' : 'Prepare audio generation' }}
+</button>
