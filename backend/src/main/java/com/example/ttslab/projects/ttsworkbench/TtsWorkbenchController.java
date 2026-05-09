@@ -1,6 +1,7 @@
 package com.example.ttslab.projects.ttsworkbench;
 
 import com.example.ttslab.auth.CurrentUser;
+import com.example.ttslab.audiobooks.AudiobookLibraryService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;
@@ -30,6 +31,7 @@ public class TtsWorkbenchController {
     private final PromptHistoryService promptHistoryService;
     private final RequestRateLimitService requestRateLimitService;
     private final RequestUsageMeasurer requestUsageMeasurer;
+    private final AudiobookLibraryService audiobookLibraryService;
     private final String analysisProviderModelName;
 
     public TtsWorkbenchController(
@@ -38,6 +40,7 @@ public class TtsWorkbenchController {
         PromptHistoryService promptHistoryService,
         RequestRateLimitService requestRateLimitService,
         RequestUsageMeasurer requestUsageMeasurer,
+        AudiobookLibraryService audiobookLibraryService,
         @Value("${chatbot.provider:mock}") String chatbotProvider,
         @Value("${spring.ai.google.genai.chat.options.model:}") String chatModelName
     ) {
@@ -46,6 +49,7 @@ public class TtsWorkbenchController {
         this.promptHistoryService = promptHistoryService;
         this.requestRateLimitService = requestRateLimitService;
         this.requestUsageMeasurer = requestUsageMeasurer;
+        this.audiobookLibraryService = audiobookLibraryService;
         this.analysisProviderModelName = providerModelName(chatbotProvider, chatModelName);
     }
 
@@ -103,6 +107,7 @@ public class TtsWorkbenchController {
         enforceLimit(user, ModelType.SPEECH_MODEL, promptText, providerModelName);
         try {
             TtsAudioFile audioFile = ttsWorkbenchService.createAudio(requestPlan);
+            audiobookLibraryService.persistGeneratedPreview(user, audioFile);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")

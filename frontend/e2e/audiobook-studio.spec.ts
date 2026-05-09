@@ -173,7 +173,7 @@ test('audiobook studio shows structured backend errors without internal details'
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: Hello');
   await page.locator('#story-section').getByRole('button', { name: 'Find characters' }).click();
 
-  await expect(page.getByText('The cast analysis provider is currently unavailable. Please try again later.')).toBeVisible();
+  await expect(page.getByRole('alert')).toContainText('The cast analysis provider is currently unavailable. Please try again later.');
   await expect(page.getByText('TTS_WORKBENCH_PROVIDER_FAILED')).toHaveCount(0);
   await expect(page.getByText('request-1')).toHaveCount(0);
 });

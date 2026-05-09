@@ -1,6 +1,7 @@
 package com.example.ttslab.projects.ttsworkbench;
 
 import com.example.ttslab.auth.CurrentUser;
+import com.example.ttslab.audiobooks.AudiobookLibraryService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.PromptHistoryService;
 import com.example.ttslab.prompts.ModelType;
@@ -49,6 +50,9 @@ class TtsWorkbenchControllerTest {
 
     @MockBean
     private RequestUsageMeasurer requestUsageMeasurer;
+
+    @MockBean
+    private AudiobookLibraryService audiobookLibraryService;
 
     @org.junit.jupiter.api.BeforeEach
     void setupCurrentUser() {

@@ -17,6 +17,7 @@ describe('AppComponent layout and chatbot visibility', () => {
           provide: CurrentUserService,
           useValue: {
             getCurrentUser: jasmine.createSpy(),
+            refreshRequestLimits: jasmine.createSpy().and.resolveTo(null),
             ensureCsrfToken: jasmine.createSpy(),
             startGoogleLogin: jasmine.createSpy(),
             startLogout: jasmine.createSpy()
@@ -29,6 +30,11 @@ describe('AppComponent layout and chatbot visibility', () => {
     component = fixture.componentInstance;
   });
 
+  beforeEach(() => {
+    const currentUserService = TestBed.inject(CurrentUserService) as jasmine.SpyObj<CurrentUserService>;
+    currentUserService.getCurrentUser.and.resolveTo({ id: '1', email: 'u@test.dev', name: 'User', authMode: 'mock', roles: ['USER'] });
+  });
+
   it('shows navigation links in the shared header', () => {
     component.authStatus = 'authenticated';
     component.currentUser = { id: '1', email: 'u@test.dev', name: 'User', authMode: 'mock', roles: ['USER'] };
@@ -37,6 +43,7 @@ describe('AppComponent layout and chatbot visibility', () => {
     const text = fixture.nativeElement.textContent;
     expect(text).toContain('Home');
     expect(text).toContain('Audiobook Studio');
+    expect(text).toContain('My Audiobooks');
     expect(text).toContain('Text Length');
     expect(text).toContain('TTS Workbench');
     expect(text).toContain('Prompt History');
@@ -50,9 +57,11 @@ describe('AppComponent layout and chatbot visibility', () => {
     expect(fixture.nativeElement.querySelector('app-chatbot-widget')).toBeNull();
   });
 
-  it('chatbot widget is visible when authenticated', () => {
+  it('chatbot widget is visible when authenticated', async () => {
     component.authStatus = 'authenticated';
     component.currentUser = { id: '1', email: 'u@test.dev', name: 'User', authMode: 'mock', roles: ['USER'] };
+    fixture.detectChanges();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('app-chatbot-widget')).not.toBeNull();

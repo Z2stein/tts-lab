@@ -80,8 +80,6 @@ describe('FullAudioGenerationService', () => {
 
   it('stops the loop and sets a canceled status message', async () => {
     const requests = [part('First', 'Kore'), part('Second', 'Iapetus')];
-    renderSvc.audioStates[0] = makeGeneratedState();
-    renderSvc.audioStates[1] = makeGeneratedState();
 
     tts.createAudioForRenderRequest.and.callFake((_req, opts) => {
       return new Promise<never>((_res, rej) => {
