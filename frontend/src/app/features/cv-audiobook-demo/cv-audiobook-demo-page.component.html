@@ -1,0 +1,87 @@
+<main class="min-h-screen bg-[#040810] text-white">
+  <section
+    class="relative isolate flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 lg:px-10"
+    aria-labelledby="cv-audiobook-demo-title"
+  >
+    <div class="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_50%_18%,rgba(240,173,93,0.18),transparent_28%),radial-gradient(circle_at_18%_82%,rgba(72,181,255,0.11),transparent_30%),linear-gradient(180deg,#070b15_0%,#030610_54%,#050711_100%)]"></div>
+    <div class="absolute inset-x-0 top-0 -z-10 h-56 bg-gradient-to-b from-white/[0.05] to-transparent"></div>
+
+    <div class="mx-auto grid w-full max-w-4xl gap-8 text-center">
+      <div class="grid gap-6">
+        <p class="mx-auto inline-flex max-w-full items-center justify-center gap-3 rounded-full border border-[#f0ad5d]/55 bg-white/[0.03] px-4 py-2 text-center text-[0.68rem] font-bold uppercase tracking-[0.12em] text-[#ffd77f] shadow-[0_0_36px_rgba(240,173,93,0.14)] sm:w-fit sm:px-5 sm:text-sm sm:tracking-[0.18em]">
+          <span class="inline-flex h-5 w-5 items-center justify-center" aria-hidden="true">
+            <span class="h-3 w-0.5 rounded-full bg-[#ffd77f]"></span>
+            <span class="ml-1 h-5 w-0.5 rounded-full bg-[#ffd77f]"></span>
+            <span class="ml-1 h-2 w-0.5 rounded-full bg-[#ffd77f]"></span>
+          </span>
+          {{ projectLabel }}
+        </p>
+
+        <div class="grid gap-5">
+          <h1
+            id="cv-audiobook-demo-title"
+            class="mx-auto max-w-4xl text-4xl font-black leading-[1.04] tracking-normal text-white min-[380px]:text-5xl sm:text-6xl lg:text-7xl"
+          >
+            {{ headlinePrefix }}
+            <span class="block bg-gradient-to-r from-[#ffe187] via-[#f0ad5d] to-[#ffcf71] bg-clip-text text-transparent md:inline">
+              {{ headlineAccent }}
+            </span>
+            {{ headlineSuffix }}
+          </h1>
+
+          <p class="mx-auto max-w-2xl text-base leading-7 text-white/72 sm:text-xl sm:leading-8">
+            {{ subtitle }}
+          </p>
+        </div>
+      </div>
+
+      <app-demo-audio-preview
+        [label]="demoLabel"
+        [audioSrc]="demoAudioSrc"
+        [waveformBars]="waveformBars"
+      ></app-demo-audio-preview>
+
+      <nav class="mx-auto grid w-full max-w-2xl gap-4" aria-label="Audiobook demo actions">
+        <a
+          [routerLink]="primaryAction.route"
+          class="group inline-flex items-center justify-center gap-3 rounded-2xl bg-gradient-to-r from-[#ffe187] via-[#f7bd61] to-[#f0ad5d] px-5 py-5 text-center text-xs font-black uppercase tracking-[0.12em] text-[#050811] shadow-[0_22px_60px_rgba(240,173,93,0.22)] transition hover:-translate-y-0.5 hover:shadow-[0_28px_72px_rgba(240,173,93,0.28)] focus:outline-none focus:ring-2 focus:ring-[#ffd77f] focus:ring-offset-2 focus:ring-offset-[#050811] sm:gap-4 sm:px-6 sm:text-base sm:tracking-[0.14em]"
+        >
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 15c4.5-1.5 7.5-4.5 9-9 3 3 3 6 0 9s-6 3-9 0Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+            <path d="M9 15 5 19m8-8h.01M15 19l4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+          </svg>
+          {{ primaryAction.label }}
+          <svg class="h-6 w-6 transition group-hover:translate-x-1" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+
+        <a
+          [routerLink]="secondaryAction.route"
+          [fragment]="secondaryAction.fragment"
+          class="inline-flex items-center justify-center gap-3 rounded-2xl border border-white/14 bg-white/[0.025] px-5 py-4 text-center text-xs font-bold uppercase tracking-[0.12em] text-white/58 transition hover:border-white/28 hover:bg-white/[0.05] hover:text-white/82 focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-[#050811] sm:gap-4 sm:px-6 sm:text-base sm:tracking-[0.14em]"
+        >
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.61-3.37-1.18-3.37-1.18-.45-1.15-1.11-1.46-1.11-1.46-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.6 9.6 0 0 1 12 6.02c.85 0 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" />
+          </svg>
+          {{ secondaryAction.label }}
+          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+          </svg>
+        </a>
+      </nav>
+
+      <div id="technical-details" class="mx-auto grid max-w-2xl gap-4 border-t border-white/10 pt-6 text-left sm:grid-cols-[auto_1fr]">
+        <div class="grid h-10 w-10 place-items-center rounded-xl border border-white/12 bg-white/[0.035] text-white/55" aria-hidden="true">
+          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none">
+            <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+            <path d="m4 7.5 8 4.5 8-4.5M12 12v9" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
+          </svg>
+        </div>
+        <p class="m-0 text-sm font-medium uppercase leading-7 tracking-[0.14em] text-white/48">
+          Built with {{ technicalStack.join(', ') }}.
+        </p>
+      </div>
+    </div>
+  </section>
+</main>
