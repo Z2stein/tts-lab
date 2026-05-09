@@ -11,7 +11,7 @@
   <li *ngFor="let turn of annotatedTurns" [ngStyle]="speakerStyleFn(turn.speaker)">
     <span class="speaker-name">{{ displayName(turn.speaker) }}</span>
     <span *ngFor="let tag of markupFor(turn).tags" class="emotion-badge">[{{ tag }}]</span>
-    <span>{{ markupFor(turn).text }}</span>
+    <span [innerHTML]="(markupFor(turn).text | highlightTags)"></span>
   </li>
 </ol>
 <p *ngIf="performanceNotesStale" class="warning" role="status">

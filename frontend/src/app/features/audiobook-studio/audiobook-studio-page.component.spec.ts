@@ -488,6 +488,14 @@ describe('AudiobookStudioPageComponent', () => {
     expect(markup.text).toBe('Jonas, listen.');
   });
 
+  it('preserves in-text tags in the remaining text for highlighting', () => {
+    const markup = component.markupFor({ speaker: 'Mara', text: '[sigh] [curious] Jonas, [short pause] tell me you did not hide this.' });
+
+    expect(markup.tags).toEqual(['sigh', 'curious']);
+    expect(markup.text).toContain('[short pause]');
+    expect(markup.text).toBe('Jonas, [short pause] tell me you did not hide this.');
+  });
+
   function buttonByText(text: string, occurrence = 0): HTMLButtonElement {
     const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
     const button = buttons.filter((candidate) => candidate.textContent?.trim() === text)[occurrence];
