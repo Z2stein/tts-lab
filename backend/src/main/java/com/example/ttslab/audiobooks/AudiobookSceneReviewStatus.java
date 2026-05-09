@@ -1,7 +1,8 @@
 package com.example.ttslab.audiobooks;
 
-public enum AudiobookSceneReviewStatus {
-    PENDING,
-    NEEDS_CHANGES,
-    APPROVED
+// DEPRECATED: Use AudiobookSpeechSegmentReviewStatus instead
+// This file is kept for reference only
+@Deprecated(forRemoval = true)
+public class AudiobookSceneReviewStatus {
+    // Moved to AudiobookSpeechSegmentReviewStatus.java
 }

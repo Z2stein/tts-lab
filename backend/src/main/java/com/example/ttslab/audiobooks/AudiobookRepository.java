@@ -36,9 +36,10 @@ public class AudiobookRepository {
             """, projectMapper(), projectId, userId).stream().findFirst();
     }
 
-    public List<AudiobookScene> findScenes(String projectId) {
+    public List<AudiobookSpeechSegment> findScenes(String projectId) {
         return jdbcTemplate.query("""
-            SELECT id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at
+            SELECT id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at,
+                   speaker_name, speaker_role_description, voice_name, performance_directions
             FROM audiobook_scene
             WHERE project_id = ?
             ORDER BY order_index ASC
@@ -82,12 +83,13 @@ public class AudiobookRepository {
             sceneCount, speakerCount, totalDurationSeconds, projectId);
     }
 
-    public void addScene(AudiobookScene scene) {
+    public void addScene(AudiobookSpeechSegment scene) {
         jdbcTemplate.update("""
-            INSERT INTO audiobook_scene (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+            INSERT INTO audiobook_scene (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at, speaker_name, speaker_role_description, voice_name, performance_directions)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?)
             """,
-            scene.id(), scene.projectId(), scene.orderIndex(), scene.title(), scene.reviewStatus().name(), scene.durationSeconds());
+            scene.id(), scene.projectId(), scene.orderIndex(), scene.title(), scene.reviewStatus().name(), scene.durationSeconds(),
+            scene.speakerName(), scene.speakerRoleDescription(), scene.voiceName(), scene.performanceDirections());
     }
 
     public void addAsset(AudioAsset asset) {
@@ -100,7 +102,7 @@ public class AudiobookRepository {
     }
 
     @Transactional
-    public void createProjectWithAsset(AudiobookProject project, AudiobookScene scene, AudioAsset asset) {
+    public void createProjectWithAsset(AudiobookProject project, AudiobookSpeechSegment scene, AudioAsset asset) {
         createProject(project);
         addScene(scene);
         addAsset(asset);
@@ -121,16 +123,20 @@ public class AudiobookRepository {
         );
     }
 
-    private RowMapper<AudiobookScene> sceneMapper() {
-        return (rs, rowNum) -> new AudiobookScene(
+    private RowMapper<AudiobookSpeechSegment> sceneMapper() {
+        return (rs, rowNum) -> new AudiobookSpeechSegment(
             rs.getString("id"),
             rs.getString("project_id"),
             rs.getInt("order_index"),
             rs.getString("title"),
-            AudiobookSceneReviewStatus.valueOf(rs.getString("review_status")),
+            AudiobookSpeechSegmentReviewStatus.valueOf(rs.getString("review_status")),
             integer(rs, "duration_seconds"),
             instant(rs, "created_at"),
-            instant(rs, "updated_at")
+            instant(rs, "updated_at"),
+            rs.getString("speaker_name"),
+            rs.getString("speaker_role_description"),
+            rs.getString("voice_name"),
+            rs.getString("performance_directions")
         );
     }
 

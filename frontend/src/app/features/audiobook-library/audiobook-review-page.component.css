@@ -1,0 +1,86 @@
+/* Audio Parts Details Section */
+.audio-parts-details {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(5, 9, 20, 0.44);
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.audio-parts-details summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+.audio-parts-details summary:hover {
+  opacity: 0.8;
+}
+
+.audio-parts-details summary h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #fff8ec;
+}
+
+.audio-parts-details[open] summary h2 {
+  margin-bottom: 0;
+}
+
+/* Render List Grid */
+.render-list {
+  display: grid;
+  gap: 1.5rem;
+}
+
+/* Raw Assets Details Section */
+.raw-assets-details {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(5, 9, 20, 0.44);
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+}
+
+.raw-assets-details summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+.raw-assets-details summary:hover {
+  opacity: 0.8;
+}
+
+.raw-assets-details summary h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #fff8ec;
+}
+
+.raw-assets-details[open] summary h2 {
+  margin-bottom: 0;
+}
+
+.assets-list {
+  display: grid;
+  gap: 1rem;
+}
+
+/* Badge styling (if needed for part count) */
+.badge {
+  display: inline-block;
+  background: rgba(255, 213, 145, 0.15);
+  border: 1px solid rgba(255, 213, 145, 0.42);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffd591;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

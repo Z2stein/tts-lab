@@ -1,0 +1,95 @@
+import { CommonModule } from '@angular/common';
+import { Component, Input } from '@angular/core';
+import { WaveformPlayerComponent } from '../../../features/audiobook-studio/components/waveform-player/waveform-player.component';
+import { AudiobookScene } from '../../../features/audiobook-library/models/audiobook-library.types';
+
+export interface AudiobookPartCard {
+  partNumber: number;
+  totalParts: number;
+  speakerName?: string;
+  speakerRole?: string;
+  voiceName?: string;
+  emotionTags?: string[];
+  originalText?: string;
+  durationSeconds?: number;
+  status: 'PENDING' | 'NEEDS_CHANGES' | 'APPROVED';
+  audioUrl?: string;
+  readyAssetId?: string;
+  error?: string;
+}
+
+@Component({
+  selector: 'app-audiobook-part-card',
+  standalone: true,
+  imports: [CommonModule, WaveformPlayerComponent],
+  templateUrl: './audiobook-part-card.component.html',
+  styleUrl: './audiobook-part-card.component.css',
+})
+export class AudiobookPartCardComponent {
+  @Input({ required: true }) part!: AudiobookPartCard;
+  @Input({ required: true }) partNumber!: number;
+  @Input({ required: true }) totalParts!: number;
+  @Input() readonly = true;
+
+  playing = false;
+
+  isDirectionTag(tag: string): boolean {
+    const directionPatterns = [
+      'short pause',
+      'long pause',
+      'breath',
+      'sigh',
+      'laugh',
+      'gasp',
+      'grunt',
+      'moan',
+      'sob',
+      'whisper',
+      'yell',
+      'shout',
+    ];
+    return directionPatterns.some((pattern) => tag.toLowerCase().includes(pattern));
+  }
+
+  getStatusLabel(status: string): string {
+    switch (status) {
+      case 'PENDING':
+        return 'Ready to listen';
+      case 'NEEDS_CHANGES':
+        return 'Needs changes';
+      case 'APPROVED':
+        return 'Approved';
+      default:
+        return status;
+    }
+  }
+
+  getStatusClass(status: string): string {
+    switch (status) {
+      case 'PENDING':
+        return 'ready';
+      case 'APPROVED':
+        return 'approved';
+      case 'NEEDS_CHANGES':
+        return 'failed';
+      default:
+        return '';
+    }
+  }
+
+  getSpeakerAccentClass(partNumber: number): string {
+    return `cast-accent-${partNumber % 6}`;
+  }
+
+  downloadAsset(assetId: string): void {
+    // Placeholder - to be implemented by parent component or service
+    console.log('Download asset:', assetId);
+  }
+
+  durationLabel(seconds: number | null | undefined): string {
+    if (seconds === null || seconds === undefined) return '';
+    const minutes = Math.floor(seconds / 60);
+    const remaining = seconds % 60;
+    return `${minutes}:${remaining.toString().padStart(2, '0')}`;
+  }
+}

@@ -70,11 +70,49 @@ const project = {
       createdAt: '2026-05-09T10:20:00Z',
       downloadUrl: '/api/audiobooks/project-amber/audio-assets/asset-scene-1/download',
       streamUrl: '/api/audiobooks/project-amber/audio-assets/asset-scene-1/stream'
+    },
+    {
+      id: 'asset-scene-2',
+      sceneId: 'scene-2',
+      type: 'SCENE_MP3',
+      version: 2,
+      filename: 'scene-2-v2.mp3',
+      contentType: 'audio/mpeg',
+      sizeBytes: 520000,
+      durationSeconds: 103,
+      status: 'READY',
+      createdAt: '2026-05-09T10:25:00Z',
+      downloadUrl: '/api/audiobooks/project-amber/audio-assets/asset-scene-2/download',
+      streamUrl: '/api/audiobooks/project-amber/audio-assets/asset-scene-2/stream'
     }
   ],
   scenes: [
-    { id: 'scene-1', orderIndex: 0, title: 'Station clock', reviewStatus: 'PENDING', durationSeconds: 82 },
-    { id: 'scene-2', orderIndex: 1, title: 'The winter key', reviewStatus: 'APPROVED', durationSeconds: 103 }
+    {
+      id: 'scene-1',
+      orderIndex: 0,
+      title: 'Station clock',
+      reviewStatus: 'PENDING',
+      durationSeconds: 82,
+      createdAt: '2026-05-08T10:15:00Z',
+      updatedAt: '2026-05-09T10:15:00Z',
+      speakerName: 'Narrator',
+      speakerRoleDescription: 'Story narrator',
+      voiceName: 'aria',
+      performanceDirections: '[calm] [curious] Narrator, [short pause] the clock strikes midnight.'
+    },
+    {
+      id: 'scene-2',
+      orderIndex: 1,
+      title: 'The winter key',
+      reviewStatus: 'APPROVED',
+      durationSeconds: 103,
+      createdAt: '2026-05-08T11:20:00Z',
+      updatedAt: '2026-05-09T10:30:00Z',
+      speakerName: 'Alice',
+      speakerRoleDescription: 'Protagonist',
+      voiceName: 'nova',
+      performanceDirections: '[serious] Alice, the key was hidden all along.'
+    }
   ]
 };
 

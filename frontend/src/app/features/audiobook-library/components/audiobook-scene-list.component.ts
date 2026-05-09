@@ -30,8 +30,8 @@ import { AudiobookScene, AudioAsset } from '../models/audiobook-library.types';
   `
 })
 export class AudiobookSceneListComponent {
-  @Input({ required: true }) scenes: AudiobookScene[] = [];
-  @Input({ required: true }) audioAssets: AudioAsset[] = [];
+  @Input() scenes: AudiobookScene[] = [];
+  @Input() audioAssets: AudioAsset[] = [];
 
   readyAssets(sceneId: string): AudioAsset[] {
     return this.audioAssets.filter((asset) => asset.sceneId === sceneId && asset.status === 'READY');

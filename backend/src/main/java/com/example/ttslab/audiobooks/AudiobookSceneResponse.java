@@ -1,10 +1,8 @@
 package com.example.ttslab.audiobooks;
 
-public record AudiobookSceneResponse(
-    String id,
-    int orderIndex,
-    String title,
-    AudiobookSceneReviewStatus reviewStatus,
-    Integer durationSeconds
-) {
+// DEPRECATED: Use AudiobookSpeechSegmentResponse instead
+// This file is kept for reference only
+@Deprecated(forRemoval = true)
+public class AudiobookSceneResponse {
+    // Moved to AudiobookSpeechSegmentResponse.java
 }

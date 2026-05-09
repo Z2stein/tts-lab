@@ -116,8 +116,15 @@ public class TtsWorkbenchController {
             // Extract unique speakers and segment count from render requests
             Set<String> uniqueSpeakers = new HashSet<>();
             int segmentCount = 0;
+            String firstSpeakerName = null;
+            String firstVoiceName = null;
 
-            if (requestPlan.renderRequests() != null) {
+            if (requestPlan.renderRequests() != null && !requestPlan.renderRequests().isEmpty()) {
+                // Extract metadata from first render request for persistence
+                var firstRequest = requestPlan.renderRequests().get(0);
+                firstSpeakerName = stringValue(firstRequest.voice(), "speakerName");
+                firstVoiceName = stringValue(firstRequest.voice(), "speakerId");
+
                 for (var request : requestPlan.renderRequests()) {
                     // Count render requests as segments
                     segmentCount++;
@@ -142,7 +149,7 @@ public class TtsWorkbenchController {
                 project = audiobookLibraryService.getProjectForUser(projectId, user);
             }
 
-            audiobookLibraryService.persistAudioAsset(project, audioFile, segmentCount, 1, speakerCount, estimatedDuration);
+            audiobookLibraryService.persistAudioAsset(project, audioFile, segmentCount, 1, speakerCount, estimatedDuration, firstSpeakerName, null, firstVoiceName, null);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")

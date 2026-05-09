@@ -12,7 +12,7 @@ public record AudiobookDetailResponse(
     Integer totalDurationSeconds,
     Instant createdAt,
     Instant updatedAt,
-    List<AudiobookSceneResponse> scenes,
+    List<AudiobookSpeechSegmentResponse> scenes,
     List<AudioAssetResponse> audioAssets
 ) {
 }

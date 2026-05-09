@@ -70,7 +70,17 @@ public class AudiobookLibraryService {
             project.createdAt(),
             project.updatedAt(),
             repository.findScenes(project.id()).stream()
-                .map(scene -> new AudiobookSceneResponse(scene.id(), scene.orderIndex(), scene.title(), scene.reviewStatus(), scene.durationSeconds()))
+                .map(scene -> new AudiobookSpeechSegmentResponse(
+                    scene.id(),
+                    scene.orderIndex(),
+                    scene.title(),
+                    scene.reviewStatus(),
+                    scene.durationSeconds(),
+                    scene.speakerName(),
+                    scene.speakerRoleDescription(),
+                    scene.voiceName(),
+                    scene.performanceDirections()
+                ))
                 .toList(),
             repository.findAssets(project.id()).stream().map(this::assetResponse).toList()
         );
@@ -118,6 +128,21 @@ public class AudiobookLibraryService {
     }
 
     public AudioAsset persistAudioAsset(AudiobookProject project, TtsAudioFile audioFile, int sceneCount, int version, Integer speakerCount, Integer totalDurationSeconds) {
+        return persistAudioAsset(project, audioFile, sceneCount, version, speakerCount, totalDurationSeconds, null, null, null, null);
+    }
+
+    public AudioAsset persistAudioAsset(
+        AudiobookProject project,
+        TtsAudioFile audioFile,
+        int sceneCount,
+        int version,
+        Integer speakerCount,
+        Integer totalDurationSeconds,
+        String speakerName,
+        String speakerRoleDescription,
+        String voiceName,
+        String performanceDirections
+    ) {
         String assetId = UUID.randomUUID().toString();
         String sceneId = UUID.randomUUID().toString();
         String storageKey = storageKeyBuilder.projectAsset(project.userId(), project.id(), AudioAssetType.PREVIEW_MP3, version, "mp3");
@@ -132,15 +157,20 @@ public class AudiobookLibraryService {
         // Metadata is calculated on-demand by AudiobookMetadataCalculator from audio assets
         // This prevents stale metadata issues that occur with persisted values
 
-        AudiobookScene scene = new AudiobookScene(
+        String sceneTitle = speakerName != null && !speakerName.isBlank() ? speakerName : "Generated scene";
+        AudiobookSpeechSegment scene = new AudiobookSpeechSegment(
             sceneId,
             project.id(),
             0,
-            "Generated scene",
-            AudiobookSceneReviewStatus.PENDING,
+            sceneTitle,
+            AudiobookSpeechSegmentReviewStatus.PENDING,
             null,
             null,
-            null
+            null,
+            speakerName,
+            speakerRoleDescription,
+            voiceName,
+            performanceDirections
         );
         AudioAsset asset = new AudioAsset(
             assetId,
@@ -185,12 +215,16 @@ public class AudiobookLibraryService {
             null,
             null
         );
-        AudiobookScene scene = new AudiobookScene(
+        AudiobookSpeechSegment scene = new AudiobookSpeechSegment(
             sceneId,
             projectId,
             0,
             "Preview scene",
-            AudiobookSceneReviewStatus.PENDING,
+            AudiobookSpeechSegmentReviewStatus.PENDING,
+            totalDurationSeconds,
+            null,
+            null,
+            null,
             null,
             null,
             null

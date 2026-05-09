@@ -1,0 +1,53 @@
+<article class="render-request" [ngStyle]="{ borderLeftColor: 'var(--speaker-accent)' }">
+  <!-- Speaker Identity Section -->
+  <div class="render-identity">
+    <span class="cast-avatar part-avatar" [ngClass]="getSpeakerAccentClass(partNumber)" aria-hidden="true">
+      {{ (part.speakerName || 'P') | slice:0:1 | uppercase }}
+    </span>
+    <div>
+      <span class="badge">Part {{ partNumber }} of {{ totalParts }}</span>
+      <h3>{{ part.speakerName || 'Generated Part' }}</h3>
+      <p class="part-meta" *ngIf="part.speakerRole || part.voiceName">
+        <span *ngIf="part.speakerRole">{{ part.speakerRole }}</span>
+        <span *ngIf="part.voiceName">{{ part.speakerRole ? '• ' : '' }}{{ part.voiceName }}</span>
+      </p>
+    </div>
+  </div>
+
+  <!-- Original Script Text -->
+  <p class="original-text" *ngIf="part.originalText">
+    {{ part.originalText }}
+  </p>
+
+  <!-- Emotion & Direction Tags -->
+  <div class="emotion-tags" *ngIf="part.emotionTags?.length">
+    <span *ngFor="let tag of part.emotionTags" [ngClass]="isDirectionTag(tag) ? 'tag direction-tag' : 'tag emotion-tag'">
+      [{{ tag }}]
+    </span>
+  </div>
+
+  <!-- Status Badge -->
+  <p class="part-status" [ngClass]="'part-status-' + getStatusClass(part.status)">
+    {{ getStatusLabel(part.status) }}
+  </p>
+
+  <!-- Action Buttons (Library Mode = Download Only) -->
+  <button class="download-btn" *ngIf="readonly && part.readyAssetId" (click)="downloadAsset(part.readyAssetId)">
+    Download part
+  </button>
+
+  <!-- Error Message (Studio Mode) -->
+  <p class="error" *ngIf="!readonly && part.error">
+    {{ part.error }}
+  </p>
+
+  <!-- Waveform Player -->
+  <app-waveform-player
+    *ngIf="part.audioUrl"
+    [key]="'part-' + partNumber"
+    [src]="part.audioUrl"
+    [playing]="playing"
+    (playingChange)="playing = $event"
+    [ariaLabel]="'Part ' + partNumber + ': ' + (part.speakerName || 'Generated')">
+  </app-waveform-player>
+</article>
