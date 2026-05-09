@@ -73,13 +73,13 @@ public class AudiobookRepository {
             project.speakerCount(), project.totalDurationSeconds());
     }
 
-    public void updateProjectMetadata(String projectId, Integer speakerCount, Integer totalDurationSeconds) {
+    public void updateProjectMetadata(String projectId, Integer sceneCount, Integer speakerCount, Integer totalDurationSeconds) {
         jdbcTemplate.update("""
             UPDATE audiobook_project
-            SET speaker_count = ?, total_duration_seconds = ?, updated_at = CURRENT_TIMESTAMP
+            SET scene_count = ?, speaker_count = ?, total_duration_seconds = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             """,
-            speakerCount, totalDurationSeconds, projectId);
+            sceneCount, speakerCount, totalDurationSeconds, projectId);
     }
 
     public void addScene(AudiobookScene scene) {

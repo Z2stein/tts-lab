@@ -31,16 +31,29 @@ public class AudiobookLibraryService {
 
     public AudiobookSummaryResponse list(CurrentUser user) {
         List<AudiobookSummaryResponse.AudiobookSummaryItem> items = repository.findProjectsForUser(user.id()).stream()
-            .map(project -> new AudiobookSummaryResponse.AudiobookSummaryItem(
-                project.id(),
-                project.title(),
-                project.status(),
-                project.sceneCount(),
-                project.speakerCount(),
-                project.totalDurationSeconds(),
-                project.updatedAt(),
-                repository.findAssets(project.id()).stream().map(this::assetResponse).toList()
-            ))
+            .map(project -> {
+                var assets = repository.findAssets(project.id());
+
+                // Calculate actual duration from ready assets
+                int calculatedDuration = assets.stream()
+                    .filter(asset -> asset.status() == AudioAssetStatus.READY)
+                    .mapToInt(asset -> asset.durationSeconds() != null ? asset.durationSeconds() : 0)
+                    .sum();
+
+                // Use calculated duration if available, otherwise use project estimate
+                Integer displayDuration = calculatedDuration > 0 ? calculatedDuration : project.totalDurationSeconds();
+
+                return new AudiobookSummaryResponse.AudiobookSummaryItem(
+                    project.id(),
+                    project.title(),
+                    project.status(),
+                    project.sceneCount(),
+                    project.speakerCount(),
+                    displayDuration,
+                    project.updatedAt(),
+                    assets.stream().map(this::assetResponse).toList()
+                );
+            })
             .toList();
         return new AudiobookSummaryResponse(items);
     }
@@ -105,7 +118,7 @@ public class AudiobookLibraryService {
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIOBOOK_NOT_FOUND", "The audiobook project was not found."));
     }
 
-    public AudioAsset persistAudioAsset(AudiobookProject project, TtsAudioFile audioFile, int version, Integer speakerCount, Integer totalDurationSeconds) {
+    public AudioAsset persistAudioAsset(AudiobookProject project, TtsAudioFile audioFile, int sceneCount, int version, Integer speakerCount, Integer totalDurationSeconds) {
         String assetId = UUID.randomUUID().toString();
         String sceneId = UUID.randomUUID().toString();
         String storageKey = storageKeyBuilder.projectAsset(project.userId(), project.id(), AudioAssetType.PREVIEW_MP3, version, "mp3");
@@ -116,7 +129,7 @@ public class AudiobookLibraryService {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_ASSET_WRITE_FAILED", "The generated audio could not be saved.", null, ex);
         }
 
-        repository.updateProjectMetadata(project.id(), speakerCount, totalDurationSeconds);
+        repository.updateProjectMetadata(project.id(), sceneCount, speakerCount, totalDurationSeconds);
 
         AudiobookScene scene = new AudiobookScene(
             sceneId,

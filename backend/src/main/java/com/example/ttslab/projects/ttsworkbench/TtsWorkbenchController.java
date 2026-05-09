@@ -142,7 +142,7 @@ public class TtsWorkbenchController {
                 project = audiobookLibraryService.getProjectForUser(projectId, user);
             }
 
-            audiobookLibraryService.persistAudioAsset(project, audioFile, segmentCount, speakerCount, estimatedDuration);
+            audiobookLibraryService.persistAudioAsset(project, audioFile, segmentCount, 1, speakerCount, estimatedDuration);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
