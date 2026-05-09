@@ -1,12 +1,11 @@
 import { CommonModule } from '@angular/common';
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { AudiobookScene, AudioAsset } from '../models/audiobook-library.types';
 
 @Component({
   selector: 'app-audiobook-scene-list',
   standalone: true,
   imports: [CommonModule],
-  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="rounded-lg border border-studio-line bg-studio-panel/85 p-5 backdrop-blur" data-testid="scene-list">
       <div class="mb-4 flex items-center justify-between gap-3">
@@ -15,30 +14,33 @@ import { AudiobookScene, AudioAsset } from '../models/audiobook-library.types';
           <h2 class="m-0 text-2xl font-black">Scenes</h2>
         </div>
         <span class="badge">{{ scenes.length }} total</span>
+        <div *ngIf="scenes.length === 0" style="color: red;">EMPTY SCENES!</div>
       </div>
 
-      <div class="grid gap-3">
-        <article *ngFor="let scene of scenes" class="grid gap-3 rounded-md border border-studio-line bg-studio-field p-4 sm:grid-cols-[1fr_auto] sm:items-center" data-testid="scene-row">
-          <div>
-            <p class="m-0 text-xs font-extrabold uppercase text-studio-accent">Scene {{ scene.orderIndex + 1 }}</p>
-            <h3 class="m-0 mt-1 text-lg font-extrabold">{{ scene.title }}</h3>
-            <p class="m-0 mt-1 text-sm text-studio-muted">{{ scene.reviewStatus.replace('_', ' ') }} · {{ durationLabel(scene.durationSeconds) }}</p>
-          </div>
-          <span class="badge">{{ readyAssets(scene.id).length }} ready asset{{ readyAssets(scene.id).length === 1 ? '' : 's' }}</span>
-        </article>
-      </div>
+      <ng-container *ngIf="scenes && scenes.length > 0">
+        <div class="grid gap-3">
+          <article *ngFor="let scene of scenes; let i = index" data-testid="scene-row">
+            <p>Scene {{ i }}: {{ scene.title }}</p>
+          </article>
+        </div>
+      </ng-container>
+      <ng-container *ngIf="!scenes || scenes.length === 0">
+        <div style="color: red;">No scenes to display</div>
+      </ng-container>
     </section>
   `
 })
-export class AudiobookSceneListComponent implements OnInit {
-  @Input() scenes: AudiobookScene[] = [];
-  @Input() audioAssets: AudioAsset[] = [];
-
-  constructor(private cdr: ChangeDetectorRef) {}
-
-  ngOnInit(): void {
-    this.cdr.markForCheck();
+export class AudiobookSceneListComponent {
+  @Input() set scenes(value: AudiobookScene[] | undefined | null) {
+    console.log('AudiobookSceneListComponent.scenes setter called with:', value);
+    this._scenes = value || [];
   }
+  get scenes(): AudiobookScene[] {
+    return this._scenes;
+  }
+  private _scenes: AudiobookScene[] = [];
+
+  @Input() audioAssets: AudioAsset[] = [];
 
   readyAssets(sceneId: string): AudioAsset[] {
     return this.audioAssets.filter((asset) => asset.sceneId === sceneId && asset.status === 'READY');

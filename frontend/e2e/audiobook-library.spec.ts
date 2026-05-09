@@ -234,6 +234,10 @@ test('user can open audiobook detail review page with scenes and audio assets', 
   await expect(page).toHaveURL(/\/audiobook-library\/project-amber$/);
   await expect(page.getByRole('heading', { name: 'The Amber Signal' })).toBeVisible();
   await expect(page.getByTestId('primary-audio-player')).toBeVisible();
+
+  // DEBUG: Check if scene-list section is rendered
+  await expect(page.getByTestId('scene-list')).toBeVisible();
+
   await expect(page.getByTestId('scene-row')).toHaveCount(2);
   await expect(page.getByText('Station clock')).toBeVisible();
   await expect(page.getByTestId('audio-download')).toHaveCount(3);
