@@ -1,6 +1,8 @@
 package com.example.ttslab.projects.ttsworkbench;
 
 import com.example.ttslab.auth.CurrentUser;
+import com.example.ttslab.audiobooks.AudiobookLibraryService;
+import com.example.ttslab.common.DurationEstimator;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;
@@ -9,6 +11,8 @@ import com.example.ttslab.ratelimit.RequestRateLimitExceededException;
 import com.example.ttslab.ratelimit.RequestRateLimitResult;
 import com.example.ttslab.ratelimit.RequestRateLimitService;
 import com.example.ttslab.ratelimit.RequestUsageMeasurer;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
@@ -30,6 +34,7 @@ public class TtsWorkbenchController {
     private final PromptHistoryService promptHistoryService;
     private final RequestRateLimitService requestRateLimitService;
     private final RequestUsageMeasurer requestUsageMeasurer;
+    private final AudiobookLibraryService audiobookLibraryService;
     private final String analysisProviderModelName;
 
     public TtsWorkbenchController(
@@ -38,6 +43,7 @@ public class TtsWorkbenchController {
         PromptHistoryService promptHistoryService,
         RequestRateLimitService requestRateLimitService,
         RequestUsageMeasurer requestUsageMeasurer,
+        AudiobookLibraryService audiobookLibraryService,
         @Value("${chatbot.provider:mock}") String chatbotProvider,
         @Value("${spring.ai.google.genai.chat.options.model:}") String chatModelName
     ) {
@@ -46,6 +52,7 @@ public class TtsWorkbenchController {
         this.promptHistoryService = promptHistoryService;
         this.requestRateLimitService = requestRateLimitService;
         this.requestUsageMeasurer = requestUsageMeasurer;
+        this.audiobookLibraryService = audiobookLibraryService;
         this.analysisProviderModelName = providerModelName(chatbotProvider, chatModelName);
     }
 
@@ -96,17 +103,51 @@ public class TtsWorkbenchController {
     }
 
     @PostMapping("/create-audio")
-    public ResponseEntity<byte[]> createAudio(@RequestBody SingleSpeakerRenderPlanResponse requestPlan, Authentication authentication) {
+    public ResponseEntity<byte[]> createAudio(
+        @RequestBody SingleSpeakerRenderPlanResponse requestPlan,
+        @org.springframework.web.bind.annotation.RequestParam(required = false) String projectId,
+        Authentication authentication
+    ) {
         CurrentUser user = currentUserResolver.resolve(authentication);
         String promptText = renderPromptText(requestPlan);
         String providerModelName = renderProviderModelName(requestPlan);
         enforceLimit(user, ModelType.SPEECH_MODEL, promptText, providerModelName);
         try {
+            // Extract unique speakers and segment count from render requests
+            Set<String> uniqueSpeakers = new HashSet<>();
+            int segmentCount = 0;
+
+            if (requestPlan.renderRequests() != null) {
+                for (var request : requestPlan.renderRequests()) {
+                    // Count render requests as segments
+                    segmentCount++;
+
+                    // Extract speaker name from voice configuration
+                    String speaker = stringValue(request.voice(), "speakerName");
+                    if (speaker != null && !speaker.isBlank()) {
+                        uniqueSpeakers.add(speaker);
+                    }
+                }
+            }
+
+            int speakerCount = uniqueSpeakers.size();
+            Integer estimatedDuration = DurationEstimator.estimateSpeakingDurationSeconds(promptText);
+
             TtsAudioFile audioFile = ttsWorkbenchService.createAudio(requestPlan);
+
+            com.example.ttslab.audiobooks.AudiobookProject project;
+            if (projectId == null || projectId.isBlank()) {
+                project = audiobookLibraryService.createProjectForGeneration(user);
+            } else {
+                project = audiobookLibraryService.getProjectForUser(projectId, user);
+            }
+
+            audiobookLibraryService.persistAudioAsset(project, audioFile, segmentCount, 1, speakerCount, estimatedDuration);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
                 .header(HttpHeaders.CONTENT_TYPE, audioFile.contentType())
+                .header("X-Audiobook-Project-Id", project.id())
                 .body(audioFile.content());
         } catch (RuntimeException ex) {
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.FAILED);

@@ -101,7 +101,7 @@ button:hover {
 
 .app-main {
   margin: 0 auto;
-  max-width: 960px;
+  max-width: 1280px;
   padding: clamp(1rem, 4vw, 2rem);
 }
 

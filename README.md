@@ -2,6 +2,8 @@
 
 Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
+⚠️ ⚠️
+
 ## Inhaltsverzeichnis
 
 - [Repo-Onboarding](#repo-onboarding-kurzer-config-block)

@@ -1,6 +1,12 @@
 package com.example.ttslab.projects.ttsworkbench;
 
 import com.example.ttslab.auth.CurrentUser;
+import com.example.ttslab.audiobooks.AudiobookLibraryService;
+import com.example.ttslab.audiobooks.AudiobookProject;
+import com.example.ttslab.audiobooks.AudiobookProjectStatus;
+import com.example.ttslab.audiobooks.AudioAsset;
+import com.example.ttslab.audiobooks.AudioAssetType;
+import com.example.ttslab.audiobooks.AudioAssetStatus;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.PromptHistoryService;
 import com.example.ttslab.prompts.ModelType;
@@ -11,6 +17,7 @@ import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import java.util.List;
 import com.example.ttslab.error.ApiException;
 import java.util.Map;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -28,6 +35,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest(TtsWorkbenchController.class)
@@ -50,6 +58,9 @@ class TtsWorkbenchControllerTest {
     @MockBean
     private RequestUsageMeasurer requestUsageMeasurer;
 
+    @MockBean
+    private AudiobookLibraryService audiobookLibraryService;
+
     @org.junit.jupiter.api.BeforeEach
     void setupCurrentUser() {
         when(currentUserResolver.resolve(any())).thenReturn(new CurrentUser("u1", "u1@example.com", "User One", List.of("USER"), "mock"));
@@ -59,6 +70,39 @@ class TtsWorkbenchControllerTest {
             .thenReturn(new RequestRateLimitResult(ModelType.SPEECH_MODEL, true, 1, 600, 599, 1, 0, 1, RequestRateLimitUnit.WORDS));
         when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.TEXT_MODEL), eq(1L)))
             .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, true, 1, 600, 599, 1, 0, 1, RequestRateLimitUnit.WORDS));
+
+        // Mock audiobook library service
+        AudiobookProject testProject = new AudiobookProject(
+            "test-project-1",
+            "u1",
+            "Test Audiobook",
+            AudiobookProjectStatus.NEEDS_REVIEW,
+            "TTS_WORKBENCH",
+            1,
+            null,
+            null,
+            null,
+            null
+        );
+        when(audiobookLibraryService.createProjectForGeneration(any()))
+            .thenReturn(testProject);
+
+        AudioAsset testAsset = new AudioAsset(
+            "test-asset-1",
+            "test-project-1",
+            "test-scene-1",
+            AudioAssetType.PREVIEW_MP3,
+            1,
+            "test-key",
+            "tts-render-request-1.mp3",
+            "audio/mpeg",
+            3L,
+            null,
+            AudioAssetStatus.READY,
+            null
+        );
+        when(audiobookLibraryService.persistAudioAsset(any(AudiobookProject.class), any(), any(Integer.class), any(Integer.class), any(Integer.class), any(Integer.class)))
+            .thenReturn(testAsset);
     }
 
     @Test
@@ -159,7 +203,9 @@ class TtsWorkbenchControllerTest {
                     """))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
-            .andExpect(content().bytes(new byte[] {'I', 'D', '3'}));
+            .andExpect(content().bytes(new byte[] {'I', 'D', '3'}))
+            .andExpect(header().exists("X-Audiobook-Project-Id"))
+            .andExpect(header().string("X-Audiobook-Project-Id", "test-project-1"));
     }
 
     @Test

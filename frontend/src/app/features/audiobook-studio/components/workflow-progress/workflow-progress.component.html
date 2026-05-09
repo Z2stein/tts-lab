@@ -1,0 +1,28 @@
+<nav class="workflow-progress" aria-label="Audiobook workflow progress">
+  <button
+    *ngFor="let step of steps"
+    type="button"
+    class="workflow-step"
+    [class.completed]="step.status === 'completed'"
+    [class.current]="step.status === 'current'"
+    [class.warning-state]="step.status === 'warning'"
+    [class.locked]="step.status === 'locked'"
+    [disabled]="step.status === 'locked'"
+    (click)="onStepClick(step.sectionId, $event)"
+  >
+    <span class="workflow-marker" aria-hidden="true"></span>
+    <span>
+      <strong>{{ step.label }}</strong>
+      <small>{{ step.statusLabel }}</small>
+    </span>
+  </button>
+</nav>
+
+<aside aria-live="polite">
+  <button type="button" class="current-task helper-jump" (click)="onStepClick(currentTask.sectionId, $event)">
+    <span class="task-label">You are here</span>
+    <h2>{{ currentTask.title }}</h2>
+    <p>{{ currentTask.body }}</p>
+    <strong>{{ currentTask.nextAction }}</strong>
+  </button>
+</aside>

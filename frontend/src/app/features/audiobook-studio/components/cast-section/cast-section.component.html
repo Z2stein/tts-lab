@@ -1,0 +1,30 @@
+<div class="step-heading">
+  <span class="step-number">2</span>
+  <div>
+    <h2 id="discover-cast-title">Discover cast</h2>
+    <p>Review the detected voices before building the script preview.</p>
+  </div>
+</div>
+
+<p *ngIf="cast.length > 0 && !castReviewed" class="review-status">Cast needs review</p>
+<p *ngIf="cast.length === 0" class="empty-state">Cast cards will appear after story analysis.</p>
+<div *ngIf="cast.length > 0" class="cast-grid" aria-label="Cast">
+  <app-cast-card
+    *ngFor="let speaker of cast; let i = index; trackBy: trackCastByIndex"
+    [speaker]="speaker"
+    [index]="i"
+    [accentClass]="accentClass(i)"
+    [editing]="editingCastIndex === i"
+    [editDraft]="editingCastIndex === i ? castEditDraft : null"
+    [isVoiceSamplePlaying]="isVoiceSamplePlaying(speaker.speakerName)"
+    [speakerStyleFn]="speakerStyleFn"
+    (startEdit)="startCastEdit.emit(i)"
+    (saveEdit)="saveCastEdit.emit(i)"
+    (cancelEdit)="cancelCastEdit.emit()"
+    (playVoiceSample)="playVoiceSample.emit(speaker.speakerName)"
+  ></app-cast-card>
+</div>
+
+<button type="button" class="primary-button next-action" (click)="createScriptPreview.emit()" [disabled]="loadingAction !== null || cast.length === 0">
+  {{ isLoading('script') ? 'Creating script preview...' : 'Review script' }}
+</button>

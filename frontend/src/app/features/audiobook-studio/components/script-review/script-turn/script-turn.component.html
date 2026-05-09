@@ -1,0 +1,29 @@
+<div class="script-turn">
+  <ng-container *ngIf="!editing; else scriptEditForm">
+    <p>{{ indexedTurn.turn.text }}</p>
+    <button
+      type="button"
+      class="text-button"
+      (click)="startEdit.emit()"
+      [attr.data-testid]="'script-turn-edit-' + indexedTurn.index"
+      [attr.aria-label]="'Edit script turn ' + (indexedTurn.index + 1)"
+    >
+      Edit
+    </button>
+  </ng-container>
+
+  <ng-template #scriptEditForm>
+    <label [for]="'script-speaker-' + indexedTurn.index">Speaker</label>
+    <select [id]="'script-speaker-' + indexedTurn.index" [name]="'script-speaker-' + indexedTurn.index" [(ngModel)]="editDraft!.speaker">
+      <option *ngFor="let name of speakerOptions; trackBy: trackSpeakerOption" [value]="name">{{ displayName(name) }}</option>
+    </select>
+
+    <label [for]="'script-text-' + indexedTurn.index">Text</label>
+    <textarea [id]="'script-text-' + indexedTurn.index" [name]="'script-text-' + indexedTurn.index" rows="4" [(ngModel)]="editDraft!.text"></textarea>
+
+    <div class="button-row compact-actions">
+      <button type="button" class="primary-button small-button" (click)="saveEdit.emit()">Save</button>
+      <button type="button" class="secondary-button small-button" (click)="cancelEdit.emit()">Cancel</button>
+    </div>
+  </ng-template>
+</div>

@@ -1,0 +1,97 @@
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { FocusMonitor } from '@angular/cdk/a11y';
+import { VoiceSampleService } from '../../services/voice-sample.service';
+import { WaveSurferService } from '../../services/wave-surfer.service';
+import { StudioHeroComponent } from './studio-hero.component';
+
+describe('StudioHeroComponent', () => {
+  let fixture: ComponentFixture<StudioHeroComponent>;
+  let component: StudioHeroComponent;
+  let waveSurferService: jasmine.SpyObj<WaveSurferService>;
+  let focusMonitor: jasmine.SpyObj<FocusMonitor>;
+
+  beforeEach(async () => {
+    waveSurferService = jasmine.createSpyObj<WaveSurferService>('WaveSurferService', [
+      'create', 'get', 'destroy', 'bind', 'pauseAll',
+    ]);
+    focusMonitor = jasmine.createSpyObj<FocusMonitor>('FocusMonitor', ['monitor', 'stopMonitoring']);
+    waveSurferService.get.and.returnValue(null);
+
+    await TestBed.configureTestingModule({
+      imports: [StudioHeroComponent],
+      providers: [
+        { provide: WaveSurferService, useValue: waveSurferService },
+        { provide: VoiceSampleService, useValue: jasmine.createSpyObj('VoiceSampleService', ['pause']) },
+        { provide: FocusMonitor, useValue: focusMonitor },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(StudioHeroComponent);
+    component = fixture.componentInstance;
+    fixture.detectChanges();
+  });
+
+  it('renders the hero heading', () => {
+    expect(fixture.nativeElement.querySelector('h1')).not.toBeNull();
+  });
+
+  it('renders benefit chips', () => {
+    component.benefitChips = ['Multi-voice', 'MP3 export'];
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Multi-voice');
+    expect(fixture.nativeElement.textContent).toContain('MP3 export');
+  });
+
+  it('renders cast rows for each hero cast member', () => {
+    component.heroCast = [
+      { name: 'Mara', initials: 'M', tone: 'Warm alto' },
+      { name: 'Jonas', initials: 'J', tone: 'Gentle tenor' },
+    ];
+    fixture.detectChanges();
+    expect(fixture.nativeElement.textContent).toContain('Mara');
+    expect(fixture.nativeElement.textContent).toContain('Jonas');
+  });
+
+  it('emits focusStoryInput when the CTA is clicked', () => {
+    const spy = jasmine.createSpy('focusStoryInput');
+    component.focusStoryInput.subscribe(spy);
+    const cta = fixture.nativeElement.querySelector('.hero-primary') as HTMLButtonElement;
+    cta.click();
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
+
+  it('emits playVoiceSample with member name when a cast button is clicked', () => {
+    component.heroCast = [{ name: 'Mara', initials: 'M', tone: 'Warm' }];
+    fixture.detectChanges();
+    const spy = jasmine.createSpy('playVoiceSample');
+    component.playVoiceSample.subscribe(spy);
+    const castBtn = fixture.nativeElement.querySelector('.hero-cast-row button') as HTMLButtonElement;
+    castBtn.click();
+    expect(spy).toHaveBeenCalledOnceWith(jasmine.objectContaining({ name: 'Mara' }));
+  });
+
+  it('starts FocusMonitor on the CTA button in ngAfterViewInit', () => {
+    expect(focusMonitor.monitor).toHaveBeenCalled();
+  });
+
+  it('stops FocusMonitor on ngOnDestroy', () => {
+    component.ngOnDestroy();
+    expect(focusMonitor.stopMonitoring).toHaveBeenCalled();
+    expect(waveSurferService.destroy).toHaveBeenCalledWith('demo');
+  });
+
+  it('toggles is-playing class on the demo button when demoPlaying changes', () => {
+    component.demoPlaying = true;
+    fixture.detectChanges();
+    const btn = fixture.nativeElement.querySelector('.hero-secondary') as HTMLButtonElement;
+    expect(btn.classList).toContain('is-playing');
+  });
+
+  it('reflects activeSampleKey as is-playing on the matching cast button', () => {
+    component.heroCast = [{ name: 'Mara', initials: 'M', tone: 'Warm' }];
+    component.activeSampleKey = 'voice:Mara';
+    fixture.detectChanges();
+    const castBtn = fixture.nativeElement.querySelector('.hero-cast-row button') as HTMLButtonElement;
+    expect(castBtn.classList).toContain('is-playing');
+  });
+});

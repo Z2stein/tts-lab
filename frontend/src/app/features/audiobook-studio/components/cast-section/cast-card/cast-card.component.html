@@ -1,0 +1,48 @@
+<article
+  class="cast-card"
+  [ngClass]="accentClass"
+  [ngStyle]="speakerStyleFn(speaker.speakerName)"
+>
+  <ng-container *ngIf="!editing; else castEditForm">
+    <div class="voice-card-media">
+      <span class="cast-avatar" aria-hidden="true">{{ initials(speaker.speakerName) }}</span>
+      <button type="button" class="preview-voice-button" [class.is-playing]="isVoiceSamplePlaying" (click)="playVoiceSample.emit()">
+        <span class="play-icon" aria-hidden="true"></span>
+        {{ isVoiceSamplePlaying ? 'Pause voice' : 'Preview voice' }}
+      </button>
+    </div>
+    <div class="card-topline">
+      <span class="badge">Detected character</span>
+      <button
+        type="button"
+        class="text-button"
+        (click)="startEdit.emit()"
+        [attr.data-testid]="'cast-edit-' + index"
+        [attr.aria-label]="'Edit cast card for ' + displayName(speaker.speakerName)"
+      >
+        Edit
+      </button>
+    </div>
+    <div class="cast-content">
+      <h3>{{ displayName(speaker.speakerName) }}</h3>
+      <p>{{ speaker.roleDescription }}</p>
+      <strong class="voice-badge">{{ speaker.voiceSuggestion }}</strong>
+    </div>
+  </ng-container>
+
+  <ng-template #castEditForm>
+    <label [for]="'cast-speaker-name-' + index">Speaker name</label>
+    <input [id]="'cast-speaker-name-' + index" [name]="'cast-speaker-name-' + index" [(ngModel)]="editDraft!.speakerName" />
+
+    <label [for]="'cast-role-description-' + index">Role description</label>
+    <textarea [id]="'cast-role-description-' + index" [name]="'cast-role-description-' + index" rows="3" [(ngModel)]="editDraft!.roleDescription"></textarea>
+
+    <label [for]="'cast-voice-suggestion-' + index">Voice suggestion</label>
+    <input [id]="'cast-voice-suggestion-' + index" [name]="'cast-voice-suggestion-' + index" [(ngModel)]="editDraft!.voiceSuggestion" />
+
+    <div class="button-row compact-actions">
+      <button type="button" class="primary-button small-button" (click)="saveEdit.emit()">Save</button>
+      <button type="button" class="secondary-button small-button" (click)="cancelEdit.emit()">Cancel</button>
+    </div>
+  </ng-template>
+</article>

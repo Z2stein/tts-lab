@@ -36,6 +36,7 @@ export interface SingleSpeakerRenderPlan {
 export interface CreatedAudioDownload {
   blob: Blob;
   filename: string;
+  projectId?: string;
 }
 
 interface SpeakerVoiceAnalysisResponse {
@@ -116,9 +117,10 @@ export class TtsWorkbenchService {
     );
   }
 
-  async createAudio(renderPlan: SingleSpeakerRenderPlan, options: RequestOptions = {}): Promise<CreatedAudioDownload> {
+  async createAudio(renderPlan: SingleSpeakerRenderPlan, options: RequestOptions = {}, projectId?: string): Promise<CreatedAudioDownload> {
+    const url = projectId ? `/api/projects/tts-workbench/create-audio?projectId=${encodeURIComponent(projectId)}` : '/api/projects/tts-workbench/create-audio';
     const response = await this.postResponse(
-      '/api/projects/tts-workbench/create-audio',
+      url,
       renderPlan,
       'Audio creation failed',
       options
@@ -126,16 +128,18 @@ export class TtsWorkbenchService {
 
     return {
       blob: await response.blob(),
-      filename: this.filenameFromContentDisposition(response.headers.get('Content-Disposition')) || 'tts-render-request-1.mp3'
+      filename: this.filenameFromContentDisposition(response.headers.get('Content-Disposition')) || 'tts-render-request-1.mp3',
+      projectId: response.headers.get('X-Audiobook-Project-Id') || undefined
     };
   }
 
 
   async createAudioForRenderRequest(
     renderRequest: SingleSpeakerRenderRequest,
-    options: RequestOptions = {}
+    options: RequestOptions = {},
+    projectId?: string
   ): Promise<CreatedAudioDownload> {
-    return this.createAudio({ renderRequests: [renderRequest] }, options);
+    return this.createAudio({ renderRequests: [renderRequest] }, options, projectId);
   }
 
   private async post<T>(url: string, body: unknown, errorPrefix: string, options: RequestOptions = {}): Promise<T> {
