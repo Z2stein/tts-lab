@@ -7,3 +7,4 @@ backend/build/
 frontend/.angular/
 frontend/playwright-report/
 frontend/test-results/
+.claude/
