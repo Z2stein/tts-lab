@@ -324,7 +324,8 @@ describe('AudiobookStudioPageComponent', () => {
     expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
     expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[2],
-      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) })
+      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
+      undefined
     );
     expect(component.renderRequestAudioState(2).status).toBe('generated');
     expect(component.fullPlanAudioUrl).not.toBeNull();
@@ -346,7 +347,8 @@ describe('AudiobookStudioPageComponent', () => {
     const player = fixture.nativeElement.querySelector('.generated-audio-player .waveform-canvas') as HTMLElement | null;
     expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[0],
-      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) })
+      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
+      undefined
     );
     expect(player).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
@@ -401,7 +403,8 @@ describe('AudiobookStudioPageComponent', () => {
     expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
     expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[2],
-      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) })
+      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
+      undefined
     );
     expect(component.fullPlanAudioUrl).not.toBeNull();
   });
