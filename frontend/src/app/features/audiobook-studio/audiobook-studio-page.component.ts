@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, ElementRef, OnDestroy, QueryList, ViewChild, ViewChildren } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { LiveAnnouncer } from '@angular/cdk/a11y';
 import {
   FinalTtsRequestPreview,
   SingleSpeakerRenderPlan,
@@ -12,6 +13,8 @@ import { JourneyGridComponent } from './components/journey-grid/journey-grid.com
 import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
 import { ScriptReviewComponent } from './components/script-review/script-review.component';
 import { StoryInputComponent } from './components/story-input/story-input.component';
+import { StudioHeroComponent } from './components/studio-hero/studio-hero.component';
+import { WaveformPlayerComponent } from './components/waveform-player/waveform-player.component';
 import { WorkflowProgressComponent } from './components/workflow-progress/workflow-progress.component';
 import {
   BENEFIT_CHIPS,
@@ -54,12 +57,14 @@ export { formatSpeakerDisplayName };
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
+    StudioHeroComponent,
+    WaveformPlayerComponent,
     JourneyGridComponent,
     WorkflowProgressComponent,
     StoryInputComponent,
     CastSectionComponent,
     ScriptReviewComponent,
-    PerformanceNotesComponent
+    PerformanceNotesComponent,
   ],
   providers: [
     AudiobookStudioFacade,
@@ -138,27 +143,8 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   // ── Voice-sample delegated state ──────────────────────────────────────────
   get activeSampleKey(): string | null { return this.voiceSampleService.activeSampleKey; }
 
-  demoPlaying = false;
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
-
-  private demoWaveformElement: ElementRef<HTMLElement> | null = null;
-  private fullWaveformElement: ElementRef<HTMLElement> | null = null;
-
-  @ViewChild('demoWaveform')
-  set demoWaveform(ref: ElementRef<HTMLElement> | undefined) {
-    this.demoWaveformElement = ref ?? null;
-    this.initializeDemoWaveform();
-  }
-
-  @ViewChild('fullWaveform')
-  set fullWaveform(ref: ElementRef<HTMLElement> | undefined) {
-    this.fullWaveformElement = ref ?? null;
-    this.initializeFullWaveform();
-  }
-
-  @ViewChildren('renderRequestWaveform')
-  renderRequestWaveformElements!: QueryList<ElementRef<HTMLElement>>;
 
   constructor(
     private readonly facade: AudiobookStudioFacade,
@@ -167,6 +153,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     private readonly renderRequestAudioService: RenderRequestAudioService,
     private readonly fullAudioGenerationService: FullAudioGenerationService,
     private readonly scrollService: ScrollService,
+    private readonly liveAnnouncer: LiveAnnouncer,
   ) {}
 
   // ── Computed from facade signals ──────────────────────────────────────────
@@ -317,16 +304,6 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     this.scrollService.focusById('story-text', { preventScroll: true });
   }
 
-  playDemo(event?: Event): void {
-    event?.preventDefault();
-    const demoWs = this.waveSurferService.get('demo');
-    if (demoWs) {
-      void demoWs.playPause();
-      return;
-    }
-    this.playAudioPath('/assets/audio/voice-samples/full-text-preview.mp3', 'demo:fallback');
-  }
-
   scrollToSection(sectionId: string, event?: Event): void {
     event?.preventDefault();
     this.scrollService.scrollTo(sectionId);
@@ -367,14 +344,29 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   async analyzeStory(): Promise<void> {
     await this.facade.analyzeStory(this.storyTextControl.value);
+    if (this.facade.cast().length > 0) {
+      void this.liveAnnouncer.announce(`Found ${this.facade.cast().length} characters`, 'polite');
+    } else if (this.facade.error()) {
+      void this.liveAnnouncer.announce(this.facade.error()!, 'assertive');
+    }
   }
 
   async createScriptPreview(): Promise<void> {
     await this.facade.createScriptPreview(this.storyTextControl.value);
+    if (this.facade.scriptTurns().length > 0) {
+      void this.liveAnnouncer.announce(`Script ready with ${this.facade.scriptTurns().length} turns`, 'polite');
+    } else if (this.facade.error()) {
+      void this.liveAnnouncer.announce(this.facade.error()!, 'assertive');
+    }
   }
 
   async createPerformanceNotes(): Promise<void> {
     await this.facade.createPerformanceNotes();
+    if (this.facade.annotatedTurns().length > 0) {
+      void this.liveAnnouncer.announce('Performance notes added', 'polite');
+    } else if (this.facade.error()) {
+      void this.liveAnnouncer.announce(this.facade.error()!, 'assertive');
+    }
   }
 
   async createAudioProductionPlan(): Promise<void> {
@@ -384,13 +376,18 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
       modelName: this.modelNameControl.value,
       audioEncoding: this.audioEncodingControl.value,
     });
+    if (this.facade.audioProductionPlan()) {
+      void this.liveAnnouncer.announce('Audio production plan ready', 'polite');
+    } else if (this.facade.error()) {
+      void this.liveAnnouncer.announce(this.facade.error()!, 'assertive');
+    }
   }
 
   async generateAudio(): Promise<void> {
     if (!this.facade.audioProductionPlan() || this.renderRequests.length === 0) return;
     await this.fullAudioGenerationService.generate(this.renderRequests);
     if (this.fullAudioGenerationService.audioUrl) {
-      window.setTimeout(() => this.initializeFullWaveform());
+      void this.liveAnnouncer.announce('Audiobook preview is ready', 'polite');
     }
   }
 
@@ -654,64 +651,12 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit(): void {
     this.facade.onAudioReset = () => {
-      Object.keys(this.renderRequestAudioPlayingStates).forEach((k) => {
-        this.waveSurferService.destroy(`part:${k}`);
-      });
-      this.waveSurferService.destroy('full');
       this.fullPlanAudioPlaying = false;
       this.renderRequestAudioPlayingStates = {};
     };
-    this.fullAudioGenerationService.onAudioReady = () => {
-      window.setTimeout(() => this.initializeFullWaveform());
-    };
-    this.renderRequestAudioService.onPartReady = (requestIndex: number) => {
-      this.waveSurferService.destroy(`part:${requestIndex}`);
-      this.renderRequestAudioPlayingStates[requestIndex] = false;
-      window.setTimeout(() => this.initializeRenderRequestWaveforms());
-    };
-    this.initializeDemoWaveform();
-    this.renderRequestWaveformElements.changes.subscribe(() => this.initializeRenderRequestWaveforms());
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────
-
-  private initializeDemoWaveform(): void {
-    if (!this.demoWaveformElement || this.waveSurferService.get('demo')) return;
-    const ws = this.waveSurferService.create('demo', this.demoWaveformElement.nativeElement, '/assets/audio/voice-samples/full-text-preview.mp3');
-    this.waveSurferService.bind(ws, () => {
-      this.voiceSampleService.pause();
-      this.waveSurferService.pauseAll(ws);
-    }, (playing) => { this.demoPlaying = playing; });
-  }
-
-  private initializeFullWaveform(): void {
-    if (!this.fullWaveformElement || !this.fullPlanAudioUrl) return;
-    this.waveSurferService.destroy('full');
-    const ws = this.waveSurferService.create('full', this.fullWaveformElement.nativeElement, this.fullPlanAudioUrl);
-    this.waveSurferService.bind(ws, () => {
-      this.voiceSampleService.pause();
-      this.waveSurferService.pauseAll(ws);
-    }, (playing) => { this.fullPlanAudioPlaying = playing; });
-  }
-
-  private initializeRenderRequestWaveforms(): void {
-    if (!this.renderRequestWaveformElements) return;
-    this.renderRequestWaveformElements.forEach((waveformElement) => {
-      const requestIndex = Number(waveformElement.nativeElement.dataset['requestIndex']);
-      const audioUrl = this.renderRequestAudioService.audioStates[requestIndex]?.audioUrl;
-      if (!Number.isFinite(requestIndex) || !audioUrl || this.waveSurferService.get(`part:${requestIndex}`)) return;
-      const ws = this.waveSurferService.create(`part:${requestIndex}`, waveformElement.nativeElement, audioUrl);
-      this.waveSurferService.bind(ws, () => {
-        this.voiceSampleService.pause();
-        this.waveSurferService.pauseAll(ws);
-      }, (playing) => { this.renderRequestAudioPlayingStates[requestIndex] = playing; });
-    });
-  }
-
-  private playAudioPath(path: string, sampleKey: string): void {
-    this.waveSurferService.pauseAll();
-    this.voiceSampleService.play(path, sampleKey, () => this.scrollService.scrollTo('cast-section'));
-  }
 
   private downloadBlobUrl(url: string, filename: string): void {
     const link = document.createElement('a');

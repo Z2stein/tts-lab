@@ -1,75 +1,12 @@
 <section class="studio" aria-labelledby="audiobook-studio-title">
-  <section class="studio-hero" aria-labelledby="audiobook-studio-title">
-    <div class="hero-copy">
-      <p class="hero-badge">AI Audiobook Studio</p>
-      <h1 id="audiobook-studio-title">Give every character in your story <span>a voice.</span></h1>
-      <p class="hero-subheadline">
-        Paste a novel chapter. AI detects the narrator, discovers the cast, assigns voices, and turns it into multi-speaker audio.
-      </p>
-      <div class="hero-actions" aria-label="Audiobook studio actions">
-        <button type="button" class="primary-button hero-primary" (click)="focusStoryInput($event)">Create audio story</button>
-        <button type="button" class="secondary-button hero-secondary" [class.is-playing]="demoPlaying" (click)="playDemo($event)">
-          <span class="play-dot" aria-hidden="true"></span>
-          {{ demoPlaying ? 'Pause demo' : 'Listen to demo' }}
-        </button>
-      </div>
-      <div class="benefit-chips" aria-label="Studio benefits">
-        <span *ngFor="let chip of benefitChips">{{ chip }}</span>
-      </div>
-    </div>
-
-    <div class="hero-demo" aria-label="Story to cast audio preview">
-      <div class="demo-flow">
-        <article class="demo-card story-demo-card">
-          <div class="demo-card-title">
-            <span class="demo-icon" aria-hidden="true">S</span>
-            <h2>Your story</h2>
-          </div>
-          <p>The rain tapped against the train window as Mara clutched the letter.</p>
-          <p>Jonas leaned forward. "Are you sure this is the right place?"</p>
-          <p>The old station keeper looked up from his ledger and smiled.</p>
-        </article>
-
-        <div class="flow-arrow" aria-hidden="true">
-          <svg viewBox="0 0 92 24" role="img">
-            <path d="M2 12H82" />
-            <path d="M72 3L82 12L72 21" />
-          </svg>
-        </div>
-
-        <article class="demo-card cast-demo-card">
-          <div class="demo-card-title">
-            <span class="demo-spark" aria-hidden="true">*</span>
-            <h2>Detected cast</h2>
-          </div>
-          <div class="hero-cast-list">
-            <div *ngFor="let member of heroCast" class="hero-cast-row" [ngStyle]="speakerStyle(member.name)">
-              <span class="hero-avatar">{{ member.initials }}</span>
-              <span>
-                <strong>{{ member.name }}</strong>
-                <small>{{ member.tone }}</small>
-              </span>
-              <button type="button" [class.is-playing]="isVoiceSamplePlaying(member.name)" (click)="playVoiceSample(member.name, $event)" [attr.aria-label]="isVoiceSamplePlaying(member.name) ? 'Pause voice for ' + member.name : 'Preview voice for ' + member.name">
-                <span class="play-icon" aria-hidden="true"></span>
-              </button>
-            </div>
-          </div>
-        </article>
-      </div>
-
-      <div class="waveform-preview framework-player" aria-label="Audio preview player">
-        <button type="button" [class.is-playing]="demoPlaying" [attr.aria-label]="demoPlaying ? 'Pause audio preview' : 'Play audio preview'" (click)="playDemo($event)">
-          <span class="play-icon" aria-hidden="true"></span>
-        </button>
-        <div class="player-copy">
-          <strong>{{ demoPlaying ? 'Playing demo' : 'Demo preview' }}</strong>
-          <span>Multi-speaker sample</span>
-        </div>
-        <div #demoWaveform class="waveform-canvas" aria-hidden="true"></div>
-        <span class="wave-time">00:00 / 02:45</span>
-      </div>
-    </div>
-  </section>
+  <app-studio-hero
+    [heroCast]="heroCast"
+    [benefitChips]="benefitChips"
+    [activeSampleKey]="activeSampleKey"
+    [speakerStyleFn]="speakerStyleFn"
+    (focusStoryInput)="focusStoryInput($event)"
+    (playVoiceSample)="playVoiceSample($event.name, $event.event)"
+  ></app-studio-hero>
 
   <app-journey-grid [steps]="journeySteps" (scrollTo)="scrollToSection($event)"></app-journey-grid>
 
@@ -225,21 +162,24 @@
       </button>
       <p *ngIf="fullPlanAudioError" class="error">{{ fullPlanAudioError }}</p>
 
-      <div *ngIf="fullPlanAudioUrl" class="generated-audio-player framework-player">
-        <div>
+      <app-waveform-player
+        *ngIf="fullPlanAudioUrl"
+        class="generated-audio-player framework-player"
+        key="full"
+        [src]="fullPlanAudioUrl"
+        [playing]="fullPlanAudioPlaying"
+        ariaLabel="audiobook preview"
+        (playingChange)="fullPlanAudioPlaying = $event"
+      >
+        <div slot="header">
           <span class="task-label">Generated preview</span>
           <h3>Audiobook preview</h3>
           <p>{{ fullPlanAudioFilename }}</p>
         </div>
-        <button type="button" class="player-button" [class.is-playing]="fullPlanAudioPlaying" [attr.aria-label]="fullPlanAudioPlaying ? 'Pause audiobook preview' : 'Play audiobook preview'" (click)="toggleFullGeneratedAudio()">
-          <span class="play-icon" aria-hidden="true"></span>
-        </button>
-        <div #fullWaveform class="waveform-canvas generated-waveform" aria-hidden="true"></div>
-        <span class="wave-time">00:00 / {{ fullPlanDurationLabel() }}</span>
         <button type="button" class="secondary-button download-button" (click)="downloadFullPlanAudio()">
           Download audiobook
         </button>
-      </div>
+      </app-waveform-player>
 
       <details *ngIf="renderRequests.length > 0" class="audio-parts-details">
         <summary>Audio parts and individual previews</summary>
@@ -276,27 +216,19 @@
               {{ partActionLabel(requestIndex) }}
             </button>
             <p *ngIf="renderRequestAudioState(requestIndex).error" class="error">{{ renderRequestAudioState(requestIndex).error }}</p>
-            <div *ngIf="renderRequestAudioState(requestIndex).audioUrl" class="render-player framework-player">
-              <button
-                type="button"
-                class="player-button"
-                [class.is-playing]="renderRequestAudioPlayingStates[requestIndex]"
-                [attr.aria-label]="renderRequestAudioPlayingStates[requestIndex] ? 'Pause voice part ' + (requestIndex + 1) : 'Play voice part ' + (requestIndex + 1)"
-                (click)="toggleRenderRequestAudio(requestIndex)"
-              >
-                <span class="play-icon" aria-hidden="true"></span>
-              </button>
-              <div
-                #renderRequestWaveform
-                class="waveform-canvas generated-waveform"
-                [attr.data-request-index]="requestIndex"
-                aria-hidden="true"
-              ></div>
-              <span class="wave-time">00:00 / {{ renderRequestDurationLabel(requestIndex) }}</span>
+            <app-waveform-player
+              *ngIf="renderRequestAudioState(requestIndex).audioUrl"
+              class="render-player framework-player"
+              [key]="'part:' + requestIndex"
+              [src]="renderRequestAudioState(requestIndex).audioUrl"
+              [playing]="renderRequestAudioPlayingStates[requestIndex]"
+              [ariaLabel]="'voice part ' + (requestIndex + 1)"
+              (playingChange)="renderRequestAudioPlayingStates[requestIndex] = $event"
+            >
               <button type="button" class="secondary-button download-button" (click)="downloadRenderRequestAudio(requestIndex)">
                 Download part
               </button>
-            </div>
+            </app-waveform-player>
           </article>
         </div>
       </details>
