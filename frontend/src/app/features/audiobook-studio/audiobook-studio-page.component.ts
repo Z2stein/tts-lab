@@ -9,6 +9,12 @@ import {
   SpeakerVoiceAnalysisItem,
   TtsWorkbenchService
 } from '../tts-workbench/tts-workbench.service';
+import { CastSectionComponent } from './components/cast-section/cast-section.component';
+import { JourneyGridComponent } from './components/journey-grid/journey-grid.component';
+import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
+import { ScriptReviewComponent } from './components/script-review/script-review.component';
+import { StoryInputComponent } from './components/story-input/story-input.component';
+import { WorkflowProgressComponent } from './components/workflow-progress/workflow-progress.component';
 import {
   BENEFIT_CHIPS,
   HERO_CAST,
@@ -44,12 +50,24 @@ export { formatSpeakerDisplayName };
 @Component({
   selector: 'app-audiobook-studio-page',
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    JourneyGridComponent,
+    WorkflowProgressComponent,
+    StoryInputComponent,
+    CastSectionComponent,
+    ScriptReviewComponent,
+    PerformanceNotesComponent
+  ],
   templateUrl: './audiobook-studio-page.component.html',
   styleUrl: './audiobook-studio-page.component.css'
 })
 export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   partGenerationTimeoutMs = 120_000;
+
+  readonly speakerStyleFn = (name: string | null | undefined) => this.speakerStyle(name);
 
   readonly benefitChips = BENEFIT_CHIPS;
   readonly heroCast: readonly HeroCastMember[] = HERO_CAST;
