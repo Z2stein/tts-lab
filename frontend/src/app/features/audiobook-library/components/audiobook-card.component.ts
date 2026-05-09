@@ -22,11 +22,11 @@ import { AudiobookSummary, AudioAsset } from '../models/audiobook-library.types'
 
       <dl class="grid grid-cols-3 gap-2 text-sm">
         <div class="rounded-md border border-studio-line bg-studio-field p-3">
-          <dt class="text-studio-muted">Scenes</dt>
+          <dt class="text-studio-muted">Speech segments</dt>
           <dd class="m-0 text-lg font-extrabold">{{ project.sceneCount }}</dd>
         </div>
         <div class="rounded-md border border-studio-line bg-studio-field p-3">
-          <dt class="text-studio-muted">Voices</dt>
+          <dt class="text-studio-muted">Speakers</dt>
           <dd class="m-0 text-lg font-extrabold">{{ project.speakerCount ?? 'TBD' }}</dd>
         </div>
         <div class="rounded-md border border-studio-line bg-studio-field p-3">
