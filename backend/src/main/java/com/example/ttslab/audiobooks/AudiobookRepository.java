@@ -64,25 +64,37 @@ public class AudiobookRepository {
             """, assetMapper(), projectId, assetId, userId).stream().findFirst();
     }
 
-    @Transactional
-    public void createProjectWithAsset(AudiobookProject project, AudiobookScene scene, AudioAsset asset) {
+    public void createProject(AudiobookProject project) {
         jdbcTemplate.update("""
             INSERT INTO audiobook_project (id, user_id, title, status, source_type, scene_count, speaker_count, total_duration_seconds, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """,
             project.id(), project.userId(), project.title(), project.status().name(), project.sourceType(), project.sceneCount(),
             project.speakerCount(), project.totalDurationSeconds());
+    }
+
+    public void addScene(AudiobookScene scene) {
         jdbcTemplate.update("""
             INSERT INTO audiobook_scene (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """,
             scene.id(), scene.projectId(), scene.orderIndex(), scene.title(), scene.reviewStatus().name(), scene.durationSeconds());
+    }
+
+    public void addAsset(AudioAsset asset) {
         jdbcTemplate.update("""
             INSERT INTO audio_asset (id, project_id, scene_id, type, version, storage_key, filename, content_type, size_bytes, duration_seconds, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
             asset.id(), asset.projectId(), asset.sceneId(), asset.type().name(), asset.version(), asset.storageKey(), asset.filename(),
             asset.contentType(), asset.sizeBytes(), asset.durationSeconds(), asset.status().name());
+    }
+
+    @Transactional
+    public void createProjectWithAsset(AudiobookProject project, AudiobookScene scene, AudioAsset asset) {
+        createProject(project);
+        addScene(scene);
+        addAsset(asset);
     }
 
     private RowMapper<AudiobookProject> projectMapper() {

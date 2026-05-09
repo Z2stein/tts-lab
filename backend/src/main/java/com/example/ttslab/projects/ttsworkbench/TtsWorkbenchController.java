@@ -100,18 +100,31 @@ public class TtsWorkbenchController {
     }
 
     @PostMapping("/create-audio")
-    public ResponseEntity<byte[]> createAudio(@RequestBody SingleSpeakerRenderPlanResponse requestPlan, Authentication authentication) {
+    public ResponseEntity<byte[]> createAudio(
+        @RequestBody SingleSpeakerRenderPlanResponse requestPlan,
+        @org.springframework.web.bind.annotation.RequestParam(required = false) String projectId,
+        Authentication authentication
+    ) {
         CurrentUser user = currentUserResolver.resolve(authentication);
         String promptText = renderPromptText(requestPlan);
         String providerModelName = renderProviderModelName(requestPlan);
         enforceLimit(user, ModelType.SPEECH_MODEL, promptText, providerModelName);
         try {
             TtsAudioFile audioFile = ttsWorkbenchService.createAudio(requestPlan);
-            audiobookLibraryService.persistGeneratedPreview(user, audioFile);
+
+            com.example.ttslab.audiobooks.AudiobookProject project;
+            if (projectId == null || projectId.isBlank()) {
+                project = audiobookLibraryService.createProjectForGeneration(user);
+            } else {
+                project = audiobookLibraryService.getProjectForUser(projectId, user);
+            }
+
+            audiobookLibraryService.persistAudioAsset(project, audioFile, 1);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
                 .header(HttpHeaders.CONTENT_TYPE, audioFile.contentType())
+                .header("X-Audiobook-Project-Id", project.id())
                 .body(audioFile.content());
         } catch (RuntimeException ex) {
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.FAILED);

@@ -30,6 +30,7 @@ export class AudiobookStudioFacade {
   private readonly _castEditDraft = signal<SpeakerVoiceAnalysisItem | null>(null);
   private readonly _editingScriptTurnIndex = signal<number | null>(null);
   private readonly _scriptTurnEditDraft = signal<SpeakerSplitTurn | null>(null);
+  private readonly _currentProjectId = signal<string | null>(null);
 
   readonly cast = this._cast.asReadonly();
   readonly scriptTurns = this._scriptTurns.asReadonly();
@@ -45,6 +46,7 @@ export class AudiobookStudioFacade {
   readonly castEditDraft = this._castEditDraft.asReadonly();
   readonly editingScriptTurnIndex = this._editingScriptTurnIndex.asReadonly();
   readonly scriptTurnEditDraft = this._scriptTurnEditDraft.asReadonly();
+  readonly currentProjectId = this._currentProjectId.asReadonly();
 
   readonly scriptGroups = computed<ScriptGroup[]>(() =>
     this._scriptTurns().reduce<ScriptGroup[]>((groups, turn, index) => {
@@ -218,9 +220,14 @@ export class AudiobookStudioFacade {
     this._scriptApproved.set(false);
     this._performanceNotesStale.set(false);
     this._error.set(null);
+    this._currentProjectId.set(null);
     this.cancelCastEdit();
     this.cancelScriptTurnEdit();
     this.resetAudio();
+  }
+
+  setCurrentProjectId(id: string): void {
+    this._currentProjectId.set(id);
   }
 
   private resetAudio(): void {

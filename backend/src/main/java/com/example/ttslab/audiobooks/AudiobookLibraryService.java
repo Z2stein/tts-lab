@@ -7,6 +7,7 @@ import com.example.ttslab.storage.FileStorageService;
 import com.example.ttslab.storage.StorageKeyBuilder;
 import com.example.ttslab.storage.StoredFile;
 import java.io.IOException;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -78,6 +79,70 @@ public class AudiobookLibraryService {
         } catch (IOException ex) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_ASSET_READ_FAILED", "The audio file could not be read.", null, ex);
         }
+    }
+
+    public AudiobookProject createProjectForGeneration(CurrentUser user) {
+        String projectId = UUID.randomUUID().toString();
+        String timestamp = Instant.now().toString();
+        AudiobookProject project = new AudiobookProject(
+            projectId,
+            user.id(),
+            "Generated audiobook " + timestamp,
+            AudiobookProjectStatus.NEEDS_REVIEW,
+            "TTS_WORKBENCH",
+            0,
+            null,
+            null,
+            null,
+            null
+        );
+        repository.createProject(project);
+        return project;
+    }
+
+    public AudiobookProject getProjectForUser(String projectId, CurrentUser user) {
+        return repository.findProjectForUser(projectId, user.id())
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIOBOOK_NOT_FOUND", "The audiobook project was not found."));
+    }
+
+    public AudioAsset persistAudioAsset(AudiobookProject project, TtsAudioFile audioFile, int version) {
+        String assetId = UUID.randomUUID().toString();
+        String sceneId = UUID.randomUUID().toString();
+        String storageKey = storageKeyBuilder.projectAsset(project.userId(), project.id(), AudioAssetType.PREVIEW_MP3, version, "mp3");
+
+        try {
+            fileStorageService.put(storageKey, audioFile.content(), audioFile.contentType());
+        } catch (IOException ex) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_ASSET_WRITE_FAILED", "The generated audio could not be saved.", null, ex);
+        }
+
+        AudiobookScene scene = new AudiobookScene(
+            sceneId,
+            project.id(),
+            0,
+            "Generated scene",
+            AudiobookSceneReviewStatus.PENDING,
+            null,
+            null,
+            null
+        );
+        AudioAsset asset = new AudioAsset(
+            assetId,
+            project.id(),
+            sceneId,
+            AudioAssetType.PREVIEW_MP3,
+            version,
+            storageKey,
+            audioFile.filename(),
+            audioFile.contentType(),
+            audioFile.content().length,
+            null,
+            AudioAssetStatus.READY,
+            null
+        );
+        repository.addScene(scene);
+        repository.addAsset(asset);
+        return asset;
     }
 
     public void persistGeneratedPreview(CurrentUser user, TtsAudioFile audioFile) {

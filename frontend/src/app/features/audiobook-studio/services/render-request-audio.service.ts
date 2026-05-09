@@ -8,6 +8,7 @@ import { RenderRequestAudioState } from '../models/audiobook-studio.types';
 
 export interface GenerateOptions {
   fullRunId?: number;
+  projectId?: string;
 }
 
 @Injectable()
@@ -22,6 +23,7 @@ export class RenderRequestAudioService {
   clockTick = 0;
   private clockHandle: number | null = null;
   private generationCounter = 0;
+  private lastProjectId: string | undefined;
 
   constructor(private readonly ttsWorkbenchService: TtsWorkbenchService) {}
 
@@ -56,10 +58,10 @@ export class RenderRequestAudioService {
     renderRequest: SingleSpeakerRenderRequest,
     requestIndex: number,
     options: GenerateOptions = {}
-  ): Promise<void> {
+  ): Promise<string | undefined> {
     const state = this.getState(requestIndex, renderRequest);
     if (state.status === 'generating' && state.inFlightPromise) {
-      return state.inFlightPromise;
+      return state.inFlightPromise.then(() => this.lastProjectId);
     }
 
     const requestId = ++this.generationCounter;
@@ -80,9 +82,10 @@ export class RenderRequestAudioService {
     state.timeoutHandle = timeoutHandle;
     state.controller = controller;
     state.cancelReason = null;
-    state.inFlightPromise = this.run(renderRequest, requestIndex, requestId, controller, options.fullRunId);
+    const promise = this.run(renderRequest, requestIndex, requestId, controller, options.fullRunId, options.projectId);
+    state.inFlightPromise = promise;
     this.startClock();
-    return state.inFlightPromise;
+    return promise.then(() => this.lastProjectId);
   }
 
   cancel(requestIndex: number): void {
@@ -156,14 +159,20 @@ export class RenderRequestAudioService {
     requestIndex: number,
     requestId: number,
     controller: AbortController,
-    fullRunId?: number
+    fullRunId?: number,
+    projectId?: string
   ): Promise<void> {
     const state = this.audioStates[requestIndex];
     try {
       const download = await this.ttsWorkbenchService.createAudioForRenderRequest(renderRequest, {
         signal: controller.signal,
-      });
+      }, projectId);
       if (!this.isCurrent(requestIndex, requestId)) return;
+
+      // Capture projectId from first generation if not already set
+      if (download.projectId && !this.lastProjectId) {
+        this.lastProjectId = download.projectId;
+      }
 
       this.setAudio(requestIndex, download.blob, `tts-audio-part-${requestIndex + 1}.mp3`);
       state.status = 'generated';

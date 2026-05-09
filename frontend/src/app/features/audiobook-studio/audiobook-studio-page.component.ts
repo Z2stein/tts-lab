@@ -386,7 +386,10 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   async generateAudio(): Promise<void> {
     if (!this.facade.audioProductionPlan() || this.renderRequests.length === 0) return;
-    await this.fullAudioGenerationService.generate(this.renderRequests);
+    const projectId = await this.fullAudioGenerationService.generate(this.renderRequests);
+    if (projectId) {
+      this.facade.setCurrentProjectId(projectId);
+    }
     if (this.fullAudioGenerationService.audioUrl) {
       void this.liveAnnouncer.announce('Audiobook preview is ready', 'polite');
     }

@@ -14,7 +14,7 @@ export const WAVEFORM_VISUAL_OPTIONS = {
   dragToSeek: true,
 } as const;
 
-@Injectable()
+@Injectable({ providedIn: 'root' })
 export class WaveSurferService {
   private instances = new Map<string, WaveSurfer>();
 

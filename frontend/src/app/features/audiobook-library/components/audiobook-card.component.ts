@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AudiobookSummary } from '../models/audiobook-library.types';
+import { AudiobookSummary, AudioAsset } from '../models/audiobook-library.types';
 
 @Component({
   selector: 'app-audiobook-card',
@@ -37,7 +37,7 @@ import { AudiobookSummary } from '../models/audiobook-library.types';
 
       <div class="flex flex-wrap gap-2">
         <a class="primary-button" [routerLink]="['/audiobook-library', project.id]" data-testid="continue-review">Continue review</a>
-        <a *ngIf="readyAsset" class="secondary-button" [href]="readyAsset.streamUrl" data-testid="play-preview">Play preview</a>
+        <button *ngIf="readyAsset" class="secondary-button" (click)="onPlayPreview()" data-testid="play-preview">Play preview</button>
         <a *ngIf="readyAsset" class="secondary-button" [href]="readyAsset.downloadUrl" [download]="readyAsset.filename" data-testid="download-asset">Download</a>
       </div>
     </article>
@@ -45,10 +45,17 @@ import { AudiobookSummary } from '../models/audiobook-library.types';
 })
 export class AudiobookCardComponent {
   @Input({ required: true }) project!: AudiobookSummary;
+  @Output() playPreview = new EventEmitter<AudioAsset>();
   readonly bars = [30, 65, 45, 86, 58, 72, 38, 90];
 
   get readyAsset() {
     return this.project.audioAssets.find((asset) => asset.status === 'READY') ?? null;
+  }
+
+  onPlayPreview(): void {
+    if (this.readyAsset) {
+      this.playPreview.emit(this.readyAsset);
+    }
   }
 
   statusLabel(status: string): string {

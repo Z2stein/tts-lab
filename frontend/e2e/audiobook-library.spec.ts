@@ -106,6 +106,81 @@ test('library cards render with ready preview actions', async ({ context, page }
   await expect(page.getByTestId('download-asset')).toBeVisible();
 });
 
+test('multiple audiobook projects appear as distinct cards', async ({ context, page }) => {
+  await authenticate(context, page);
+  const project2 = {
+    id: 'project-silver',
+    title: 'The Silver Key',
+    status: 'NEEDS_REVIEW',
+    sceneCount: 1,
+    speakerCount: 2,
+    totalDurationSeconds: 120,
+    updatedAt: '2026-05-09T11:00:00Z',
+    audioAssets: [
+      {
+        id: 'asset-silver',
+        sceneId: null,
+        type: 'PREVIEW_MP3',
+        version: 1,
+        filename: 'silver-preview.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 900000,
+        durationSeconds: 120,
+        status: 'READY',
+        createdAt: '2026-05-09T11:00:00Z',
+        downloadUrl: '/api/audiobooks/project-silver/audio-assets/asset-silver/download',
+        streamUrl: '/api/audiobooks/project-silver/audio-assets/asset-silver/stream'
+      }
+    ]
+  };
+  await page.route('**/api/audiobooks', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [project, project2] }) });
+  });
+
+  await page.goto('/library');
+
+  await expect(page.getByTestId('audiobook-card')).toHaveCount(2);
+  await expect(page.getByRole('heading', { name: 'The Amber Signal' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'The Silver Key' })).toBeVisible();
+});
+
+test('play preview button opens waveform player modal instead of navigating', async ({ context, page }) => {
+  await authenticate(context, page);
+  await page.route('**/api/audiobooks', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [project] }) });
+  });
+
+  await page.goto('/library');
+
+  // Click play preview
+  await page.getByTestId('play-preview').click();
+
+  // Modal should appear with waveform controls
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
+});
+
+test('closing waveform player modal returns to library view', async ({ context, page }) => {
+  await authenticate(context, page);
+  await page.route('**/api/audiobooks', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [project] }) });
+  });
+
+  await page.goto('/library');
+
+  // Open modal
+  await page.getByTestId('play-preview').click();
+  await expect(page.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
+
+  // Close modal by clicking close button
+  await page.getByRole('button', { name: 'Close', exact: true }).click();
+
+  // Library view should still be visible
+  await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
+  await expect(page.getByTestId('audiobook-card')).toHaveCount(1);
+});
+
 test('user can open audiobook detail review page with scenes and audio assets', async ({ context, page }) => {
   await authenticate(context, page);
   await page.route('**/api/audiobooks', async (route) => {

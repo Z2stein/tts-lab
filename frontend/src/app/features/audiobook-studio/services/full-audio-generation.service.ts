@@ -16,13 +16,18 @@ export class FullAudioGenerationService {
 
   private runId = 0;
   private canceled = false;
+  private projectId: string | null = null;
   activeRequestIndex: number | null = null;
 
   constructor(private readonly renderRequestAudioService: RenderRequestAudioService) {}
 
-  async generate(renderRequests: SingleSpeakerRenderRequest[]): Promise<void> {
+  getProjectId(): string | null {
+    return this.projectId;
+  }
+
+  async generate(renderRequests: SingleSpeakerRenderRequest[]): Promise<string | null> {
     if (this.loading || this.renderRequestAudioService.anyLoading()) {
-      return;
+      return null;
     }
 
     const runId = ++this.runId;
@@ -43,16 +48,21 @@ export class FullAudioGenerationService {
         if (state?.status === 'generated' && state.blob) continue;
 
         this.activeRequestIndex = requestIndex;
-        await this.renderRequestAudioService.generate(renderRequest, requestIndex, { fullRunId: runId });
+        const returnedProjectId = await this.renderRequestAudioService.generate(renderRequest, requestIndex, { fullRunId: runId, projectId: this.projectId || undefined });
+
+        // Capture projectId from first generation
+        if (!this.projectId && returnedProjectId) {
+          this.projectId = returnedProjectId;
+        }
         this.activeRequestIndex = null;
       }
 
-      if (runId !== this.runId) return;
+      if (runId !== this.runId) return this.projectId;
 
       if (this.canceled) {
         this.loading = false;
         this.statusMessage = 'Generation canceled. You can retry the pending part.';
-        return;
+        return this.projectId;
       }
 
       const incompleteParts = renderRequests
@@ -62,7 +72,7 @@ export class FullAudioGenerationService {
       if (incompleteParts.length > 0) {
         this.loading = false;
         this.statusMessage = null;
-        return;
+        return this.projectId;
       }
 
       const audioParts = renderRequests.map(
@@ -70,10 +80,12 @@ export class FullAudioGenerationService {
       );
       this.setAudio(new Blob(audioParts, { type: 'audio/mpeg' }), 'audiobook-preview.mp3');
       this.statusMessage = 'Audiobook preview is ready.';
+      return this.projectId;
     } catch {
       if (!this.canceled) {
         this.error = 'One audio part could not be generated. The other parts are still available. You can retry this part or edit the text.';
       }
+      return this.projectId;
     } finally {
       if (runId === this.runId) {
         this.loading = false;
@@ -120,6 +132,7 @@ export class FullAudioGenerationService {
     this.error = null;
     this.activeRequestIndex = null;
     this.canceled = false;
+    this.projectId = null;
   }
 
   destroy(): void {
