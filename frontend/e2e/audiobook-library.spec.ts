@@ -212,3 +212,104 @@ test('audiobook studio remains reachable from authenticated navigation', async (
   await page.getByRole('link', { name: 'My Audiobooks' }).click();
   await expect(page).toHaveURL(/\/audiobook-library$/);
 });
+
+test('library card displays correct metadata for multi-segment audiobook with repeated speakers', async ({ context, page }) => {
+  // This test catches the metadata sync bug where the library card was showing
+  // stale values (sceneCount: 0, speakerCount: 0, duration: 0:06) instead of
+  // actual generated values (sceneCount: 3, speakerCount: 2, duration: 0:19)
+
+  await authenticate(context, page);
+
+  // Mock an audiobook with 3 audio segments but only 2 unique speakers
+  // (Narrator appears twice, which tests that speakers are deduplicated)
+  const multiSegmentProject = {
+    id: 'project-multi-speaker',
+    title: 'Generated audiobook 2026-05-09T20:50:36.213985432Z',
+    status: 'NEEDS_REVIEW',
+    sceneCount: 3,  // 3 dialogue segments/parts
+    speakerCount: 2,  // 2 unique speakers (Narrator, Mara)
+    totalDurationSeconds: 19,  // Total preview duration
+    updatedAt: '2026-05-09T22:50:00Z',
+    audioAssets: [
+      {
+        id: 'segment-1-narrator',
+        sceneId: 'scene-1',
+        type: 'PREVIEW_MP3',
+        version: 1,
+        filename: 'segment-1-narrator.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 96000,
+        durationSeconds: 6,  // First Narrator segment: 6 seconds
+        status: 'READY',
+        createdAt: '2026-05-09T22:50:00Z',
+        downloadUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-1-narrator/download',
+        streamUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-1-narrator/stream'
+      },
+      {
+        id: 'segment-2-mara',
+        sceneId: 'scene-2',
+        type: 'PREVIEW_MP3',
+        version: 1,
+        filename: 'segment-2-mara.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 80000,
+        durationSeconds: 5,  // Mara segment: 5 seconds
+        status: 'READY',
+        createdAt: '2026-05-09T22:50:00Z',
+        downloadUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-2-mara/download',
+        streamUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-2-mara/stream'
+      },
+      {
+        id: 'segment-3-narrator',
+        sceneId: 'scene-3',
+        type: 'PREVIEW_MP3',
+        version: 1,
+        filename: 'segment-3-narrator.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 128000,
+        durationSeconds: 8,  // Second Narrator segment: 8 seconds
+        status: 'READY',
+        createdAt: '2026-05-09T22:50:00Z',
+        downloadUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-3-narrator/download',
+        streamUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-3-narrator/stream'
+      }
+    ]
+  };
+
+  await page.route('**/api/audiobooks', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ items: [multiSegmentProject] })
+    });
+  });
+
+  await page.goto('/audiobook-library');
+
+  // Verify the audiobook card is rendered
+  const card = page.locator('[data-testid="audiobook-card"]').first();
+  await expect(card).toBeVisible();
+
+  // CRITICAL: Verify metadata is synced correctly
+  // These assertions catch the bug where metadata was stale/zero
+
+  // Speech segments should show 3 (number of audio parts/dialogue segments)
+  const speechSegments = card.locator('dt:has-text("Speech segments")').locator('..').locator('dd');
+  await expect(speechSegments).toContainText('3');
+
+  // Speakers should show 2 (Narrator and Mara, deduplicated)
+  const speakers = card.locator('dt:has-text("Speakers")').locator('..').locator('dd');
+  await expect(speakers).toContainText('2');
+
+  // Duration should show 0:19 (sum of 6 + 5 + 8 seconds = 19 seconds)
+  const duration = card.locator('dt:has-text("Duration")').locator('..').locator('dd');
+  await expect(duration).toContainText('0:19');
+
+  // Verify title is correct
+  await expect(card.locator('h2')).toContainText('Generated audiobook 2026-05-09T20:50:36');
+
+  // Verify the card is interactive
+  const continueReviewButton = card.locator('text=Continue review');
+  await expect(continueReviewButton).toBeVisible();
+  await expect(continueReviewButton).toHaveAttribute('href', '/audiobook-library/project-multi-speaker');
+});
