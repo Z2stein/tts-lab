@@ -1,11 +1,12 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, OnInit } from '@angular/core';
 import { AudiobookScene, AudioAsset } from '../models/audiobook-library.types';
 
 @Component({
   selector: 'app-audiobook-scene-list',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   template: `
     <section class="rounded-lg border border-studio-line bg-studio-panel/85 p-5 backdrop-blur" data-testid="scene-list">
       <div class="mb-4 flex items-center justify-between gap-3">
@@ -29,9 +30,15 @@ import { AudiobookScene, AudioAsset } from '../models/audiobook-library.types';
     </section>
   `
 })
-export class AudiobookSceneListComponent {
+export class AudiobookSceneListComponent implements OnInit {
   @Input() scenes: AudiobookScene[] = [];
   @Input() audioAssets: AudioAsset[] = [];
+
+  constructor(private cdr: ChangeDetectorRef) {}
+
+  ngOnInit(): void {
+    this.cdr.markForCheck();
+  }
 
   readyAssets(sceneId: string): AudioAsset[] {
     return this.audioAssets.filter((asset) => asset.sceneId === sceneId && asset.status === 'READY');
