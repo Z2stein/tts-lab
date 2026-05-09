@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, OnDestroy } from '@angular/core';
+import { AfterViewInit, Component, OnDestroy, ViewEncapsulation } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import {
@@ -75,7 +75,8 @@ export { formatSpeakerDisplayName };
     ScrollService,
   ],
   templateUrl: './audiobook-studio-page.component.html',
-  styleUrl: './audiobook-studio-page.component.css'
+  styleUrl: './audiobook-studio-page.component.css',
+  encapsulation: ViewEncapsulation.None,
 })
 export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   // ── Spec proxy: partGenerationTimeoutMs ───────────────────────────────────
