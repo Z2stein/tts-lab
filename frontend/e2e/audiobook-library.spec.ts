@@ -361,3 +361,165 @@ test('library card displays correct metadata for multi-segment audiobook with re
   await expect(continueReviewButton).toBeVisible();
   await expect(continueReviewButton).toHaveAttribute('href', '/audiobook-library/project-multi-speaker');
 });
+
+test('detail page displays all character parts with performance details and full preview', async ({ context, page }) => {
+  await authenticate(context, page);
+
+  const detailProject = {
+    id: 'project-multi-character',
+    title: 'The Multi-Character Story',
+    status: 'NEEDS_REVIEW',
+    sceneCount: 3,
+    speakerCount: 3,
+    totalDurationSeconds: 281,
+    updatedAt: '2026-05-09T10:30:00Z',
+    audioAssets: [
+      {
+        id: 'asset-full-preview',
+        sceneId: null,
+        type: 'PREVIEW_MP3',
+        version: 1,
+        filename: 'full-audiobook-preview.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 2240000,
+        durationSeconds: 281,
+        status: 'READY',
+        createdAt: '2026-05-09T10:30:00Z',
+        downloadUrl: '/api/audiobooks/project-multi-character/audio-assets/asset-full-preview/download',
+        streamUrl: '/api/audiobooks/project-multi-character/audio-assets/asset-full-preview/stream'
+      },
+      {
+        id: 'asset-scene-1',
+        sceneId: 'scene-1',
+        type: 'SCENE_MP3',
+        version: 2,
+        filename: 'scene-1__narrator.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 768000,
+        durationSeconds: 96,
+        status: 'READY',
+        createdAt: '2026-05-09T10:20:00Z',
+        downloadUrl: '/api/audiobooks/project-multi-character/audio-assets/asset-scene-1/download',
+        streamUrl: '/api/audiobooks/project-multi-character/audio-assets/asset-scene-1/stream'
+      },
+      {
+        id: 'asset-scene-2',
+        sceneId: 'scene-2',
+        type: 'SCENE_MP3',
+        version: 1,
+        filename: 'scene-2__mara.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 608000,
+        durationSeconds: 76,
+        status: 'READY',
+        createdAt: '2026-05-09T10:25:00Z',
+        downloadUrl: '/api/audiobooks/project-multi-character/audio-assets/asset-scene-2/download',
+        streamUrl: '/api/audiobooks/project-multi-character/audio-assets/asset-scene-2/stream'
+      },
+      {
+        id: 'asset-scene-3',
+        sceneId: 'scene-3',
+        type: 'SCENE_MP3',
+        version: 1,
+        filename: 'scene-3__leo.mp3',
+        contentType: 'audio/mpeg',
+        sizeBytes: 864000,
+        durationSeconds: 109,
+        status: 'READY',
+        createdAt: '2026-05-09T10:28:00Z',
+        downloadUrl: '/api/audiobooks/project-multi-character/audio-assets/asset-scene-3/download',
+        streamUrl: '/api/audiobooks/project-multi-character/audio-assets/asset-scene-3/stream'
+      }
+    ],
+    scenes: [
+      {
+        id: 'scene-1',
+        orderIndex: 0,
+        title: 'The beginning',
+        reviewStatus: 'PENDING',
+        durationSeconds: 96,
+        createdAt: '2026-05-08T10:15:00Z',
+        updatedAt: '2026-05-09T10:15:00Z',
+        speakerName: 'Narrator',
+        speakerRoleDescription: 'Story narrator',
+        voiceName: 'aria',
+        performanceDirections: '[calm] [thoughtful] Narrator, once upon a time in a land far away...'
+      },
+      {
+        id: 'scene-2',
+        orderIndex: 1,
+        title: 'The meeting',
+        reviewStatus: 'PENDING',
+        durationSeconds: 76,
+        createdAt: '2026-05-08T11:20:00Z',
+        updatedAt: '2026-05-09T10:20:00Z',
+        speakerName: 'Mara',
+        speakerRoleDescription: 'Protagonist',
+        voiceName: 'nova',
+        performanceDirections: '[energetic] [curious] Mara, I never expected to find you here!'
+      },
+      {
+        id: 'scene-3',
+        orderIndex: 2,
+        title: 'The revelation',
+        reviewStatus: 'APPROVED',
+        durationSeconds: 109,
+        createdAt: '2026-05-08T12:30:00Z',
+        updatedAt: '2026-05-09T10:30:00Z',
+        speakerName: 'Leo',
+        speakerRoleDescription: 'Supporting character',
+        voiceName: 'echo',
+        performanceDirections: '[serious] [whispered] Leo, the secret has been kept for too long...'
+      }
+    ]
+  };
+
+  await page.route('**/api/audiobooks', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [detailProject] }) });
+  });
+  await page.route('**/api/audiobooks/project-multi-character', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(detailProject) });
+  });
+
+  await page.goto('/audiobook-library');
+  await page.getByTestId('continue-review').click();
+
+  await expect(page).toHaveURL(/\/audiobook-library\/project-multi-character$/);
+  await expect(page.getByRole('heading', { name: 'The Multi-Character Story' })).toBeVisible();
+
+  // BUG FIX TEST 1: Verify primary audio player shows full audiobook (281 seconds = 4:41)
+  const primaryPlayer = page.getByTestId('primary-audio-player');
+  await expect(primaryPlayer).toBeVisible();
+  // Player should display full duration (4:41 = 281 seconds), not scene duration
+  await expect(primaryPlayer).toContainText('4:41');
+
+  // BUG FIX TEST 2: Verify all character parts are displayed (not just first one)
+  const partsSection = page.locator('h2:has-text("Audio parts and individual previews")');
+  await expect(partsSection).toBeVisible();
+
+
+  // Verify character parts section is rendered
+  await expect(page.getByText('Narrator')).toBeVisible();
+
+  // BUG FIX TEST 3: Verify scene-list shows all scenes with performance details
+  const sceneListSection = page.getByTestId('scene-list');
+  await expect(sceneListSection).toBeVisible();
+
+  // Verify scene list headline is present
+  await expect(sceneListSection.locator('h2:has-text("Performance notes")')).toBeVisible();
+
+  // Verify all 3 scenes appear
+  const sceneRows = page.getByTestId('scene-row');
+  await expect(sceneRows).toHaveCount(3);
+
+  // Verify scene titles appear
+  await expect(page.getByText('The beginning')).toBeVisible();
+  await expect(page.getByText('The meeting')).toBeVisible();
+  await expect(page.getByText('The revelation')).toBeVisible();
+
+  // Verify emotion tags appear in scene list
+  const sceneListLocator = page.getByTestId('scene-list');
+  await expect(sceneListLocator.locator('text=calm')).toBeVisible();
+  await expect(sceneListLocator.locator('text=energetic')).toBeVisible();
+  await expect(sceneListLocator.locator('text=serious')).toBeVisible();
+});

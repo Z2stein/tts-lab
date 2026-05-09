@@ -7,6 +7,7 @@ import { AudiobookDetail, AudioAsset, AudiobookScene } from './models/audiobook-
 import { AudiobookLibraryService } from './services/audiobook-library.service';
 import { AudiobookPartCardComponent } from '../../shared/components/audiobook-part-card/audiobook-part-card.component';
 import { AudiobookPartCard } from '../../shared/components/audiobook-part-card/audiobook-part-card.component';
+import { parsePerformanceDirections } from './utils/performance-parser';
 
 @Component({
   selector: 'app-audiobook-review-page',
@@ -44,10 +45,10 @@ import { AudiobookPartCard } from '../../shared/components/audiobook-part-card/a
             </summary>
             <div class="render-list">
               <app-audiobook-part-card
-                *ngFor="let part of audioPartCards"
+                *ngFor="let part of audioPartCards; let i = index"
                 [part]="part"
-                [partNumber]="part.partNumber"
-                [totalParts]="part.totalParts"
+                [partNumber]="i + 1"
+                [totalParts]="audioPartCards.length"
                 [readonly]="true">
               </app-audiobook-part-card>
             </div>
@@ -73,6 +74,7 @@ import { AudiobookPartCard } from '../../shared/components/audiobook-part-card/a
 })
 export class AudiobookReviewPageComponent implements OnInit {
   detail: AudiobookDetail | null = null;
+  audioPartCards: AudiobookPartCard[] = [];
   loading = true;
   error: string | null = null;
 
@@ -86,15 +88,16 @@ export class AudiobookReviewPageComponent implements OnInit {
   }
 
   get primaryAsset(): AudioAsset | null {
-    return this.readyAssets.find((asset) => asset.type === 'FULL_AUDIOBOOK' || asset.type === 'PREVIEW_MP3') ?? this.readyAssets[0] ?? null;
+    const fullAudiobookAssets = this.readyAssets.filter((asset) => !asset.sceneId);
+    return fullAudiobookAssets.find((asset) => asset.type === 'FULL_AUDIOBOOK' || asset.type === 'PREVIEW_MP3') ?? fullAudiobookAssets[0] ?? null;
   }
 
-  get audioPartCards(): AudiobookPartCard[] {
+  private buildAudioPartCards(): AudiobookPartCard[] {
     const detail = this.detail;
     if (!detail?.scenes) return [];
 
     return detail.scenes.map((scene, index) => {
-      const parsed = this.parsePerformanceDirections(scene.performanceDirections);
+      const parsed = parsePerformanceDirections(scene.performanceDirections);
       return {
         partNumber: index + 1,
         totalParts: detail.scenes.length,
@@ -134,54 +137,6 @@ export class AudiobookReviewPageComponent implements OnInit {
     return readyAsset?.id;
   }
 
-  private parsePerformanceDirections(performanceDirections?: string): {
-    emotionTags: string[];
-    speakerName?: string;
-    originalText?: string;
-  } {
-    if (!performanceDirections) {
-      return { emotionTags: [] };
-    }
-
-    const emotionTags: string[] = [];
-    let remaining = performanceDirections;
-
-    // Extract leading tags: [tag1] [tag2] [tag3] ...
-    while (remaining.startsWith('[')) {
-      const closeIndex = remaining.indexOf(']');
-      if (closeIndex === -1) break;
-      const tag = remaining.slice(1, closeIndex);
-      emotionTags.push(tag);
-      remaining = remaining.slice(closeIndex + 1).trim();
-    }
-
-    // Extract speaker name (typically first word before comma)
-    let speakerName: string | undefined;
-    let originalText: string | undefined;
-
-    const speakerMatch = remaining.match(/^([^,\[]+),\s*/);
-    if (speakerMatch) {
-      speakerName = speakerMatch[1].trim();
-      originalText = remaining.slice(speakerMatch[0].length);
-    } else {
-      // No comma found, try to extract first word as speaker if text follows
-      const wordMatch = remaining.match(/^(\S+)\s+/);
-      if (wordMatch && !wordMatch[1].startsWith('[')) {
-        speakerName = wordMatch[1];
-        originalText = remaining.slice(wordMatch[0].length).trim();
-      } else {
-        // No clear speaker name pattern, treat entire text as original
-        originalText = remaining;
-      }
-    }
-
-    return {
-      emotionTags,
-      speakerName,
-      originalText: originalText ? originalText.trim() : undefined,
-    };
-  }
-
   async ngOnInit(): Promise<void> {
     const id = this.route.snapshot.paramMap.get('id');
     if (!id) {
@@ -191,6 +146,7 @@ export class AudiobookReviewPageComponent implements OnInit {
     }
     try {
       this.detail = await this.audiobookLibraryService.detail(id);
+      this.audioPartCards = this.buildAudioPartCards();
     } catch {
       this.error = 'The audiobook review page could not be loaded.';
     } finally {

@@ -1,0 +1,87 @@
+
+> tts-lab-frontend@1.0.0 test:e2e
+> playwright test
+
+
+Running 20 tests using 5 workers
+
+  ok  5 [chromium] › e2e\real-backend-health.spec.ts:3:5 › frontend can reach and process the real backend health response (520ms)
+  ok  4 [chromium] › e2e\audiobook-library.spec.ts:119:5 › authenticated user can open the empty audiobook library (579ms)
+  ok  1 [chromium] › e2e\text-length.spec.ts:25:5 › text length success path works end-to-end (654ms)
+  ok  3 [chromium] › e2e\tts-workbench.spec.ts:25:5 › tts workbench displays speaker voice analysis results for authenticated users (794ms)
+  ok  2 [chromium] › e2e\audiobook-studio.spec.ts:25:5 › audiobook studio fills the story textarea with sample content (903ms)
+  ok  6 [chromium] › e2e\audiobook-library.spec.ts:132:5 › library cards render with ready preview actions (344ms)
+  ok  7 [chromium] › e2e\text-length.spec.ts:45:5 › shows UI error when backend responds with an error (381ms)
+  ok 10 [chromium] › e2e\audiobook-library.spec.ts:147:5 › multiple audiobook projects appear as distinct cards (310ms)
+  ok  9 [chromium] › e2e\audiobook-studio.spec.ts:37:5 › audiobook studio shows cast cards after story analysis succeeds (665ms)
+  ok 11 [chromium] › e2e\audiobook-library.spec.ts:185:5 › play preview button opens waveform player modal instead of navigating (351ms)
+  ok  8 [chromium] › e2e\tts-workbench.spec.ts:48:5 › tts workbench previews single-speaker render requests after final JSON generation (1.0s)
+  ok 13 [chromium] › e2e\audiobook-library.spec.ts:202:5 › closing waveform player modal returns to library view (381ms)
+  ok 14 [chromium] › e2e\tts-workbench.spec.ts:209:5 › tts workbench route shows sign-in UI for unauthenticated users (290ms)
+  ok 12 [chromium] › e2e\audiobook-studio.spec.ts:61:5 › audiobook studio shows script preview turns after cast analysis continues (789ms)
+  ok 16 [chromium] › e2e\audiobook-studio.spec.ts:98:5 › audiobook studio edits a script preview turn without freezing the app (1.0s)
+  ok 17 [chromium] › e2e\audiobook-studio.spec.ts:156:5 › audiobook studio shows structured backend errors without internal details (528ms)
+  x  15 [chromium] › e2e\audiobook-library.spec.ts:222:5 › user can open audiobook detail review page with scenes and audio assets (10.4s)
+  ok 18 [chromium] › e2e\audiobook-library.spec.ts:247:5 › audiobook studio remains reachable from authenticated navigation (446ms)
+  ok 19 [chromium] › e2e\audiobook-library.spec.ts:258:5 › library card displays correct metadata for multi-segment audiobook with repeated speakers (228ms)
+  x  20 [chromium] › e2e\audiobook-library.spec.ts:365:5 › detail page displays all character parts with performance details and full preview (10.3s)
+
+
+  1) [chromium] › e2e\audiobook-library.spec.ts:222:5 › user can open audiobook detail review page with scenes and audio assets 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoHaveCount[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator:  getByTestId('scene-row')
+    Expected: [32m2[39m
+    Received: [31m0[39m
+    Timeout:  10000ms
+
+    Call log:
+    [2m  - Expect "toHaveCount" with timeout 10000ms[22m
+    [2m  - waiting for getByTestId('scene-row')[22m
+    [2m    14 × locator resolved to 0 elements[22m
+    [2m       - unexpected value "0"[22m
+
+
+      239 |   await expect(page.getByTestId('scene-list')).toBeVisible();
+      240 |
+    > 241 |   await expect(page.getByTestId('scene-row')).toHaveCount(2);
+          |                                               ^
+      242 |   await expect(page.getByText('Station clock')).toBeVisible();
+      243 |   await expect(page.getByTestId('audio-download')).toHaveCount(3);
+      244 |   await expect(page.getByTestId('audio-player')).toHaveCount(3);
+        at C:\Users\Chris\Documents\Claude\tts-lab\frontend\e2e\audiobook-library.spec.ts:241:47
+
+    Error Context: test-results\audiobook-library-user-can-f19c8-ith-scenes-and-audio-assets-chromium\error-context.md
+
+  2) [chromium] › e2e\audiobook-library.spec.ts:365:5 › detail page displays all character parts with performance details and full preview 
+
+    Error: [2mexpect([22m[31mlocator[39m[2m).[22mtoContainText[2m([22m[32mexpected[39m[2m)[22m failed
+
+    Locator: getByTestId('primary-audio-player')
+    Expected substring: [32m"281"[39m
+    Received string:    [31m"PREVIEW MP3 · v1full-audiobook-preview.mp32.1 MB · 4:41Download"[39m
+    Timeout: 10000ms
+
+    Call log:
+    [2m  - Expect "toContainText" with timeout 10000ms[22m
+    [2m  - waiting for getByTestId('primary-audio-player')[22m
+    [2m    14 × locator resolved to <section data-testid="primary-audio-player" class="rounded-lg border border-studio-line bg-studio-field/80 p-4 shadow-[0_18px_60px_rgba(9,8,12,0.35)]">…</section>[22m
+    [2m       - unexpected value "PREVIEW MP3 · v1full-audiobook-preview.mp32.1 MB · 4:41Download"[22m
+
+
+      492 |   await expect(primaryPlayer).toBeVisible();
+      493 |   // Player should display full duration, not scene duration
+    > 494 |   await expect(primaryPlayer).toContainText('281');
+          |                               ^
+      495 |
+      496 |   // BUG FIX TEST 2: Verify all character parts are displayed (not just first one)
+      497 |   const partsSection = page.locator('h2:has-text("Audio parts and individual previews")');
+        at C:\Users\Chris\Documents\Claude\tts-lab\frontend\e2e\audiobook-library.spec.ts:494:31
+
+    Error Context: test-results\audiobook-library-detail-p-50974-ce-details-and-full-preview-chromium\error-context.md
+
+  2 failed
+    [chromium] › e2e\audiobook-library.spec.ts:222:5 › user can open audiobook detail review page with scenes and audio assets 
+    [chromium] › e2e\audiobook-library.spec.ts:365:5 › detail page displays all character parts with performance details and full preview 
+  18 passed (25.5s)

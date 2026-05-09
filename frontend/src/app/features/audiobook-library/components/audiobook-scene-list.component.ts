@@ -1,38 +1,57 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { AudiobookScene, AudioAsset } from '../models/audiobook-library.types';
+import { parsePerformanceDirections } from '../utils/performance-parser';
 
 @Component({
   selector: 'app-audiobook-scene-list',
   standalone: true,
   imports: [CommonModule],
+  styleUrl: './audiobook-scene-list.component.css',
   template: `
     <section class="rounded-lg border border-studio-line bg-studio-panel/85 p-5 backdrop-blur" data-testid="scene-list">
-      <div class="mb-4 flex items-center justify-between gap-3">
-        <div>
-          <p class="eyebrow">Scene review</p>
-          <h2 class="m-0 text-2xl font-black">Scenes</h2>
-        </div>
-        <span class="badge">{{ scenes.length }} total</span>
-        <div *ngIf="scenes.length === 0" style="color: red;">EMPTY SCENES!</div>
+      <div class="mb-4">
+        <p class="eyebrow">Scene details</p>
+        <h2 class="m-0 text-2xl font-black">Performance notes</h2>
       </div>
 
       <ng-container *ngIf="scenes && scenes.length > 0">
-        <div class="grid gap-3">
-          <article *ngFor="let scene of scenes; let i = index" data-testid="scene-row">
-            <p>Scene {{ i }}: {{ scene.title }}</p>
+        <div class="scene-list">
+          <article *ngFor="let scene of scenes; let i = index" class="scene-item" data-testid="scene-row" [style.--speaker-accent]="getSpeakerColor(scene.speakerName)">
+            <div class="scene-header">
+              <span class="scene-number">{{ i + 1 }}.</span>
+              <span class="scene-title">{{ scene.title }}</span>
+            </div>
+
+            <div class="scene-content">
+              <div class="speaker-row">
+                <span class="speaker-name">{{ scene.speakerName }}</span>
+                <span *ngIf="scene.speakerRoleDescription" class="speaker-role">{{ scene.speakerRoleDescription }}</span>
+              </div>
+
+              <div class="emotion-tags">
+                <span *ngFor="let tag of getEmotionTags(scene)" class="emotion-badge">{{ tag }}</span>
+              </div>
+
+              <div *ngIf="getOriginalText(scene)" class="scene-text">
+                {{ getOriginalText(scene) }}
+              </div>
+
+              <div *ngIf="scene.voiceName" class="scene-meta">
+                <span class="voice-label">Voice:</span> {{ scene.voiceName }}
+              </div>
+            </div>
           </article>
         </div>
       </ng-container>
       <ng-container *ngIf="!scenes || scenes.length === 0">
-        <div style="color: red;">No scenes to display</div>
+        <div class="empty-state">No scenes to display</div>
       </ng-container>
     </section>
   `
 })
 export class AudiobookSceneListComponent {
   @Input() set scenes(value: AudiobookScene[] | undefined | null) {
-    console.log('AudiobookSceneListComponent.scenes setter called with:', value);
     this._scenes = value || [];
   }
   get scenes(): AudiobookScene[] {
@@ -41,6 +60,11 @@ export class AudiobookSceneListComponent {
   private _scenes: AudiobookScene[] = [];
 
   @Input() audioAssets: AudioAsset[] = [];
+
+  private readonly speakerColors = [
+    '#FF6B6B', '#4ECDC4', '#45B7D1',
+    '#FFA07A', '#98D8C8', '#F7DC6F'
+  ];
 
   readyAssets(sceneId: string): AudioAsset[] {
     return this.audioAssets.filter((asset) => asset.sceneId === sceneId && asset.status === 'READY');
@@ -51,5 +75,21 @@ export class AudiobookSceneListComponent {
     const minutes = Math.floor(seconds / 60);
     const remaining = seconds % 60;
     return `${minutes}:${remaining.toString().padStart(2, '0')}`;
+  }
+
+  getEmotionTags(scene: AudiobookScene): string[] {
+    const parsed = parsePerformanceDirections(scene.performanceDirections);
+    return parsed.emotionTags;
+  }
+
+  getOriginalText(scene: AudiobookScene): string | undefined {
+    const parsed = parsePerformanceDirections(scene.performanceDirections);
+    return parsed.originalText;
+  }
+
+  getSpeakerColor(speakerName?: string): string {
+    if (!speakerName) return this.speakerColors[0];
+    const hash = speakerName.charCodeAt(0);
+    return this.speakerColors[hash % this.speakerColors.length];
   }
 }
