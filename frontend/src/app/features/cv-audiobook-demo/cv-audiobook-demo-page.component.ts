@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { DemoAudioPreviewComponent } from './demo-audio-preview.component';
 
 interface DemoAction {
   label: string;
@@ -10,7 +11,7 @@ interface DemoAction {
 @Component({
   selector: 'app-cv-audiobook-demo-page',
   standalone: true,
-  imports: [RouterLink],
+  imports: [RouterLink, DemoAudioPreviewComponent],
   templateUrl: './cv-audiobook-demo-page.component.html'
 })
 export class CvAudiobookDemoPageComponent {
@@ -20,9 +21,7 @@ export class CvAudiobookDemoPageComponent {
   readonly headlineSuffix = 'creator.';
   readonly subtitle = 'Paste a scene with dialogue. The app detects characters, suggests voices, adds performance notes, and turns it into audiobook-style audio.';
   readonly demoLabel = 'Demo preview';
-  readonly durationStart = '0:00';
-  readonly durationEnd = '0:30';
-  readonly progressPercent = 8;
+  readonly demoAudioSrc = '/assets/audio/voice-samples/full-text-preview.mp3';
   readonly primaryAction: DemoAction = {
     label: 'Try the Audiobook Creator',
     route: '/audiobook-studio'

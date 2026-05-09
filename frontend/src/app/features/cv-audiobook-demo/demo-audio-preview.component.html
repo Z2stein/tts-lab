@@ -1,0 +1,78 @@
+<section class="grid gap-5" aria-label="Demo audio preview">
+  <div class="flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-[0.18em] text-[#ffd77f]">
+    <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M5 18v-6a7 7 0 0 1 14 0v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
+      <path d="M5 18a2 2 0 0 0 2 2h1v-7H7a2 2 0 0 0-2 2v3Zm14 0a2 2 0 0 1-2 2h-1v-7h1a2 2 0 0 1 2 2v3Z" fill="currentColor" />
+    </svg>
+    {{ label }}
+  </div>
+
+  <div class="mx-auto w-full max-w-3xl rounded-[1.35rem] border border-white/12 bg-white/[0.055] p-5 text-left shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur sm:p-8">
+    <div class="grid items-center gap-5 sm:flex sm:gap-8">
+      <button
+        type="button"
+        class="grid h-16 w-16 shrink-0 place-items-center justify-self-center rounded-full bg-gradient-to-br from-[#ffe187] to-[#f0ad5d] text-[#060911] shadow-[0_12px_42px_rgba(240,173,93,0.34)] transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-[#ffd77f] focus:ring-offset-2 focus:ring-offset-[#080d19] sm:h-20 sm:w-20"
+        [attr.aria-label]="isPlaying ? 'Pause demo audio' : 'Play demo audio'"
+        [attr.aria-pressed]="isPlaying"
+        (click)="togglePlayback()"
+      >
+        @if (isPlaying) {
+          <svg class="h-7 w-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M7 5h4v14H7V5Zm6 0h4v14h-4V5Z" />
+          </svg>
+        } @else {
+          <svg class="ml-1 h-7 w-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+            <path d="M8 5.5v13l10-6.5-10-6.5Z" />
+          </svg>
+        }
+      </button>
+
+      <div class="min-w-0 flex-1">
+        <div class="flex h-20 items-center justify-center gap-0.5 overflow-hidden sm:h-24 sm:justify-start sm:gap-1" aria-hidden="true">
+          @for (bar of waveformBars; track $index) {
+            <span
+              class="w-1 shrink-0 rounded-full bg-gradient-to-t from-[#f0ad5d] via-[#ffd77f] to-[#fff0b3] transition-opacity sm:w-1.5"
+              [style.height.px]="bar"
+              [class.opacity-90]="($index / waveformBars.length) * 100 <= progressPercent"
+              [class.opacity-30]="($index / waveformBars.length) * 100 > progressPercent"
+              [class.grayscale]="($index / waveformBars.length) * 100 > progressPercent"
+            ></span>
+          }
+        </div>
+
+        <div class="mt-4 flex items-center gap-4 text-sm text-white">
+          <span class="w-10 tabular-nums">{{ formattedCurrentTime }}</span>
+          <label class="sr-only" for="cv-demo-audio-progress">Audio preview progress</label>
+          <input
+            id="cv-demo-audio-progress"
+            type="range"
+            min="0"
+            max="100"
+            step="0.1"
+            class="h-1 flex-1 cursor-pointer appearance-none rounded-full bg-white/10 accent-[#f0ad5d]"
+            [value]="progressPercent"
+            [disabled]="duration === 0"
+            (input)="seek($event)"
+          />
+          <span class="w-10 text-right tabular-nums">{{ formattedDuration }}</span>
+        </div>
+
+        @if (audioError) {
+          <p class="mt-3 text-sm font-semibold text-[#ffd7d7]" role="alert">{{ audioError }}</p>
+        }
+      </div>
+    </div>
+
+    <audio
+      #audioElement
+      [src]="audioSrc"
+      preload="metadata"
+      (loadedmetadata)="updateDuration()"
+      (timeupdate)="updateProgress()"
+      (play)="handlePlay()"
+      (pause)="handlePause()"
+      (ended)="handleEnded()"
+      (error)="handleAudioError()"
+    ></audio>
+  </div>
+</section>

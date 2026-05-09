@@ -70,7 +70,7 @@ export class AppComponent implements OnInit, OnDestroy {
   }
 
   private updatePublicRouteState(url: string): void {
-    const path = url.split('?')[0].split('#')[0];
+    const path = url === '/' ? window.location.pathname : url.split('?')[0].split('#')[0];
     this.isPublicRoute = path === '/cv-audiobook-demo';
   }
 

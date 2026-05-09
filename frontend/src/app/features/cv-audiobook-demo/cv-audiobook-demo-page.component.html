@@ -35,49 +35,11 @@
         </div>
       </div>
 
-      <section class="grid gap-5" aria-label="Demo audio preview">
-        <div class="flex items-center justify-center gap-3 text-sm font-bold uppercase tracking-[0.18em] text-[#ffd77f]">
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M5 18v-6a7 7 0 0 1 14 0v6" stroke="currentColor" stroke-width="2" stroke-linecap="round" />
-            <path d="M5 18a2 2 0 0 0 2 2h1v-7H7a2 2 0 0 0-2 2v3Zm14 0a2 2 0 0 1-2 2h-1v-7h1a2 2 0 0 1 2 2v3Z" fill="currentColor" />
-          </svg>
-          {{ demoLabel }}
-        </div>
-
-        <div class="mx-auto w-full max-w-3xl rounded-[1.35rem] border border-white/12 bg-white/[0.055] p-5 text-left shadow-[0_28px_90px_rgba(0,0,0,0.42)] backdrop-blur sm:p-8">
-          <div class="grid items-center gap-5 sm:flex sm:gap-8">
-            <button
-              type="button"
-              class="grid h-16 w-16 shrink-0 place-items-center justify-self-center rounded-full bg-gradient-to-br from-[#ffe187] to-[#f0ad5d] text-[#060911] shadow-[0_12px_42px_rgba(240,173,93,0.34)] transition hover:scale-[1.03] focus:outline-none focus:ring-2 focus:ring-[#ffd77f] focus:ring-offset-2 focus:ring-offset-[#080d19] sm:h-20 sm:w-20"
-              aria-label="Demo audio placeholder"
-            >
-              <svg class="ml-1 h-7 w-7" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M8 5.5v13l10-6.5-10-6.5Z" />
-              </svg>
-            </button>
-
-            <div class="min-w-0 flex-1">
-              <div class="flex h-20 items-center justify-center gap-0.5 overflow-hidden sm:h-24 sm:justify-start sm:gap-1" aria-hidden="true">
-                @for (bar of waveformBars; track $index) {
-                  <span
-                    class="w-1 shrink-0 rounded-full bg-gradient-to-t from-[#f0ad5d] via-[#ffd77f] to-[#fff0b3] opacity-90 sm:w-1.5"
-                    [style.height.px]="bar"
-                    [class.opacity-30]="$index > 18"
-                    [class.grayscale]="$index > 18"
-                  ></span>
-                }
-              </div>
-              <div class="mt-4 flex items-center gap-4 text-sm text-white">
-                <span>{{ durationStart }}</span>
-                <div class="h-1 flex-1 rounded-full bg-white/10">
-                  <div class="h-1 rounded-full bg-[#f0ad5d]" [style.width.%]="progressPercent"></div>
-                </div>
-                <span>{{ durationEnd }}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+      <app-demo-audio-preview
+        [label]="demoLabel"
+        [audioSrc]="demoAudioSrc"
+        [waveformBars]="waveformBars"
+      ></app-demo-audio-preview>
 
       <nav class="mx-auto grid w-full max-w-2xl gap-4" aria-label="Audiobook demo actions">
         <a
