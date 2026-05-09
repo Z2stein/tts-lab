@@ -18,6 +18,7 @@ public class AudiobookLibraryService {
     private final AudiobookRepository repository;
     private final FileStorageService fileStorageService;
     private final StorageKeyBuilder storageKeyBuilder;
+    private final AudiobookMetadataCalculator metadataCalculator;
 
     public AudiobookLibraryService(
         AudiobookRepository repository,
@@ -27,6 +28,7 @@ public class AudiobookLibraryService {
         this.repository = repository;
         this.fileStorageService = fileStorageService;
         this.storageKeyBuilder = storageKeyBuilder;
+        this.metadataCalculator = new AudiobookMetadataCalculator(repository);
     }
 
     public AudiobookSummaryResponse list(CurrentUser user) {
@@ -34,22 +36,19 @@ public class AudiobookLibraryService {
             .map(project -> {
                 var assets = repository.findAssets(project.id());
 
-                // Calculate actual duration from ready assets
-                int calculatedDuration = assets.stream()
-                    .filter(asset -> asset.status() == AudioAssetStatus.READY)
-                    .mapToInt(asset -> asset.durationSeconds() != null ? asset.durationSeconds() : 0)
-                    .sum();
-
-                // Use calculated duration if available, otherwise use project estimate
-                Integer displayDuration = calculatedDuration > 0 ? calculatedDuration : project.totalDurationSeconds();
+                // CALCULATE metadata on-demand from audio assets
+                // This ensures metadata is always fresh and accurate, never stale
+                int calculatedSceneCount = metadataCalculator.calculateSceneCount(project.id());
+                int calculatedSpeakerCount = metadataCalculator.calculateSpeakerCount(project.id());
+                int calculatedDuration = metadataCalculator.calculateTotalDurationSeconds(project.id());
 
                 return new AudiobookSummaryResponse.AudiobookSummaryItem(
                     project.id(),
                     project.title(),
                     project.status(),
-                    project.sceneCount(),
-                    project.speakerCount(),
-                    displayDuration,
+                    calculatedSceneCount,      // ← Fresh from calculator
+                    calculatedSpeakerCount,    // ← Fresh from calculator
+                    calculatedDuration,        // ← Fresh from calculator
                     project.updatedAt(),
                     assets.stream().map(this::assetResponse).toList()
                 );
@@ -129,7 +128,9 @@ public class AudiobookLibraryService {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_ASSET_WRITE_FAILED", "The generated audio could not be saved.", null, ex);
         }
 
-        repository.updateProjectMetadata(project.id(), sceneCount, speakerCount, totalDurationSeconds);
+        // IMPORTANT: Do NOT call updateProjectMetadata()
+        // Metadata is calculated on-demand by AudiobookMetadataCalculator from audio assets
+        // This prevents stale metadata issues that occur with persisted values
 
         AudiobookScene scene = new AudiobookScene(
             sceneId,

@@ -214,9 +214,15 @@ test('audiobook studio remains reachable from authenticated navigation', async (
 });
 
 test('library card displays correct metadata for multi-segment audiobook with repeated speakers', async ({ context, page }) => {
-  // This test catches the metadata sync bug where the library card was showing
-  // stale values (sceneCount: 0, speakerCount: 0, duration: 0:06) instead of
-  // actual generated values (sceneCount: 3, speakerCount: 2, duration: 0:19)
+  // This test verifies the FIX:
+  // - Backend now calculates metadata on-demand from audio assets
+  // - Card always displays fresh values, never stale persisted values
+  // - Works with repeated speakers (Narrator appears 2x, counts as 1)
+  //
+  // The backend's AudiobookMetadataCalculator computes:
+  // - sceneCount = count of READY audio assets = 3
+  // - speakerCount = count of unique speakers from filenames = 2 (narrator, mara)
+  // - totalDurationSeconds = sum of all READY asset durations = 6 + 5 + 8 = 19 seconds
 
   await authenticate(context, page);
 
