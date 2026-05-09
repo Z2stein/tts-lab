@@ -10,7 +10,10 @@ public class DurationEstimator {
       return null;
     }
     int wordCount = text.trim().split("\\s+").length;
-    int minutes = Math.max(1, wordCount / WORDS_PER_MINUTE);
-    return minutes * 60;
+    // Calculate seconds directly: (wordCount / 150) * 60 = (wordCount * 60) / 150
+    // This ensures short text gets correct duration (e.g., 47 words = 19 seconds)
+    // instead of being forced to minimum 1 minute
+    int seconds = Math.max(1, (wordCount * 60) / WORDS_PER_MINUTE);
+    return seconds;
   }
 }

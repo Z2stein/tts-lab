@@ -11,6 +11,8 @@ import com.example.ttslab.ratelimit.RequestRateLimitExceededException;
 import com.example.ttslab.ratelimit.RequestRateLimitResult;
 import com.example.ttslab.ratelimit.RequestRateLimitService;
 import com.example.ttslab.ratelimit.RequestUsageMeasurer;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
@@ -111,7 +113,24 @@ public class TtsWorkbenchController {
         String providerModelName = renderProviderModelName(requestPlan);
         enforceLimit(user, ModelType.SPEECH_MODEL, promptText, providerModelName);
         try {
-            int speakerCount = requestPlan.renderRequests() != null ? requestPlan.renderRequests().size() : 0;
+            // Extract unique speakers and segment count from render requests
+            Set<String> uniqueSpeakers = new HashSet<>();
+            int segmentCount = 0;
+
+            if (requestPlan.renderRequests() != null) {
+                for (var request : requestPlan.renderRequests()) {
+                    // Count render requests as segments
+                    segmentCount++;
+
+                    // Extract speaker name from voice configuration
+                    String speaker = stringValue(request.voice(), "speakerName");
+                    if (speaker != null && !speaker.isBlank()) {
+                        uniqueSpeakers.add(speaker);
+                    }
+                }
+            }
+
+            int speakerCount = uniqueSpeakers.size();
             Integer estimatedDuration = DurationEstimator.estimateSpeakingDurationSeconds(promptText);
 
             TtsAudioFile audioFile = ttsWorkbenchService.createAudio(requestPlan);
@@ -123,7 +142,7 @@ public class TtsWorkbenchController {
                 project = audiobookLibraryService.getProjectForUser(projectId, user);
             }
 
-            audiobookLibraryService.persistAudioAsset(project, audioFile, 1, speakerCount, estimatedDuration);
+            audiobookLibraryService.persistAudioAsset(project, audioFile, segmentCount, speakerCount, estimatedDuration);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
