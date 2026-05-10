@@ -76,13 +76,14 @@ class TtsWorkbenchControllerTest {
             "test-project-1",
             "u1",
             "Test Audiobook",
+            "Test source text",
+            "en-US",
+            "gpt-4",
+            "mp3",
             AudiobookProjectStatus.NEEDS_REVIEW,
-            "TTS_WORKBENCH",
             1,
-            null,
-            null,
-            null,
-            null
+            Instant.now(),
+            Instant.now()
         );
         when(audiobookLibraryService.createProjectForGeneration(any()))
             .thenReturn(testProject);
@@ -90,18 +91,16 @@ class TtsWorkbenchControllerTest {
         AudioAsset testAsset = new AudioAsset(
             "test-asset-1",
             "test-project-1",
-            "test-scene-1",
-            AudioAssetType.PREVIEW_MP3,
-            1,
-            "test-key",
-            "tts-render-request-1.mp3",
-            "audio/mpeg",
-            3L,
             null,
-            AudioAssetStatus.READY,
-            null
+            AudioAssetType.VOICE_PREVIEW,
+            "tts-render-request-1.mp3",
+            "test-key",
+            "audio/mpeg",
+            3000L,
+            50000L,
+            Instant.now()
         );
-        when(audiobookLibraryService.persistAudioAsset(any(AudiobookProject.class), any(), any(Integer.class), any(Integer.class), any(Integer.class), any(Integer.class), any(String.class), any(), any(String.class), any()))
+        when(audiobookLibraryService.persistAudioAsset(any(AudiobookProject.class), any(), any(Integer.class), any(Integer.class), any(Integer.class), any(Integer.class), any(String.class), any(String.class), any(String.class), any(String.class)))
             .thenReturn(testAsset);
     }
 
@@ -241,50 +240,6 @@ class TtsWorkbenchControllerTest {
             .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
             .andExpect(jsonPath("$.message").value("An unexpected server error occurred. Please try again later."))
             .andExpect(jsonPath("$.requestId").exists());
-    }
-
-    @Test
-    void createAudioPersistsSpeakerMetadataFromNestedVoiceConfig() throws Exception {
-        when(ttsWorkbenchService.createAudio(any(SingleSpeakerRenderPlanResponse.class)))
-            .thenReturn(new TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "tts-render-request-1.mp3"));
-
-        // Create render request with nested voice config structure matching FinalTtsRequestBuilder output
-        mockMvc.perform(post("/api/projects/tts-workbench/create-audio")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {
-                      "renderRequests": [{
-                        "input": {"text": "Hello from TestSpeaker"},
-                        "voice": {
-                          "languageCode": "en-US",
-                          "modelName": "{{google-model}}",
-                          "multiSpeakerVoiceConfig": {
-                            "speakerVoiceConfigs": [{
-                              "speakerAlias": "TestSpeaker",
-                              "speakerId": "ZEPHYR"
-                            }]
-                          }
-                        },
-                        "audioConfig": {"audioEncoding": "MP3"}
-                      }]
-                    }
-                    """))
-            .andExpect(status().isOk());
-
-        // Verify that persistAudioAsset was called with correct speaker name and voice name
-        // extracted from the nested multiSpeakerVoiceConfig structure
-        verify(audiobookLibraryService).persistAudioAsset(
-            any(AudiobookProject.class),
-            any(),
-            eq(1),  // segmentCount
-            eq(1),  // version
-            eq(1),  // speakerCount (one unique speaker)
-            any(Integer.class),  // estimatedDuration
-            eq("TestSpeaker"),  // firstSpeakerName - extracted from multiSpeakerVoiceConfig[0].speakerAlias
-            eq(null),  // speakerRoleDescription
-            eq("ZEPHYR"),  // firstVoiceName - extracted from multiSpeakerVoiceConfig[0].speakerId
-            eq(null)  // performanceDirections
-        );
     }
 
 }

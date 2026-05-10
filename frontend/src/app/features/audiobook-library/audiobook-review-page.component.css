@@ -84,3 +84,43 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
+
+/* Library Display Details Section */
+.library-display-details {
+  border-radius: 0.9rem;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(5, 9, 20, 0.44);
+  padding: 1.5rem;
+  backdrop-filter: blur(10px);
+  margin-top: 2rem;
+}
+
+.library-display-details summary {
+  cursor: pointer;
+  user-select: none;
+  padding: 0;
+  margin: 0 0 1.5rem 0;
+}
+
+.library-display-details summary:hover {
+  opacity: 0.8;
+}
+
+.library-display-details summary h2 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #fff8ec;
+}
+
+.library-display-details[open] summary h2 {
+  margin-bottom: 0;
+}
+
+.library-display-wrapper {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 0.6rem;
+  padding: 1.5rem;
+  margin-top: 1.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.04);
+}

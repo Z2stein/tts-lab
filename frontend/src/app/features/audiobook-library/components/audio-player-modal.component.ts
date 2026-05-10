@@ -61,7 +61,7 @@ export class AudioPlayerModalComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     setTimeout(() => {
-      if (this.waveformContainer?.nativeElement) {
+      if (this.waveformContainer?.nativeElement && this.asset.streamUrl) {
         const waveSurfer = this.waveSurferService.create(
           this.waveSurferId,
           this.waveformContainer.nativeElement as HTMLElement,
@@ -101,16 +101,19 @@ export class AudioPlayerModalComponent implements OnInit, OnDestroy {
   }
 
   onDownload(): void {
+    if (!this.asset.downloadUrl || !this.asset.fileName) {
+      return;
+    }
     const a = document.createElement('a');
     a.href = this.asset.downloadUrl;
-    a.download = this.asset.filename;
+    a.download = this.asset.fileName;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
   }
 
-  durationLabel(seconds: number | null): string {
-    if (seconds === null) return 'Duration pending';
+  durationLabel(seconds: number | null | undefined): string {
+    if (!seconds) return 'Duration pending';
     const minutes = Math.floor(seconds / 60);
     const remaining = seconds % 60;
     return `${minutes}:${remaining.toString().padStart(2, '0')}`;

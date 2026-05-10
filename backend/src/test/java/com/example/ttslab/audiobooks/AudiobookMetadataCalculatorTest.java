@@ -24,15 +24,13 @@ class AudiobookMetadataCalculatorTest {
     }
 
     @Test
-    void calculateSceneCountReturnsNumberOfReadyAssets() {
-        // Setup: 3 READY assets, 1 GENERATING asset
-        List<AudioAsset> assets = List.of(
-            createAsset("asset-1", AudioAssetStatus.READY),
-            createAsset("asset-2", AudioAssetStatus.READY),
-            createAsset("asset-3", AudioAssetStatus.READY),
-            createAsset("asset-4", AudioAssetStatus.GENERATING)
+    void calculateSceneCountReturnsNumberOfSegments() {
+        List<SpeechSegment> segments = List.of(
+            createSegment("seg-1"),
+            createSegment("seg-2"),
+            createSegment("seg-3")
         );
-        when(repository.findAssets("project-1")).thenReturn(assets);
+        when(repository.findSegmentsForProject("project-1")).thenReturn(segments);
 
         int count = calculator.calculateSceneCount("project-1");
 
@@ -40,9 +38,8 @@ class AudiobookMetadataCalculatorTest {
     }
 
     @Test
-    void calculateSceneCountReturnsZeroForNoReadyAssets() {
-        List<AudioAsset> assets = List.of();
-        when(repository.findAssets("project-1")).thenReturn(assets);
+    void calculateSceneCountReturnsZeroForNoSegments() {
+        when(repository.findSegmentsForProject("project-1")).thenReturn(List.of());
 
         int count = calculator.calculateSceneCount("project-1");
 
@@ -50,42 +47,37 @@ class AudiobookMetadataCalculatorTest {
     }
 
     @Test
-    void calculateSpeakerCountDeduplicatesRepeatedSpeakers() {
-        // Setup: segment-1-narrator.mp3, segment-2-mara.mp3, segment-3-narrator.mp3
-        List<AudioAsset> assets = List.of(
-            createAsset("segment-1-narrator.mp3", AudioAssetStatus.READY),
-            createAsset("segment-2-mara.mp3", AudioAssetStatus.READY),
-            createAsset("segment-3-narrator.mp3", AudioAssetStatus.READY)
+    void calculateSpeakerCountReturnsNumberOfCharacters() {
+        List<Character> characters = List.of(
+            createCharacter("char-1", "Alice"),
+            createCharacter("char-2", "Bob"),
+            createCharacter("char-3", "Charlie")
         );
-        when(repository.findAssets("project-1")).thenReturn(assets);
+        when(repository.findCharactersForProject("project-1")).thenReturn(characters);
 
         int count = calculator.calculateSpeakerCount("project-1");
 
-        assertEquals(2, count); // narrator, mara
+        assertEquals(3, count);
     }
 
     @Test
-    void calculateSpeakerCountIgnoresGeneratingAssets() {
-        List<AudioAsset> assets = List.of(
-            createAsset("segment-1-narrator.mp3", AudioAssetStatus.READY),
-            createAsset("segment-2-mara.mp3", AudioAssetStatus.GENERATING)
-        );
-        when(repository.findAssets("project-1")).thenReturn(assets);
+    void calculateSpeakerCountReturnsZeroForNoCharacters() {
+        when(repository.findCharactersForProject("project-1")).thenReturn(List.of());
 
         int count = calculator.calculateSpeakerCount("project-1");
 
-        assertEquals(1, count); // only narrator (generating asset ignored)
+        assertEquals(0, count);
     }
 
     @Test
-    void calculateTotalDurationSumsSpeakingTime() {
-        // Setup: 6s + 5s + 8s = 19s
+    void calculateTotalDurationSumAssetDurationsInSeconds() {
+        // 6000ms + 5000ms + 8000ms = 19000ms = 19s
         List<AudioAsset> assets = List.of(
-            createAssetWithDuration("asset-1", 6, AudioAssetStatus.READY),
-            createAssetWithDuration("asset-2", 5, AudioAssetStatus.READY),
-            createAssetWithDuration("asset-3", 8, AudioAssetStatus.READY)
+            createAssetWithDuration("asset-1", 6000L),
+            createAssetWithDuration("asset-2", 5000L),
+            createAssetWithDuration("asset-3", 8000L)
         );
-        when(repository.findAssets("project-1")).thenReturn(assets);
+        when(repository.findAssetsForProject("project-1")).thenReturn(assets);
 
         int duration = calculator.calculateTotalDurationSeconds("project-1");
 
@@ -95,98 +87,77 @@ class AudiobookMetadataCalculatorTest {
     @Test
     void calculateTotalDurationHandlesNullDurations() {
         List<AudioAsset> assets = List.of(
-            createAssetWithDuration("asset-1", 6, AudioAssetStatus.READY),
-            createAssetWithDurationAndNull("asset-2", null, AudioAssetStatus.READY),
-            createAssetWithDuration("asset-3", 8, AudioAssetStatus.READY)
+            createAssetWithDuration("asset-1", 6000L),
+            createAssetWithDuration("asset-2", null),
+            createAssetWithDuration("asset-3", 8000L)
         );
-        when(repository.findAssets("project-1")).thenReturn(assets);
+        when(repository.findAssetsForProject("project-1")).thenReturn(assets);
 
         int duration = calculator.calculateTotalDurationSeconds("project-1");
 
-        assertEquals(14, duration); // 6 + null (0) + 8
+        assertEquals(14, duration); // 6 + 0 (null) + 8 = 14 seconds
     }
 
     @Test
-    void calculateTotalDurationIgnoresGeneratingAssets() {
-        List<AudioAsset> assets = List.of(
-            createAssetWithDuration("asset-1", 6, AudioAssetStatus.READY),
-            createAssetWithDuration("asset-2", 100, AudioAssetStatus.GENERATING)
-        );
-        when(repository.findAssets("project-1")).thenReturn(assets);
+    void calculateTotalDurationReturnsZeroForNoAssets() {
+        when(repository.findAssetsForProject("project-1")).thenReturn(List.of());
 
         int duration = calculator.calculateTotalDurationSeconds("project-1");
 
-        assertEquals(6, duration); // only ready asset
+        assertEquals(0, duration);
     }
 
     @Test
-    void calculateMetadataFor3SegmentsWith2Speakers() {
-        // Integration test: simulate real scenario with 3 segments and 2 unique speakers
-        List<AudioAsset> assets = List.of(
-            createAssetWithDuration("segment-1-narrator.mp3", 6, AudioAssetStatus.READY),
-            createAssetWithDuration("segment-2-mara.mp3", 5, AudioAssetStatus.READY),
-            createAssetWithDuration("segment-3-narrator.mp3", 8, AudioAssetStatus.READY)
+    void calculateMetadataIntegration() {
+        // Simulate real scenario: 3 segments, 2 characters, 3 assets (19s total)
+        List<SpeechSegment> segments = List.of(
+            createSegment("seg-1"),
+            createSegment("seg-2"),
+            createSegment("seg-3")
         );
-        when(repository.findAssets("project-1")).thenReturn(assets);
+        List<Character> characters = List.of(
+            createCharacter("char-1", "Alice"),
+            createCharacter("char-2", "Bob")
+        );
+        List<AudioAsset> assets = List.of(
+            createAssetWithDuration("asset-1", 6000L),
+            createAssetWithDuration("asset-2", 5000L),
+            createAssetWithDuration("asset-3", 8000L)
+        );
+
+        when(repository.findSegmentsForProject("project-1")).thenReturn(segments);
+        when(repository.findCharactersForProject("project-1")).thenReturn(characters);
+        when(repository.findAssetsForProject("project-1")).thenReturn(assets);
 
         int sceneCount = calculator.calculateSceneCount("project-1");
         int speakerCount = calculator.calculateSpeakerCount("project-1");
         int duration = calculator.calculateTotalDurationSeconds("project-1");
 
-        assertEquals(3, sceneCount); // 3 audio parts
-        assertEquals(2, speakerCount); // narrator, mara
-        assertEquals(19, duration); // 6 + 5 + 8
+        assertEquals(3, sceneCount); // 3 segments
+        assertEquals(2, speakerCount); // 2 characters
+        assertEquals(19, duration); // 19 seconds
     }
 
-    // Helper methods
-    private AudioAsset createAsset(String filename, AudioAssetStatus status) {
-        return new AudioAsset(
-            "id-" + filename,
-            "project-1",
-            "scene-1",
-            AudioAssetType.PREVIEW_MP3,
-            1,
-            "storage-key",
-            filename,
-            "audio/mpeg",
-            1000L,
-            null,
-            status,
-            Instant.now()
+    // Helper methods for creating test data
+    private SpeechSegment createSegment(String id) {
+        return new SpeechSegment(
+            id, "project-1", "char-1", 1, "Test text", null, false, false,
+            Instant.now(), Instant.now()
         );
     }
 
-    private AudioAsset createAssetWithDuration(String filename, Integer duration, AudioAssetStatus status) {
-        return new AudioAsset(
-            "id-" + filename,
-            "project-1",
-            "scene-1",
-            AudioAssetType.PREVIEW_MP3,
-            1,
-            "storage-key",
-            filename,
-            "audio/mpeg",
-            1000L,
-            duration,
-            status,
-            Instant.now()
+    private Character createCharacter(String id, String name) {
+        return new Character(
+            id, "project-1", name, "Role description", "voice-key", 1, false,
+            Instant.now(), Instant.now()
         );
     }
 
-    private AudioAsset createAssetWithDurationAndNull(String filename, Integer duration, AudioAssetStatus status) {
+    private AudioAsset createAssetWithDuration(String id, Long durationMs) {
         return new AudioAsset(
-            "id-" + filename,
-            "project-1",
-            "scene-1",
-            AudioAssetType.PREVIEW_MP3,
-            1,
-            "storage-key",
-            filename,
-            "audio/mpeg",
-            1000L,
-            duration,
-            status,
-            Instant.now()
+            id, "project-1", null, AudioAssetType.SEGMENT_AUDIO,
+            id + ".mp3", "s3://bucket/key", "audio/mpeg",
+            durationMs, 1000000L, Instant.now()
         );
     }
 }
