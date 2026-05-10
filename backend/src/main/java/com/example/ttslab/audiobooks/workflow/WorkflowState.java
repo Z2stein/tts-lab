@@ -21,13 +21,14 @@ public enum WorkflowState {
 
     /**
      * Validate that a transition from current state to target state is allowed.
-     * Transitions must be linear progression only.
+     * Transitions must be sequential (only to the next state in the sequence).
      */
     public boolean canTransitionTo(WorkflowState next) {
         if (next == this) {
-            return true; // Can stay in same state
+            return true; // Can stay in same state (idempotent)
         }
-        return this.ordinal() < next.ordinal();
+        // Only allow transition to the immediate next state
+        return this.ordinal() + 1 == next.ordinal();
     }
 
     /**
