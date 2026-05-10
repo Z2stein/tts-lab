@@ -441,31 +441,34 @@ test('audio parts display character role description in detail page', async ({ c
     ]
   };
 
-  await page.route('**/api/audiobooks/**', async (route) => {
-    const url = route.request().url();
-    if (url.includes('project-with-roles')) {
-      await route.fulfill({
-        status: 200,
-        contentType: 'application/json',
-        body: JSON.stringify(characterProject)
-      });
-    } else {
-      await route.abort();
-    }
+  await page.route('**/api/audiobooks/project-with-roles', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(characterProject)
+    });
   });
 
   await page.goto('/audiobook-library/project-with-roles');
+  await page.waitForTimeout(1000);
 
-  // Wait for the detail page to load
+  // CRITICAL: This test MUST FAIL if character role descriptions are not displayed
+  // If this test passes, the feature is working correctly
+
+  // Verify the detail page loaded
   await expect(page).toHaveURL(/\/audiobook-library\/project-with-roles$/);
 
-  // Verify the page loaded by checking for the title heading
-  await expect(page.getByRole('heading', { name: 'Story with Character Roles' })).toBeVisible({ timeout: 10000 });
+  // Verify "Audio parts and individual previews" section exists
+  await expect(page.getByRole('heading', { name: 'Audio parts and individual previews' })).toBeVisible();
 
-  // FEATURE TEST: Verify character role descriptions display in audio parts cards
-  // These assertions MUST FAIL if the feature is not implemented
+  // FAIL if character role descriptions are not displayed
+  // Part 1: Narrator - should show both name AND role description
   await expect(page.getByText('Narrator')).toBeVisible();
-  await expect(page.getByText('Story narrator')).toBeVisible(); // role description
+  await expect(page.getByText('Story narrator')).toBeVisible(); // THIS MUST BE VISIBLE - role description
+  await expect(page.getByText('aria')).toBeVisible(); // Voice name
+
+  // Part 2: Alice - should show both name AND role description
   await expect(page.getByText('Alice')).toBeVisible();
-  await expect(page.getByText('Protagonist')).toBeVisible(); // role description
+  await expect(page.getByText('Protagonist')).toBeVisible(); // THIS MUST BE VISIBLE - role description
+  await expect(page.getByText('nova')).toBeVisible(); // Voice name
 });
