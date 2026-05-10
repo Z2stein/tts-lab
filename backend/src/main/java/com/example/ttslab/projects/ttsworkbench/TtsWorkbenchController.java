@@ -122,15 +122,17 @@ public class TtsWorkbenchController {
             if (requestPlan.renderRequests() != null && !requestPlan.renderRequests().isEmpty()) {
                 // Extract metadata from first render request for persistence
                 var firstRequest = requestPlan.renderRequests().get(0);
-                firstSpeakerName = stringValue(firstRequest.voice(), "speakerName");
-                firstVoiceName = stringValue(firstRequest.voice(), "speakerId");
+                var firstSpeakerConfig = extractSpeakerVoiceConfig(firstRequest.voice());
+                firstSpeakerName = firstSpeakerConfig.speakerAlias();
+                firstVoiceName = firstSpeakerConfig.speakerId();
 
                 for (var request : requestPlan.renderRequests()) {
                     // Count render requests as segments
                     segmentCount++;
 
                     // Extract speaker name from voice configuration
-                    String speaker = stringValue(request.voice(), "speakerName");
+                    var speakerConfig = extractSpeakerVoiceConfig(request.voice());
+                    String speaker = speakerConfig.speakerAlias();
                     if (speaker != null && !speaker.isBlank()) {
                         uniqueSpeakers.add(speaker);
                     }
@@ -196,6 +198,48 @@ public class TtsWorkbenchController {
             .orElse("google-tts");
     }
 
+    private SpeakerVoiceConfig extractSpeakerVoiceConfig(java.util.Map<String, Object> voice) {
+        if (voice == null) {
+            return new SpeakerVoiceConfig("", "");
+        }
+
+        try {
+            Object multiSpeakerVoiceConfigObj = voice.get("multiSpeakerVoiceConfig");
+            if (!(multiSpeakerVoiceConfigObj instanceof java.util.Map)) {
+                return new SpeakerVoiceConfig("", "");
+            }
+
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> multiSpeakerVoiceConfig = (java.util.Map<String, Object>) multiSpeakerVoiceConfigObj;
+            Object speakerVoiceConfigsObj = multiSpeakerVoiceConfig.get("speakerVoiceConfigs");
+
+            if (!(speakerVoiceConfigsObj instanceof java.util.List)) {
+                return new SpeakerVoiceConfig("", "");
+            }
+
+            @SuppressWarnings("unchecked")
+            java.util.List<Object> speakerVoiceConfigs = (java.util.List<Object>) speakerVoiceConfigsObj;
+            if (speakerVoiceConfigs.isEmpty()) {
+                return new SpeakerVoiceConfig("", "");
+            }
+
+            Object firstConfigObj = speakerVoiceConfigs.get(0);
+            if (!(firstConfigObj instanceof java.util.Map)) {
+                return new SpeakerVoiceConfig("", "");
+            }
+
+            @SuppressWarnings("unchecked")
+            java.util.Map<String, Object> firstConfig = (java.util.Map<String, Object>) firstConfigObj;
+            String speakerAlias = stringValue(firstConfig, "speakerAlias");
+            String speakerId = stringValue(firstConfig, "speakerId");
+
+            return new SpeakerVoiceConfig(speakerAlias, speakerId);
+        } catch (Exception ex) {
+            log.debug("Failed to extract speaker voice config, using empty defaults", ex);
+            return new SpeakerVoiceConfig("", "");
+        }
+    }
+
     private String stringValue(java.util.Map<String, Object> values, String key) {
         if (values == null) {
             return "";
@@ -214,4 +258,6 @@ public class TtsWorkbenchController {
         }
         return safeProvider + "/" + modelName.trim();
     }
+
+    private record SpeakerVoiceConfig(String speakerAlias, String speakerId) {}
 }
