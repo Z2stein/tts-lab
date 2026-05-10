@@ -1,15 +1,10 @@
 package com.example.ttslab.audiobooks;
 
-import java.util.HashSet;
-import java.util.Set;
-
 /**
- * Calculates audiobook metadata on-demand from existing audio assets.
+ * Calculates audiobook metadata on-demand from entities.
  *
- * This service implements the single source of truth principle: audio assets
- * are the source of truth, and all metadata is computed fresh from them.
- * This prevents stale metadata issues that occur when metadata is persisted
- * in the audiobook_project table.
+ * This service implements the single source of truth principle:
+ * segments and characters are the source of truth for counts.
  */
 public class AudiobookMetadataCalculator {
     private final AudiobookRepository repository;
@@ -19,73 +14,34 @@ public class AudiobookMetadataCalculator {
     }
 
     /**
-     * Calculate the number of speech segments (audio assets) for an audiobook.
-     * Source of truth: count of READY audio assets.
+     * Calculate the number of speech segments for an audiobook.
      *
      * @param projectId the audiobook project ID
-     * @return the number of ready audio assets
+     * @return the number of speech segments
      */
     public int calculateSceneCount(String projectId) {
-        return (int) repository.findAssets(projectId).stream()
-            .filter(asset -> asset.status() == AudioAssetStatus.READY)
-            .count();
+        return repository.findSegmentsForProject(projectId).size();
     }
 
     /**
-     * Calculate the number of unique speakers by extracting speaker names from assets.
-     * Handles deduplication: same speaker appearing in multiple assets counts as one.
-     * Falls back to asset filenames if speaker metadata is not available.
+     * Calculate the number of unique characters in the audiobook.
      *
      * @param projectId the audiobook project ID
-     * @return the count of unique speakers
+     * @return the count of unique characters
      */
     public int calculateSpeakerCount(String projectId) {
-        Set<String> uniqueSpeakers = new HashSet<>();
-        repository.findAssets(projectId).stream()
-            .filter(asset -> asset.status() == AudioAssetStatus.READY)
-            .forEach(asset -> {
-                // Extract speaker from filename pattern or metadata
-                String speaker = extractSpeakerFromAsset(asset);
-                if (speaker != null && !speaker.isBlank()) {
-                    uniqueSpeakers.add(speaker);
-                }
-            });
-        return uniqueSpeakers.size();
+        return repository.findCharactersForProject(projectId).size();
     }
 
     /**
-     * Calculate total duration by summing all READY audio asset durations.
-     * Source of truth: sum of durationSeconds from all ready assets.
+     * Calculate total duration by summing all audio asset durations.
      *
      * @param projectId the audiobook project ID
      * @return total duration in seconds
      */
     public int calculateTotalDurationSeconds(String projectId) {
-        return (int) repository.findAssets(projectId).stream()
-            .filter(asset -> asset.status() == AudioAssetStatus.READY)
-            .mapToInt(asset -> asset.durationSeconds() != null ? asset.durationSeconds() : 0)
-            .sum();
-    }
-
-    /**
-     * Extract speaker name from asset filename if following pattern: "segment-N-speakername.mp3"
-     *
-     * @param asset the audio asset
-     * @return the extracted speaker name, or null if not found
-     */
-    private String extractSpeakerFromAsset(AudioAsset asset) {
-        String filename = asset.filename();
-        if (filename != null && filename.contains("-")) {
-            String[] parts = filename.split("-");
-            if (parts.length >= 2) {
-                // Return the last meaningful part before extension
-                String speakerPart = parts[parts.length - 1]
-                    .replace(".mp3", "")
-                    .replace(".mp4", "")
-                    .replace(".wav", "");
-                return speakerPart.isBlank() ? null : speakerPart;
-            }
-        }
-        return null;
+        return (int) (repository.findAssetsForProject(projectId).stream()
+            .mapToLong(asset -> asset.durationMs() != null ? asset.durationMs() : 0)
+            .sum() / 1000);
     }
 }

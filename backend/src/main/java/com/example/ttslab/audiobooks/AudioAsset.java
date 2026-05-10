@@ -5,15 +5,13 @@ import java.time.Instant;
 public record AudioAsset(
     String id,
     String projectId,
-    String sceneId,
+    String aiGenerationRunId,
     AudioAssetType type,
-    int version,
+    String fileName,
     String storageKey,
-    String filename,
     String contentType,
+    Long durationMs,
     long sizeBytes,
-    Integer durationSeconds,
-    AudioAssetStatus status,
     Instant createdAt
 ) {
 }

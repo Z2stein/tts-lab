@@ -1,0 +1,243 @@
+<div class="audiobook-library-display">
+  <!-- Loading state -->
+  <div *ngIf="isLoading" class="loading-container">
+    <div class="spinner">Loading audiobook details...</div>
+  </div>
+
+  <!-- Error state -->
+  <div *ngIf="error && !isLoading" class="alert alert-danger">
+    <strong>Error:</strong> {{ error }}
+    <button (click)="ngOnInit()" class="btn btn-sm btn-outline-danger mt-2">Retry</button>
+  </div>
+
+  <!-- Main content -->
+  <div *ngIf="!isLoading && !error && libraryDisplay" class="library-content">
+    <!-- Project Header -->
+    <div class="project-header card mb-4">
+      <div class="card-body">
+        <h1 class="card-title">{{ project?.title }}</h1>
+        <div class="project-metadata">
+          <div class="metadata-item">
+            <span class="label">Status:</span>
+            <span class="badge" [ngClass]="'bg-' + (project?.status === 'DRAFT' ? 'secondary' : 'primary')">
+              {{ project?.status }}
+            </span>
+          </div>
+          <div class="metadata-item">
+            <span class="label">Language:</span>
+            <span>{{ project?.languageCode }}</span>
+          </div>
+          <div class="metadata-item">
+            <span class="label">Model:</span>
+            <span>{{ project?.modelName }}</span>
+          </div>
+          <div class="metadata-item">
+            <span class="label">Audio Format:</span>
+            <span>{{ project?.audioEncoding }}</span>
+          </div>
+          <div class="metadata-item">
+            <span class="label">Revision:</span>
+            <span>{{ project?.revision }}</span>
+          </div>
+          <div class="metadata-item">
+            <span class="label">Created:</span>
+            <span>{{ formatDate(project?.createdAt || '') }}</span>
+          </div>
+        </div>
+
+        <!-- Project Summary Stats -->
+        <div class="project-stats mt-3">
+          <div class="stat-box">
+            <div class="stat-value">{{ getSegmentCount() }}</div>
+            <div class="stat-label">Segments</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value">{{ getCharacterCount() }}</div>
+            <div class="stat-label">Characters</div>
+          </div>
+          <div class="stat-box">
+            <div class="stat-value">{{ formatDuration(getTotalDuration()) }}</div>
+            <div class="stat-label">Total Duration</div>
+          </div>
+        </div>
+
+        <!-- Source Text Preview -->
+        <div class="source-text-section mt-3" *ngIf="project && project.sourceText">
+          <h5>Source Material</h5>
+          <div class="source-text-preview">
+            {{ project.sourceText.substring(0, 300) }}
+            <span *ngIf="project.sourceText && project.sourceText.length > 300">...</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cast Section -->
+    <div class="cast-section card mb-4">
+      <div class="card-header">
+        <h3 class="card-title">Cast ({{ getCharacterCount() }} characters)</h3>
+      </div>
+      <div class="card-body">
+        <div *ngIf="characters.length === 0" class="empty-state">No characters assigned yet</div>
+
+        <div class="character-grid">
+          <div *ngFor="let character of characters" class="character-card">
+            <div class="character-header">
+              <h5 class="character-name">{{ character.name }}</h5>
+              <span
+                class="badge"
+                [ngClass]="character.approved ? 'bg-success' : 'bg-warning'"
+              >
+                {{ character.approved ? 'Approved' : 'Pending' }}
+              </span>
+            </div>
+
+            <div class="character-details">
+              <div *ngIf="character.roleDescription" class="detail-item">
+                <span class="detail-label">Role:</span>
+                <span class="detail-value">{{ character.roleDescription }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Voice:</span>
+                <span class="detail-value">{{ character.voiceKey }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Sort Order:</span>
+                <span class="detail-value">{{ character.sortOrder }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Segments Section -->
+    <div class="segments-section card mb-4">
+      <div class="card-header">
+        <h3 class="card-title">Speech Segments ({{ getSegmentCount() }} total)</h3>
+      </div>
+      <div class="card-body">
+        <div *ngIf="segments.length === 0" class="empty-state">No segments yet</div>
+
+        <div class="segments-table-wrapper">
+          <table *ngIf="segments.length > 0" class="table table-sm table-hover">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Character</th>
+                <th>Text</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let segment of segments">
+                <td class="sequence-no">{{ segment.sequenceNo }}</td>
+                <td class="character-name">{{ segment.characterName || getCharacterName(segment.characterId) }}</td>
+                <td class="text-preview">{{ segment.originalText.substring(0, 100) }}</td>
+                <td>
+                  <span class="badge" [ngClass]="segment.approved ? 'bg-success' : 'bg-secondary'">
+                    {{ segment.approved ? 'Approved' : 'Pending' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Generation History Section -->
+    <div class="generation-history-section card mb-4">
+      <div class="card-header">
+        <h3 class="card-title">Generation Runs ({{ generationRuns.length }})</h3>
+      </div>
+      <div class="card-body">
+        <div *ngIf="generationRuns.length === 0" class="empty-state">No generation runs yet</div>
+
+        <div *ngFor="let run of generationRuns" class="generation-run-card mb-3">
+          <div class="run-header">
+            <div class="run-info">
+              <h5>{{ run.type }}</h5>
+              <span class="badge" [ngClass]="'bg-' + getRunStatusColor(run.status)">
+                {{ run.status }}
+              </span>
+            </div>
+            <div class="run-timing">
+              <div *ngIf="run.startedAt" class="timing-item">
+                <small>Started: {{ formatDate(run.startedAt) }}</small>
+              </div>
+              <div *ngIf="run.completedAt" class="timing-item">
+                <small>Completed: {{ formatDate(run.completedAt) }}</small>
+              </div>
+            </div>
+          </div>
+
+          <!-- Render segments for this run -->
+          <div class="renders-section">
+            <h6 class="renders-title">Rendered Segments ({{ getRenderSegmentsForRun(run).length }})</h6>
+            <div *ngIf="getRenderSegmentsForRun(run).length === 0" class="text-muted small">No renders</div>
+
+            <div *ngFor="let render of getRenderSegmentsForRun(run)" class="render-item">
+              <div class="render-status">
+                <span class="badge" [ngClass]="'bg-' + getRunStatusColor(render.status)">
+                  {{ render.status }}
+                </span>
+              </div>
+              <div class="render-details">
+                <small>Segment {{ render.speechSegmentId }}</small>
+                <span *ngIf="render.audioAssetId" class="text-success">✓ Audio recorded</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assets Section -->
+    <div class="assets-section card">
+      <div class="card-header">
+        <h3 class="card-title">Audio Assets ({{ assets.length }})</h3>
+      </div>
+      <div class="card-body">
+        <div *ngIf="assets.length === 0" class="empty-state">No audio assets yet</div>
+
+        <div class="assets-grid">
+          <div *ngFor="let asset of assets" class="asset-card">
+            <div class="asset-header">
+              <h5 class="asset-name">{{ asset.fileName }}</h5>
+              <span class="badge bg-info">{{ asset.type }}</span>
+            </div>
+
+            <div class="asset-details">
+              <div class="detail-item">
+                <span class="detail-label">Format:</span>
+                <span class="detail-value">{{ asset.contentType }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Size:</span>
+                <span class="detail-value">{{ (asset.sizeBytes / 1024 / 1024).toFixed(2) }} MB</span>
+              </div>
+              <div *ngIf="asset.durationMs" class="detail-item">
+                <span class="detail-label">Duration:</span>
+                <span class="detail-value">{{ formatDuration(asset.durationMs / 1000) }}</span>
+              </div>
+              <div class="detail-item">
+                <span class="detail-label">Created:</span>
+                <span class="detail-value">{{ formatDate(asset.createdAt) }}</span>
+              </div>
+            </div>
+
+            <div class="asset-actions mt-2">
+              <a *ngIf="asset.downloadUrl" [href]="asset.downloadUrl" class="btn btn-sm btn-primary" download>
+                Download
+              </a>
+              <a *ngIf="asset.streamUrl" [href]="asset.streamUrl" class="btn btn-sm btn-secondary" target="_blank">
+                Stream
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

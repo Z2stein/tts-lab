@@ -1,9 +1,7 @@
 package com.example.ttslab.audiobooks;
 
 public enum AudioAssetType {
-    SCENE_MP3,
-    CHAPTER_MP3,
-    FULL_AUDIOBOOK,
-    PREVIEW_MP3,
-    EXPORT_ZIP
+    VOICE_PREVIEW,
+    SEGMENT_AUDIO,
+    FULL_AUDIOBOOK
 }

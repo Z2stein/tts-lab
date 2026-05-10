@@ -76,13 +76,14 @@ class TtsWorkbenchControllerTest {
             "test-project-1",
             "u1",
             "Test Audiobook",
+            "Test source text",
+            "en-US",
+            "gpt-4",
+            "mp3",
             AudiobookProjectStatus.NEEDS_REVIEW,
-            "TTS_WORKBENCH",
             1,
-            null,
-            null,
-            null,
-            null
+            Instant.now(),
+            Instant.now()
         );
         when(audiobookLibraryService.createProjectForGeneration(any()))
             .thenReturn(testProject);
@@ -90,18 +91,16 @@ class TtsWorkbenchControllerTest {
         AudioAsset testAsset = new AudioAsset(
             "test-asset-1",
             "test-project-1",
-            "test-scene-1",
-            AudioAssetType.PREVIEW_MP3,
-            1,
-            "test-key",
-            "tts-render-request-1.mp3",
-            "audio/mpeg",
-            3L,
             null,
-            AudioAssetStatus.READY,
-            null
+            AudioAssetType.VOICE_PREVIEW,
+            "tts-render-request-1.mp3",
+            "test-key",
+            "audio/mpeg",
+            3000L,
+            50000L,
+            Instant.now()
         );
-        when(audiobookLibraryService.persistAudioAsset(any(AudiobookProject.class), any(), any(Integer.class), any(Integer.class), any(Integer.class), any(Integer.class)))
+        when(audiobookLibraryService.persistAudioAsset(any(AudiobookProject.class), any(), any(Integer.class), any(Integer.class), any(Integer.class), any(Integer.class), any(String.class), any(String.class), any(String.class), any(String.class)))
             .thenReturn(testAsset);
     }
 

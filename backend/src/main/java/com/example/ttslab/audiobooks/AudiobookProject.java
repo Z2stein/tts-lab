@@ -6,11 +6,12 @@ public record AudiobookProject(
     String id,
     String userId,
     String title,
+    String sourceText,
+    String languageCode,
+    String modelName,
+    String audioEncoding,
     AudiobookProjectStatus status,
-    String sourceType,
-    int sceneCount,
-    Integer speakerCount,
-    Integer totalDurationSeconds,
+    int revision,
     Instant createdAt,
     Instant updatedAt
 ) {

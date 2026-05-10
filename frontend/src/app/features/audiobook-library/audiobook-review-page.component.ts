@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CompleteAudiobookPlayerComponent } from './components/complete-audiobook-player/complete-audiobook-player.component';
 import { AudiobookSceneListComponent } from './components/audiobook-scene-list.component';
+import { AudiobookLibraryDisplayComponent } from './components/audiobook-library-display.component';
 import { AudiobookDetail, AudioAsset, AudiobookScene } from './models/audiobook-library.types';
 import { AudiobookLibraryService } from './services/audiobook-library.service';
 import { AudiobookPartCardComponent } from '../../shared/components/audiobook-part-card/audiobook-part-card.component';
@@ -12,7 +13,7 @@ import { parsePerformanceDirections } from './utils/performance-parser';
 @Component({
   selector: 'app-audiobook-review-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, CompleteAudiobookPlayerComponent, AudiobookSceneListComponent, AudiobookPartCardComponent],
+  imports: [CommonModule, RouterLink, CompleteAudiobookPlayerComponent, AudiobookSceneListComponent, AudiobookPartCardComponent, AudiobookLibraryDisplayComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './audiobook-review-page.component.css',
   template: `
@@ -57,6 +58,16 @@ import { parsePerformanceDirections } from './utils/performance-parser';
 
           <!-- Scene List -->
           <app-audiobook-scene-list [scenes]="detail.scenes" [audioAssets]="detail.audioAssets"></app-audiobook-scene-list>
+
+          <!-- Library Display - Complete Metadata and Generation History -->
+          <details class="library-display-details" *ngIf="projectId">
+            <summary>
+              <h2 class="m-0 text-2xl font-black">Complete library details and generation history</h2>
+            </summary>
+            <div class="library-display-wrapper">
+              <app-audiobook-library-display [projectId]="projectId"></app-audiobook-library-display>
+            </div>
+          </details>
         </ng-container>
       </div>
     </section>
@@ -67,6 +78,7 @@ export class AudiobookReviewPageComponent implements OnInit {
   audioPartCards: AudiobookPartCard[] = [];
   loading = true;
   error: string | null = null;
+  projectId: string | null = null;
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -80,7 +92,7 @@ export class AudiobookReviewPageComponent implements OnInit {
 
   get primaryAsset(): AudioAsset | null {
     const fullAudiobookAssets = this.readyAssets.filter((asset) => !asset.sceneId);
-    return fullAudiobookAssets.find((asset) => asset.type === 'FULL_AUDIOBOOK' || asset.type === 'PREVIEW_MP3') ?? fullAudiobookAssets[0] ?? null;
+    return fullAudiobookAssets.find((asset) => asset.type === 'FULL_AUDIOBOOK' || asset.type === 'VOICE_PREVIEW') ?? fullAudiobookAssets[0] ?? null;
   }
 
   private buildAudioPartCards(): AudiobookPartCard[] {
@@ -107,7 +119,7 @@ export class AudiobookReviewPageComponent implements OnInit {
 
   private extractSpeakerFromFilename(scene: AudiobookScene): string | undefined {
     const readyAsset = this.detail?.audioAssets.find((a) => a.sceneId === scene.id && a.status === 'READY');
-    if (!readyAsset) return undefined;
+    if (!readyAsset || !readyAsset.filename) return undefined;
 
     // Try to extract speaker name from filename, e.g., "scene_1__narrator.wav" → "narrator"
     const filename = readyAsset.filename;
@@ -120,7 +132,7 @@ export class AudiobookReviewPageComponent implements OnInit {
 
   private getAudioStreamUrl(scene: AudiobookScene): string | undefined {
     const readyAsset = this.detail?.audioAssets.find((a) => a.sceneId === scene.id && a.status === 'READY');
-    return readyAsset?.streamUrl;
+    return readyAsset?.streamUrl || undefined;
   }
 
   private getReadyAssetId(scene: AudiobookScene): string | undefined {
@@ -135,6 +147,7 @@ export class AudiobookReviewPageComponent implements OnInit {
       this.loading = false;
       return;
     }
+    this.projectId = id;
     try {
       this.detail = await this.audiobookLibraryService.detail(id);
       this.audioPartCards = this.buildAudioPartCards();

@@ -9,8 +9,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.prompts.CurrentUserResolver;
-import com.example.ttslab.storage.StoredFile;
-import java.io.ByteArrayInputStream;
 import java.time.Instant;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
@@ -31,6 +29,9 @@ class AudiobookControllerTest {
     private CurrentUserResolver currentUserResolver;
 
     @MockBean
+    private AudiobookService audiobookService;
+
+    @MockBean
     private AudiobookLibraryService audiobookLibraryService;
 
     private final CurrentUser user = new CurrentUser("user-1", "user1@example.com", "User One", List.of("USER"), "mock");
@@ -42,47 +43,34 @@ class AudiobookControllerTest {
 
     @Test
     void listsCurrentUsersAudiobooks() throws Exception {
-        when(audiobookLibraryService.list(user)).thenReturn(new AudiobookSummaryResponse(List.of(
-            new AudiobookSummaryResponse.AudiobookSummaryItem(
-                "project-1",
-                "The Amber Signal",
-                AudiobookProjectStatus.NEEDS_REVIEW,
-                2,
-                3,
-                185,
-                Instant.parse("2026-05-09T10:00:00Z"),
-                List.of()
-            )
-        )));
+        Instant now = Instant.now();
+        AudiobookProject project = new AudiobookProject(
+            "project-1", "user-1", "The Amber Signal",
+            "Story text", "en-US", "claude-opus", "mp3",
+            AudiobookProjectStatus.NEEDS_REVIEW, 1, now, now
+        );
+        when(audiobookService.listProjectsForUser("user-1")).thenReturn(List.of(project));
 
         mockMvc.perform(get("/api/audiobooks"))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.items[0].id").value("project-1"))
-            .andExpect(jsonPath("$.items[0].status").value("NEEDS_REVIEW"));
+            .andExpect(jsonPath("$[0].id").value("project-1"))
+            .andExpect(jsonPath("$[0].title").value("The Amber Signal"))
+            .andExpect(jsonPath("$[0].status").value("NEEDS_REVIEW"));
     }
 
     @Test
-    void downloadsReadyAssetWithAttachmentDisposition() throws Exception {
-        AudioAsset asset = new AudioAsset(
-            "asset-1",
-            "project-1",
-            null,
-            AudioAssetType.PREVIEW_MP3,
-            1,
-            "storage/key.mp3",
-            "preview.mp3",
-            "audio/mpeg",
-            3,
-            10,
-            AudioAssetStatus.READY,
-            Instant.parse("2026-05-09T10:00:00Z")
+    void getProjectReturnsProjectDetails() throws Exception {
+        Instant now = Instant.now();
+        AudiobookProject project = new AudiobookProject(
+            "project-1", "user-1", "Test Project",
+            "Story text", "en-US", "claude-opus", "mp3",
+            AudiobookProjectStatus.DRAFT, 1, now, now
         );
-        when(audiobookLibraryService.assetForDownload(user, "project-1", "asset-1")).thenReturn(asset);
-        when(audiobookLibraryService.read(asset)).thenReturn(new StoredFile(new ByteArrayInputStream(new byte[] {'I', 'D', '3'}), "audio/mpeg", 3));
+        when(audiobookService.getProjectForUser("project-1", "user-1")).thenReturn(project);
 
-        mockMvc.perform(get("/api/audiobooks/project-1/audio-assets/asset-1/download"))
+        mockMvc.perform(get("/api/audiobooks/project-1"))
             .andExpect(status().isOk())
-            .andExpect(header().string("Content-Type", "audio/mpeg"))
-            .andExpect(header().string("Content-Disposition", "attachment; filename=\"preview.mp3\""));
+            .andExpect(jsonPath("$.id").value("project-1"))
+            .andExpect(jsonPath("$.title").value("Test Project"));
     }
 }
