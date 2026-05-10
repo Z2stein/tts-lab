@@ -5,6 +5,7 @@ backend/.gradle/
 backend/build/
 
 frontend/.angular/
+frontend/coverage/
 frontend/playwright-report/
 frontend/test-results/
 .claude/

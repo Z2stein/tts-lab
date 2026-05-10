@@ -1,11 +1,14 @@
 import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks } from '@angular/core/testing';
+import { HttpClientTestingModule } from '@angular/common/http/testing';
 import { AudiobookStudioPageComponent, formatSpeakerDisplayName } from './audiobook-studio-page.component';
 import { TtsWorkbenchService } from '../tts-workbench/tts-workbench.service';
+import { WorkflowService } from './services/workflow.service';
 
 describe('AudiobookStudioPageComponent', () => {
   let fixture: ComponentFixture<AudiobookStudioPageComponent>;
   let component: AudiobookStudioPageComponent;
   let ttsWorkbenchService: jasmine.SpyObj<TtsWorkbenchService>;
+  let workflowService: jasmine.SpyObj<WorkflowService>;
 
   beforeEach(async () => {
     ttsWorkbenchService = jasmine.createSpyObj<TtsWorkbenchService>('TtsWorkbenchService', [
@@ -18,9 +21,31 @@ describe('AudiobookStudioPageComponent', () => {
       'createAudioForRenderRequest'
     ]);
 
+    workflowService = jasmine.createSpyObj<WorkflowService>('WorkflowService', [
+      'createWorkflow',
+      'getWorkflow',
+      'discoverSpeakers',
+      'splitDialogue',
+      'annotateDialogue',
+      'configureOutput',
+      'generateAudio'
+    ], {
+      session$: jasmine.createSpyObj('Observable', ['subscribe'])
+    });
+
+    // Mock workflow service methods to return observables that resolve successfully
+    (workflowService.createWorkflow as jasmine.Spy).and.returnValue({ toPromise: () => Promise.resolve({ id: 'session-1' }) });
+    (workflowService.discoverSpeakers as jasmine.Spy).and.returnValue({ toPromise: () => Promise.resolve({}) });
+    (workflowService.splitDialogue as jasmine.Spy).and.returnValue({ toPromise: () => Promise.resolve({}) });
+    (workflowService.annotateDialogue as jasmine.Spy).and.returnValue({ toPromise: () => Promise.resolve({}) });
+    (workflowService.configureOutput as jasmine.Spy).and.returnValue({ toPromise: () => Promise.resolve({}) });
+
     await TestBed.configureTestingModule({
-      imports: [AudiobookStudioPageComponent],
-      providers: [{ provide: TtsWorkbenchService, useValue: ttsWorkbenchService }]
+      imports: [AudiobookStudioPageComponent, HttpClientTestingModule],
+      providers: [
+        { provide: TtsWorkbenchService, useValue: ttsWorkbenchService },
+        { provide: WorkflowService, useValue: workflowService }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(AudiobookStudioPageComponent);

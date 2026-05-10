@@ -189,6 +189,213 @@ describe('AudiobookStudioFacade', () => {
     expect(options).toContain('Narrator');
   });
 
+  // ── createAudioProductionPlan ────────────────────────────────────────────
+
+  it('createAudioProductionPlan generates final request and plan', async () => {
+    const finalRequest = { test: 'final' } as any;
+    const plan = { test: 'plan' } as any;
+    facade.setCast([maraItem]);
+    facade.setAnnotatedTurns([{ speaker: 'Mara', text: '[warm] Hello' }]);
+    tts.generateFinalJson.and.resolveTo(finalRequest);
+    tts.planSingleSpeakerRenderRequests.and.resolveTo(plan);
+
+    await facade.createAudioProductionPlan({
+      prompt: 'test',
+      languageCode: 'en-US',
+      modelName: 'gpt-4',
+      audioEncoding: 'mp3',
+    });
+
+    expect(tts.generateFinalJson).toHaveBeenCalledWith(
+      jasmine.objectContaining({
+        prompt: 'test',
+        speakers: [maraItem],
+        annotatedTurns: [{ speaker: 'Mara', text: '[warm] Hello' }],
+        languageCode: 'en-US',
+        modelName: 'gpt-4',
+        audioEncoding: 'mp3',
+      })
+    );
+    expect(tts.planSingleSpeakerRenderRequests).toHaveBeenCalledWith(finalRequest);
+    expect(facade.finalRequest()).toEqual(finalRequest);
+    expect(facade.audioProductionPlan()).toEqual(plan);
+  });
+
+  it('createAudioProductionPlan calls workflow configureOutput when sessionId exists', async () => {
+    const finalRequest = { test: 'final' } as any;
+    const plan = { test: 'plan' } as any;
+    facade.setCast([maraItem]);
+    facade.setAnnotatedTurns([]);
+    // Manually set session ID (normally set by analyzeStory)
+    (facade as any)._sessionId.set('session-123');
+    tts.generateFinalJson.and.resolveTo(finalRequest);
+    tts.planSingleSpeakerRenderRequests.and.resolveTo(plan);
+
+    await facade.createAudioProductionPlan({
+      prompt: 'test',
+      languageCode: 'en-US',
+      modelName: 'gpt-4',
+      audioEncoding: 'mp3',
+    });
+
+    expect(workflow.configureOutput).toHaveBeenCalledWith(
+      'session-123',
+      'en-US',
+      'gpt-4',
+      'mp3',
+      new Map([['Mara', 'Kore']])
+    );
+  });
+
+  it('createAudioProductionPlan handles workflow configureOutput failure gracefully', async () => {
+    const finalRequest = { test: 'final' } as any;
+    const plan = { test: 'plan' } as any;
+    facade.setCast([maraItem]);
+    (facade as any)._sessionId.set('session-123');
+    tts.generateFinalJson.and.resolveTo(finalRequest);
+    tts.planSingleSpeakerRenderRequests.and.resolveTo(plan);
+    (workflow.configureOutput as jasmine.Spy).and.returnValue({
+      toPromise: () => Promise.reject(new Error('Workflow error'))
+    });
+
+    // Should not throw, error is caught
+    await facade.createAudioProductionPlan({
+      prompt: 'test',
+      languageCode: 'en-US',
+      modelName: 'gpt-4',
+      audioEncoding: 'mp3',
+    });
+
+    expect(facade.audioProductionPlan()).toEqual(plan);
+    expect(facade.error()).toBeNull(); // Error is caught, not exposed
+  });
+
+  it('createAudioProductionPlan fails and sets error message', async () => {
+    const error = new Error('Generation failed');
+    tts.generateFinalJson.and.rejectWith(error);
+
+    await facade.createAudioProductionPlan({
+      prompt: 'test',
+      languageCode: 'en-US',
+      modelName: 'gpt-4',
+      audioEncoding: 'mp3',
+    });
+
+    expect(facade.error()).toBe('Generation failed');
+  });
+
+  // ── analyzeStory with workflow failures ────────────────────────────────────
+
+  it('analyzeStory continues when createWorkflow fails', async () => {
+    tts.analyzeSpeakers.and.resolveTo([maraItem]);
+    (workflow.createWorkflow as jasmine.Spy).and.returnValue({
+      toPromise: () => Promise.reject(new Error('Network error'))
+    });
+
+    await facade.analyzeStory('Story text');
+
+    expect(facade.cast()).toEqual([maraItem]);
+    expect(facade.error()).toBeNull(); // Error from workflow is swallowed
+    expect(facade.sessionId()).toBeNull(); // Session not set
+  });
+
+  it('analyzeStory triggers discoverSpeakers background call when createWorkflow succeeds', async () => {
+    tts.analyzeSpeakers.and.resolveTo([maraItem]);
+    (workflow.createWorkflow as jasmine.Spy).and.returnValue({
+      toPromise: () => Promise.resolve({ id: 'session-123' })
+    });
+
+    await facade.analyzeStory('Story text');
+
+    expect(facade.sessionId()).toBe('session-123');
+    expect(workflow.discoverSpeakers).toHaveBeenCalledWith('session-123');
+  });
+
+  it('analyzeStory handles discoverSpeakers background failure', async () => {
+    tts.analyzeSpeakers.and.resolveTo([maraItem]);
+    (workflow.createWorkflow as jasmine.Spy).and.returnValue({
+      toPromise: () => Promise.resolve({ id: 'session-123' })
+    });
+    (workflow.discoverSpeakers as jasmine.Spy).and.returnValue({
+      toPromise: () => Promise.reject(new Error('Backend error'))
+    });
+
+    // Should not throw
+    await facade.analyzeStory('Story text');
+
+    expect(facade.cast()).toEqual([maraItem]);
+  });
+
+  // ── createScriptPreview with workflow ──────────────────────────────────────
+
+  it('createScriptPreview calls workflow splitDialogue when sessionId exists', async () => {
+    facade.setCast([maraItem]);
+    (facade as any)._sessionId.set('session-123');
+    tts.splitDialogue.and.resolveTo([{ speaker: 'Mara', text: 'Hello' }]);
+
+    await facade.createScriptPreview('Mara: Hello');
+
+    expect(workflow.splitDialogue).toHaveBeenCalledWith(
+      'session-123',
+      jasmine.any(Array)
+    );
+  });
+
+  // ── createPerformanceNotes with workflow ──────────────────────────────────
+
+  it('createPerformanceNotes calls workflow annotateDialogue when sessionId exists', async () => {
+    facade.setScriptTurns([{ speaker: 'Mara', text: 'Hello' }]);
+    (facade as any)._sessionId.set('session-123');
+    tts.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '[warm] Hello' }]);
+
+    await facade.createPerformanceNotes();
+
+    expect(workflow.annotateDialogue).toHaveBeenCalledWith(
+      'session-123',
+      [{ speaker: 'Mara', text: 'Hello' }]
+    );
+  });
+
+  // ── saveScriptTurnEdit without annotated turns ─────────────────────────────
+
+  it('saveScriptTurnEdit does not mark notes stale when annotated turns empty', () => {
+    facade.setScriptTurns([{ speaker: 'Mara', text: 'We go.' }]);
+    facade.setAnnotatedTurns([]);
+    facade.startScriptTurnEdit(0);
+    const draft = facade.scriptTurnEditDraft()!;
+    draft.text = 'We stay.';
+    facade.saveScriptTurnEdit(0);
+
+    expect(facade.performanceNotesStale()).toBeFalse();
+  });
+
+  // ── saveCastEdit with no draft ────────────────────────────────────────────
+
+  it('saveCastEdit returns early when draft is null', () => {
+    facade.setCast([maraItem, jonasItem]);
+    facade.startCastEdit(0);
+    (facade as any)._castEditDraft.set(null);
+
+    facade.saveCastEdit(0);
+
+    // Cast should not change
+    expect(facade.cast()).toEqual([maraItem, jonasItem]);
+  });
+
+  // ── saveScriptTurnEdit with no draft ──────────────────────────────────────
+
+  it('saveScriptTurnEdit returns early when draft is null', () => {
+    const turn = { speaker: 'Mara', text: 'We go.' };
+    facade.setScriptTurns([turn]);
+    facade.startScriptTurnEdit(0);
+    (facade as any)._scriptTurnEditDraft.set(null);
+
+    facade.saveScriptTurnEdit(0);
+
+    // Script should not change
+    expect(facade.scriptTurns()).toEqual([turn]);
+  });
+
   // ── resetPipeline ─────────────────────────────────────────────────────────
 
   it('resetPipeline clears all state, error, and calls audio reset', () => {
@@ -207,5 +414,52 @@ describe('AudiobookStudioFacade', () => {
     expect(onReset).toHaveBeenCalledTimes(1);
     expect(renderSvc.abortAll).toHaveBeenCalled();
     expect(fullSvc.clearAudio).toHaveBeenCalled();
+  });
+
+  // ── Error handling: non-Error exception ────────────────────────────────────
+
+  it('analyzeStory uses fallback message when error is not an Error instance', async () => {
+    tts.analyzeSpeakers.and.rejectWith('String error');
+
+    await facade.analyzeStory('Story text');
+
+    expect(facade.error()).toBe('Story analysis failed.');
+  });
+
+  it('createScriptPreview uses fallback message for non-Error exceptions', async () => {
+    facade.setCast([maraItem]);
+    tts.splitDialogue.and.rejectWith({ code: 500 });
+
+    await facade.createScriptPreview('text');
+
+    expect(facade.error()).toBe('Script preview failed.');
+  });
+
+  // ── speakerOptions edge cases ─────────────────────────────────────────────
+
+  it('speakerOptions adds draft speaker when editing', () => {
+    facade.setCast([maraItem]);
+    const draftSpeaker = { speakerName: 'NewSpeaker', roleDescription: '', voiceSuggestion: 'Zephyr' };
+    (facade as any)._scriptTurnEditDraft.set({ speaker: 'NewSpeaker', text: 'test' });
+
+    const options = facade.speakerOptions();
+
+    expect(options).toContain('Mara');
+    expect(options).toContain('NewSpeaker');
+  });
+
+  it('speakerOptions handles case-insensitive Narrator check', () => {
+    facade.setCast([{ speakerName: 'NARRATOR', roleDescription: '', voiceSuggestion: 'Zephyr' }]);
+
+    const options = facade.speakerOptions();
+
+    expect(options).toContain('Narrator');
+  });
+
+  // ── setCurrentProjectId ───────────────────────────────────────────────────
+
+  it('setCurrentProjectId updates currentProjectId', () => {
+    facade.setCurrentProjectId('proj-123');
+    expect(facade.currentProjectId()).toBe('proj-123');
   });
 });

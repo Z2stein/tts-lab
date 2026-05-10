@@ -5,7 +5,7 @@
 The three most important engineering priorities are:
 
 1. Single responsibility: each component, class, function, workflow, and configuration file should have one clear purpose.
-2. High test coverage: important behavior must be protected by meaningful automated tests, preferably written or adjusted before the implementation.
+2. High test coverage: important behavior must be protected by meaningful automated tests, preferably written or adjusted before the implementation. **Mandatory minimum: ≥80% instruction coverage per package. All new code must include tests that maintain or improve coverage.**
 3. Easy maintenance: solutions should stay simple, understandable, easy to review, and easy to change later.
 
 When these priorities conflict, prefer the solution that keeps the codebase easier to understand and safer to change.
@@ -45,6 +45,34 @@ This repository is a deliberately simple learning project for:
 
 - Every important value, rule, or behavior must have one clear source of truth.
 - Do not duplicate configuration, business rules, deployment values, environment values, or derived logic across multiple files unless there is a clear reason.
+
+## Test Coverage Standards
+
+**Backend Code Coverage Requirement: ≥80% instruction coverage (mandatory)**
+
+Every backend package must maintain at least 80% instruction coverage. When implementing new features or modifying existing code:
+
+1. **Before implementation**: Write failing tests that define expected behavior.
+2. **During implementation**: Ensure all code paths are covered by tests.
+3. **After implementation**: Verify coverage with `gradle jacocoTestReport` and check `build/reports/jacoco/test/html/`.
+4. **If coverage drops below 80%**: Add tests to recover coverage in the same change; do not commit reductions in coverage.
+
+Test writing strategy:
+
+- **Unit tests**: Test individual functions, methods, and logic paths in isolation with mocking where appropriate.
+- **Integration tests**: Test service layers and repository interactions with test databases or mocks of external services.
+- **Error paths**: Ensure exception handling, validation, and error responses are tested.
+- **Edge cases**: Test boundary conditions, null inputs, empty collections, special characters, and large data sets.
+
+Coverage tracking:
+
+- Run `gradle build` to generate JaCoCo reports.
+- Report is available at `backend/build/reports/jacoco/test/html/index.html`.
+- Grep for package coverage or click through individual packages to identify untested classes.
+
+If a class cannot be easily tested (e.g., pure Google Cloud SDK wrapper), document why in the class javadoc and consider refactoring to extract testable logic. Complex external SDK integrations (like `GoogleCloudTtsClient` at 20% coverage) are acceptable candidates for lower coverage if the testable logic is separated.
+
+---
 
 ## Automated quality assurance
 

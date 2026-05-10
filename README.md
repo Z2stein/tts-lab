@@ -24,6 +24,25 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 - [Chatbot (MVP)](#chatbot-mvp)
 - [Request limits (MVP)](#request-limits-mvp)
 
+## Code Coverage & Quality Assurance
+
+**Mandatory backend code coverage requirement: ≥80% instruction coverage**
+
+Current backend status (as of latest test run):
+- Overall: **89% instruction coverage** (921 missed of 8,737 total instructions)
+- Branch coverage: 66% (171 missed of 507 branches)
+
+Package-level coverage:
+- ✅ **100%**: storage, projects.textlength, common
+- ✅ **95%+**: chat (95%), audiobooks (94%)
+- ✅ **90%+**: ratelimit (92%), prompts (91%), error (98%)
+- ✅ **85%+**: projects.ttsworkbench (85%), audiobooks.workflow (88%)
+- ⚠️ **<85%**: auth (65%)
+
+All test additions must maintain or improve coverage. Breaking changes that reduce package coverage below 85% require explicit coverage recovery in the same change. When coverage analysis reveals untested code paths, prioritize test-driven fixes before implementation.
+
+---
+
 ## What’s new
 
 This chat upgraded the existing Audiobook Studio MVP from an internal workflow page into a more premium, cinematic AI audiobook studio experience:

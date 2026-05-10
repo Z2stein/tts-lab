@@ -32,6 +32,9 @@ public class FileSystemFileStorageService implements FileStorageService {
     }
 
     private Path pathFor(String storageKey) {
+        if (storageKey == null || storageKey.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "INVALID_STORAGE_KEY", "The requested audio file is invalid.");
+        }
         Path root = storageProperties.rootPath().toAbsolutePath().normalize();
         Path path = root.resolve(storageKey).normalize();
         if (!path.startsWith(root)) {

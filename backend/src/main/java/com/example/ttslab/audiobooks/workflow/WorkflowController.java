@@ -2,11 +2,11 @@ package com.example.ttslab.audiobooks.workflow;
 
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.audiobooks.workflow.WorkflowDtos.*;
+import com.example.ttslab.prompts.CurrentUserResolver;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import jakarta.validation.Valid;
 
@@ -23,10 +23,12 @@ public class WorkflowController {
 
     private final WorkflowService workflowService;
     private final WorkflowSessionRepository sessionRepository;
+    private final CurrentUserResolver currentUserResolver;
 
-    public WorkflowController(WorkflowService workflowService, WorkflowSessionRepository sessionRepository) {
+    public WorkflowController(WorkflowService workflowService, WorkflowSessionRepository sessionRepository, CurrentUserResolver currentUserResolver) {
         this.workflowService = workflowService;
         this.sessionRepository = sessionRepository;
+        this.currentUserResolver = currentUserResolver;
     }
 
     /**
@@ -34,12 +36,12 @@ public class WorkflowController {
      * Create a new audiobook generation workflow.
      */
     @PostMapping
-    @PreAuthorize("authenticated")
     public ResponseEntity<WorkflowSessionResponse> createWorkflow(
         @RequestBody @Valid CreateWorkflowRequest request,
-        @AuthenticationPrincipal CurrentUser user
+        Authentication authentication
     ) {
         try {
+            CurrentUser user = currentUserResolver.resolve(authentication);
             WorkflowSession session = workflowService.initiateWorkflow(user, request.storyText());
             return ResponseEntity
                 .created(URI.create("/api/audiobooks/workflows/" + session.id()))
@@ -55,12 +57,12 @@ public class WorkflowController {
      * Fetch current workflow state.
      */
     @GetMapping("/{sessionId}")
-    @PreAuthorize("authenticated")
     public ResponseEntity<WorkflowSessionResponse> getWorkflow(
         @PathVariable String sessionId,
-        @AuthenticationPrincipal CurrentUser user
+        Authentication authentication
     ) {
         try {
+            CurrentUser user = currentUserResolver.resolve(authentication);
             WorkflowSession session = sessionRepository
                 .findSessionForUser(sessionId, user.id())
                 .orElse(null);
@@ -79,17 +81,17 @@ public class WorkflowController {
      * Execute Step 1: Discover speakers.
      */
     @PostMapping("/{sessionId}/discover-speakers")
-    @PreAuthorize("authenticated")
     public ResponseEntity<WorkflowSessionResponse> discoverSpeakers(
         @PathVariable String sessionId,
-        @AuthenticationPrincipal CurrentUser user
+        Authentication authentication
     ) {
         try {
+            CurrentUser user = currentUserResolver.resolve(authentication);
             WorkflowSession session = workflowService.executeDiscoverSpeakers(sessionId, user);
             return ResponseEntity.ok(WorkflowSessionResponse.from(session));
         } catch (Exception ex) {
             log.error("Speaker discovery failed", ex);
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
     }
 
@@ -98,18 +100,18 @@ public class WorkflowController {
      * Execute Step 2: Split dialogue.
      */
     @PostMapping("/{sessionId}/split-dialogue")
-    @PreAuthorize("authenticated")
     public ResponseEntity<WorkflowSessionResponse> splitDialogue(
         @PathVariable String sessionId,
         @RequestBody @Valid SplitDialogueRequest request,
-        @AuthenticationPrincipal CurrentUser user
+        Authentication authentication
     ) {
         try {
+            CurrentUser user = currentUserResolver.resolve(authentication);
             WorkflowSession session = workflowService.executeSplitDialogue(sessionId, user, request.speakers());
             return ResponseEntity.ok(WorkflowSessionResponse.from(session));
         } catch (Exception ex) {
             log.error("Dialogue split failed", ex);
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
     }
 
@@ -118,13 +120,13 @@ public class WorkflowController {
      * Execute Step 3: Annotate dialogue.
      */
     @PostMapping("/{sessionId}/annotate-dialogue")
-    @PreAuthorize("authenticated")
     public ResponseEntity<WorkflowSessionResponse> annotateDialogue(
         @PathVariable String sessionId,
         @RequestBody @Valid AnnotateDialogueRequest request,
-        @AuthenticationPrincipal CurrentUser user
+        Authentication authentication
     ) {
         try {
+            CurrentUser user = currentUserResolver.resolve(authentication);
             WorkflowSession session = workflowService.executeAnnotateDialogue(sessionId, user, request.turns());
             return ResponseEntity.ok(WorkflowSessionResponse.from(session));
         } catch (Exception ex) {
@@ -138,13 +140,13 @@ public class WorkflowController {
      * Execute Step 4: Configure TTS output.
      */
     @PostMapping("/{sessionId}/configure-output")
-    @PreAuthorize("authenticated")
     public ResponseEntity<WorkflowSessionResponse> configureOutput(
         @PathVariable String sessionId,
         @RequestBody @Valid ConfigureOutputRequest request,
-        @AuthenticationPrincipal CurrentUser user
+        Authentication authentication
     ) {
         try {
+            CurrentUser user = currentUserResolver.resolve(authentication);
             WorkflowSession session = workflowService.executeConfigureOutput(
                 sessionId, user,
                 request.languageCode(),
@@ -164,17 +166,17 @@ public class WorkflowController {
      * Execute Step 5: Generate audio.
      */
     @PostMapping("/{sessionId}/generate-audio")
-    @PreAuthorize("authenticated")
     public ResponseEntity<WorkflowSessionResponse> generateAudio(
         @PathVariable String sessionId,
-        @AuthenticationPrincipal CurrentUser user
+        Authentication authentication
     ) {
         try {
+            CurrentUser user = currentUserResolver.resolve(authentication);
             WorkflowSession session = workflowService.executeGenerateAudio(sessionId, user);
             return ResponseEntity.ok(WorkflowSessionResponse.from(session));
         } catch (Exception ex) {
             log.error("Audio generation failed", ex);
-            return ResponseEntity.status(HttpStatus.BAD_GATEWAY).build();
+            return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
     }
 }
