@@ -61,10 +61,10 @@ export class AudioPlayerModalComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     setTimeout(() => {
-      if (this.waveformContainer) {
+      if (this.waveformContainer?.nativeElement) {
         const waveSurfer = this.waveSurferService.create(
           this.waveSurferId,
-          this.waveformContainer.nativeElement,
+          this.waveformContainer.nativeElement as HTMLElement,
           this.asset.streamUrl
         );
 
@@ -88,7 +88,7 @@ export class AudioPlayerModalComponent implements OnInit, OnDestroy {
   togglePlayPause(): void {
     const waveSurfer = this.waveSurferService.get(this.waveSurferId);
     if (waveSurfer) {
-      waveSurfer.playPause();
+      void waveSurfer.playPause();
     }
   }
 

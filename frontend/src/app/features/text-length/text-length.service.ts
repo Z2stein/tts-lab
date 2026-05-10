@@ -1,5 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CurrentUserService } from '../../current-user.service';
+import { LoggerService } from '../../logger.service';
 
 interface ApiErrorResponse {
   status?: number;
@@ -13,10 +14,13 @@ interface ApiErrorResponse {
   providedIn: 'root'
 })
 export class TextLengthService {
-  constructor(private readonly currentUserService: CurrentUserService) {}
+  constructor(
+    private readonly currentUserService: CurrentUserService,
+    private readonly logger: LoggerService
+  ) {}
 
   async getLength(text: string): Promise<number> {
-    console.info('[text-length] Sending request', { textLength: text.length });
+    this.logger.info('text-length', 'Sending request', { textLength: text.length });
 
     let response: Response;
     try {
@@ -40,7 +44,7 @@ export class TextLengthService {
     }
 
     const data = (await response.json()) as { length: number };
-    console.info('[text-length] Request succeeded', { length: data.length });
+    this.logger.info('text-length', 'Request succeeded', { length: data.length });
     return data.length;
   }
 

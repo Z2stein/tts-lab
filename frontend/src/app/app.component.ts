@@ -4,6 +4,7 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { Subscription, filter } from 'rxjs';
 import { ChatbotWidgetComponent } from './chatbot/chatbot-widget.component';
 import { CurrentUser, CurrentUserService, RequestLimitItem, RequestLimitSummary } from './current-user.service';
+import { LoggerService } from './logger.service';
 
 @Component({
   selector: 'app-root',
@@ -26,7 +27,8 @@ export class AppComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly currentUserService: CurrentUserService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly logger: LoggerService
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -54,7 +56,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private async initializeAuth(): Promise<void> {
     this.authInitialized = true;
     this.authStatus = 'loading';
-    console.info('[app] Initializing app and resolving auth state');
+    this.logger.info('app', 'Initializing app and resolving auth state');
     try {
       this.currentUser = await this.currentUserService.getCurrentUser();
       this.authStatus = this.currentUser ? 'authenticated' : 'unauthenticated';
@@ -66,7 +68,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.authStatus = 'unauthenticated';
       this.authError = 'Could not validate session. Please try signing in again.';
     }
-    console.info('[app] Auth state resolved', { authStatus: this.authStatus });
+    this.logger.info('app', 'Auth state resolved', { authStatus: this.authStatus });
   }
 
   private updatePublicRouteState(url: string): void {

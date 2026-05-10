@@ -2,7 +2,6 @@ import { computed, Injectable, signal } from '@angular/core';
 import {
   FinalTtsRequestPreview,
   SingleSpeakerRenderPlan,
-  SingleSpeakerRenderRequest,
   SpeakerVoiceAnalysisItem,
   TtsWorkbenchService,
 } from '../tts-workbench/tts-workbench.service';

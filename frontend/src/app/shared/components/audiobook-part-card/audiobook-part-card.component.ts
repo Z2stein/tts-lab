@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { WaveformPlayerComponent } from '../../../features/audiobook-studio/components/waveform-player/waveform-player.component';
 import { VoiceSampleService } from '../../../features/audiobook-studio/services/voice-sample.service';
-import { AudiobookScene } from '../../../features/audiobook-library/models/audiobook-library.types';
+import { LoggerService } from '../../../logger.service';
 
 export interface AudiobookPartCard {
   partNumber: number;
@@ -34,6 +34,8 @@ export class AudiobookPartCardComponent {
   @Input() readonly = true;
 
   playing = false;
+
+  constructor(private readonly logger: LoggerService) {}
 
   isDirectionTag(tag: string): boolean {
     const directionPatterns = [
@@ -85,7 +87,7 @@ export class AudiobookPartCardComponent {
 
   downloadAsset(assetId: string): void {
     // Placeholder - to be implemented by parent component or service
-    console.log('Download asset:', assetId);
+    this.logger.info('audiobook-part-card', 'Download asset', { assetId });
   }
 
   durationLabel(seconds: number | null | undefined): string {

@@ -25,7 +25,7 @@ export function parsePerformanceDirections(performanceDirections?: string): Pars
   let speakerName: string | undefined;
   let originalText: string | undefined;
 
-  const speakerMatch = remaining.match(/^([^,\[]+),\s*/);
+  const speakerMatch = remaining.match(/^([^,[]+),\s*/);
   if (speakerMatch) {
     speakerName = speakerMatch[1].trim();
     originalText = remaining.slice(speakerMatch[0].length);

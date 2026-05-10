@@ -7,6 +7,6 @@ export class ScrollService {
   }
 
   focusById(elementId: string, options?: FocusOptions): void {
-    (document.getElementById(elementId) as HTMLElement | null)?.focus(options);
+    document.getElementById(elementId)?.focus(options);
   }
 }

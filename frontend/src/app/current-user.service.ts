@@ -1,4 +1,5 @@
 import { Injectable } from '@angular/core';
+import { LoggerService } from './logger.service';
 
 export type CurrentUser = {
   id: string;
@@ -26,14 +27,16 @@ export type RequestLimitSummary = {
 export class CurrentUserService {
   private csrfToken: string | null = null;
 
+  constructor(private readonly logger: LoggerService) {}
+
   async getCurrentUser(): Promise<CurrentUser | null> {
-    console.info('[auth] Checking current user via /api/me');
+    this.logger.info('auth', 'Checking current user via /api/me');
 
     try {
       const response = await fetch('/api/me', { redirect: 'follow' });
 
       if (response.status === 401) {
-        console.info('[auth] /api/me returned 401 (unauthenticated)');
+        this.logger.info('auth', '/api/me returned 401 (unauthenticated)');
         return null;
       }
 
@@ -54,7 +57,7 @@ export class CurrentUserService {
       }
 
       const user = (await response.json()) as CurrentUser;
-      console.info('[auth] User authenticated', { id: user.id, authMode: user.authMode });
+      this.logger.info('auth', 'User authenticated', { id: user.id, authMode: user.authMode });
       return user;
     } catch (error) {
       console.error('[auth] /api/me request failed, treating as unauthenticated', error);
@@ -78,7 +81,7 @@ export class CurrentUserService {
   }
 
   startGoogleLogin(): void {
-    console.info('[auth] Starting Google login redirect');
+    this.logger.info('auth', 'Starting Google login redirect');
     window.location.href = '/oauth2/authorization/google';
   }
 
@@ -91,7 +94,7 @@ export class CurrentUserService {
           'X-XSRF-TOKEN': csrfToken
         }
       });
-      console.info('[auth] Logout request completed, reloading page');
+      this.logger.info('auth', 'Logout request completed, reloading page');
       window.location.href = '/';
     } catch (error) {
       console.error('[auth] Logout request failed', error);
