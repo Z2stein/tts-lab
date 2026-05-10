@@ -26,7 +26,40 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
 ## What’s new
 
-This chat upgraded the existing Audiobook Studio MVP from an internal workflow page into a more premium, cinematic AI audiobook studio experience:
+### Audiobook Library v2 Data Model Migration
+
+A comprehensive data model upgrade enables rich audiobook library displays with complete generation history tracking:
+
+**New Schema (Flyway V6):**
+- **Character** table: Cast management with voice assignments, role descriptions, and approval status
+- **SpeechSegment** table: Speech content tied to characters, with editing and approval tracking
+- **AIGenerationRun** table: Explicit tracking of generation attempts (cast discovery, script split, annotation, render planning, audio generation)
+- **RenderSegment** table: Individual segment render attempts under a generation run, with provider request/response tracking
+- **Enhanced audiobook_project** table: Now includes `sourceText`, `languageCode`, `modelName`, `audioEncoding`, and `revision` fields
+- **Updated audio_asset** table: Simplified type enum (VOICE_PREVIEW, SEGMENT_AUDIO, FULL_AUDIOBOOK) and linked to generation runs
+
+**New API Endpoints:**
+- `GET /audiobooks/{projectId}/library` — Complete audiobook library display with project metadata, characters, segments, generation history, and assets
+- `GET /audiobooks/{projectId}/characters` — List project cast
+- `POST /audiobooks/{projectId}/characters` — Add character with voice assignment
+- `GET /audiobooks/{projectId}/segments` — Ordered segment list with character details
+- `POST /audiobooks/{projectId}/segments` — Add speech segment
+- `GET /audiobooks/{projectId}/generation-runs` — Generation attempt history
+- `GET /audiobooks/{projectId}/generation-runs/{runId}` — Run detail with all render segments
+
+**Frontend:**
+- New `AudiobookLibraryDisplayComponent` for viewing complete project metadata, character casting, segment details, and generation history
+- Updated types and service methods for new schema
+- Backward compatibility maintained for existing audiobook-library and audiobook-studio pages
+
+**Deployment Note:**
+When deploying to production, back up your database before the migration. Flyway V6 performs a big-bang schema replacement and does not preserve existing audiobook data (intentional for this learning project). After the migration, the audiobook library endpoints will reflect the new schema.
+
+---
+
+### Audiobook Studio UX/UI Refinement
+
+The Audiobook Studio MVP was upgraded from an internal workflow page into a more premium, cinematic AI audiobook studio experience:
 
 - `/audiobook-studio` now opens with a frontend-only hero section: “Give every character in your story a voice.”
 - The first viewport shows the intended product promise visually: pasted story text flows into a detected cast card and an audio waveform preview.
@@ -439,6 +472,194 @@ npm start
 ```
 
 Automated backend/frontend tests use mocks and do not call Gemini APIs.
+
+
+## Audiobook Library v2 Data Model
+
+The audiobook library feature now supports detailed library displays showing complete audiobook creation metadata through a redesigned data model.
+
+### Schema Overview
+
+The new schema separates concerns across five core entities:
+
+**AudiobookProject** — Top-level audiobook project container
+- Fields: `id`, `userId`, `title`, `sourceText`, `languageCode`, `modelName`, `audioEncoding`, `status`, `revision`, `createdAt`, `updatedAt`
+- Tracks the original story text, target language, AI model used, and audio format
+
+**Character** — Cast member with voice assignment
+- Fields: `id`, `projectId`, `name`, `roleDescription`, `voiceKey`, `sortOrder`, `approved`, `createdAt`, `updatedAt`
+- Enables separate character casting from voice assignment
+- Tracks voice selection and character approval status
+
+**SpeechSegment** — Dialogue or narration segment
+- Fields: `id`, `projectId`, `characterId`, `sequenceNo`, `originalText`, `annotatedText`, `edited`, `approved`, `createdAt`, `updatedAt`
+- Tied to a specific character
+- Supports editing and approval workflow
+- Stores both original and emotion-annotated text
+
+**AIGenerationRun** — Generation attempt tracking
+- Fields: `id`, `projectId`, `type` (RunType enum), `status` (RunStatus enum), `requestJson`, `responseJson`, `errorMessage`, `startedAt`, `completedAt`, `createdAt`
+- Tracks five run types: `CAST_DISCOVERY`, `SCRIPT_SPLIT`, `ANNOTATION`, `RENDER_PLAN`, `AUDIO_GENERATION`
+- Tracks five statuses: `PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED`, `STALE`
+- Stores full request/response payloads for debugging and recovery
+
+**RenderSegment** — Individual segment render attempt
+- Fields: `id`, `aiGenerationRunId`, `speechSegmentId`, `text`, `providerRequestJson`, `status` (RunStatus enum), `audioAssetId`, `createdAt`, `startedAt`, `completedAt`
+- Links speech segments to audio assets through generation runs
+- Stores provider-specific request JSON for traceability
+
+**AudioAsset** — Generated audio file
+- Fields: `id`, `projectId`, `aiGenerationRunId`, `type` (AudioAssetType enum), `fileName`, `storageKey`, `contentType`, `durationMs`, `sizeBytes`, `createdAt`
+- Simplified type enum: `VOICE_PREVIEW`, `SEGMENT_AUDIO`, `FULL_AUDIOBOOK`
+- Tracks duration in milliseconds instead of seconds
+
+### API Endpoints
+
+**Project Management**
+- `GET /audiobooks` — List all projects for authenticated user
+- `GET /audiobooks/{projectId}` — Project metadata
+- `POST /audiobooks` — Create new project
+- `PUT /audiobooks/{projectId}` — Update project status/metadata
+
+**Character Management**
+- `GET /audiobooks/{projectId}/characters` — List cast
+- `POST /audiobooks/{projectId}/characters` — Add character
+- `PUT /audiobooks/{projectId}/characters/{characterId}` — Update character
+- `DELETE /audiobooks/{projectId}/characters/{characterId}` — Remove character
+
+**Segment Management**
+- `GET /audiobooks/{projectId}/segments` — Ordered segment list
+- `POST /audiobooks/{projectId}/segments` — Add segment
+- `PUT /audiobooks/{projectId}/segments/{segmentId}` — Update segment
+
+**Generation & Library Display**
+- `POST /audiobooks/{projectId}/generate` — Start generation run
+- `GET /audiobooks/{projectId}/generation-runs` — List generation attempts
+- `GET /audiobooks/{projectId}/generation-runs/{runId}` — Run detail with render segments
+- `GET /audiobooks/{projectId}/library` — **Complete library display** with project metadata, characters, segments, generation history, and assets
+
+### Library Display Response
+
+The `/library` endpoint returns a comprehensive view of the audiobook project:
+
+```json
+{
+  "project": {
+    "id": "...",
+    "title": "The Amber Signal",
+    "sourceText": "Once upon a time...",
+    "languageCode": "en-US",
+    "modelName": "gpt-4",
+    "audioEncoding": "mp3",
+    "status": "AUDIO_READY",
+    "revision": 1
+  },
+  "characters": [
+    {
+      "id": "...",
+      "name": "Alice",
+      "roleDescription": "Protagonist, brave explorer",
+      "voiceKey": "google-neural:en-US-Neural2-A",
+      "sortOrder": 1,
+      "approved": true
+    }
+  ],
+  "segments": [
+    {
+      "id": "...",
+      "characterId": "...",
+      "characterName": "Alice",
+      "sequenceNo": 1,
+      "originalText": "Hello world",
+      "annotatedText": "[calm] Hello world",
+      "approved": true
+    }
+  ],
+  "generationRuns": [
+    {
+      "id": "...",
+      "type": "AUDIO_GENERATION",
+      "status": "SUCCEEDED",
+      "startedAt": "2026-05-10T10:00:00Z",
+      "completedAt": "2026-05-10T10:05:00Z",
+      "renders": [
+        {
+          "id": "...",
+          "segmentId": "...",
+          "status": "SUCCEEDED",
+          "audioAsset": {
+            "id": "...",
+            "fileName": "segment_001.mp3",
+            "durationMs": 5000
+          }
+        }
+      ]
+    }
+  ],
+  "assets": [
+    {
+      "id": "...",
+      "type": "FULL_AUDIOBOOK",
+      "fileName": "audiobook.zip",
+      "durationMs": 360000
+    }
+  ]
+}
+```
+
+### Frontend Components
+
+**AudiobookLibraryDisplayComponent** (`audiobook-library-display.component.ts`)
+- Loads complete library data via `AudiobookLibraryService.getLibraryDisplay(projectId)`
+- Displays project metadata in header with statistics (character count, segment count, total duration)
+- Shows cast list with character names, role descriptions, and voice assignments
+- Displays segments table with character associations and approval status
+- Renders generation run history with timestamps and render segment details
+- Shows all audio assets with types and durations
+- Mobile-responsive grid layout with color-coded status badges
+
+### Deployment Considerations
+
+**Database Migration:**
+- Flyway V6 migration (`V6__migrate_audiobook_model.sql`) performs a big-bang schema replacement
+- Old tables (`audiobook_project`, `audiobook_scene`, `audio_asset`) are dropped
+- Existing audiobook data is not preserved (intentional for this learning project)
+- **Before deploying to production**: Back up your database and verify the backup succeeded
+
+**Production Deployment Steps:**
+1. Back up production database
+2. Deploy application with V6 migration
+3. Flyway automatically runs V6 on startup
+4. Old audiobook endpoints will 404 until data is migrated to new schema
+5. New library display endpoints are immediately available
+
+**Multi-tenancy:**
+- All repository queries filter by `userId` for security
+- Users can only access their own projects, characters, and segments
+- Generation runs and assets inherit project ownership
+
+### Testing
+
+The migration includes comprehensive test coverage:
+
+- **31 integration tests** in `AudiobookRepositoryIntegrationTest.java` covering all CRUD operations
+- **Updated unit tests** for controller, service, and metadata calculator
+- **All 127 backend tests pass**
+- **All 19 E2E tests pass**
+
+Run tests locally:
+
+```bash
+cd backend
+gradle build
+
+cd ../frontend
+CHROME_BIN="${CHROME_BIN:-/tmp/chrome-no-sandbox}" npm test
+npm run build
+
+cd ../
+npm run test:e2e
+```
 
 
 ## Request limits (MVP)
