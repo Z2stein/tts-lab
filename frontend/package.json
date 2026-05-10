@@ -5,6 +5,7 @@
   "scripts": {
     "start": "ng serve --host 0.0.0.0 --port 4200 --proxy-config proxy.conf.json",
     "build": "ng build",
+    "lint": "eslint src/**/*.ts --max-warnings=0",
     "test": "ng test --watch=false --browsers=ChromeHeadless",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
@@ -28,7 +29,10 @@
     "@angular/compiler-cli": "^17.3.0",
     "@playwright/test": "^1.54.0",
     "@types/jasmine": "^6.0.0",
+    "@typescript-eslint/eslint-plugin": "^7.0.0",
+    "@typescript-eslint/parser": "^7.0.0",
     "autoprefixer": "^10.5.0",
+    "eslint": "^8.50.0",
     "jasmine-core": "^6.2.0",
     "karma": "^6.4.4",
     "karma-chrome-launcher": "^3.2.0",

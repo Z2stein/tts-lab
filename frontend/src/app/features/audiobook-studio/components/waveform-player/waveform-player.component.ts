@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
@@ -63,6 +64,7 @@ export class WaveformPlayerComponent implements AfterViewInit, OnChanges, OnDest
   constructor(
     private readonly waveSurferService: WaveSurferService,
     private readonly voiceSampleService: VoiceSampleService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngAfterViewInit(): void {
@@ -92,6 +94,12 @@ export class WaveformPlayerComponent implements AfterViewInit, OnChanges, OnDest
   private createWaveSurfer(): void {
     if (!this.src || !this.waveformEl) return;
     const ws = this.waveSurferService.create(this.key, this.waveformEl.nativeElement, this.src);
+
+    // Update duration label when audio is ready
+    ws.on('ready', () => {
+      this.cdr.markForCheck();
+    });
+
     this.waveSurferService.bind(
       ws,
       () => {

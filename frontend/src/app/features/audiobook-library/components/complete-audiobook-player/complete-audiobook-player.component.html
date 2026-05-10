@@ -1,0 +1,39 @@
+<section class="rounded-lg border border-studio-line bg-studio-panel/85 p-6 backdrop-blur" data-testid="primary-audio-player">
+  <div class="mb-6">
+    <p class="eyebrow">Complete Preview</p>
+    <h2 class="m-0 text-2xl font-black">Full Audiobook</h2>
+  </div>
+
+  <div class="player-container">
+    <app-waveform-player
+      [key]="'complete-audiobook-' + asset.id"
+      [src]="asset.streamUrl"
+      class="complete-audiobook-waveform"
+      [ariaLabel]="'Complete audiobook preview - ' + formatDuration(asset.durationSeconds)">
+      <a
+        slot="header"
+        [href]="asset.downloadUrl"
+        class="download-button"
+        download
+        *ngIf="asset.status === 'READY'">
+        <span class="download-icon" aria-hidden="true">↓</span>
+        Download ({{ formatFileSize(asset.sizeBytes) }})
+      </a>
+    </app-waveform-player>
+  </div>
+
+  <div class="metadata mt-4">
+    <span class="metadata-item" *ngIf="asset.durationSeconds">
+      <span class="label">Duration:</span>
+      <span class="value">{{ formatDuration(asset.durationSeconds) }}</span>
+    </span>
+    <span class="metadata-item">
+      <span class="label">Size:</span>
+      <span class="value">{{ formatFileSize(asset.sizeBytes) }}</span>
+    </span>
+    <span class="metadata-item" *ngIf="asset.filename">
+      <span class="label">File:</span>
+      <span class="value">{{ asset.filename }}</span>
+    </span>
+  </div>
+</section>

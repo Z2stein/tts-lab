@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
-import { AudioAssetPlayerComponent } from './components/audio-asset-player.component';
+import { CompleteAudiobookPlayerComponent } from './components/complete-audiobook-player/complete-audiobook-player.component';
 import { AudiobookSceneListComponent } from './components/audiobook-scene-list.component';
 import { AudiobookDetail, AudioAsset, AudiobookScene } from './models/audiobook-library.types';
 import { AudiobookLibraryService } from './services/audiobook-library.service';
@@ -12,7 +12,7 @@ import { parsePerformanceDirections } from './utils/performance-parser';
 @Component({
   selector: 'app-audiobook-review-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, AudioAssetPlayerComponent, AudiobookSceneListComponent, AudiobookPartCardComponent],
+  imports: [CommonModule, RouterLink, CompleteAudiobookPlayerComponent, AudiobookSceneListComponent, AudiobookPartCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './audiobook-review-page.component.css',
   template: `
@@ -36,8 +36,8 @@ import { parsePerformanceDirections } from './utils/performance-parser';
             </div>
           </header>
 
-          <!-- Primary Asset Player -->
-          <app-audio-asset-player *ngIf="primaryAsset" [asset]="primaryAsset" testId="primary-audio-player"></app-audio-asset-player>
+          <!-- Complete Audiobook Player -->
+          <app-complete-audiobook-player *ngIf="primaryAsset" [asset]="primaryAsset"></app-complete-audiobook-player>
 
           <!-- Audio Parts Section - Styled to match studio page -->
           <details class="audio-parts-details" open>
@@ -57,17 +57,6 @@ import { parsePerformanceDirections } from './utils/performance-parser';
 
           <!-- Scene List -->
           <app-audiobook-scene-list [scenes]="detail.scenes" [audioAssets]="detail.audioAssets"></app-audiobook-scene-list>
-
-          <!-- Available Files Section -->
-          <section class="rounded-lg border border-studio-line bg-studio-panel/85 p-5 backdrop-blur" data-testid="audio-assets">
-            <div class="mb-4">
-              <p class="eyebrow">Available files</p>
-              <h2 class="m-0 text-2xl font-black">Audio assets</h2>
-            </div>
-            <div class="grid gap-4">
-              <app-audio-asset-player *ngFor="let asset of detail.audioAssets; trackBy: trackAsset" [asset]="asset"></app-audio-asset-player>
-            </div>
-          </section>
         </ng-container>
       </div>
     </section>

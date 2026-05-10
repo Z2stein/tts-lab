@@ -368,6 +368,12 @@ jobs:
           cd frontend
           npm ci
 
+      - name: Lint frontend code
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm run lint
+
       - name: Install Playwright browser
         run: |
           set -euo pipefail
