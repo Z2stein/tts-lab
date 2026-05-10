@@ -235,13 +235,21 @@ test('user can open audiobook detail review page with scenes and audio assets', 
   await expect(page.getByRole('heading', { name: 'The Amber Signal' })).toBeVisible();
   await expect(page.getByTestId('primary-audio-player')).toBeVisible();
 
-  // DEBUG: Check if scene-list section is rendered
+  // Verify scene-list is rendered
   await expect(page.getByTestId('scene-list')).toBeVisible();
 
+  // Verify all 2 scenes render in the scene-list with their data
   await expect(page.getByTestId('scene-row')).toHaveCount(2);
   await expect(page.getByText('Station clock')).toBeVisible();
-  await expect(page.getByTestId('audio-download')).toHaveCount(3);
-  await expect(page.getByTestId('audio-player')).toHaveCount(3);
+  await expect(page.getByText('The winter key')).toBeVisible();
+
+  // Audio players and downloads now include:
+  // - Primary player (1)
+  // - Part-card players (2) - one for each scene with audio
+  // - Available files players (2) - for scene-specific assets
+  // Total: 4 players and 4 downloads
+  await expect(page.getByTestId('audio-player')).toHaveCount(4);
+  await expect(page.getByTestId('audio-download')).toHaveCount(4);
 });
 
 test('audiobook studio remains reachable from authenticated navigation', async ({ context, page }) => {
@@ -494,12 +502,18 @@ test('detail page displays all character parts with performance details and full
   await expect(primaryPlayer).toContainText('4:41');
 
   // BUG FIX TEST 2: Verify all character parts are displayed (not just first one)
-  const partsSection = page.locator('h2:has-text("Audio parts and individual previews")');
-  await expect(partsSection).toBeVisible();
+  await expect(page.locator('h2:has-text("Audio parts and individual previews")')).toBeVisible();
 
+  // Verify all 3 character parts are rendered (Narrator, Mara, Leo)
+  // The render-list div contains the audiobook-part-card articles
+  const partArticles = page.locator('.render-list article.render-request');
+  await expect(partArticles).toHaveCount(3);
 
-  // Verify character parts section is rendered
-  await expect(page.getByText('Narrator')).toBeVisible();
+  // Verify each part has speaker name visible in h3 elements
+  const h3s = page.locator('.render-list article h3');
+  await expect(h3s.nth(0)).toContainText('Narrator');
+  await expect(h3s.nth(1)).toContainText('Mara');
+  await expect(h3s.nth(2)).toContainText('Leo');
 
   // BUG FIX TEST 3: Verify scene-list shows all scenes with performance details
   const sceneListSection = page.getByTestId('scene-list');

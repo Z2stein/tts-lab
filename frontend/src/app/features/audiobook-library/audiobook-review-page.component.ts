@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, OnInit } from '@angular/core';
+import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { AudioAssetPlayerComponent } from './components/audio-asset-player.component';
 import { AudiobookSceneListComponent } from './components/audiobook-scene-list.component';
@@ -13,6 +13,7 @@ import { parsePerformanceDirections } from './utils/performance-parser';
   selector: 'app-audiobook-review-page',
   standalone: true,
   imports: [CommonModule, RouterLink, AudioAssetPlayerComponent, AudiobookSceneListComponent, AudiobookPartCardComponent],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './audiobook-review-page.component.css',
   template: `
     <section class="relative -mx-4 -my-8 min-h-[calc(100vh-6rem)] overflow-hidden bg-studio-bg px-4 py-10 text-studio-text sm:-mx-8 sm:px-8" aria-labelledby="review-title">
@@ -45,10 +46,10 @@ import { parsePerformanceDirections } from './utils/performance-parser';
             </summary>
             <div class="render-list">
               <app-audiobook-part-card
-                *ngFor="let part of audioPartCards; let i = index"
+                *ngFor="let part of audioPartCards; trackBy: trackPart"
                 [part]="part"
-                [partNumber]="i + 1"
-                [totalParts]="audioPartCards.length"
+                [partNumber]="part.partNumber"
+                [totalParts]="part.totalParts"
                 [readonly]="true">
               </app-audiobook-part-card>
             </div>
@@ -80,7 +81,8 @@ export class AudiobookReviewPageComponent implements OnInit {
 
   constructor(
     private readonly route: ActivatedRoute,
-    private readonly audiobookLibraryService: AudiobookLibraryService
+    private readonly audiobookLibraryService: AudiobookLibraryService,
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   get readyAssets(): AudioAsset[] {
@@ -151,11 +153,16 @@ export class AudiobookReviewPageComponent implements OnInit {
       this.error = 'The audiobook review page could not be loaded.';
     } finally {
       this.loading = false;
+      this.cdr.markForCheck();
     }
   }
 
   trackAsset(_: number, asset: AudioAsset): string {
     return asset.id;
+  }
+
+  trackPart(_: number, part: AudiobookPartCard): string {
+    return `${part.partNumber}-${part.speakerName || 'unknown'}`;
   }
 
   updatedLabel(value: string): string {

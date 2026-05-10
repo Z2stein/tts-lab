@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { AudiobookScene, AudioAsset } from '../models/audiobook-library.types';
 import { parsePerformanceDirections } from '../utils/performance-parser';
 
@@ -7,6 +7,7 @@ import { parsePerformanceDirections } from '../utils/performance-parser';
   selector: 'app-audiobook-scene-list',
   standalone: true,
   imports: [CommonModule],
+  changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './audiobook-scene-list.component.css',
   template: `
     <section class="rounded-lg border border-studio-line bg-studio-panel/85 p-5 backdrop-blur" data-testid="scene-list">

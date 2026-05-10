@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import { WaveformPlayerComponent } from '../../../features/audiobook-studio/components/waveform-player/waveform-player.component';
+import { VoiceSampleService } from '../../../features/audiobook-studio/services/voice-sample.service';
 import { AudiobookScene } from '../../../features/audiobook-library/models/audiobook-library.types';
 
 export interface AudiobookPartCard {
@@ -22,6 +23,7 @@ export interface AudiobookPartCard {
   selector: 'app-audiobook-part-card',
   standalone: true,
   imports: [CommonModule, WaveformPlayerComponent],
+  providers: [VoiceSampleService],
   templateUrl: './audiobook-part-card.component.html',
   styleUrl: './audiobook-part-card.component.css',
 })
