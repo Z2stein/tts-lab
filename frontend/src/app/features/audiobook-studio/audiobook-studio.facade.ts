@@ -5,6 +5,7 @@ import {
   SpeakerVoiceAnalysisItem,
   TtsWorkbenchService,
 } from '../tts-workbench/tts-workbench.service';
+import { WorkflowService, WorkflowSessionResponse } from './services/workflow.service';
 import {
   AnnotatedSpeakerTurn,
   ScriptGroup,
@@ -30,6 +31,7 @@ export class AudiobookStudioFacade {
   private readonly _editingScriptTurnIndex = signal<number | null>(null);
   private readonly _scriptTurnEditDraft = signal<SpeakerSplitTurn | null>(null);
   private readonly _currentProjectId = signal<string | null>(null);
+  private readonly _sessionId = signal<string | null>(null);
 
   readonly cast = this._cast.asReadonly();
   readonly scriptTurns = this._scriptTurns.asReadonly();
@@ -46,6 +48,7 @@ export class AudiobookStudioFacade {
   readonly editingScriptTurnIndex = this._editingScriptTurnIndex.asReadonly();
   readonly scriptTurnEditDraft = this._scriptTurnEditDraft.asReadonly();
   readonly currentProjectId = this._currentProjectId.asReadonly();
+  readonly sessionId = this._sessionId.asReadonly();
 
   readonly scriptGroups = computed<ScriptGroup[]>(() =>
     this._scriptTurns().reduce<ScriptGroup[]>((groups, turn, index) => {
@@ -76,6 +79,7 @@ export class AudiobookStudioFacade {
   onAudioReset: (() => void) | null = null;
 
   constructor(
+    private readonly workflowService: WorkflowService,
     private readonly ttsWorkbenchService: TtsWorkbenchService,
     private readonly renderRequestAudioService: RenderRequestAudioService,
     private readonly fullAudioGenerationService: FullAudioGenerationService,
@@ -96,7 +100,25 @@ export class AudiobookStudioFacade {
 
   async analyzeStory(storyText: string): Promise<void> {
     await this.runStep('cast', async () => {
+      // Step 1: Analyze speakers using TTS workbench service
       const cast = await this.ttsWorkbenchService.analyzeSpeakers(storyText);
+
+      // Step 2: Create workflow session and discover speakers on backend for persistence
+      try {
+        const createResponse = await this.workflowService.createWorkflow(storyText).toPromise();
+        if (createResponse?.id) {
+          this._sessionId.set(createResponse.id);
+          // Optionally trigger speaker discovery on backend for audit trail
+          // but don't block on it since we already have the speakers
+          this.workflowService.discoverSpeakers(createResponse.id).toPromise().catch(() => {
+            // Ignore errors from background workflow call
+          });
+        }
+      } catch (err) {
+        // Workflow session creation failed, but we can continue with local processing
+        console.warn('Failed to create workflow session, continuing without persistence', err);
+      }
+
       this._cast.set(cast);
       this._scriptTurns.set([]);
       this._annotatedTurns.set([]);
@@ -113,7 +135,23 @@ export class AudiobookStudioFacade {
 
   async createScriptPreview(storyText: string): Promise<void> {
     await this.runStep('script', async () => {
+      // Generate script using TTS workbench service
       const scriptTurns = await this.ttsWorkbenchService.splitDialogue(storyText, this._cast());
+
+      // Optionally persist to workflow session
+      const sessionId = this._sessionId();
+      if (sessionId) {
+        // Cast TTS workbench speakers to workflow service format for persistence
+        const workflowSpeakers = this._cast().map(s => ({
+          speakerName: s.speakerName,
+          roleDescription: s.roleDescription,
+          voiceSuggestion: { getKey: () => s.voiceSuggestion }
+        }));
+        this.workflowService.splitDialogue(sessionId, workflowSpeakers).toPromise().catch(() => {
+          // Ignore errors from background workflow call
+        });
+      }
+
       this._scriptTurns.set(scriptTurns);
       this._annotatedTurns.set([]);
       this._finalRequest.set(null);
@@ -129,7 +167,17 @@ export class AudiobookStudioFacade {
 
   async createPerformanceNotes(): Promise<void> {
     await this.runStep('notes', async () => {
+      // Annotate emotions using TTS workbench service
       const annotatedTurns = await this.ttsWorkbenchService.annotateEmotions(this._scriptTurns());
+
+      // Optionally persist to workflow session
+      const sessionId = this._sessionId();
+      if (sessionId) {
+        this.workflowService.annotateDialogue(sessionId, this._scriptTurns()).toPromise().catch(() => {
+          // Ignore errors from background workflow call
+        });
+      }
+
       this._annotatedTurns.set(annotatedTurns);
       this._finalRequest.set(null);
       this._audioProductionPlan.set(null);
@@ -145,6 +193,7 @@ export class AudiobookStudioFacade {
     audioEncoding: string;
   }): Promise<void> {
     await this.runStep('plan', async () => {
+      // Generate final request using TTS workbench service
       const finalRequest = await this.ttsWorkbenchService.generateFinalJson({
         prompt: options.prompt,
         speakers: this._cast(),
@@ -154,8 +203,30 @@ export class AudiobookStudioFacade {
         audioEncoding: options.audioEncoding,
       });
       this._finalRequest.set(finalRequest);
+
+      // Generate audio production plan
       const audioProductionPlan = await this.ttsWorkbenchService.planSingleSpeakerRenderRequests(finalRequest);
       this._audioProductionPlan.set(audioProductionPlan);
+
+      // Optionally persist to workflow session
+      const sessionId = this._sessionId();
+      if (sessionId) {
+        // Build voice assignments map from cast (TtsWorkbench voiceSuggestion is a string)
+        const voiceAssignments = new Map(
+          this._cast().map(speaker => [speaker.speakerName, speaker.voiceSuggestion])
+        );
+
+        this.workflowService.configureOutput(
+          sessionId,
+          options.languageCode,
+          options.modelName,
+          options.audioEncoding,
+          voiceAssignments
+        ).toPromise().catch(() => {
+          // Ignore errors from background workflow call
+        });
+      }
+
       this.resetAudio();
     }, 'Audio production plan failed.');
   }
@@ -220,6 +291,7 @@ export class AudiobookStudioFacade {
     this._performanceNotesStale.set(false);
     this._error.set(null);
     this._currentProjectId.set(null);
+    this._sessionId.set(null);
     this.cancelCastEdit();
     this.cancelScriptTurnEdit();
     this.resetAudio();

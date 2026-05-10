@@ -74,6 +74,7 @@ export { formatSpeakerDisplayName };
     FullAudioGenerationService,
     ScrollService,
   ],
+  // Note: WorkflowService is provided at root level via @Injectable({ providedIn: 'root' })
   templateUrl: './audiobook-studio-page.component.html',
   styleUrl: './audiobook-studio-page.component.css',
   encapsulation: ViewEncapsulation.None,

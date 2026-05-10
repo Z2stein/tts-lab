@@ -1,5 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 import { TtsWorkbenchService } from '../tts-workbench/tts-workbench.service';
+import { WorkflowService } from './services/workflow.service';
 import { AudiobookStudioFacade } from './audiobook-studio.facade';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
 import { RenderRequestAudioService } from './services/render-request-audio.service';
@@ -7,6 +8,7 @@ import { RenderRequestAudioService } from './services/render-request-audio.servi
 describe('AudiobookStudioFacade', () => {
   let facade: AudiobookStudioFacade;
   let tts: jasmine.SpyObj<TtsWorkbenchService>;
+  let workflow: jasmine.SpyObj<WorkflowService>;
   let renderSvc: jasmine.SpyObj<RenderRequestAudioService>;
   let fullSvc: jasmine.SpyObj<FullAudioGenerationService>;
 
@@ -19,13 +21,27 @@ describe('AudiobookStudioFacade', () => {
       'generateFinalJson', 'planSingleSpeakerRenderRequests',
       'createAudio', 'createAudioForRenderRequest',
     ]);
+    workflow = jasmine.createSpyObj<WorkflowService>('WorkflowService', [
+      'createWorkflow', 'getWorkflow', 'discoverSpeakers', 'splitDialogue',
+      'annotateDialogue', 'configureOutput', 'generateAudio'
+    ], {
+      session$: jasmine.createSpyObj('Observable', ['subscribe'])
+    });
     renderSvc = jasmine.createSpyObj<RenderRequestAudioService>('RenderRequestAudioService', ['abortAll', 'revokeUrls']);
     fullSvc = jasmine.createSpyObj<FullAudioGenerationService>('FullAudioGenerationService', ['clearAudio']);
+
+    // Mock workflow service methods to return observables that resolve successfully
+    (workflow.createWorkflow as jasmine.Spy).and.returnValue({ toPromise: () => Promise.resolve({ id: 'session-1' }) });
+    (workflow.discoverSpeakers as jasmine.Spy).and.returnValue({ toPromise: () => Promise.resolve({}) });
+    (workflow.splitDialogue as jasmine.Spy).and.returnValue({ toPromise: () => Promise.resolve({}) });
+    (workflow.annotateDialogue as jasmine.Spy).and.returnValue({ toPromise: () => Promise.resolve({}) });
+    (workflow.configureOutput as jasmine.Spy).and.returnValue({ toPromise: () => Promise.resolve({}) });
 
     TestBed.configureTestingModule({
       providers: [
         AudiobookStudioFacade,
         { provide: TtsWorkbenchService, useValue: tts },
+        { provide: WorkflowService, useValue: workflow },
         { provide: RenderRequestAudioService, useValue: renderSvc },
         { provide: FullAudioGenerationService, useValue: fullSvc },
       ],
