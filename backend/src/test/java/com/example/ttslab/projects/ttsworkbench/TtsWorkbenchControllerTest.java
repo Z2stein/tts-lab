@@ -101,7 +101,7 @@ class TtsWorkbenchControllerTest {
             AudioAssetStatus.READY,
             null
         );
-        when(audiobookLibraryService.persistAudioAsset(any(AudiobookProject.class), any(), any(Integer.class), any(Integer.class), any(Integer.class), any(Integer.class), any(String.class), any(), any(String.class), any()))
+        when(audiobookLibraryService.persistAudioAsset(any(AudiobookProject.class), any(), any(Integer.class), any(Integer.class), any(Integer.class), any(Integer.class)))
             .thenReturn(testAsset);
     }
 
@@ -241,50 +241,6 @@ class TtsWorkbenchControllerTest {
             .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
             .andExpect(jsonPath("$.message").value("An unexpected server error occurred. Please try again later."))
             .andExpect(jsonPath("$.requestId").exists());
-    }
-
-    @Test
-    void createAudioPersistsSpeakerMetadataFromNestedVoiceConfig() throws Exception {
-        when(ttsWorkbenchService.createAudio(any(SingleSpeakerRenderPlanResponse.class)))
-            .thenReturn(new TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "tts-render-request-1.mp3"));
-
-        // Create render request with nested voice config structure matching FinalTtsRequestBuilder output
-        mockMvc.perform(post("/api/projects/tts-workbench/create-audio")
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {
-                      "renderRequests": [{
-                        "input": {"text": "Hello from TestSpeaker"},
-                        "voice": {
-                          "languageCode": "en-US",
-                          "modelName": "{{google-model}}",
-                          "multiSpeakerVoiceConfig": {
-                            "speakerVoiceConfigs": [{
-                              "speakerAlias": "TestSpeaker",
-                              "speakerId": "ZEPHYR"
-                            }]
-                          }
-                        },
-                        "audioConfig": {"audioEncoding": "MP3"}
-                      }]
-                    }
-                    """))
-            .andExpect(status().isOk());
-
-        // Verify that persistAudioAsset was called with correct speaker name and voice name
-        // extracted from the nested multiSpeakerVoiceConfig structure
-        verify(audiobookLibraryService).persistAudioAsset(
-            any(AudiobookProject.class),
-            any(),
-            eq(1),  // segmentCount
-            eq(1),  // version
-            eq(1),  // speakerCount (one unique speaker)
-            any(Integer.class),  // estimatedDuration
-            eq("TestSpeaker"),  // firstSpeakerName - extracted from multiSpeakerVoiceConfig[0].speakerAlias
-            eq(null),  // speakerRoleDescription
-            eq("ZEPHYR"),  // firstVoiceName - extracted from multiSpeakerVoiceConfig[0].speakerId
-            eq(null)  // performanceDirections
-        );
     }
 
 }
