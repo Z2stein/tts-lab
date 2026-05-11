@@ -4,12 +4,14 @@ import { ReactiveFormsModule, FormControl } from '@angular/forms';
 import {
   AnnotatedSpeakerTurn,
   FinalTtsRequestPreview,
-  SingleSpeakerRenderPlan,
-  SingleSpeakerRenderRequest,
   SpeakerSplitTurn,
   SpeakerVoiceAnalysisItem,
   TtsWorkbenchService
 } from './tts-workbench.service';
+import {
+  SingleSpeakerRenderPlan,
+  SingleSpeakerRenderRequest
+} from '../audiobook-shared/service/audiobook-api.service';
 
 @Component({
   selector: 'app-tts-workbench-page',
@@ -240,11 +242,10 @@ export class TtsWorkbenchPageComponent {
   private async runStep(action: string, step: () => Promise<void>, fallbackMessage: string): Promise<void> {
     this.loadingAction = action;
     this.error = null;
-
     try {
       await step();
-    } catch (error) {
-      this.error = error instanceof Error ? error.message : fallbackMessage;
+    } catch (e) {
+      this.error = e instanceof Error ? e.message : fallbackMessage;
     } finally {
       this.loadingAction = null;
     }

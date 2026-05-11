@@ -1,8 +1,12 @@
 package com.example.ttslab.audiobooks;
 
+import com.example.ttslab.audiobooks.dto.AudiobookDetailResponse;
+import com.example.ttslab.audiobooks.dto.AudiobookSummaryResponse;
+import com.example.ttslab.audiobooks.model.*;
+import com.example.ttslab.audiobooks.repository.AudiobookRepository;
 import com.example.ttslab.error.ApiErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import java.time.Instant;
+
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -294,7 +298,7 @@ class AudiobookLibraryIntegrationTest {
         List<AudioAsset> assets = repository.findAssets(projectB);
         assertThat(assets).hasSize(4);
 
-        List<String> filenames = assets.stream().map(AudioAsset::filename).toList();
+        List<String> filenames = assets.stream().map(AudioAsset::getFilename).toList();
         assertThat(filenames).containsAll(List.of(
             "segment-1-narrator.mp3",
             "segment-2-mara.mp3",
@@ -325,8 +329,8 @@ class AudiobookLibraryIntegrationTest {
 
         // Verify direct calculation handles null durations correctly
         int duration = repository.findAssets(projectA).stream()
-            .filter(a -> a.status() == AudioAssetStatus.READY)
-            .mapToInt(a -> a.durationSeconds() != null ? a.durationSeconds() : 0)
+            .filter(a -> a.getStatus() == AudioAssetStatus.READY)
+            .mapToInt(a -> a.getDurationSeconds() != null ? a.getDurationSeconds() : 0)
             .sum();
         assertThat(duration).isEqualTo(45);
     }
@@ -355,14 +359,14 @@ class AudiobookLibraryIntegrationTest {
         List<AudiobookProject> user1Projects = queryProjectsByUser("user-1");
         assertThat(user1Projects).hasSize(3);
         assertThat(user1Projects)
-            .extracting(AudiobookProject::title)
+            .extracting(AudiobookProject::getTitle)
             .containsExactlyInAnyOrder("The Amber Signal", "Voices Unbound", "Empty Draft");
 
         // Verify database state: user-2 has 1 project that should NOT be visible to user-1
         List<AudiobookProject> user2Projects = queryProjectsByUser("user-2");
         assertThat(user2Projects).hasSize(1);
-        assertThat(user2Projects.get(0).id()).isEqualTo(projectC);
-        assertThat(user2Projects.get(0).title()).isEqualTo("Private Audiobook");
+        assertThat(user2Projects.get(0).getId()).isEqualTo(projectC);
+        assertThat(user2Projects.get(0).getTitle()).isEqualTo("Private Audiobook");
     }
 
     @Test
@@ -426,7 +430,7 @@ class AudiobookLibraryIntegrationTest {
     void testAssetStatusFilteringExcludesNonReadyAssets() throws Exception {
         List<AudioAsset> allAssets = repository.findAssets(projectA);
         long readyCount = allAssets.stream()
-            .filter(a -> a.status() == AudioAssetStatus.READY)
+            .filter(a -> a.getStatus() == AudioAssetStatus.READY)
             .count();
 
         AudiobookSummaryResponse response = getListResponse();

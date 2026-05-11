@@ -1,4 +1,4 @@
-package com.example.ttslab.projects.ttsworkbench;
+package com.example.ttslab.projects.ttsworkbench.service;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -6,6 +6,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import com.example.ttslab.projects.ttsworkbench.AnnotatedSpeakerTurn;
+import com.example.ttslab.projects.ttsworkbench.SpeakerSplitTurn;
+import com.example.ttslab.projects.ttsworkbench.SpeakerVoice;
+import com.example.ttslab.projects.ttsworkbench.SpeakerVoiceAnalysisItem;
 import org.springframework.stereotype.Service;
 
 @Service

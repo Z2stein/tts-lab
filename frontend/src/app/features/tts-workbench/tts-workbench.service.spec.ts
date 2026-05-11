@@ -1,154 +1,145 @@
+import { TestBed } from '@angular/core/testing';
+import { AudiobookApiService } from '../audiobook-shared/service/audiobook-api.service';
 import { TtsWorkbenchService } from './tts-workbench.service';
 
 describe('TtsWorkbenchService', () => {
+  let service: TtsWorkbenchService;
+  let audiobookApiServiceSpy: jasmine.SpyObj<AudiobookApiService>;
+
+  beforeEach(() => {
+    audiobookApiServiceSpy = jasmine.createSpyObj<AudiobookApiService>('AudiobookApiService', [
+      'post', 'createAudio', 'createAudioForRenderRequest'
+    ]);
+
+    TestBed.configureTestingModule({
+      providers: [
+        TtsWorkbenchService,
+        { provide: AudiobookApiService, useValue: audiobookApiServiceSpy }
+      ]
+    });
+    service = TestBed.inject(TtsWorkbenchService);
+  });
+
   it('posts raw dialogue to the speaker voice analysis endpoint', async () => {
-    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
+    audiobookApiServiceSpy.post.and.resolveTo({
       speakers: [{ speakerName: 'Alice', roleDescription: 'Detected dialogue speaker', voiceSuggestion: 'Warm voice' }]
-    }), { status: 200 }));
+    });
 
     const speakers = await service.analyzeSpeakers('Alice: Hello');
 
-    expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/speaker-voice-analysis', jasmine.objectContaining({ method: 'POST' }));
+    expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
+      '/api/projects/tts-workbench/speaker-voice-analysis',
+      { rawDialogue: 'Alice: Hello' },
+      'Speaker voice analysis failed'
+    );
     expect(speakers[0].speakerName).toBe('Alice');
   });
 
   it('posts dialogue and speakers to the speaker split endpoint', async () => {
-    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
+    audiobookApiServiceSpy.post.and.resolveTo({
       turns: [{ speaker: 'Alice', text: 'Hello' }]
-    }), { status: 200 }));
+    });
 
-    const turns = await service.splitDialogue('Alice: Hello', [
-      { speakerName: 'Alice', roleDescription: 'Detected dialogue speaker', voiceSuggestion: 'Warm voice' }
-    ]);
+    const speakers = [{ speakerName: 'Alice', roleDescription: 'Detected dialogue speaker', voiceSuggestion: 'Warm voice' }];
+    const turns = await service.splitDialogue('Alice: Hello', speakers);
 
-    expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/speaker-split-analysis', jasmine.objectContaining({ method: 'POST' }));
+    expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
+      '/api/projects/tts-workbench/speaker-split-analysis',
+      { rawDialogue: 'Alice: Hello', speakers },
+      'Speaker split analysis failed'
+    );
     expect(turns[0].text).toBe('Hello');
   });
 
   it('posts turns to the emotion annotation endpoint', async () => {
-    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
+    audiobookApiServiceSpy.post.and.resolveTo({
       turns: [{ speaker: 'Alice', text: '[urgent] Hello!' }]
-    }), { status: 200 }));
+    });
 
     const turns = await service.annotateEmotions([{ speaker: 'Alice', text: 'Hello!' }]);
 
-    expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/emotion-annotation-analysis', jasmine.objectContaining({ method: 'POST' }));
+    expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
+      '/api/projects/tts-workbench/emotion-annotation-analysis',
+      { turns: [{ speaker: 'Alice', text: 'Hello!' }] },
+      'Emotion annotation analysis failed'
+    );
     expect(turns[0].text).toBe('[urgent] Hello!');
   });
 
   it('posts final preview data to the final request endpoint', async () => {
-    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
+    audiobookApiServiceSpy.post.and.resolveTo({
       input: { prompt: 'Prompt' },
       voice: { languageCode: 'en-US' },
       audioConfig: { audioEncoding: 'MP3' }
-    }), { status: 200 }));
+    });
 
-    const finalJson = await service.generateFinalJson({
+    const request = {
       prompt: 'Prompt',
       speakers: [],
       annotatedTurns: [],
       languageCode: 'en-US',
       modelName: '{{google-model}}',
       audioEncoding: 'MP3'
-    });
+    };
+    const finalJson = await service.generateFinalJson(request);
 
-    expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/final-request-preview', jasmine.objectContaining({ method: 'POST' }));
+    expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
+      '/api/projects/tts-workbench/final-request-preview',
+      request,
+      'Final request preview failed'
+    );
     expect((finalJson.audioConfig as any).audioEncoding).toBe('MP3');
   });
 
-
   it('posts final request JSON to the single-speaker render plan endpoint', async () => {
-    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
+    audiobookApiServiceSpy.post.and.resolveTo({
       renderRequests: [{
         input: { text: 'Hello' },
         voice: { languageCode: 'en-US', name: 'Kore', modelName: '{{google-model}}' },
         audioConfig: { audioEncoding: 'MP3' }
       }]
-    }), { status: 200 }));
+    });
 
-    const plan = await service.planSingleSpeakerRenderRequests({
+    const request = {
       input: { prompt: 'Prompt' },
       voice: { languageCode: 'en-US' },
       audioConfig: { audioEncoding: 'MP3' }
-    });
+    };
+    const plan = await service.planSingleSpeakerRenderRequests(request);
 
-    expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/single-speaker-render-plan', jasmine.objectContaining({ method: 'POST' }));
+    expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
+      '/api/projects/tts-workbench/single-speaker-render-plan',
+      request,
+      'Single-speaker render plan preview failed'
+    );
     expect((plan.renderRequests[0].voice as any).name).toBe('Kore');
   });
 
-  it('posts render requests to create audio and returns the downloadable blob filename', async () => {
-    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    const blob = new Blob(['mp3'], { type: 'audio/mpeg' });
-    spyOn(window, 'fetch').and.resolveTo(new Response(blob, {
-      status: 200,
-      headers: { 'Content-Disposition': 'attachment; filename="tts-render-request-1.mp3"' }
-    }));
+  it('delegates createAudio to AudiobookApiService', async () => {
+    const download = { blob: new Blob(['mp3']), filename: 'tts-render-request-1.mp3' };
+    audiobookApiServiceSpy.createAudio.and.resolveTo(download);
 
-    const download = await service.createAudio({
+    const renderPlan = {
       renderRequests: [{
         input: { text: 'Hello' },
         voice: { languageCode: 'en-US', name: 'Kore' },
         audioConfig: { audioEncoding: 'MP3' }
       }]
-    });
+    };
+    const result = await service.createAudio(renderPlan);
 
-    expect(window.fetch).toHaveBeenCalledWith('/api/projects/tts-workbench/create-audio', jasmine.objectContaining({ method: 'POST' }));
-    expect(download.filename).toBe('tts-render-request-1.mp3');
-    expect(await download.blob.text()).toBe('mp3');
+    expect(audiobookApiServiceSpy.createAudio).toHaveBeenCalledWith(renderPlan, {}, undefined);
+    expect(result).toBe(download);
   });
 
+  it('delegates createAudioForRenderRequest to AudiobookApiService', async () => {
+    const download = { blob: new Blob(['mp3']), filename: 'tts-render-request-1.mp3' };
+    audiobookApiServiceSpy.createAudioForRenderRequest.and.resolveTo(download);
 
-
-  it('posts one selected render request when creating per-request audio', async () => {
-    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    spyOn(window, 'fetch').and.resolveTo(new Response(new Blob(['mp3'], { type: 'audio/mpeg' }), {
-      status: 200,
-      headers: { 'Content-Disposition': 'attachment; filename="tts-render-request-1.mp3"' }
-    }));
     const renderRequest = { input: { text: 'Only this request' }, voice: {}, audioConfig: {} };
+    const result = await service.createAudioForRenderRequest(renderRequest);
 
-    await service.createAudioForRenderRequest(renderRequest);
-
-    const requestBody = JSON.parse((window.fetch as jasmine.Spy).calls.mostRecent().args[1].body);
-    expect(requestBody).toEqual({ renderRequests: [renderRequest] });
+    expect(audiobookApiServiceSpy.createAudioForRenderRequest).toHaveBeenCalledWith(renderRequest, {}, undefined);
+    expect(result).toBe(download);
   });
-
-  it('passes an abort signal through to audio generation requests', async () => {
-    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    const controller = new AbortController();
-    spyOn(window, 'fetch').and.resolveTo(new Response(new Blob(['mp3'], { type: 'audio/mpeg' }), {
-      status: 200,
-      headers: { 'Content-Disposition': 'attachment; filename="tts-render-request-1.mp3"' }
-    }));
-
-    await service.createAudioForRenderRequest({ input: { text: 'Only this request' }, voice: {}, audioConfig: {} }, { signal: controller.signal });
-
-    expect((window.fetch as jasmine.Spy).calls.mostRecent().args[1].signal).toBe(controller.signal);
-  });
-
-  it('throws a user-facing error when analysis fails', async () => {
-    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify({
-      status: 502,
-      code: 'TTS_WORKBENCH_PROVIDER_FAILED',
-      message: 'The speaker voice analysis provider is currently unavailable. Please try again later.',
-      requestId: 'request-1'
-    }), { status: 502 }));
-
-    await expectAsync(service.analyzeSpeakers('Alice: Hello'))
-      .toBeRejectedWithError('The speaker voice analysis provider is currently unavailable. Please try again later.');
-  });
-
-  it('falls back to HTTP status when backend error body is unavailable', async () => {
-    const service = new TtsWorkbenchService({ ensureCsrfToken: async () => 'csrf-token' } as any);
-    spyOn(window, 'fetch').and.resolveTo(new Response('not-json', { status: 500 }));
-
-    await expectAsync(service.analyzeSpeakers('Alice: Hello')).toBeRejectedWithError('Speaker voice analysis failed (HTTP 500).');
-  });
-
 });

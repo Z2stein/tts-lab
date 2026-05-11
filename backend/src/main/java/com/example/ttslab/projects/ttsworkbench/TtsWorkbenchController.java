@@ -1,8 +1,10 @@
 package com.example.ttslab.projects.ttsworkbench;
 
+import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.auth.CurrentUser;
-import com.example.ttslab.audiobooks.AudiobookLibraryService;
+import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.common.DurationEstimator;
+import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;
@@ -62,7 +64,7 @@ public class TtsWorkbenchController {
         CurrentUser user = currentUserResolver.resolve(authentication);
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
-            SpeakerVoiceAnalysisResponse response = ttsWorkbenchService.analyze(request.rawDialogue());
+            SpeakerVoiceAnalysisResponse response = ttsWorkbenchService.analyzeAndCreateProject(request.rawDialogue(), user.id());
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return response;
         } catch (RuntimeException ex) {
@@ -142,7 +144,7 @@ public class TtsWorkbenchController {
 
             TtsAudioFile audioFile = ttsWorkbenchService.createAudio(requestPlan);
 
-            com.example.ttslab.audiobooks.AudiobookProject project;
+            AudiobookProject project;
             if (projectId == null || projectId.isBlank()) {
                 project = audiobookLibraryService.createProjectForGeneration(user);
             } else {
@@ -154,7 +156,7 @@ public class TtsWorkbenchController {
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
                 .header(HttpHeaders.CONTENT_TYPE, audioFile.contentType())
-                .header("X-Audiobook-Project-Id", project.id())
+                .header("X-Audiobook-Project-Id", project.getId())
                 .body(audioFile.content());
         } catch (RuntimeException ex) {
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.FAILED);

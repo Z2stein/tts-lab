@@ -7,6 +7,13 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.ttslab.audiobooks.dto.AudiobookSummaryResponse;
+import com.example.ttslab.audiobooks.model.*;
+import com.example.ttslab.audiobooks.repository.AudioAssetRepository;
+import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
+import com.example.ttslab.audiobooks.repository.AudiobookRepository;
+import com.example.ttslab.audiobooks.repository.AudiobookSpeechSegmentRepository;
+import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.projects.ttsworkbench.TtsAudioFile;
@@ -23,9 +30,15 @@ class AudiobookLibraryServiceTest {
     @Test
     void rejectsDownloadWhenAssetDoesNotBelongToCurrentUser() {
         AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
+        AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
+        AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
         FileStorageService storage = Mockito.mock(FileStorageService.class);
         AudiobookLibraryService service = new AudiobookLibraryService(
             repository,
+            projectRepository,
+            segmentRepository,
+            assetRepository,
             storage,
             new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch"))
         );
@@ -41,9 +54,15 @@ class AudiobookLibraryServiceTest {
     @Test
     void rejectsDownloadWhenAssetIsNotReady() {
         AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
+        AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
+        AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
         FileStorageService storage = Mockito.mock(FileStorageService.class);
         AudiobookLibraryService service = new AudiobookLibraryService(
             repository,
+            projectRepository,
+            segmentRepository,
+            assetRepository,
             storage,
             new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch"))
         );
@@ -61,9 +80,15 @@ class AudiobookLibraryServiceTest {
     void listComputesMetadataFromAudioAssets() {
         // Test that list() calls the metadata calculator instead of reading persisted values
         AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
+        AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
+        AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
         FileStorageService storage = Mockito.mock(FileStorageService.class);
         AudiobookLibraryService service = new AudiobookLibraryService(
             repository,
+            projectRepository,
+            segmentRepository,
+            assetRepository,
             storage,
             new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch"))
         );
@@ -107,9 +132,15 @@ class AudiobookLibraryServiceTest {
     @Test
     void persistAudioAssetDoesNotUpdateProjectMetadata() throws Exception {
         AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
+        AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
+        AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
         FileStorageService storage = Mockito.mock(FileStorageService.class);
         AudiobookLibraryService service = new AudiobookLibraryService(
             repository,
+            projectRepository,
+            segmentRepository,
+            assetRepository,
             storage,
             new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch"))
         );
@@ -134,8 +165,8 @@ class AudiobookLibraryServiceTest {
         // IMPORTANT: Verify updateProjectMetadata is NEVER called
         verify(repository, never()).updateProjectMetadata(any(), any(), any(), any());
 
-        // But verify asset and scene were created
-        verify(repository).addScene(any());
-        verify(repository).addAsset(any());
+        // Verify asset and scene were created using JPA repositories
+        verify(segmentRepository).save(any());
+        verify(assetRepository).save(any());
     }
 }

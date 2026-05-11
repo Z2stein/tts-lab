@@ -1,4 +1,7 @@
-package com.example.ttslab.audiobooks;
+package com.example.ttslab.audiobooks.dto;
+
+import com.example.ttslab.audiobooks.model.AudiobookProjectStatus;
+import com.example.ttslab.audiobooks.repository.AudioAssetResponse;
 
 import java.time.Instant;
 import java.util.List;

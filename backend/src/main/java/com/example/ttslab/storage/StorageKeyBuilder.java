@@ -1,6 +1,6 @@
 package com.example.ttslab.storage;
 
-import com.example.ttslab.audiobooks.AudioAssetType;
+import com.example.ttslab.audiobooks.model.AudioAssetType;
 import org.springframework.stereotype.Component;
 
 @Component

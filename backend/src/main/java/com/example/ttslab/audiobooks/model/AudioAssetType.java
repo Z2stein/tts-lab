@@ -1,4 +1,4 @@
-package com.example.ttslab.audiobooks;
+package com.example.ttslab.audiobooks.model;
 
 public enum AudioAssetType {
     SCENE_MP3,

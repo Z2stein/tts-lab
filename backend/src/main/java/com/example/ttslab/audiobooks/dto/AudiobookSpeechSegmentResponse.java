@@ -1,4 +1,6 @@
-package com.example.ttslab.audiobooks;
+package com.example.ttslab.audiobooks.dto;
+
+import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus;
 
 public record AudiobookSpeechSegmentResponse(
     String id,

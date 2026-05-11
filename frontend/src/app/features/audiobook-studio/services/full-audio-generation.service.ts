@@ -1,142 +1,150 @@
 import { Injectable } from '@angular/core';
-import { SingleSpeakerRenderRequest } from '../../tts-workbench/tts-workbench.service';
-import { RenderRequestAudioService } from './render-request-audio.service';
+import { SingleSpeakerRenderRequest } from '../../audiobook-shared/service/audiobook-api.service';
+import { RenderRequestAudioService } from '../../audiobook-shared/service/render-request-audio.service';
 
 @Injectable()
 export class FullAudioGenerationService {
   loading = false;
   error: string | null = null;
-  stale = false;
-  statusMessage: string | null = null;
   audioUrl: string | null = null;
   filename: string | null = null;
+  stale = false;
+  statusMessage: string | null = null;
 
-  /** Called after the merged blob URL is created. Use to trigger full-waveform re-init. */
-  onAudioReady: (() => void) | null = null;
-
-  private runId = 0;
-  private canceled = false;
-  private projectId: string | null = null;
-  activeRequestIndex: number | null = null;
+  // Track currently running full generation
+  private fullGenerationController: AbortController | null = null;
+  private currentFullRunId = 0;
+  // Fallback blob tracking specifically for the merged download
+  private fullPlanBlob: Blob | null = null;
 
   constructor(private readonly renderRequestAudioService: RenderRequestAudioService) {}
 
-  getProjectId(): string | null {
-    return this.projectId;
-  }
-
+  /**
+   * Orchestrates full audiobook generation:
+   * 1. Finds all render requests without valid parts (not-generated, failed, canceled, timed-out)
+   *    and triggers their generation individually via RenderRequestAudioService.
+   * 2. Waits for all generations to finish (both existing and newly started).
+   * 3. Concatenates all resulting blobs into a single continuous MP3 preview.
+   *
+   * Only incomplete parts are generated over the network. If all parts are already downloaded,
+   * this operation is entirely local and instantaneous.
+   */
   async generate(renderRequests: SingleSpeakerRenderRequest[]): Promise<string | null> {
-    if (this.loading || this.renderRequestAudioService.anyLoading()) {
-      return null;
-    }
+    if (this.loading) return null;
 
-    const runId = ++this.runId;
-    this.canceled = false;
-    this.activeRequestIndex = null;
     this.loading = true;
     this.error = null;
-    this.stale = this.audioUrl !== null;
-    this.statusMessage = this.audioUrl
-      ? 'Rebuilding the audiobook preview. Existing audio stays available until the new preview is ready.'
-      : 'Building the audiobook preview from the generated parts.';
+    this.statusMessage = null;
+    this.stale = false;
+    this.currentFullRunId++;
+    const runId = this.currentFullRunId;
+    this.fullGenerationController = new AbortController();
+    const signal = this.fullGenerationController.signal;
+
+    let fallbackProjectId: string | null = null;
 
     try {
-      for (const [requestIndex, renderRequest] of renderRequests.entries()) {
-        if (runId !== this.runId || this.canceled) break;
+      const partsToTrigger: { index: number; request: SingleSpeakerRenderRequest }[] = [];
 
-        const state = this.renderRequestAudioService.audioStates[requestIndex];
-        if (state?.status === 'generated' && state.blob) continue;
-
-        this.activeRequestIndex = requestIndex;
-        const returnedProjectId = await this.renderRequestAudioService.generate(renderRequest, requestIndex, { fullRunId: runId, projectId: this.projectId || undefined });
-
-        // Capture projectId from first generation
-        if (!this.projectId && returnedProjectId) {
-          this.projectId = returnedProjectId;
+      renderRequests.forEach((req, idx) => {
+        const state = this.renderRequestAudioService.getState(idx, req);
+        // We consider generating parts as valid because we will await them later.
+        if (state.status !== 'generated' && state.status !== 'generating') {
+          partsToTrigger.push({ index: idx, request: req });
         }
-        this.activeRequestIndex = null;
+      });
+
+      if (partsToTrigger.length > 0) {
+        this.statusMessage = `Preparing ${partsToTrigger.length} incomplete ${partsToTrigger.length === 1 ? 'part' : 'parts'}...`;
+        const generationPromises = partsToTrigger.map(({ index, request }) =>
+          this.renderRequestAudioService.generate(request, index, { fullRunId: runId })
+            .catch(() => undefined) // Local orchestration catches failures via getState later
+        );
+        const projectIds = await Promise.all(generationPromises);
+        if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+        fallbackProjectId = projectIds.find((id) => id !== undefined) ?? null;
       }
 
-      if (runId !== this.runId) return this.projectId;
+      this.statusMessage = 'Waiting for all parts to finish...';
+      const pendingPromises = renderRequests
+        .map((_, idx) => this.renderRequestAudioService.getState(idx).inFlightPromise)
+        .filter((p) => p !== null);
 
-      if (this.canceled) {
-        this.loading = false;
-        this.statusMessage = 'Generation canceled. You can retry the pending part.';
-        return this.projectId;
+      if (pendingPromises.length > 0) {
+        const remainingProjectIds = await Promise.all(pendingPromises);
+        if (!fallbackProjectId) {
+          fallbackProjectId = remainingProjectIds.find((id) => id !== undefined) ?? null;
+        }
       }
 
-      const incompleteParts = renderRequests
-        .map((_, i) => this.renderRequestAudioService.audioStates[i])
-        .filter((s) => !s || s.status !== 'generated' || !s.blob);
+      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
-      if (incompleteParts.length > 0) {
-        this.loading = false;
-        this.statusMessage = null;
-        return this.projectId;
+      // Verify success
+      const finalStates = renderRequests.map((_, idx) => this.renderRequestAudioService.getState(idx));
+      const failures = finalStates.filter(s => s.status !== 'generated');
+
+      if (failures.length > 0) {
+        this.error = `${failures.length} ${failures.length === 1 ? 'part' : 'parts'} failed to generate. Please retry them individually before generating the final preview.`;
+        return null; // Return null on failure instead of throwing
       }
 
-      const audioParts = renderRequests.map(
-        (_, i) => this.renderRequestAudioService.audioStates[i].blob as Blob
-      );
-      this.setAudio(new Blob(audioParts, { type: 'audio/mpeg' }), 'audiobook-preview.mp3');
-      this.statusMessage = 'Audiobook preview is ready.';
-      return this.projectId;
-    } catch {
-      if (!this.canceled) {
-        this.error = 'One audio part could not be generated. The other parts are still available. You can retry this part or edit the text.';
+      // Concat everything
+      this.statusMessage = 'Merging audio parts...';
+      const blobs = finalStates.map(s => s.blob).filter((b): b is Blob => b !== null);
+
+      if (blobs.length > 0) {
+        if (this.audioUrl) {
+          window.URL.revokeObjectURL(this.audioUrl);
+        }
+        this.fullPlanBlob = new Blob(blobs, { type: 'audio/mpeg' });
+        this.audioUrl = window.URL.createObjectURL(this.fullPlanBlob);
+        this.filename = 'audiobook-preview-merged.mp3';
       }
-      return this.projectId;
+
+      this.statusMessage = null;
+      return fallbackProjectId;
+
+    } catch (e) {
+      if (e instanceof DOMException && e.name === 'AbortError') {
+        this.error = 'Audiobook preview generation was canceled.';
+      } else {
+        this.error = e instanceof Error ? e.message : 'Unknown generation error';
+      }
+      return null;
     } finally {
-      if (runId === this.runId) {
+      if (this.currentFullRunId === runId) {
         this.loading = false;
-        this.activeRequestIndex = null;
+        this.fullGenerationController = null;
+        if (this.statusMessage === 'Waiting for all parts to finish...' || this.statusMessage === 'Merging audio parts...') {
+          this.statusMessage = null;
+        }
       }
     }
   }
 
   cancel(): void {
-    if (!this.loading) return;
-    this.canceled = true;
-    const activeIndex = this.activeRequestIndex;
-    if (activeIndex !== null) {
-      this.renderRequestAudioService.cancel(activeIndex);
+    if (this.fullGenerationController) {
+      this.fullGenerationController.abort();
+      this.fullGenerationController = null;
     }
-    this.loading = false;
-    this.statusMessage = 'Generation canceled. You can retry the pending part.';
-  }
-
-  setAudio(blob: Blob, filename: string): void {
-    if (this.audioUrl) {
-      window.URL.revokeObjectURL(this.audioUrl);
-    }
-    this.audioUrl = window.URL.createObjectURL(blob);
-    this.filename = filename;
-    this.stale = false;
-    this.onAudioReady?.();
-  }
-
-  markStale(message: string): void {
-    this.stale = true;
-    this.statusMessage = message;
   }
 
   clearAudio(): void {
     if (this.audioUrl) {
       window.URL.revokeObjectURL(this.audioUrl);
+      this.audioUrl = null;
     }
-    this.audioUrl = null;
     this.filename = null;
+    this.fullPlanBlob = null;
     this.stale = false;
-    this.statusMessage = null;
-    this.loading = false;
     this.error = null;
-    this.activeRequestIndex = null;
-    this.canceled = false;
-    this.projectId = null;
+    this.statusMessage = null;
   }
 
-  destroy(): void {
-    this.cancel();
-    this.clearAudio();
+  markStale(message: string): void {
+    this.stale = true;
+    if (this.audioUrl) {
+      this.statusMessage = message;
+    }
   }
 }

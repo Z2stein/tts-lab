@@ -1,17 +1,19 @@
 import { computed, Injectable, signal } from '@angular/core';
 import {
   FinalTtsRequestPreview,
-  SingleSpeakerRenderPlan,
   SpeakerVoiceAnalysisItem,
   TtsWorkbenchService,
 } from '../tts-workbench/tts-workbench.service';
+import {
+  SingleSpeakerRenderPlan,
+} from '../audiobook-shared/service/audiobook-api.service';
 import {
   AnnotatedSpeakerTurn,
   ScriptGroup,
   SpeakerSplitTurn,
 } from './models/audiobook-studio.types';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
-import { RenderRequestAudioService } from './services/render-request-audio.service';
+import { RenderRequestAudioService } from '../audiobook-shared/service/render-request-audio.service';
 
 @Injectable()
 export class AudiobookStudioFacade {

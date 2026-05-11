@@ -1,12 +1,14 @@
 package com.example.ttslab.projects.ttsworkbench;
 
 import com.example.ttslab.auth.CurrentUser;
-import com.example.ttslab.audiobooks.AudiobookLibraryService;
-import com.example.ttslab.audiobooks.AudiobookProject;
-import com.example.ttslab.audiobooks.AudiobookProjectStatus;
-import com.example.ttslab.audiobooks.AudioAsset;
-import com.example.ttslab.audiobooks.AudioAssetType;
-import com.example.ttslab.audiobooks.AudioAssetStatus;
+import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
+import com.example.ttslab.audiobooks.model.AudiobookProject;
+import com.example.ttslab.audiobooks.model.AudiobookProjectStatus;
+import com.example.ttslab.audiobooks.model.AudioAsset;
+import com.example.ttslab.audiobooks.model.AudioAssetType;
+import com.example.ttslab.audiobooks.model.AudioAssetStatus;
+import com.example.ttslab.error.GlobalApiExceptionHandler;
+import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.PromptHistoryService;
 import com.example.ttslab.prompts.ModelType;
@@ -17,12 +19,13 @@ import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import java.util.List;
 import com.example.ttslab.error.ApiException;
 import java.util.Map;
-import java.time.Instant;
+
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -39,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @AutoConfigureMockMvc(addFilters = false)
 @WebMvcTest(TtsWorkbenchController.class)
+@Import(GlobalApiExceptionHandler.class)
 class TtsWorkbenchControllerTest {
     @Autowired
     private MockMvc mockMvc;
@@ -107,16 +111,16 @@ class TtsWorkbenchControllerTest {
 
     @Test
     void speakerVoiceAnalysisReturnsSuggestedVoices() throws Exception {
-        when(ttsWorkbenchService.analyze("Alice: Hello")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
+        when(ttsWorkbenchService.analyzeAndCreateProject("Alice: Hello", "u1")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
             new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)
-        )));
+        ), null));
 
         mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rawDialogue\":\"Alice: Hello\"}"))
             .andExpect(status().isOk())
             .andExpect(content().json("""
-                {"speakers":[{"speakerName":"Alice","roleDescription":"Detected dialogue speaker","voiceSuggestion":"ACHIRD"}]}
+                {"speakers":[{"speakerName":"Alice","roleDescription":"Detected dialogue speaker","voiceSuggestion":"ACHIRD"}],"projectId":null}
                 """));
 
         verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq("mock"), eq("Alice: Hello"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
@@ -210,7 +214,7 @@ class TtsWorkbenchControllerTest {
 
     @Test
     void apiExceptionReturnsStructuredErrorResponse() throws Exception {
-        when(ttsWorkbenchService.analyze("Alice: Hello")).thenThrow(new ApiException(
+        when(ttsWorkbenchService.analyzeAndCreateProject("Alice: Hello", "u1")).thenThrow(new ApiException(
             HttpStatus.BAD_GATEWAY,
             "TTS_WORKBENCH_PROVIDER_FAILED",
             "The speaker voice analysis provider is currently unavailable. Please try again later.",
@@ -231,7 +235,7 @@ class TtsWorkbenchControllerTest {
 
     @Test
     void unexpectedExceptionReturnsSafeStructuredErrorResponse() throws Exception {
-        when(ttsWorkbenchService.analyze("Alice: Hello")).thenThrow(new IllegalStateException("database-password=secret"));
+        when(ttsWorkbenchService.analyzeAndCreateProject("Alice: Hello", "u1")).thenThrow(new IllegalStateException("database-password=secret"));
 
         mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)

@@ -3,6 +3,7 @@ package com.example.ttslab.projects.ttsworkbench;
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatService;
 import com.example.ttslab.error.ApiException;
+import com.example.ttslab.projects.ttsworkbench.service.DeterministicTtsWorkbenchFallbackService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
@@ -42,17 +43,17 @@ public class SpeakerVoiceAnalysisService {
     public SpeakerVoiceAnalysisResponse analyze(String rawDialogue) {
         if (rawDialogue == null || rawDialogue.isBlank()) {
             log.debug("chatbotProvider:"+chatbotProvider);
-            return new SpeakerVoiceAnalysisResponse(List.of());
+            return new SpeakerVoiceAnalysisResponse(List.of(), null);
         }
 
         if (!PROVIDER_GEMINI.equals(chatbotProvider)) {
             log.debug("chatbotProvider:"+chatbotProvider);
-            return new SpeakerVoiceAnalysisResponse(fallbackService.analyzeSpeakers(rawDialogue));
+            return new SpeakerVoiceAnalysisResponse(fallbackService.analyzeSpeakers(rawDialogue), null);
         }
 
         try {
             String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerVoiceAnalysisPrompt(rawDialogue), null)).answer();
-            return new SpeakerVoiceAnalysisResponse(parseProviderAnswer(answer));
+            return new SpeakerVoiceAnalysisResponse(parseProviderAnswer(answer), null);
         } catch (ApiException ex) {
             throw ex;
         } catch (Exception ex) {

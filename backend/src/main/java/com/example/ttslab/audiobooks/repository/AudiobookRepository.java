@@ -1,4 +1,4 @@
-package com.example.ttslab.audiobooks;
+package com.example.ttslab.audiobooks.repository;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -6,6 +6,10 @@ import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
+
+import com.example.ttslab.audiobooks.model.AudioAsset;
+import com.example.ttslab.audiobooks.model.AudiobookProject;
+import com.example.ttslab.audiobooks.model.*;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -70,8 +74,8 @@ public class AudiobookRepository {
             INSERT INTO audiobook_project (id, user_id, title, status, source_type, scene_count, speaker_count, total_duration_seconds, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """,
-            project.id(), project.userId(), project.title(), project.status().name(), project.sourceType(), project.sceneCount(),
-            project.speakerCount(), project.totalDurationSeconds());
+            project.getId(), project.getUserId(), project.getTitle(), project.getStatus().name(), project.getSourceType(), project.getSceneCount(),
+            project.getSpeakerCount(), project.getTotalDurationSeconds());
     }
 
     public void updateProjectMetadata(String projectId, Integer sceneCount, Integer speakerCount, Integer totalDurationSeconds) {
@@ -88,8 +92,8 @@ public class AudiobookRepository {
             INSERT INTO audiobook_scene (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at, speaker_name, speaker_role_description, voice_name, performance_directions)
             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?)
             """,
-            scene.id(), scene.projectId(), scene.orderIndex(), scene.title(), scene.reviewStatus().name(), scene.durationSeconds(),
-            scene.speakerName(), scene.speakerRoleDescription(), scene.voiceName(), scene.performanceDirections());
+            scene.getId(), scene.getProjectId(), scene.getOrderIndex(), scene.getTitle(), scene.getReviewStatus().name(), scene.getDurationSeconds(),
+            scene.getSpeakerName(), scene.getSpeakerRoleDescription(), scene.getVoiceName(), scene.getPerformanceDirections());
     }
 
     public void addAsset(AudioAsset asset) {
@@ -97,8 +101,8 @@ public class AudiobookRepository {
             INSERT INTO audio_asset (id, project_id, scene_id, type, version, storage_key, filename, content_type, size_bytes, duration_seconds, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
-            asset.id(), asset.projectId(), asset.sceneId(), asset.type().name(), asset.version(), asset.storageKey(), asset.filename(),
-            asset.contentType(), asset.sizeBytes(), asset.durationSeconds(), asset.status().name());
+            asset.getId(), asset.getProjectId(), asset.getSceneId(), asset.getType().name(), asset.getVersion(), asset.getStorageKey(), asset.getFilename(),
+            asset.getContentType(), asset.getSizeBytes(), asset.getDurationSeconds(), asset.getStatus().name());
     }
 
     @Transactional

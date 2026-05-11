@@ -2,5 +2,8 @@ package com.example.ttslab.projects.ttsworkbench;
 
 import java.util.List;
 
-public record SpeakerVoiceAnalysisResponse(List<SpeakerVoiceAnalysisItem> speakers) {
+public record SpeakerVoiceAnalysisResponse(
+    List<SpeakerVoiceAnalysisItem> speakers,
+    String projectId
+) {
 }

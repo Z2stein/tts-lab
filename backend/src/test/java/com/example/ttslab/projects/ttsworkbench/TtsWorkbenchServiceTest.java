@@ -1,9 +1,11 @@
 package com.example.ttslab.projects.ttsworkbench;
 
+import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatResponse;
 import com.example.ttslab.chat.ChatService;
 import com.example.ttslab.error.ApiException;
+import com.example.ttslab.projects.ttsworkbench.service.*;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.List;
 import org.junit.jupiter.api.Test;
@@ -162,7 +164,8 @@ class TtsWorkbenchServiceTest {
             new EmotionAnnotationService(chatService, objectMapper, promptProvider, fallbackService, provider),
             new FinalTtsRequestBuilder(),
             new SingleSpeakerRenderPlanner(objectMapper),
-            mock(TtsAudioCreationService.class)
+            mock(TtsAudioCreationService.class),
+            mock(AudiobookProjectRepository.class)
         );
     }
 }

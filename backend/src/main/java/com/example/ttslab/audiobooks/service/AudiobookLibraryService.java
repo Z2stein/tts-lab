@@ -1,5 +1,10 @@
-package com.example.ttslab.audiobooks;
+package com.example.ttslab.audiobooks.service;
 
+import com.example.ttslab.audiobooks.dto.AudiobookDetailResponse;
+import com.example.ttslab.audiobooks.dto.AudiobookSpeechSegmentResponse;
+import com.example.ttslab.audiobooks.dto.AudiobookSummaryResponse;
+import com.example.ttslab.audiobooks.model.*;
+import com.example.ttslab.audiobooks.repository.*;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.projects.ttsworkbench.TtsAudioFile;
@@ -12,20 +17,30 @@ import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AudiobookLibraryService {
     private final AudiobookRepository repository;
+    private final AudiobookProjectRepository projectRepository;
+    private final AudiobookSpeechSegmentRepository segmentRepository;
+    private final AudioAssetRepository assetRepository;
     private final FileStorageService fileStorageService;
     private final StorageKeyBuilder storageKeyBuilder;
     private final AudiobookMetadataCalculator metadataCalculator;
 
     public AudiobookLibraryService(
         AudiobookRepository repository,
+        AudiobookProjectRepository projectRepository,
+        AudiobookSpeechSegmentRepository segmentRepository,
+        AudioAssetRepository assetRepository,
         FileStorageService fileStorageService,
         StorageKeyBuilder storageKeyBuilder
     ) {
         this.repository = repository;
+        this.projectRepository = projectRepository;
+        this.segmentRepository = segmentRepository;
+        this.assetRepository = assetRepository;
         this.fileStorageService = fileStorageService;
         this.storageKeyBuilder = storageKeyBuilder;
         this.metadataCalculator = new AudiobookMetadataCalculator(repository);
@@ -34,22 +49,22 @@ public class AudiobookLibraryService {
     public AudiobookSummaryResponse list(CurrentUser user) {
         List<AudiobookSummaryResponse.AudiobookSummaryItem> items = repository.findProjectsForUser(user.id()).stream()
             .map(project -> {
-                var assets = repository.findAssets(project.id());
+                var assets = repository.findAssets(project.getId());
 
                 // CALCULATE metadata on-demand from audio assets
                 // This ensures metadata is always fresh and accurate, never stale
-                int calculatedSceneCount = metadataCalculator.calculateSceneCount(project.id());
-                int calculatedSpeakerCount = metadataCalculator.calculateSpeakerCount(project.id());
-                int calculatedDuration = metadataCalculator.calculateTotalDurationSeconds(project.id());
+                int calculatedSceneCount = metadataCalculator.calculateSceneCount(project.getId());
+                int calculatedSpeakerCount = metadataCalculator.calculateSpeakerCount(project.getId());
+                int calculatedDuration = metadataCalculator.calculateTotalDurationSeconds(project.getId());
 
                 return new AudiobookSummaryResponse.AudiobookSummaryItem(
-                    project.id(),
-                    project.title(),
-                    project.status(),
+                    project.getId(),
+                    project.getTitle(),
+                    project.getStatus(),
                     calculatedSceneCount,      // ← Fresh from calculator
                     calculatedSpeakerCount,    // ← Fresh from calculator
                     calculatedDuration,        // ← Fresh from calculator
-                    project.updatedAt(),
+                    project.getUpdatedAt(),
                     assets.stream().map(this::assetResponse).toList()
                 );
             })
@@ -61,35 +76,35 @@ public class AudiobookLibraryService {
         AudiobookProject project = repository.findProjectForUser(projectId, user.id())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIOBOOK_NOT_FOUND", "The requested audiobook was not found."));
         return new AudiobookDetailResponse(
-            project.id(),
-            project.title(),
-            project.status(),
-            project.sceneCount(),
-            project.speakerCount(),
-            project.totalDurationSeconds(),
-            project.createdAt(),
-            project.updatedAt(),
-            repository.findScenes(project.id()).stream()
+            project.getId(),
+            project.getTitle(),
+            project.getStatus(),
+            project.getSceneCount(),
+            project.getSpeakerCount(),
+            project.getTotalDurationSeconds(),
+            project.getCreatedAt(),
+            project.getUpdatedAt(),
+            repository.findScenes(project.getId()).stream()
                 .map(scene -> new AudiobookSpeechSegmentResponse(
-                    scene.id(),
-                    scene.orderIndex(),
-                    scene.title(),
-                    scene.reviewStatus(),
-                    scene.durationSeconds(),
-                    scene.speakerName(),
-                    scene.speakerRoleDescription(),
-                    scene.voiceName(),
-                    scene.performanceDirections()
+                    scene.getId(),
+                    scene.getOrderIndex(),
+                    scene.getTitle(),
+                    scene.getReviewStatus(),
+                    scene.getDurationSeconds(),
+                    scene.getSpeakerName(),
+                    scene.getSpeakerRoleDescription(),
+                    scene.getVoiceName(),
+                    scene.getPerformanceDirections()
                 ))
                 .toList(),
-            repository.findAssets(project.id()).stream().map(this::assetResponse).toList()
+            repository.findAssets(project.getId()).stream().map(this::assetResponse).toList()
         );
     }
 
     public AudioAsset assetForDownload(CurrentUser user, String projectId, String assetId) {
         AudioAsset asset = repository.findAssetForUser(projectId, assetId, user.id())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIO_ASSET_NOT_FOUND", "The requested audio asset was not found."));
-        if (asset.status() != AudioAssetStatus.READY) {
+        if (asset.getStatus() != AudioAssetStatus.READY) {
             throw new ApiException(HttpStatus.CONFLICT, "AUDIO_ASSET_NOT_READY", "The requested audio asset is not ready yet.");
         }
         return asset;
@@ -97,15 +112,17 @@ public class AudiobookLibraryService {
 
     public StoredFile read(AudioAsset asset) {
         try {
-            return fileStorageService.get(asset.storageKey(), asset.contentType(), asset.sizeBytes());
+            return fileStorageService.get(asset.getStorageKey(), asset.getContentType(), asset.getSizeBytes());
         } catch (IOException ex) {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_ASSET_READ_FAILED", "The audio file could not be read.", null, ex);
         }
     }
 
+    @Transactional
     public AudiobookProject createProjectForGeneration(CurrentUser user) {
         String projectId = UUID.randomUUID().toString();
-        String timestamp = Instant.now().toString();
+        Instant now = Instant.now();
+        String timestamp = now.toString();
         AudiobookProject project = new AudiobookProject(
             projectId,
             user.id(),
@@ -115,10 +132,10 @@ public class AudiobookLibraryService {
             0,
             null,
             null,
-            null,
-            null
+            now,
+            now
         );
-        repository.createProject(project);
+        projectRepository.save(project);
         return project;
     }
 
@@ -131,6 +148,7 @@ public class AudiobookLibraryService {
         return persistAudioAsset(project, audioFile, sceneCount, version, speakerCount, totalDurationSeconds, null, null, null, null);
     }
 
+    @Transactional
     public AudioAsset persistAudioAsset(
         AudiobookProject project,
         TtsAudioFile audioFile,
@@ -145,7 +163,7 @@ public class AudiobookLibraryService {
     ) {
         String assetId = UUID.randomUUID().toString();
         String sceneId = UUID.randomUUID().toString();
-        String storageKey = storageKeyBuilder.projectAsset(project.userId(), project.id(), AudioAssetType.PREVIEW_MP3, version, "mp3");
+        String storageKey = storageKeyBuilder.projectAsset(project.getUserId(), project.getId(), AudioAssetType.PREVIEW_MP3, version, "mp3");
 
         try {
             fileStorageService.put(storageKey, audioFile.content(), audioFile.contentType());
@@ -153,20 +171,25 @@ public class AudiobookLibraryService {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_ASSET_WRITE_FAILED", "The generated audio could not be saved.", null, ex);
         }
 
-        // IMPORTANT: Do NOT call updateProjectMetadata()
+        // IMPORTANT: Do NOT update project.sceneCount or other metadata directly
         // Metadata is calculated on-demand by AudiobookMetadataCalculator from audio assets
         // This prevents stale metadata issues that occur with persisted values
 
+        // Update project timestamp
+        project.setUpdatedAt(Instant.now());
+        projectRepository.save(project);
+
         String sceneTitle = speakerName != null && !speakerName.isBlank() ? speakerName : "Generated scene";
+        Instant now = Instant.now();
         AudiobookSpeechSegment scene = new AudiobookSpeechSegment(
             sceneId,
-            project.id(),
+            project,
             0,
             sceneTitle,
             AudiobookSpeechSegmentReviewStatus.PENDING,
             null,
-            null,
-            null,
+            now,
+            now,
             speakerName,
             speakerRoleDescription,
             voiceName,
@@ -174,8 +197,8 @@ public class AudiobookLibraryService {
         );
         AudioAsset asset = new AudioAsset(
             assetId,
-            project.id(),
-            sceneId,
+            project,
+            scene,
             AudioAssetType.PREVIEW_MP3,
             version,
             storageKey,
@@ -184,13 +207,14 @@ public class AudiobookLibraryService {
             audioFile.content().length,
             totalDurationSeconds,
             AudioAssetStatus.READY,
-            null
+            now
         );
-        repository.addScene(scene);
-        repository.addAsset(asset);
+        segmentRepository.save(scene);
+        assetRepository.save(asset);
         return asset;
     }
 
+    @Transactional
     public void persistGeneratedPreview(CurrentUser user, TtsAudioFile audioFile, Integer speakerCount, Integer totalDurationSeconds) {
         String projectId = UUID.randomUUID().toString();
         String sceneId = UUID.randomUUID().toString();
@@ -203,6 +227,7 @@ public class AudiobookLibraryService {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_ASSET_WRITE_FAILED", "The generated audio could not be saved.", null, ex);
         }
 
+        Instant now = Instant.now();
         AudiobookProject project = new AudiobookProject(
             projectId,
             user.id(),
@@ -212,27 +237,31 @@ public class AudiobookLibraryService {
             1,
             speakerCount,
             totalDurationSeconds,
-            null,
-            null
+            now,
+            now
         );
+        projectRepository.save(project);
+
         AudiobookSpeechSegment scene = new AudiobookSpeechSegment(
             sceneId,
-            projectId,
+            project,
             0,
             "Preview scene",
             AudiobookSpeechSegmentReviewStatus.PENDING,
             totalDurationSeconds,
-            null,
-            null,
+            now,
+            now,
             null,
             null,
             null,
             null
         );
+        segmentRepository.save(scene);
+
         AudioAsset asset = new AudioAsset(
             assetId,
-            projectId,
-            sceneId,
+            project,
+            scene,
             AudioAssetType.PREVIEW_MP3,
             1,
             storageKey,
@@ -241,25 +270,25 @@ public class AudiobookLibraryService {
             audioFile.content().length,
             totalDurationSeconds,
             AudioAssetStatus.READY,
-            null
+            now
         );
-        repository.createProjectWithAsset(project, scene, asset);
+        assetRepository.save(asset);
     }
 
     private AudioAssetResponse assetResponse(AudioAsset asset) {
         return new AudioAssetResponse(
-            asset.id(),
-            asset.sceneId(),
-            asset.type(),
-            asset.version(),
-            asset.filename(),
-            asset.contentType(),
-            asset.sizeBytes(),
-            asset.durationSeconds(),
-            asset.status(),
-            asset.createdAt(),
-            "/api/audiobooks/" + asset.projectId() + "/audio-assets/" + asset.id() + "/download",
-            "/api/audiobooks/" + asset.projectId() + "/audio-assets/" + asset.id() + "/stream"
+            asset.getId(),
+            asset.getSceneId(),
+            asset.getType(),
+            asset.getVersion(),
+            asset.getFilename(),
+            asset.getContentType(),
+            asset.getSizeBytes(),
+            asset.getDurationSeconds(),
+            asset.getStatus(),
+            asset.getCreatedAt(),
+            "/api/audiobooks/" + asset.getProjectId() + "/audio-assets/" + asset.getId() + "/download",
+            "/api/audiobooks/" + asset.getProjectId() + "/audio-assets/" + asset.getId() + "/stream"
         );
     }
 }

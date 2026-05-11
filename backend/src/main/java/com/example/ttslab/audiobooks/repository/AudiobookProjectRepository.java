@@ -1,0 +1,14 @@
+package com.example.ttslab.audiobooks.repository;
+
+import com.example.ttslab.audiobooks.model.AudiobookProject;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Optional;
+
+@Repository
+public interface AudiobookProjectRepository extends JpaRepository<AudiobookProject, String> {
+    List<AudiobookProject> findByUserId(String userId);
+    Optional<AudiobookProject> findByIdAndUserId(String id, String userId);
+}

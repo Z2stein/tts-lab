@@ -1,8 +1,9 @@
-package com.example.ttslab.projects.ttsworkbench;
+package com.example.ttslab.projects.ttsworkbench.service;
 
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatService;
 import com.example.ttslab.error.ApiException;
+import com.example.ttslab.projects.ttsworkbench.*;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;

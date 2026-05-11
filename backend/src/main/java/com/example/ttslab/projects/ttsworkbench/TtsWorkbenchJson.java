@@ -1,10 +1,10 @@
 package com.example.ttslab.projects.ttsworkbench;
 
-final class TtsWorkbenchJson {
+public final class TtsWorkbenchJson {
     private TtsWorkbenchJson() {
     }
 
-    static String stripMarkdownFence(String answer) {
+    public static String stripMarkdownFence(String answer) {
         String trimmed = answer.trim();
         if (!trimmed.startsWith("```")) {
             return trimmed;

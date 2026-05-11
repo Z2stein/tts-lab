@@ -4,10 +4,12 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import {
   FinalTtsRequestPreview,
-  SingleSpeakerRenderPlan,
-  SingleSpeakerRenderRequest,
   SpeakerVoiceAnalysisItem,
 } from '../tts-workbench/tts-workbench.service';
+import {
+  SingleSpeakerRenderPlan,
+  SingleSpeakerRenderRequest,
+} from '../audiobook-shared/service/audiobook-api.service';
 import { CastSectionComponent } from './components/cast-section/cast-section.component';
 import { JourneyGridComponent } from './components/journey-grid/journey-grid.component';
 import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
@@ -42,7 +44,7 @@ import { markupFor } from './utils/annotated-markup';
 import { formatSpeakerDisplayName, normalizedSpeakerKey, speakerInitials } from './utils/speaker-name';
 import { AudiobookStudioFacade } from './audiobook-studio.facade';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
-import { RenderRequestAudioService } from './services/render-request-audio.service';
+import { RenderRequestAudioService } from '../audiobook-shared/service/render-request-audio.service';
 import { ScrollService } from './services/scroll.service';
 import { VoiceSampleService } from './services/voice-sample.service';
 import { WaveSurferService } from './services/wave-surfer.service';

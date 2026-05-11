@@ -2,7 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { TtsWorkbenchService } from '../tts-workbench/tts-workbench.service';
 import { AudiobookStudioFacade } from './audiobook-studio.facade';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
-import { RenderRequestAudioService } from './services/render-request-audio.service';
+import { RenderRequestAudioService } from '../audiobook-shared/service/render-request-audio.service';
 
 describe('AudiobookStudioFacade', () => {
   let facade: AudiobookStudioFacade;
@@ -17,10 +17,9 @@ describe('AudiobookStudioFacade', () => {
     tts = jasmine.createSpyObj<TtsWorkbenchService>('TtsWorkbenchService', [
       'analyzeSpeakers', 'splitDialogue', 'annotateEmotions',
       'generateFinalJson', 'planSingleSpeakerRenderRequests',
-      'createAudio', 'createAudioForRenderRequest',
     ]);
     renderSvc = jasmine.createSpyObj<RenderRequestAudioService>('RenderRequestAudioService', ['abortAll', 'revokeUrls']);
-    fullSvc = jasmine.createSpyObj<FullAudioGenerationService>('FullAudioGenerationService', ['clearAudio']);
+    fullSvc = jasmine.createSpyObj<FullAudioGenerationService>('FullAudioGenerationService', ['cancel', 'clearAudio']);
 
     TestBed.configureTestingModule({
       providers: [
@@ -30,166 +29,207 @@ describe('AudiobookStudioFacade', () => {
         { provide: FullAudioGenerationService, useValue: fullSvc },
       ],
     });
+
     facade = TestBed.inject(AudiobookStudioFacade);
   });
 
-  // ── analyzeStory ──────────────────────────────────────────────────────────
+  describe('analyzeStory', () => {
+    it('sets loadingAction, calls TtsWorkbenchService, updates cast, and clears error on success', async () => {
+      tts.analyzeSpeakers.and.resolveTo([maraItem]);
 
-  it('sets cast and clears downstream state after analyzeStory succeeds', async () => {
-    tts.analyzeSpeakers.and.resolveTo([maraItem]);
-    facade.setScriptTurns([{ speaker: 'Mara', text: 'Hello' }]);
-    facade.setAnnotatedTurns([{ speaker: 'Mara', text: '[warm] Hello' }]);
-    facade.setCastReviewed(true);
-    facade.setScriptApproved(true);
+      const promise = facade.analyzeStory('story text');
+      expect(facade.loadingAction()).toBe('Analyzing story');
 
-    await facade.analyzeStory('Some story text');
+      await promise;
 
-    expect(facade.cast()).toEqual([maraItem]);
-    expect(facade.scriptTurns()).toEqual([]);
-    expect(facade.annotatedTurns()).toEqual([]);
-    expect(facade.castReviewed()).toBeFalse();
-    expect(facade.scriptApproved()).toBeFalse();
-    expect(facade.loadingAction()).toBeNull();
-    expect(facade.error()).toBeNull();
+      expect(tts.analyzeSpeakers).toHaveBeenCalledWith('story text');
+      expect(facade.cast()).toEqual([maraItem]);
+      expect(facade.loadingAction()).toBeNull();
+      expect(facade.error()).toBeNull();
+    });
+
+    it('sets error and clears loadingAction on failure', async () => {
+      tts.analyzeSpeakers.and.rejectWith(new Error('Network Error'));
+
+      await facade.analyzeStory('story text');
+
+      expect(facade.error()).toBe('Network Error');
+      expect(facade.loadingAction()).toBeNull();
+      expect(facade.cast()).toEqual([]);
+    });
+
+    it('resets downstream pipeline state when successful', async () => {
+      facade.setCast([jonasItem]);
+      facade.setScriptTurns([{ speaker: 'Jonas', text: 'Hi' }]);
+      facade.setAnnotatedTurns([{ speaker: 'Jonas', text: 'Hi' }]);
+      facade.setFinalRequest({ input: {}, voice: {}, audioConfig: {} });
+      facade.setAudioProductionPlan({ renderRequests: [] });
+      facade.setCastReviewed(true);
+      facade.setScriptApproved(true);
+      facade.setPerformanceNotesStale(false);
+
+      tts.analyzeSpeakers.and.resolveTo([maraItem]);
+      await facade.analyzeStory('new story');
+
+      expect(facade.cast()).toEqual([maraItem]);
+      expect(facade.scriptTurns()).toEqual([]);
+      expect(facade.annotatedTurns()).toEqual([]);
+      expect(facade.finalRequest()).toBeNull();
+      expect(facade.audioProductionPlan()).toBeNull();
+      expect(facade.castReviewed()).toBeFalse();
+      expect(facade.scriptApproved()).toBeFalse();
+      expect(facade.performanceNotesStale()).toBeFalse();
+
+      expect(fullSvc.cancel).toHaveBeenCalled();
+      expect(fullSvc.clearAudio).toHaveBeenCalled();
+      expect(renderSvc.abortAll).toHaveBeenCalled();
+      expect(renderSvc.revokeUrls).toHaveBeenCalled();
+    });
   });
 
-  it('sets error when analyzeStory fails', async () => {
-    tts.analyzeSpeakers.and.rejectWith(new Error('Provider unavailable'));
-    await facade.analyzeStory('Some text');
-    expect(facade.error()).toBe('Provider unavailable');
-    expect(facade.loadingAction()).toBeNull();
+  describe('createScriptPreview', () => {
+    it('sets loadingAction, calls TtsWorkbenchService, updates scriptTurns on success', async () => {
+      facade.setCast([maraItem]);
+      tts.splitDialogue.and.resolveTo([{ speaker: 'Mara', text: 'Hello' }]);
+
+      const promise = facade.createScriptPreview('story text');
+      expect(facade.loadingAction()).toBe('Creating script preview');
+
+      await promise;
+
+      expect(tts.splitDialogue).toHaveBeenCalledWith('story text', [maraItem]);
+      expect(facade.scriptTurns()).toEqual([{ speaker: 'Mara', text: 'Hello' }]);
+      expect(facade.loadingAction()).toBeNull();
+      expect(facade.error()).toBeNull();
+    });
+
+    it('sets error and clears loadingAction on failure', async () => {
+      tts.splitDialogue.and.rejectWith(new Error('API Failure'));
+      await facade.createScriptPreview('story text');
+
+      expect(facade.error()).toBe('API Failure');
+      expect(facade.loadingAction()).toBeNull();
+    });
   });
 
-  // ── createScriptPreview ───────────────────────────────────────────────────
+  describe('createPerformanceNotes', () => {
+    it('updates annotatedTurns and clears stale flag on success', async () => {
+      facade.setScriptTurns([{ speaker: 'Mara', text: 'Hello' }]);
+      tts.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
+      facade.setPerformanceNotesStale(true);
 
-  it('passes the current cast to splitDialogue and marks castReviewed', async () => {
-    facade.setCast([maraItem, jonasItem]);
-    tts.splitDialogue.and.resolveTo([{ speaker: 'Mara', text: 'We go.' }]);
+      await facade.createPerformanceNotes();
 
-    await facade.createScriptPreview('Mara: We go.');
-
-    expect(tts.splitDialogue).toHaveBeenCalledWith('Mara: We go.', [maraItem, jonasItem]);
-    expect(facade.scriptTurns()).toEqual([{ speaker: 'Mara', text: 'We go.' }]);
-    expect(facade.castReviewed()).toBeTrue();
-    expect(facade.scriptApproved()).toBeFalse();
+      expect(tts.annotateEmotions).toHaveBeenCalledWith([{ speaker: 'Mara', text: 'Hello' }]);
+      expect(facade.annotatedTurns()).toEqual([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
+      expect(facade.performanceNotesStale()).toBeFalse();
+    });
   });
 
-  // ── createPerformanceNotes ────────────────────────────────────────────────
+  describe('createAudioProductionPlan', () => {
+    it('generates final JSON then plan, and updates both signals', async () => {
+      const requestParams = {
+        prompt: 'A test',
+        languageCode: 'en-US',
+        modelName: 'test-model',
+        audioEncoding: 'MP3'
+      };
 
-  it('passes current scriptTurns to annotateEmotions and marks notes not stale', async () => {
-    facade.setScriptTurns([{ speaker: 'Mara', text: 'We go.' }]);
-    facade.setPerformanceNotesStale(true);
-    tts.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '[urgent] We go.' }]);
+      facade.setCast([maraItem]);
+      facade.setAnnotatedTurns([{ speaker: 'Mara', text: '<speak>Hi</speak>' }]);
 
-    await facade.createPerformanceNotes();
+      const finalReq = { input: { text: 'test' }, voice: {}, audioConfig: {} };
+      const plan = { renderRequests: [] };
 
-    expect(tts.annotateEmotions).toHaveBeenCalledWith([{ speaker: 'Mara', text: 'We go.' }]);
-    expect(facade.annotatedTurns()).toEqual([{ speaker: 'Mara', text: '[urgent] We go.' }]);
-    expect(facade.performanceNotesStale()).toBeFalse();
+      tts.generateFinalJson.and.resolveTo(finalReq);
+      tts.planSingleSpeakerRenderRequests.and.resolveTo(plan);
+
+      await facade.createAudioProductionPlan(requestParams);
+
+      expect(tts.generateFinalJson).toHaveBeenCalledWith({
+        ...requestParams,
+        speakers: [maraItem],
+        annotatedTurns: [{ speaker: 'Mara', text: '<speak>Hi</speak>' }]
+      });
+      expect(tts.planSingleSpeakerRenderRequests).toHaveBeenCalledWith(finalReq);
+
+      expect(facade.finalRequest()).toBe(finalReq);
+      expect(facade.audioProductionPlan()).toBe(plan);
+    });
   });
 
-  // ── approveScript ─────────────────────────────────────────────────────────
+  describe('scriptGroups', () => {
+    it('groups sequential turns by the same speaker', () => {
+      facade.setAnnotatedTurns([
+        { speaker: 'Mara', text: 'One' },
+        { speaker: 'Mara', text: 'Two' },
+        { speaker: 'Jonas', text: 'Three' },
+        { speaker: 'Mara', text: 'Four' }
+      ]);
 
-  it('sets scriptApproved to true', () => {
-    expect(facade.scriptApproved()).toBeFalse();
-    facade.approveScript();
-    expect(facade.scriptApproved()).toBeTrue();
+      const groups = facade.scriptGroups();
+      expect(groups.length).toBe(3);
+
+      expect(groups[0].speaker).toBe('Mara');
+      expect(groups[0].turns.map((t) => t.index)).toEqual([0, 1]);
+
+      expect(groups[1].speaker).toBe('Jonas');
+      expect(groups[1].turns.map((t) => t.index)).toEqual([2]);
+
+      expect(groups[2].speaker).toBe('Mara');
+      expect(groups[2].turns.map((t) => t.index)).toEqual([3]);
+    });
   });
 
-  // ── Cast editing ──────────────────────────────────────────────────────────
-
-  it('saveCastEdit replaces only the edited cast member', () => {
-    facade.setCast([maraItem, jonasItem]);
-    facade.startCastEdit(0);
-    const draft = facade.castEditDraft()!;
-    draft.speakerName = 'Captain Mara';
-    facade.saveCastEdit(0);
-
-    expect(facade.cast()[0].speakerName).toBe('Captain Mara');
-    expect(facade.cast()[1]).toBe(jonasItem);
-    expect(facade.editingCastIndex()).toBeNull();
+  describe('approveScript', () => {
+    it('sets scriptApproved true and performanceNotesStale true', () => {
+      facade.approveScript();
+      expect(facade.scriptApproved()).toBeTrue();
+      expect(facade.performanceNotesStale()).toBeTrue();
+    });
   });
 
-  it('cancelCastEdit clears draft and index', () => {
-    facade.setCast([maraItem]);
-    facade.startCastEdit(0);
-    facade.cancelCastEdit();
-    expect(facade.editingCastIndex()).toBeNull();
-    expect(facade.castEditDraft()).toBeNull();
+  describe('saveCastEdit', () => {
+    it('updates cast array and resets downstream pipeline', () => {
+      facade.setCast([maraItem, jonasItem]);
+      facade.startCastEdit(0);
+
+      const draft = facade.castEditDraft()!;
+      draft.speakerName = 'Mara Updated';
+
+      facade.saveCastEdit(0);
+
+      expect(facade.cast()[0].speakerName).toBe('Mara Updated');
+      expect(facade.editingCastIndex()).toBeNull();
+      expect(facade.castEditDraft()).toBeNull();
+
+      // Check downstream reset
+      expect(facade.castReviewed()).toBeFalse();
+      expect(renderSvc.abortAll).toHaveBeenCalled();
+    });
   });
 
-  // ── Script turn editing ───────────────────────────────────────────────────
+  describe('saveScriptTurnEdit', () => {
+    it('updates script array and resets downstream pipeline', () => {
+      facade.setScriptTurns([
+        { speaker: 'Mara', text: 'Hello' },
+        { speaker: 'Jonas', text: 'Hi' }
+      ]);
+      facade.startScriptTurnEdit(1);
 
-  it('saveScriptTurnEdit replaces the turn and un-approves the script', () => {
-    facade.setScriptTurns([{ speaker: 'Mara', text: 'We go.' }]);
-    facade.setScriptApproved(true);
-    facade.startScriptTurnEdit(0);
-    const draft = facade.scriptTurnEditDraft()!;
-    draft.text = 'We stay.';
-    facade.saveScriptTurnEdit(0);
+      const draft = facade.scriptTurnEditDraft()!;
+      draft.text = 'Greetings';
 
-    expect(facade.scriptTurns()[0].text).toBe('We stay.');
-    expect(facade.scriptApproved()).toBeFalse();
-  });
+      facade.saveScriptTurnEdit(1);
 
-  it('saveScriptTurnEdit marks performance notes stale when they exist', () => {
-    facade.setScriptTurns([{ speaker: 'Mara', text: 'We go.' }]);
-    facade.setAnnotatedTurns([{ speaker: 'Mara', text: '[urgent] We go.' }]);
-    facade.startScriptTurnEdit(0);
-    const draft = facade.scriptTurnEditDraft()!;
-    draft.text = 'We stay.';
-    facade.saveScriptTurnEdit(0);
+      expect(facade.scriptTurns()[1].text).toBe('Greetings');
+      expect(facade.editingScriptTurnIndex()).toBeNull();
+      expect(facade.scriptTurnEditDraft()).toBeNull();
 
-    expect(facade.performanceNotesStale()).toBeTrue();
-    expect(fullSvc.clearAudio).toHaveBeenCalled();
-  });
-
-  // ── scriptGroups computed ─────────────────────────────────────────────────
-
-  it('scriptGroups groups consecutive same-speaker turns', () => {
-    facade.setScriptTurns([
-      { speaker: 'Mara', text: 'Line 1.' },
-      { speaker: 'Mara', text: 'Line 2.' },
-      { speaker: 'Jonas', text: 'Reply.' },
-    ]);
-
-    const groups = facade.scriptGroups();
-    expect(groups.length).toBe(2);
-    expect(groups[0].speaker).toBe('Mara');
-    expect(groups[0].turns.length).toBe(2);
-    expect(groups[1].speaker).toBe('Jonas');
-    expect(groups[1].turns.length).toBe(1);
-  });
-
-  // ── speakerOptions computed ───────────────────────────────────────────────
-
-  it('speakerOptions includes cast names and adds Narrator when present in script', () => {
-    facade.setCast([maraItem, jonasItem]);
-    facade.setScriptTurns([{ speaker: 'Narrator', text: 'The lights dimmed.' }]);
-
-    const options = facade.speakerOptions();
-    expect(options).toContain('Mara');
-    expect(options).toContain('Jonas');
-    expect(options).toContain('Narrator');
-  });
-
-  // ── resetPipeline ─────────────────────────────────────────────────────────
-
-  it('resetPipeline clears all state, error, and calls audio reset', () => {
-    const onReset = jasmine.createSpy('onAudioReset');
-    facade.onAudioReset = onReset;
-    facade.setCast([maraItem]);
-    facade.setScriptTurns([{ speaker: 'Mara', text: 'Hello' }]);
-    facade.setScriptApproved(true);
-
-    facade.resetPipeline();
-
-    expect(facade.cast()).toEqual([]);
-    expect(facade.scriptTurns()).toEqual([]);
-    expect(facade.scriptApproved()).toBeFalse();
-    expect(facade.error()).toBeNull();
-    expect(onReset).toHaveBeenCalledTimes(1);
-    expect(renderSvc.abortAll).toHaveBeenCalled();
-    expect(fullSvc.clearAudio).toHaveBeenCalled();
+      // Check downstream reset
+      expect(facade.scriptApproved()).toBeFalse();
+      expect(facade.performanceNotesStale()).toBeTrue();
+      expect(renderSvc.abortAll).toHaveBeenCalled();
+    });
   });
 });

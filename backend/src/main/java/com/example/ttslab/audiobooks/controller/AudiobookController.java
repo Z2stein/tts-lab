@@ -1,5 +1,9 @@
-package com.example.ttslab.audiobooks;
+package com.example.ttslab.audiobooks.controller;
 
+import com.example.ttslab.audiobooks.model.AudioAsset;
+import com.example.ttslab.audiobooks.dto.AudiobookDetailResponse;
+import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
+import com.example.ttslab.audiobooks.dto.AudiobookSummaryResponse;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.storage.StoredFile;
@@ -47,7 +51,7 @@ public class AudiobookController {
         CurrentUser user = currentUserResolver.resolve(authentication);
         AudioAsset asset = audiobookLibraryService.assetForDownload(user, id, assetId);
         StoredFile storedFile = audiobookLibraryService.read(asset);
-        return audioResponse(asset, storedFile, ContentDisposition.attachment().filename(asset.filename()).build());
+        return audioResponse(asset, storedFile, ContentDisposition.attachment().filename(asset.getFilename()).build());
     }
 
     @GetMapping("/{id}/audio-assets/{assetId}/stream")
@@ -59,7 +63,7 @@ public class AudiobookController {
         CurrentUser user = currentUserResolver.resolve(authentication);
         AudioAsset asset = audiobookLibraryService.assetForDownload(user, id, assetId);
         StoredFile storedFile = audiobookLibraryService.read(asset);
-        return audioResponse(asset, storedFile, ContentDisposition.inline().filename(asset.filename()).build());
+        return audioResponse(asset, storedFile, ContentDisposition.inline().filename(asset.getFilename()).build());
     }
 
     private ResponseEntity<InputStreamResource> audioResponse(
@@ -69,7 +73,7 @@ public class AudiobookController {
     ) {
         return ResponseEntity.ok()
             .header(HttpHeaders.CONTENT_DISPOSITION, contentDisposition.toString())
-            .contentType(MediaType.parseMediaType(asset.contentType()))
+            .contentType(MediaType.parseMediaType(asset.getContentType()))
             .contentLength(storedFile.sizeBytes())
             .body(new InputStreamResource(storedFile.content()));
     }

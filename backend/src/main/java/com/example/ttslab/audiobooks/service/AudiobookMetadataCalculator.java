@@ -1,4 +1,8 @@
-package com.example.ttslab.audiobooks;
+package com.example.ttslab.audiobooks.service;
+
+import com.example.ttslab.audiobooks.model.AudioAsset;
+import com.example.ttslab.audiobooks.model.AudioAssetStatus;
+import com.example.ttslab.audiobooks.repository.AudiobookRepository;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -27,7 +31,7 @@ public class AudiobookMetadataCalculator {
      */
     public int calculateSceneCount(String projectId) {
         return (int) repository.findAssets(projectId).stream()
-            .filter(asset -> asset.status() == AudioAssetStatus.READY)
+            .filter(asset -> asset.getStatus() == AudioAssetStatus.READY)
             .count();
     }
 
@@ -42,7 +46,7 @@ public class AudiobookMetadataCalculator {
     public int calculateSpeakerCount(String projectId) {
         Set<String> uniqueSpeakers = new HashSet<>();
         repository.findAssets(projectId).stream()
-            .filter(asset -> asset.status() == AudioAssetStatus.READY)
+            .filter(asset -> asset.getStatus() == AudioAssetStatus.READY)
             .forEach(asset -> {
                 // Extract speaker from filename pattern or metadata
                 String speaker = extractSpeakerFromAsset(asset);
@@ -62,8 +66,8 @@ public class AudiobookMetadataCalculator {
      */
     public int calculateTotalDurationSeconds(String projectId) {
         return (int) repository.findAssets(projectId).stream()
-            .filter(asset -> asset.status() == AudioAssetStatus.READY)
-            .mapToInt(asset -> asset.durationSeconds() != null ? asset.durationSeconds() : 0)
+            .filter(asset -> asset.getStatus() == AudioAssetStatus.READY)
+            .mapToInt(asset -> asset.getDurationSeconds() != null ? asset.getDurationSeconds() : 0)
             .sum();
     }
 
@@ -74,7 +78,7 @@ public class AudiobookMetadataCalculator {
      * @return the extracted speaker name, or null if not found
      */
     private String extractSpeakerFromAsset(AudioAsset asset) {
-        String filename = asset.filename();
+        String filename = asset.getFilename();
         if (filename != null && filename.contains("-")) {
             String[] parts = filename.split("-");
             if (parts.length >= 2) {

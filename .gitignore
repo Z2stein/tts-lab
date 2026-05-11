@@ -7,4 +7,13 @@ backend/build/
 frontend/.angular/
 frontend/playwright-report/
 frontend/test-results/
+frontend/coverage/
 .claude/
+
+/backend/gradle/wrapper/gradle-wrapper.jar
+/backend/gradle/wrapper/gradle-wrapper.properties
+/backend/data/
+/backend/gradlew
+/backend/gradlew.bat
+/data/
+/.idea/
