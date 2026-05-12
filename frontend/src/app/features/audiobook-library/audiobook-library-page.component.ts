@@ -19,7 +19,7 @@ import { AudiobookLibraryService } from './services/audiobook-library.service';
           <div>
             <p class="eyebrow">My Audiobooks</p>
             <h1 id="library-title" class="m-0 text-4xl font-black tracking-normal text-studio-text sm:text-5xl">Library</h1>
-            <p class="mt-3 max-w-2xl text-studio-muted">Review generated previews, inspect scene readiness, and download ready MP3 assets.</p>
+            <p class="mt-3 max-w-2xl text-studio-muted">Review generated previews, inspect speech segment readiness, and download ready MP3 assets.</p>
           </div>
           <a class="secondary-button" routerLink="/audiobook-studio">Open studio</a>
         </header>

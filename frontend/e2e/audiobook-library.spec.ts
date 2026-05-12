@@ -37,7 +37,7 @@ const project = {
   id: 'project-amber',
   title: 'The Amber Signal',
   status: 'NEEDS_REVIEW',
-  sceneCount: 2,
+  speechSegmentCount: 2,
   speakerCount: 3,
   totalDurationSeconds: 185,
   createdAt: '2026-05-08T08:30:00Z',
@@ -45,7 +45,7 @@ const project = {
   audioAssets: [
     {
       id: 'asset-preview',
-      sceneId: null,
+      speechSegmentId: null,
       type: 'PREVIEW_MP3',
       version: 1,
       filename: 'amber-signal-preview.mp3',
@@ -58,37 +58,37 @@ const project = {
       streamUrl: '/api/audiobooks/project-amber/audio-assets/asset-preview/stream'
     },
     {
-      id: 'asset-scene-1',
-      sceneId: 'scene-1',
-      type: 'SCENE_MP3',
+      id: 'asset-speech-segment-1',
+      speechSegmentId: 'speech-segment-1',
+      type: 'SPEECH_SEGMENT_MP3',
       version: 2,
-      filename: 'scene-1-v2.mp3',
+      filename: 'speech-segment-1-v2.mp3',
       contentType: 'audio/mpeg',
       sizeBytes: 640000,
       durationSeconds: 82,
       status: 'READY',
       createdAt: '2026-05-09T10:20:00Z',
-      downloadUrl: '/api/audiobooks/project-amber/audio-assets/asset-scene-1/download',
-      streamUrl: '/api/audiobooks/project-amber/audio-assets/asset-scene-1/stream'
+      downloadUrl: '/api/audiobooks/project-amber/audio-assets/asset-speech-segment-1/download',
+      streamUrl: '/api/audiobooks/project-amber/audio-assets/asset-speech-segment-1/stream'
     },
     {
-      id: 'asset-scene-2',
-      sceneId: 'scene-2',
-      type: 'SCENE_MP3',
+      id: 'asset-speech-segment-2',
+      speechSegmentId: 'speech-segment-2',
+      type: 'SPEECH_SEGMENT_MP3',
       version: 2,
-      filename: 'scene-2-v2.mp3',
+      filename: 'speech-segment-2-v2.mp3',
       contentType: 'audio/mpeg',
       sizeBytes: 520000,
       durationSeconds: 103,
       status: 'READY',
       createdAt: '2026-05-09T10:25:00Z',
-      downloadUrl: '/api/audiobooks/project-amber/audio-assets/asset-scene-2/download',
-      streamUrl: '/api/audiobooks/project-amber/audio-assets/asset-scene-2/stream'
+      downloadUrl: '/api/audiobooks/project-amber/audio-assets/asset-speech-segment-2/download',
+      streamUrl: '/api/audiobooks/project-amber/audio-assets/asset-speech-segment-2/stream'
     }
   ],
-  scenes: [
+  speechSegments: [
     {
-      id: 'scene-1',
+      id: 'speech-segment-1',
       orderIndex: 0,
       title: 'Station clock',
       reviewStatus: 'PENDING',
@@ -101,7 +101,7 @@ const project = {
       performanceDirections: '[calm] [curious] Narrator, [short pause] the clock strikes midnight.'
     },
     {
-      id: 'scene-2',
+      id: 'speech-segment-2',
       orderIndex: 1,
       title: 'The winter key',
       reviewStatus: 'APPROVED',
@@ -150,14 +150,14 @@ test('multiple audiobook projects appear as distinct cards', async ({ context, p
     id: 'project-silver',
     title: 'The Silver Key',
     status: 'NEEDS_REVIEW',
-    sceneCount: 1,
+    speechSegmentCount: 1,
     speakerCount: 2,
     totalDurationSeconds: 120,
     updatedAt: '2026-05-09T11:00:00Z',
     audioAssets: [
       {
         id: 'asset-silver',
-        sceneId: null,
+        speechSegmentId: null,
         type: 'PREVIEW_MP3',
         version: 1,
         filename: 'silver-preview.mp3',
@@ -238,7 +238,7 @@ test('library card displays correct metadata for multi-segment audiobook with re
   // - Works with repeated speakers (Narrator appears 2x, counts as 1)
   //
   // The backend's AudiobookMetadataCalculator computes:
-  // - sceneCount = count of READY audio assets = 3
+  // - speechSegmentCount = count of READY audio assets = 3
   // - speakerCount = count of unique speakers from filenames = 2 (narrator, mara)
   // - totalDurationSeconds = sum of all READY asset durations = 6 + 5 + 8 = 19 seconds
 
@@ -250,14 +250,14 @@ test('library card displays correct metadata for multi-segment audiobook with re
     id: 'project-multi-speaker',
     title: 'Generated audiobook 2026-05-09T20:50:36.213985432Z',
     status: 'NEEDS_REVIEW',
-    sceneCount: 3,  // 3 dialogue segments/parts
+    speechSegmentCount: 3,  // 3 dialogue segments/parts
     speakerCount: 2,  // 2 unique speakers (Narrator, Mara)
     totalDurationSeconds: 19,  // Total preview duration
     updatedAt: '2026-05-09T22:50:00Z',
     audioAssets: [
       {
         id: 'segment-1-narrator',
-        sceneId: 'scene-1',
+        speechSegmentId: 'speech-segment-1',
         type: 'PREVIEW_MP3',
         version: 1,
         filename: 'segment-1-narrator.mp3',
@@ -271,7 +271,7 @@ test('library card displays correct metadata for multi-segment audiobook with re
       },
       {
         id: 'segment-2-mara',
-        sceneId: 'scene-2',
+        speechSegmentId: 'speech-segment-2',
         type: 'PREVIEW_MP3',
         version: 1,
         filename: 'segment-2-mara.mp3',
@@ -285,7 +285,7 @@ test('library card displays correct metadata for multi-segment audiobook with re
       },
       {
         id: 'segment-3-narrator',
-        sceneId: 'scene-3',
+        speechSegmentId: 'speech-segment-3',
         type: 'PREVIEW_MP3',
         version: 1,
         filename: 'segment-3-narrator.mp3',
@@ -339,9 +339,9 @@ test('library card displays correct metadata for multi-segment audiobook with re
 });
 
 test('audiobook library integration with components is functional', async ({ context, page }) => {
-  // Verifies integration of complete-audiobook-player, scene-list, and audiobook-part-card
+  // Verifies integration of complete-audiobook-player, speech-segment-list, and audiobook-part-card
   // Complete audiobook player component added with WaveSurfer + download button
-  // Scene-list component displays performance notes with emotion tags
+  // Speech-segment-list component displays performance notes with emotion tags
   // Audiobook-part-card components show character details and voice information
   await authenticate(context, page);
   await page.route('**/api/audiobooks', async (route) => {

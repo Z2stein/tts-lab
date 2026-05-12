@@ -52,8 +52,8 @@ class AudiobookLibraryIntegrationTest {
     private String projectB;
     private String projectC;
     private String projectD;
-    private String sceneA1;
-    private String sceneB1;
+    private String speechSegmentA1;
+    private String speechSegmentB1;
     private String assetA1;
     private String assetA2;
     private String assetA3;
@@ -68,7 +68,7 @@ class AudiobookLibraryIntegrationTest {
     void setupFixtures() {
         // Clean up any previous test data for user-1 and user-2 to ensure test isolation
         jdbcTemplate.update("DELETE FROM audio_asset WHERE project_id IN (SELECT id FROM audiobook_project WHERE user_id IN (?, ?))", "user-1", "user-2");
-        jdbcTemplate.update("DELETE FROM audiobook_scene WHERE project_id IN (SELECT id FROM audiobook_project WHERE user_id IN (?, ?))", "user-1", "user-2");
+        jdbcTemplate.update("DELETE FROM audiobook_speech_segment WHERE project_id IN (SELECT id FROM audiobook_project WHERE user_id IN (?, ?))", "user-1", "user-2");
         jdbcTemplate.update("DELETE FROM audiobook_project WHERE user_id IN (?, ?)", "user-1", "user-2");
 
         // Generate IDs for all fixtures
@@ -76,8 +76,8 @@ class AudiobookLibraryIntegrationTest {
         projectB = UUID.randomUUID().toString();
         projectC = UUID.randomUUID().toString();
         projectD = UUID.randomUUID().toString();
-        sceneA1 = UUID.randomUUID().toString();
-        sceneB1 = UUID.randomUUID().toString();
+        speechSegmentA1 = UUID.randomUUID().toString();
+        speechSegmentB1 = UUID.randomUUID().toString();
         assetA1 = UUID.randomUUID().toString();
         assetA2 = UUID.randomUUID().toString();
         assetA3 = UUID.randomUUID().toString();
@@ -108,31 +108,31 @@ class AudiobookLibraryIntegrationTest {
             "TTS_WORKBENCH", 0, null, null, null, null
         ));
 
-        // Scene with metadata
-        repository.addScene(new AudiobookSpeechSegment(
-            sceneA1, projectA, 1, "Opening Scene", AudiobookSpeechSegmentReviewStatus.PENDING,
+        // Speech segment with metadata
+        repository.addSpeechSegment(new AudiobookSpeechSegment(
+            speechSegmentA1, projectA, 1, "Opening Speech Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
             30, null, null, "narrator", "Main narrator", null, null
         ));
 
         // 2 READY assets (15 + 30 seconds)
         repository.addAsset(new AudioAsset(
-            assetA1, projectA, sceneA1, AudioAssetType.PREVIEW_MP3, 1, "key-1",
+            assetA1, projectA, speechSegmentA1, AudioAssetType.PREVIEW_MP3, 1, "key-1",
             "segment-1-narrator.mp3", "audio/mpeg", 100000, 15, AudioAssetStatus.READY, null
         ));
         repository.addAsset(new AudioAsset(
-            assetA2, projectA, sceneA1, AudioAssetType.PREVIEW_MP3, 1, "key-2",
+            assetA2, projectA, speechSegmentA1, AudioAssetType.PREVIEW_MP3, 1, "key-2",
             "segment-2-mara.mp3", "audio/mpeg", 200000, 30, AudioAssetStatus.READY, null
         ));
 
         // 1 GENERATING asset (should be excluded from counts)
         repository.addAsset(new AudioAsset(
-            assetA3, projectA, sceneA1, AudioAssetType.PREVIEW_MP3, 1, "key-3",
+            assetA3, projectA, speechSegmentA1, AudioAssetType.PREVIEW_MP3, 1, "key-3",
             "segment-3-unknown.mp3", "audio/mpeg", 150000, 25, AudioAssetStatus.GENERATING, null
         ));
 
         // 1 FAILED asset (should be excluded from counts)
         repository.addAsset(new AudioAsset(
-            assetA4, projectA, sceneA1, AudioAssetType.PREVIEW_MP3, 1, "key-4",
+            assetA4, projectA, speechSegmentA1, AudioAssetType.PREVIEW_MP3, 1, "key-4",
             "segment-4-failed.mp3", "audio/mpeg", 100000, null, AudioAssetStatus.FAILED, null
         ));
     }
@@ -144,51 +144,51 @@ class AudiobookLibraryIntegrationTest {
             "TTS_WORKBENCH", 0, null, null, null, null
         ));
 
-        repository.addScene(new AudiobookSpeechSegment(
-            sceneB1, projectB, 1, "Multi-Speaker Scene", AudiobookSpeechSegmentReviewStatus.PENDING,
+        repository.addSpeechSegment(new AudiobookSpeechSegment(
+            speechSegmentB1, projectB, 1, "Multi-Speaker Speech Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
             55, null, null, null, null, null, null
         ));
 
         // 4 READY assets with distinct speakers extracted from filenames
         repository.addAsset(new AudioAsset(
-            assetB1, projectB, sceneB1, AudioAssetType.PREVIEW_MP3, 1, "key-b1",
+            assetB1, projectB, speechSegmentB1, AudioAssetType.PREVIEW_MP3, 1, "key-b1",
             "segment-1-narrator.mp3", "audio/mpeg", 150000, 15, AudioAssetStatus.READY, null
         ));
         repository.addAsset(new AudioAsset(
-            assetB2, projectB, sceneB1, AudioAssetType.PREVIEW_MP3, 1, "key-b2",
+            assetB2, projectB, speechSegmentB1, AudioAssetType.PREVIEW_MP3, 1, "key-b2",
             "segment-2-mara.mp3", "audio/mpeg", 120000, 12, AudioAssetStatus.READY, null
         ));
         repository.addAsset(new AudioAsset(
-            assetB3, projectB, sceneB1, AudioAssetType.PREVIEW_MP3, 1, "key-b3",
+            assetB3, projectB, speechSegmentB1, AudioAssetType.PREVIEW_MP3, 1, "key-b3",
             "segment-3-narrator.mp3", "audio/mpeg", 180000, 18, AudioAssetStatus.READY, null
         ));
         repository.addAsset(new AudioAsset(
-            assetB4, projectB, sceneB1, AudioAssetType.PREVIEW_MP3, 1, "key-b4",
+            assetB4, projectB, speechSegmentB1, AudioAssetType.PREVIEW_MP3, 1, "key-b4",
             "segment-4-alex.mp3", "audio/mpeg", 100000, 10, AudioAssetStatus.READY, null
         ));
     }
 
     private void createFixtureC() {
         // Project: "Private Audiobook" owned by user-2 (user-1 should not see this)
-        String sceneC1 = UUID.randomUUID().toString();
+        String speechSegmentC1 = UUID.randomUUID().toString();
         repository.createProject(new AudiobookProject(
             projectC, "user-2", "Private Audiobook", AudiobookProjectStatus.APPROVED,
             "TTS_WORKBENCH", 0, null, null, null, null
         ));
 
-        repository.addScene(new AudiobookSpeechSegment(
-            sceneC1, projectC, 1, "Private Scene", AudiobookSpeechSegmentReviewStatus.PENDING,
+        repository.addSpeechSegment(new AudiobookSpeechSegment(
+            speechSegmentC1, projectC, 1, "Private Speech Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
             20, null, null, "james", null, null, null
         ));
 
         repository.addAsset(new AudioAsset(
-            assetC1, projectC, sceneC1, AudioAssetType.PREVIEW_MP3, 1, "key-c1",
+            assetC1, projectC, speechSegmentC1, AudioAssetType.PREVIEW_MP3, 1, "key-c1",
             "segment-1-james.mp3", "audio/mpeg", 100000, 20, AudioAssetStatus.READY, null
         ));
     }
 
     private void createFixtureD() {
-        // Project: "Empty Draft" with no scenes or assets
+        // Project: "Empty Draft" with no speech segments or assets
         repository.createProject(new AudiobookProject(
             projectD, "user-1", "Empty Draft", AudiobookProjectStatus.NEEDS_REVIEW,
             "TTS_WORKBENCH", 0, null, null, null, null
@@ -210,9 +210,9 @@ class AudiobookLibraryIntegrationTest {
             .extracting(AudiobookSummaryResponse.AudiobookSummaryItem::title)
             .containsExactlyInAnyOrder("The Amber Signal", "Voices Unbound", "Empty Draft");
 
-        // Verify correct metadata: scene count
+        // Verify correct metadata: speech segment count
         assertThat(response.items())
-            .extracting(AudiobookSummaryResponse.AudiobookSummaryItem::sceneCount)
+            .extracting(AudiobookSummaryResponse.AudiobookSummaryItem::speechSegmentCount)
             .containsExactlyInAnyOrder(2, 4, 0);
 
         // Verify correct metadata: speaker count
@@ -227,7 +227,7 @@ class AudiobookLibraryIntegrationTest {
     }
 
     @Test
-    @DisplayName("Detail endpoint returns complete project with scenes and assets")
+    @DisplayName("Detail endpoint returns complete project with speech segments and assets")
     void testDetailEndpointReturnsCompleteProjectWithMetadata() throws Exception {
         AudiobookDetailResponse response = getDetailResponse(projectB);
 
@@ -236,8 +236,8 @@ class AudiobookLibraryIntegrationTest {
         assertThat(response.status()).isEqualTo(AudiobookProjectStatus.NEEDS_REVIEW);
         assertThat(response.createdAt()).isNotNull();
         assertThat(response.updatedAt()).isNotNull();
-        assertThat(response.scenes()).hasSize(1);
-        assertThat(response.scenes().get(0).title()).isEqualTo("Multi-Speaker Scene");
+        assertThat(response.speechSegments()).hasSize(1);
+        assertThat(response.speechSegments().get(0).title()).isEqualTo("Multi-Speaker Speech Segment");
         assertThat(response.audioAssets()).hasSize(4);
     }
 
@@ -246,7 +246,7 @@ class AudiobookLibraryIntegrationTest {
     // ============================================================================
 
     @Test
-    @DisplayName("List calculates scene count from READY assets only")
+    @DisplayName("List calculates speech segment count from READY assets only")
     void testListCalculatesSceneCountFromReadyAssetsOnly() throws Exception {
         AudiobookSummaryResponse response = getListResponse();
 
@@ -256,7 +256,7 @@ class AudiobookLibraryIntegrationTest {
             .orElseThrow();
 
         // Only 2 READY assets in Fixture A (GENERATING and FAILED excluded)
-        assertThat(amberSignal.sceneCount()).isEqualTo(2);
+        assertThat(amberSignal.speechSegmentCount()).isEqualTo(2);
     }
 
     @Test
@@ -414,7 +414,7 @@ class AudiobookLibraryIntegrationTest {
     void testListEndpointReturnsEmptyArrayForUserWithNoProjects() throws Exception {
         // Delete all projects for user-1 to test empty case
         jdbcTemplate.update("DELETE FROM audio_asset WHERE project_id IN (?, ?, ?)", projectA, projectB, projectD);
-        jdbcTemplate.update("DELETE FROM audiobook_scene WHERE project_id IN (?, ?, ?)", projectA, projectB, projectD);
+        jdbcTemplate.update("DELETE FROM audiobook_speech_segment WHERE project_id IN (?, ?, ?)", projectA, projectB, projectD);
         jdbcTemplate.update("DELETE FROM audiobook_project WHERE user_id = ?", "user-1");
 
         AudiobookSummaryResponse response = getListResponse();
@@ -439,7 +439,7 @@ class AudiobookLibraryIntegrationTest {
             .findFirst()
             .orElseThrow();
 
-        assertThat(amberSignal.sceneCount()).isEqualTo((int) readyCount);
+        assertThat(amberSignal.speechSegmentCount()).isEqualTo((int) readyCount);
         assertThat(amberSignal.audioAssets()).isNotNull();
     }
 
@@ -449,7 +449,7 @@ class AudiobookLibraryIntegrationTest {
         // Create a test scenario: GENERATING asset with much larger duration should not affect totals
         String extraAssetId = UUID.randomUUID().toString();
         repository.addAsset(new AudioAsset(
-            extraAssetId, projectA, sceneA1, AudioAssetType.PREVIEW_MP3, 1, "key-extra",
+            extraAssetId, projectA, speechSegmentA1, AudioAssetType.PREVIEW_MP3, 1, "key-extra",
             "segment-99-unknown.mp3", "audio/mpeg", 500000, 500, AudioAssetStatus.GENERATING, null
         ));
 
@@ -471,8 +471,8 @@ class AudiobookLibraryIntegrationTest {
     @DisplayName("Project metadata is not persisted in database for list endpoint")
     void testProjectMetadataIsNotPersistedInDatabaseForList() throws Exception {
         // Verify that the database columns are NULL/0, not persisted
-        Integer sceneCount = jdbcTemplate.queryForObject(
-            "SELECT scene_count FROM audiobook_project WHERE id = ?", Integer.class, projectB
+        Integer speechSegmentCount = jdbcTemplate.queryForObject(
+            "SELECT speech_segment_count FROM audiobook_project WHERE id = ?", Integer.class, projectB
         );
         Integer speakerCount = jdbcTemplate.queryForObject(
             "SELECT speaker_count FROM audiobook_project WHERE id = ?", Integer.class, projectB
@@ -482,7 +482,7 @@ class AudiobookLibraryIntegrationTest {
         );
 
         // All should be NULL or 0 (not persisted)
-        assertThat(sceneCount).isZero();
+        assertThat(speechSegmentCount).isZero();
         assertThat(speakerCount).isNull();
         assertThat(totalDuration).isNull();
 
@@ -493,7 +493,7 @@ class AudiobookLibraryIntegrationTest {
             .findFirst()
             .orElseThrow();
 
-        assertThat(voicesUnbound.sceneCount()).isEqualTo(4);
+        assertThat(voicesUnbound.speechSegmentCount()).isEqualTo(4);
         assertThat(voicesUnbound.speakerCount()).isEqualTo(3);
         assertThat(voicesUnbound.totalDurationSeconds()).isEqualTo(55);
     }
@@ -522,14 +522,14 @@ class AudiobookLibraryIntegrationTest {
 
     private List<AudiobookProject> queryProjectsByUser(String userId) {
         return jdbcTemplate.query(
-            "SELECT id, user_id, title, status, source_type, scene_count, speaker_count, total_duration_seconds, created_at, updated_at FROM audiobook_project WHERE user_id = ?",
+            "SELECT id, user_id, title, status, source_type, speech_segment_count, speaker_count, total_duration_seconds, created_at, updated_at FROM audiobook_project WHERE user_id = ?",
             (rs, rowNum) -> new AudiobookProject(
                 rs.getString("id"),
                 rs.getString("user_id"),
                 rs.getString("title"),
                 AudiobookProjectStatus.valueOf(rs.getString("status")),
                 rs.getString("source_type"),
-                rs.getInt("scene_count"),
+                rs.getInt("speech_segment_count"),
                 null,
                 null,
                 null,

@@ -19,7 +19,7 @@ export class CvAudiobookDemoPageComponent {
   readonly headlinePrefix = 'I built an';
   readonly headlineAccent = 'AI audiobook';
   readonly headlineSuffix = 'creator.';
-  readonly subtitle = 'Paste a scene with dialogue. The app detects characters, suggests voices, adds performance notes, and turns it into audiobook-style audio.';
+  readonly subtitle = 'Paste a story excerpt with dialogue. The app detects characters, suggests voices, adds performance notes, and turns it into audiobook-style audio.';
   readonly demoLabel = 'Demo preview';
   readonly demoAudioSrc = '/assets/audio/voice-samples/full-text-preview.mp3';
   readonly primaryAction: DemoAction = {

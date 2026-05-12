@@ -1,9 +1,9 @@
-.scene-list {
+.speech-segment-list {
   display: grid;
   gap: 0.75rem;
 }
 
-.scene-item {
+.speech-segment-item {
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-left: 4px solid var(--speaker-accent);
   background: rgba(5, 9, 20, 0.58);
@@ -14,26 +14,26 @@
   gap: 0.75rem;
 }
 
-.scene-header {
+.speech-segment-header {
   display: flex;
   align-items: baseline;
   gap: 0.5rem;
   margin-bottom: 0.25rem;
 }
 
-.scene-number {
+.speech-segment-number {
   font-weight: 900;
   color: var(--speaker-accent);
   font-size: 0.9rem;
 }
 
-.scene-title {
+.speech-segment-title {
   font-weight: 700;
   color: rgba(255, 248, 236, 0.9);
   font-size: 0.95rem;
 }
 
-.scene-content {
+.speech-segment-content {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
@@ -74,14 +74,14 @@
   box-shadow: 0 0 12px rgba(240, 173, 93, 0.2);
 }
 
-.scene-text {
+.speech-segment-text {
   color: rgba(255, 248, 236, 0.85);
   font-size: 0.9rem;
   line-height: 1.4;
   padding: 0.5rem 0;
 }
 
-.scene-meta {
+.speech-segment-meta {
   font-size: 0.8rem;
   color: rgba(255, 255, 255, 0.6);
   display: flex;

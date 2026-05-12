@@ -21,7 +21,7 @@ class StorageKeyBuilderTest {
     }
 
     @Test
-    void sceneKeysUseSceneScopedVersionedPath() {
+    void speechSegmentKeysUseSpeechSegmentScopedVersionedPath() {
         StorageKeyBuilder builder = new StorageKeyBuilder(new StorageProperties(
             "./data/audio",
             "studio",
@@ -29,8 +29,8 @@ class StorageKeyBuilderTest {
             "dev"
         ));
 
-        String key = builder.sceneMp3("user-a", "project-b", "scene-c", 3);
+        String key = builder.speechSegmentMp3("user-a", "project-b", "speech-segment-c", 3);
 
-        assertThat(key).isEqualTo("studio/dev/dev/users/user-a/projects/project-b/scenes/scene-c/v3.mp3");
+        assertThat(key).isEqualTo("studio/dev/dev/users/user-a/projects/project-b/speech-segments/speech-segment-c/v3.mp3");
     }
 }

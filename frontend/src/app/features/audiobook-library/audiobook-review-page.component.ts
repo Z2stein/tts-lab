@@ -2,8 +2,8 @@ import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CompleteAudiobookPlayerComponent } from './components/complete-audiobook-player/complete-audiobook-player.component';
-import { AudiobookSceneListComponent } from './components/audiobook-scene-list.component';
-import { AudiobookDetail, AudioAsset, AudiobookScene } from './models/audiobook-library.types';
+import { AudiobookSpeechSegmentListComponent } from './components/audiobook-speech-segment-list.component';
+import { AudiobookDetail, AudioAsset, AudiobookSpeechSegment } from './models/audiobook-library.types';
 import { AudiobookLibraryService } from './services/audiobook-library.service';
 import { AudiobookPartCardComponent } from '../../shared/components/audiobook-part-card/audiobook-part-card.component';
 import { AudiobookPartCard } from '../../shared/components/audiobook-part-card/audiobook-part-card.component';
@@ -12,7 +12,7 @@ import { parsePerformanceDirections } from './utils/performance-parser';
 @Component({
   selector: 'app-audiobook-review-page',
   standalone: true,
-  imports: [CommonModule, RouterLink, CompleteAudiobookPlayerComponent, AudiobookSceneListComponent, AudiobookPartCardComponent],
+  imports: [CommonModule, RouterLink, CompleteAudiobookPlayerComponent, AudiobookSpeechSegmentListComponent, AudiobookPartCardComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './audiobook-review-page.component.css',
   template: `
@@ -30,7 +30,7 @@ import { parsePerformanceDirections } from './utils/performance-parser';
             <div class="flex flex-wrap items-start justify-between gap-5">
               <div>
                 <h1 id="review-title" class="m-0 text-4xl font-black sm:text-5xl">{{ detail.title }}</h1>
-                <p class="mt-3 text-studio-muted">{{ detail.status.replace('_', ' ') }} · {{ detail.sceneCount }} scenes · Updated {{ updatedLabel(detail.updatedAt) }}</p>
+                <p class="mt-3 text-studio-muted">{{ detail.status.replace('_', ' ') }} - {{ detail.speechSegmentCount }} speech segments - Updated {{ updatedLabel(detail.updatedAt) }}</p>
               </div>
               <span class="badge">{{ readyAssets.length }} ready audio asset{{ readyAssets.length === 1 ? '' : 's' }}</span>
             </div>
@@ -39,7 +39,7 @@ import { parsePerformanceDirections } from './utils/performance-parser';
           <!-- Complete Audiobook Player -->
           <app-complete-audiobook-player *ngIf="primaryAsset" [asset]="primaryAsset"></app-complete-audiobook-player>
 
-          <!-- Audio Parts Section - Styled to match studio page -->
+          <!-- Speech Segment List -->
           <details class="audio-parts-details" open>
             <summary>
               <h2 class="m-0 text-2xl font-black">Audio parts and individual previews</h2>
@@ -55,8 +55,7 @@ import { parsePerformanceDirections } from './utils/performance-parser';
             </div>
           </details>
 
-          <!-- Scene List -->
-          <app-audiobook-scene-list [scenes]="detail.scenes" [audioAssets]="detail.audioAssets"></app-audiobook-scene-list>
+          <app-audiobook-speech-segment-list [speechSegments]="detail.speechSegments" [audioAssets]="detail.audioAssets"></app-audiobook-speech-segment-list>
         </ng-container>
       </div>
     </section>
@@ -79,37 +78,36 @@ export class AudiobookReviewPageComponent implements OnInit {
   }
 
   get primaryAsset(): AudioAsset | null {
-    const fullAudiobookAssets = this.readyAssets.filter((asset) => !asset.sceneId);
+    const fullAudiobookAssets = this.readyAssets.filter((asset) => !asset.speechSegmentId);
     return fullAudiobookAssets.find((asset) => asset.type === 'FULL_AUDIOBOOK' || asset.type === 'PREVIEW_MP3') ?? fullAudiobookAssets[0] ?? null;
   }
 
   private buildAudioPartCards(): AudiobookPartCard[] {
     const detail = this.detail;
-    if (!detail?.scenes) return [];
+    if (!detail?.speechSegments) return [];
 
-    return detail.scenes.map((scene, index) => {
-      const parsed = parsePerformanceDirections(scene.performanceDirections);
+    return detail.speechSegments.map((speechSegment, index) => {
+      const parsed = parsePerformanceDirections(speechSegment.performanceDirections);
       return {
         partNumber: index + 1,
-        totalParts: detail.scenes.length,
-        speakerName: scene.speakerName || parsed.speakerName || this.extractSpeakerFromFilename(scene),
-        speakerRole: scene.speakerRoleDescription,
-        voiceName: scene.voiceName,
+        totalParts: detail.speechSegments.length,
+        speakerName: speechSegment.speakerName || parsed.speakerName || this.extractSpeakerFromFilename(speechSegment),
+        speakerRole: speechSegment.speakerRoleDescription,
+        voiceName: speechSegment.voiceName,
         emotionTags: parsed.emotionTags,
         originalText: parsed.originalText,
-        durationSeconds: scene.durationSeconds || undefined,
-        status: scene.reviewStatus,
-        audioUrl: this.getAudioStreamUrl(scene),
-        readyAssetId: this.getReadyAssetId(scene),
+        durationSeconds: speechSegment.durationSeconds || undefined,
+        status: speechSegment.reviewStatus,
+        audioUrl: this.getAudioStreamUrl(speechSegment),
+        readyAssetId: this.getReadyAssetId(speechSegment),
       };
     });
   }
 
-  private extractSpeakerFromFilename(scene: AudiobookScene): string | undefined {
-    const readyAsset = this.detail?.audioAssets.find((a) => a.sceneId === scene.id && a.status === 'READY');
+  private extractSpeakerFromFilename(speechSegment: AudiobookSpeechSegment): string | undefined {
+    const readyAsset = this.detail?.audioAssets.find((asset) => asset.speechSegmentId === speechSegment.id && asset.status === 'READY');
     if (!readyAsset) return undefined;
 
-    // Try to extract speaker name from filename, e.g., "scene_1__narrator.wav" → "narrator"
     const filename = readyAsset.filename;
     const match = filename.match(/__([^_.]+)/);
     if (match && match[1]) {
@@ -118,13 +116,13 @@ export class AudiobookReviewPageComponent implements OnInit {
     return undefined;
   }
 
-  private getAudioStreamUrl(scene: AudiobookScene): string | undefined {
-    const readyAsset = this.detail?.audioAssets.find((a) => a.sceneId === scene.id && a.status === 'READY');
+  private getAudioStreamUrl(speechSegment: AudiobookSpeechSegment): string | undefined {
+    const readyAsset = this.detail?.audioAssets.find((asset) => asset.speechSegmentId === speechSegment.id && asset.status === 'READY');
     return readyAsset?.streamUrl;
   }
 
-  private getReadyAssetId(scene: AudiobookScene): string | undefined {
-    const readyAsset = this.detail?.audioAssets.find((a) => a.sceneId === scene.id && a.status === 'READY');
+  private getReadyAssetId(speechSegment: AudiobookSpeechSegment): string | undefined {
+    const readyAsset = this.detail?.audioAssets.find((asset) => asset.speechSegmentId === speechSegment.id && asset.status === 'READY');
     return readyAsset?.id;
   }
 

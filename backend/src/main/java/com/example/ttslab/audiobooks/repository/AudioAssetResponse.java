@@ -7,7 +7,7 @@ import java.time.Instant;
 
 public record AudioAssetResponse(
     String id,
-    String sceneId,
+    String speechSegmentId,
     AudioAssetType type,
     int version,
     String filename,

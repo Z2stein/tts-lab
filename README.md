@@ -316,7 +316,7 @@ The page now starts with a product-led landing/workflow layer:
 
 - A premium hero with the headline “Give every character in your story a voice.”
 - A static visual demo that shows story text transforming into a detected cast and an audio waveform.
-- Benefit chips for `Multi-speaker`, `Scene detection`, `Voice previews`, and `Export MP3`.
+- Benefit chips for `Multi-speaker`, `Speech segment detection`, `Voice previews`, and `Export MP3`.
 - A four-card “From plain text to performed story” journey section.
 - Hero CTAs that keep the existing workflow reachable: `Create audio story` focuses the story input, and `Listen to demo` loads the sample story before focusing the textarea.
 

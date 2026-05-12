@@ -101,7 +101,7 @@ class AudiobookLibraryServiceTest {
             "Test Audiobook",
             AudiobookProjectStatus.NEEDS_REVIEW,
             "TTS_WORKBENCH",
-            0,  // Stale sceneCount
+            0,  // Stale speechSegmentCount
             0,  // Stale speakerCount
             0,  // Stale totalDurationSeconds
             Instant.now(),
@@ -110,9 +110,9 @@ class AudiobookLibraryServiceTest {
 
         // Create 3 assets with 2 unique speakers and 19s total duration
         List<AudioAsset> assets = List.of(
-            new AudioAsset("asset-1", "proj-1", "scene-1", AudioAssetType.PREVIEW_MP3, 1, "key-1", "segment-1-narrator.mp3", "audio/mpeg", 1000L, 6, AudioAssetStatus.READY, Instant.now()),
-            new AudioAsset("asset-2", "proj-1", "scene-2", AudioAssetType.PREVIEW_MP3, 1, "key-2", "segment-2-mara.mp3", "audio/mpeg", 1000L, 5, AudioAssetStatus.READY, Instant.now()),
-            new AudioAsset("asset-3", "proj-1", "scene-3", AudioAssetType.PREVIEW_MP3, 1, "key-3", "segment-3-narrator.mp3", "audio/mpeg", 1000L, 8, AudioAssetStatus.READY, Instant.now())
+            new AudioAsset("asset-1", "proj-1", "speech-segment-1", AudioAssetType.PREVIEW_MP3, 1, "key-1", "segment-1-narrator.mp3", "audio/mpeg", 1000L, 6, AudioAssetStatus.READY, Instant.now()),
+            new AudioAsset("asset-2", "proj-1", "speech-segment-2", AudioAssetType.PREVIEW_MP3, 1, "key-2", "segment-2-mara.mp3", "audio/mpeg", 1000L, 5, AudioAssetStatus.READY, Instant.now()),
+            new AudioAsset("asset-3", "proj-1", "speech-segment-3", AudioAssetType.PREVIEW_MP3, 1, "key-3", "segment-3-narrator.mp3", "audio/mpeg", 1000L, 8, AudioAssetStatus.READY, Instant.now())
         );
 
         when(repository.findProjectsForUser("user-1")).thenReturn(List.of(project));
@@ -124,7 +124,7 @@ class AudiobookLibraryServiceTest {
         AudiobookSummaryResponse.AudiobookSummaryItem item = response.items().get(0);
 
         // Verify metadata was calculated from assets, not read from project
-        assertEquals(3, item.sceneCount(), "Should calculate 3 segments from 3 ready assets");
+        assertEquals(3, item.speechSegmentCount(), "Should calculate 3 segments from 3 ready assets");
         assertEquals(2, item.speakerCount(), "Should calculate 2 unique speakers (narrator, mara)");
         assertEquals(19, item.totalDurationSeconds(), "Should calculate 19 seconds total (6+5+8)");
     }
@@ -165,7 +165,7 @@ class AudiobookLibraryServiceTest {
         // IMPORTANT: Verify updateProjectMetadata is NEVER called
         verify(repository, never()).updateProjectMetadata(any(), any(), any(), any());
 
-        // Verify asset and scene were created using JPA repositories
+        // Verify asset and speech segment were created using JPA repositories
         verify(segmentRepository).save(any());
         verify(assetRepository).save(any());
     }

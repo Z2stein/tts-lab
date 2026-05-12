@@ -10,12 +10,12 @@ public record AudiobookDetailResponse(
     String id,
     String title,
     AudiobookProjectStatus status,
-    int sceneCount,
+    int speechSegmentCount,
     Integer speakerCount,
     Integer totalDurationSeconds,
     Instant createdAt,
     Instant updatedAt,
-    List<AudiobookSpeechSegmentResponse> scenes,
+    List<AudiobookSpeechSegmentResponse> speechSegments,
     List<AudioAssetResponse> audioAssets
 ) {
 }

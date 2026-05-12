@@ -30,7 +30,7 @@ class AudiobookMetadataCalculatorTest {
     }
 
     @Test
-    void calculateSceneCountReturnsNumberOfReadyAssets() {
+    void calculateSpeechSegmentCountReturnsNumberOfReadyAssets() {
         // Setup: 3 READY assets, 1 GENERATING asset
         List<AudioAsset> assets = List.of(
             createAsset("asset-1", AudioAssetStatus.READY),
@@ -40,17 +40,17 @@ class AudiobookMetadataCalculatorTest {
         );
         when(repository.findAssets("project-1")).thenReturn(assets);
 
-        int count = calculator.calculateSceneCount("project-1");
+        int count = calculator.calculateSpeechSegmentCount("project-1");
 
         assertEquals(3, count);
     }
 
     @Test
-    void calculateSceneCountReturnsZeroForNoReadyAssets() {
+    void calculateSpeechSegmentCountReturnsZeroForNoReadyAssets() {
         List<AudioAsset> assets = List.of();
         when(repository.findAssets("project-1")).thenReturn(assets);
 
-        int count = calculator.calculateSceneCount("project-1");
+        int count = calculator.calculateSpeechSegmentCount("project-1");
 
         assertEquals(0, count);
     }
@@ -135,11 +135,11 @@ class AudiobookMetadataCalculatorTest {
         );
         when(repository.findAssets("project-1")).thenReturn(assets);
 
-        int sceneCount = calculator.calculateSceneCount("project-1");
+        int speechSegmentCount = calculator.calculateSpeechSegmentCount("project-1");
         int speakerCount = calculator.calculateSpeakerCount("project-1");
         int duration = calculator.calculateTotalDurationSeconds("project-1");
 
-        assertEquals(3, sceneCount); // 3 audio parts
+        assertEquals(3, speechSegmentCount); // 3 audio parts
         assertEquals(2, speakerCount); // narrator, mara
         assertEquals(19, duration); // 6 + 5 + 8
     }
@@ -149,7 +149,7 @@ class AudiobookMetadataCalculatorTest {
         return new AudioAsset(
             "id-" + filename,
             "project-1",
-            "scene-1",
+            "speech-segment-1",
             AudioAssetType.PREVIEW_MP3,
             1,
             "storage-key",
@@ -166,7 +166,7 @@ class AudiobookMetadataCalculatorTest {
         return new AudioAsset(
             "id-" + filename,
             "project-1",
-            "scene-1",
+            "speech-segment-1",
             AudioAssetType.PREVIEW_MP3,
             1,
             "storage-key",
@@ -183,7 +183,7 @@ class AudiobookMetadataCalculatorTest {
         return new AudioAsset(
             "id-" + filename,
             "project-1",
-            "scene-1",
+            "speech-segment-1",
             AudioAssetType.PREVIEW_MP3,
             1,
             "storage-key",

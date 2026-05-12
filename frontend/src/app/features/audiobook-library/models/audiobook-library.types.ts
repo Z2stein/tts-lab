@@ -1,11 +1,11 @@
 export type AudiobookProjectStatus = 'DRAFT' | 'GENERATING' | 'NEEDS_REVIEW' | 'APPROVED' | 'EXPORTED' | 'FAILED';
 export type AudiobookSpeechSegmentReviewStatus = 'PENDING' | 'NEEDS_CHANGES' | 'APPROVED';
-export type AudioAssetType = 'SCENE_MP3' | 'CHAPTER_MP3' | 'FULL_AUDIOBOOK' | 'PREVIEW_MP3' | 'EXPORT_ZIP';
+export type AudioAssetType = 'SPEECH_SEGMENT_MP3' | 'CHAPTER_MP3' | 'FULL_AUDIOBOOK' | 'PREVIEW_MP3' | 'EXPORT_ZIP';
 export type AudioAssetStatus = 'GENERATING' | 'READY' | 'FAILED';
 
 export interface AudioAsset {
   id: string;
-  sceneId: string | null;
+  speechSegmentId: string | null;
   type: AudioAssetType;
   version: number;
   filename: string;
@@ -22,7 +22,7 @@ export interface AudiobookSummary {
   id: string;
   title: string;
   status: AudiobookProjectStatus;
-  sceneCount: number;
+  speechSegmentCount: number;
   speakerCount: number | null;
   totalDurationSeconds: number | null;
   updatedAt: string;
@@ -43,7 +43,7 @@ export interface AudiobookSpeechSegment {
 
 export interface AudiobookDetail extends AudiobookSummary {
   createdAt: string;
-  scenes: AudiobookSpeechSegment[];
+  speechSegments: AudiobookSpeechSegment[];
 }
 
 // Backward compatibility alias (deprecated - use AudiobookSpeechSegment instead)

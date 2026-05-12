@@ -29,7 +29,7 @@ public class AudiobookMetadataCalculator {
      * @param projectId the audiobook project ID
      * @return the number of ready audio assets
      */
-    public int calculateSceneCount(String projectId) {
+    public int calculateSpeechSegmentCount(String projectId) {
         return (int) repository.findAssets(projectId).stream()
             .filter(asset -> asset.getStatus() == AudioAssetStatus.READY)
             .count();

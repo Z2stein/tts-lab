@@ -24,8 +24,8 @@ public class AudiobookProject {
     @Column(name = "source_type", nullable = false)
     private String sourceType;
 
-    @Column(name = "scene_count", nullable = false)
-    private int sceneCount;
+    @Column(name = "speech_segment_count", nullable = false)
+    private int speechSegmentCount;
 
     @Column(name = "speaker_count")
     private Integer speakerCount;
@@ -54,7 +54,7 @@ public class AudiobookProject {
         String title,
         AudiobookProjectStatus status,
         String sourceType,
-        int sceneCount,
+        int speechSegmentCount,
         Integer speakerCount,
         Integer totalDurationSeconds,
         Instant createdAt,
@@ -65,7 +65,7 @@ public class AudiobookProject {
         this.title = title;
         this.status = status;
         this.sourceType = sourceType;
-        this.sceneCount = sceneCount;
+        this.speechSegmentCount = speechSegmentCount;
         this.speakerCount = speakerCount;
         this.totalDurationSeconds = totalDurationSeconds;
         this.createdAt = createdAt;
@@ -112,12 +112,12 @@ public class AudiobookProject {
         this.sourceType = sourceType;
     }
 
-    public int getSceneCount() {
-        return sceneCount;
+    public int getSpeechSegmentCount() {
+        return speechSegmentCount;
     }
 
-    public void setSceneCount(int sceneCount) {
-        this.sceneCount = sceneCount;
+    public void setSpeechSegmentCount(int speechSegmentCount) {
+        this.speechSegmentCount = speechSegmentCount;
     }
 
     public Integer getSpeakerCount() {

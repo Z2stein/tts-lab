@@ -14,12 +14,12 @@ public class AudioAsset {
     private AudiobookProject project;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "scene_id")
+    @JoinColumn(name = "speech_segment_id")
     private AudiobookSpeechSegment segment;
 
     // Stored for JDBC/legacy code that doesn't have full objects loaded
     private transient String projectIdValue;
-    private transient String sceneIdValue;
+    private transient String speechSegmentIdValue;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -86,7 +86,7 @@ public class AudioAsset {
     public AudioAsset(
         String id,
         String projectId,
-        String sceneId,
+        String speechSegmentId,
         AudioAssetType type,
         int version,
         String storageKey,
@@ -99,7 +99,7 @@ public class AudioAsset {
     ) {
         this.id = id;
         this.projectIdValue = projectId;
-        this.sceneIdValue = sceneId;
+        this.speechSegmentIdValue = speechSegmentId;
         this.type = type;
         this.version = version;
         this.storageKey = storageKey;
@@ -142,9 +142,9 @@ public class AudioAsset {
         this.segment = segment;
     }
 
-    public String getSceneId() {
-        if (sceneIdValue != null) {
-            return sceneIdValue;
+    public String getSpeechSegmentId() {
+        if (speechSegmentIdValue != null) {
+            return speechSegmentIdValue;
         }
         return segment != null ? segment.getId() : null;
     }

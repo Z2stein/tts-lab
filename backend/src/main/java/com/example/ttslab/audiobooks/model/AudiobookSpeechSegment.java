@@ -6,7 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "audiobook_scene")
+@Table(name = "audiobook_speech_segment")
 public class AudiobookSpeechSegment {
     @Id
     private String id;

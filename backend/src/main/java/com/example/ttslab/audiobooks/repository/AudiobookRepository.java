@@ -25,7 +25,7 @@ public class AudiobookRepository {
 
     public List<AudiobookProject> findProjectsForUser(String userId) {
         return jdbcTemplate.query("""
-            SELECT id, user_id, title, status, source_type, scene_count, speaker_count, total_duration_seconds, created_at, updated_at
+            SELECT id, user_id, title, status, source_type, speech_segment_count, speaker_count, total_duration_seconds, created_at, updated_at
             FROM audiobook_project
             WHERE user_id = ?
             ORDER BY updated_at DESC, created_at DESC
@@ -34,17 +34,17 @@ public class AudiobookRepository {
 
     public Optional<AudiobookProject> findProjectForUser(String projectId, String userId) {
         return jdbcTemplate.query("""
-            SELECT id, user_id, title, status, source_type, scene_count, speaker_count, total_duration_seconds, created_at, updated_at
+            SELECT id, user_id, title, status, source_type, speech_segment_count, speaker_count, total_duration_seconds, created_at, updated_at
             FROM audiobook_project
             WHERE id = ? AND user_id = ?
             """, projectMapper(), projectId, userId).stream().findFirst();
     }
 
-    public List<AudiobookSpeechSegment> findScenes(String projectId) {
+    public List<AudiobookSpeechSegment> findSpeechSegments(String projectId) {
         return jdbcTemplate.query("""
             SELECT id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at,
                    speaker_name, speaker_role_description, voice_name, performance_directions
-            FROM audiobook_scene
+            FROM audiobook_speech_segment
             WHERE project_id = ?
             ORDER BY order_index ASC
             """, sceneMapper(), projectId);
@@ -52,7 +52,7 @@ public class AudiobookRepository {
 
     public List<AudioAsset> findAssets(String projectId) {
         return jdbcTemplate.query("""
-            SELECT id, project_id, scene_id, type, version, storage_key, filename, content_type, size_bytes, duration_seconds, status, created_at
+            SELECT id, project_id, speech_segment_id, type, version, storage_key, filename, content_type, size_bytes, duration_seconds, status, created_at
             FROM audio_asset
             WHERE project_id = ?
             ORDER BY created_at DESC
@@ -61,7 +61,7 @@ public class AudiobookRepository {
 
     public Optional<AudioAsset> findAssetForUser(String projectId, String assetId, String userId) {
         return jdbcTemplate.query("""
-            SELECT aa.id, aa.project_id, aa.scene_id, aa.type, aa.version, aa.storage_key, aa.filename, aa.content_type,
+            SELECT aa.id, aa.project_id, aa.speech_segment_id, aa.type, aa.version, aa.storage_key, aa.filename, aa.content_type,
                    aa.size_bytes, aa.duration_seconds, aa.status, aa.created_at
             FROM audio_asset aa
             INNER JOIN audiobook_project ap ON ap.id = aa.project_id
@@ -71,44 +71,44 @@ public class AudiobookRepository {
 
     public void createProject(AudiobookProject project) {
         jdbcTemplate.update("""
-            INSERT INTO audiobook_project (id, user_id, title, status, source_type, scene_count, speaker_count, total_duration_seconds, created_at, updated_at)
+            INSERT INTO audiobook_project (id, user_id, title, status, source_type, speech_segment_count, speaker_count, total_duration_seconds, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
             """,
-            project.getId(), project.getUserId(), project.getTitle(), project.getStatus().name(), project.getSourceType(), project.getSceneCount(),
+            project.getId(), project.getUserId(), project.getTitle(), project.getStatus().name(), project.getSourceType(), project.getSpeechSegmentCount(),
             project.getSpeakerCount(), project.getTotalDurationSeconds());
     }
 
-    public void updateProjectMetadata(String projectId, Integer sceneCount, Integer speakerCount, Integer totalDurationSeconds) {
+    public void updateProjectMetadata(String projectId, Integer speechSegmentCount, Integer speakerCount, Integer totalDurationSeconds) {
         jdbcTemplate.update("""
             UPDATE audiobook_project
-            SET scene_count = ?, speaker_count = ?, total_duration_seconds = ?, updated_at = CURRENT_TIMESTAMP
+            SET speech_segment_count = ?, speaker_count = ?, total_duration_seconds = ?, updated_at = CURRENT_TIMESTAMP
             WHERE id = ?
             """,
-            sceneCount, speakerCount, totalDurationSeconds, projectId);
+            speechSegmentCount, speakerCount, totalDurationSeconds, projectId);
     }
 
-    public void addScene(AudiobookSpeechSegment scene) {
+    public void addSpeechSegment(AudiobookSpeechSegment speechSegment) {
         jdbcTemplate.update("""
-            INSERT INTO audiobook_scene (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at, speaker_name, speaker_role_description, voice_name, performance_directions)
+            INSERT INTO audiobook_speech_segment (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at, speaker_name, speaker_role_description, voice_name, performance_directions)
             VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?)
             """,
-            scene.getId(), scene.getProjectId(), scene.getOrderIndex(), scene.getTitle(), scene.getReviewStatus().name(), scene.getDurationSeconds(),
-            scene.getSpeakerName(), scene.getSpeakerRoleDescription(), scene.getVoiceName(), scene.getPerformanceDirections());
+            speechSegment.getId(), speechSegment.getProjectId(), speechSegment.getOrderIndex(), speechSegment.getTitle(), speechSegment.getReviewStatus().name(), speechSegment.getDurationSeconds(),
+            speechSegment.getSpeakerName(), speechSegment.getSpeakerRoleDescription(), speechSegment.getVoiceName(), speechSegment.getPerformanceDirections());
     }
 
     public void addAsset(AudioAsset asset) {
         jdbcTemplate.update("""
-            INSERT INTO audio_asset (id, project_id, scene_id, type, version, storage_key, filename, content_type, size_bytes, duration_seconds, status, created_at)
+            INSERT INTO audio_asset (id, project_id, speech_segment_id, type, version, storage_key, filename, content_type, size_bytes, duration_seconds, status, created_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
             """,
-            asset.getId(), asset.getProjectId(), asset.getSceneId(), asset.getType().name(), asset.getVersion(), asset.getStorageKey(), asset.getFilename(),
+            asset.getId(), asset.getProjectId(), asset.getSpeechSegmentId(), asset.getType().name(), asset.getVersion(), asset.getStorageKey(), asset.getFilename(),
             asset.getContentType(), asset.getSizeBytes(), asset.getDurationSeconds(), asset.getStatus().name());
     }
 
     @Transactional
-    public void createProjectWithAsset(AudiobookProject project, AudiobookSpeechSegment scene, AudioAsset asset) {
+    public void createProjectWithAsset(AudiobookProject project, AudiobookSpeechSegment speechSegment, AudioAsset asset) {
         createProject(project);
-        addScene(scene);
+        addSpeechSegment(speechSegment);
         addAsset(asset);
     }
 
@@ -119,7 +119,7 @@ public class AudiobookRepository {
             rs.getString("title"),
             AudiobookProjectStatus.valueOf(rs.getString("status")),
             rs.getString("source_type"),
-            rs.getInt("scene_count"),
+            rs.getInt("speech_segment_count"),
             integer(rs, "speaker_count"),
             integer(rs, "total_duration_seconds"),
             instant(rs, "created_at"),
@@ -148,7 +148,7 @@ public class AudiobookRepository {
         return (rs, rowNum) -> new AudioAsset(
             rs.getString("id"),
             rs.getString("project_id"),
-            rs.getString("scene_id"),
+            rs.getString("speech_segment_id"),
             AudioAssetType.valueOf(rs.getString("type")),
             rs.getInt("version"),
             rs.getString("storage_key"),

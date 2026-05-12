@@ -11,7 +11,7 @@ public record AudiobookSummaryResponse(List<AudiobookSummaryItem> items) {
         String id,
         String title,
         AudiobookProjectStatus status,
-        int sceneCount,
+        int speechSegmentCount,
         Integer speakerCount,
         Integer totalDurationSeconds,
         Instant updatedAt,

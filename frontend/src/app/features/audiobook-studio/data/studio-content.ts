@@ -1,6 +1,6 @@
 import { HeroCastMember, JourneyStep, SpeakerAccent } from '../models/audiobook-studio.types';
 
-export const BENEFIT_CHIPS: readonly string[] = ['Multi-speaker', 'Scene detection', 'Voice previews', 'Export MP3'];
+export const BENEFIT_CHIPS: readonly string[] = ['Multi-speaker', 'Speech segment detection', 'Voice previews', 'Export MP3'];
 
 export const HERO_CAST: readonly HeroCastMember[] = [
   { name: 'Narrator', tone: 'warm calm', initials: 'N' },

@@ -53,7 +53,7 @@ public class AudiobookLibraryService {
 
                 // CALCULATE metadata on-demand from audio assets
                 // This ensures metadata is always fresh and accurate, never stale
-                int calculatedSceneCount = metadataCalculator.calculateSceneCount(project.getId());
+                int calculatedSpeechSegmentCount = metadataCalculator.calculateSpeechSegmentCount(project.getId());
                 int calculatedSpeakerCount = metadataCalculator.calculateSpeakerCount(project.getId());
                 int calculatedDuration = metadataCalculator.calculateTotalDurationSeconds(project.getId());
 
@@ -61,9 +61,9 @@ public class AudiobookLibraryService {
                     project.getId(),
                     project.getTitle(),
                     project.getStatus(),
-                    calculatedSceneCount,      // ← Fresh from calculator
-                    calculatedSpeakerCount,    // ← Fresh from calculator
-                    calculatedDuration,        // ← Fresh from calculator
+                    calculatedSpeechSegmentCount,
+                    calculatedSpeakerCount,
+                    calculatedDuration,
                     project.getUpdatedAt(),
                     assets.stream().map(this::assetResponse).toList()
                 );
@@ -79,22 +79,22 @@ public class AudiobookLibraryService {
             project.getId(),
             project.getTitle(),
             project.getStatus(),
-            project.getSceneCount(),
+            project.getSpeechSegmentCount(),
             project.getSpeakerCount(),
             project.getTotalDurationSeconds(),
             project.getCreatedAt(),
             project.getUpdatedAt(),
-            repository.findScenes(project.getId()).stream()
-                .map(scene -> new AudiobookSpeechSegmentResponse(
-                    scene.getId(),
-                    scene.getOrderIndex(),
-                    scene.getTitle(),
-                    scene.getReviewStatus(),
-                    scene.getDurationSeconds(),
-                    scene.getSpeakerName(),
-                    scene.getSpeakerRoleDescription(),
-                    scene.getVoiceName(),
-                    scene.getPerformanceDirections()
+            repository.findSpeechSegments(project.getId()).stream()
+                .map(speechSegment -> new AudiobookSpeechSegmentResponse(
+                    speechSegment.getId(),
+                    speechSegment.getOrderIndex(),
+                    speechSegment.getTitle(),
+                    speechSegment.getReviewStatus(),
+                    speechSegment.getDurationSeconds(),
+                    speechSegment.getSpeakerName(),
+                    speechSegment.getSpeakerRoleDescription(),
+                    speechSegment.getVoiceName(),
+                    speechSegment.getPerformanceDirections()
                 ))
                 .toList(),
             repository.findAssets(project.getId()).stream().map(this::assetResponse).toList()
@@ -144,15 +144,15 @@ public class AudiobookLibraryService {
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIOBOOK_NOT_FOUND", "The audiobook project was not found."));
     }
 
-    public AudioAsset persistAudioAsset(AudiobookProject project, TtsAudioFile audioFile, int sceneCount, int version, Integer speakerCount, Integer totalDurationSeconds) {
-        return persistAudioAsset(project, audioFile, sceneCount, version, speakerCount, totalDurationSeconds, null, null, null, null);
+    public AudioAsset persistAudioAsset(AudiobookProject project, TtsAudioFile audioFile, int speechSegmentCount, int version, Integer speakerCount, Integer totalDurationSeconds) {
+        return persistAudioAsset(project, audioFile, speechSegmentCount, version, speakerCount, totalDurationSeconds, null, null, null, null);
     }
 
     @Transactional
     public AudioAsset persistAudioAsset(
         AudiobookProject project,
         TtsAudioFile audioFile,
-        int sceneCount,
+        int speechSegmentCount,
         int version,
         Integer speakerCount,
         Integer totalDurationSeconds,
@@ -162,7 +162,7 @@ public class AudiobookLibraryService {
         String performanceDirections
     ) {
         String assetId = UUID.randomUUID().toString();
-        String sceneId = UUID.randomUUID().toString();
+        String speechSegmentId = UUID.randomUUID().toString();
         String storageKey = storageKeyBuilder.projectAsset(project.getUserId(), project.getId(), AudioAssetType.PREVIEW_MP3, version, "mp3");
 
         try {
@@ -171,7 +171,7 @@ public class AudiobookLibraryService {
             throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_ASSET_WRITE_FAILED", "The generated audio could not be saved.", null, ex);
         }
 
-        // IMPORTANT: Do NOT update project.sceneCount or other metadata directly
+        // IMPORTANT: Do NOT update project speech segment counts or other metadata directly
         // Metadata is calculated on-demand by AudiobookMetadataCalculator from audio assets
         // This prevents stale metadata issues that occur with persisted values
 
@@ -179,13 +179,13 @@ public class AudiobookLibraryService {
         project.setUpdatedAt(Instant.now());
         projectRepository.save(project);
 
-        String sceneTitle = speakerName != null && !speakerName.isBlank() ? speakerName : "Generated scene";
+        String speechSegmentTitle = speakerName != null && !speakerName.isBlank() ? speakerName : "Generated speech segment";
         Instant now = Instant.now();
-        AudiobookSpeechSegment scene = new AudiobookSpeechSegment(
-            sceneId,
+        AudiobookSpeechSegment speechSegment = new AudiobookSpeechSegment(
+            speechSegmentId,
             project,
             0,
-            sceneTitle,
+            speechSegmentTitle,
             AudiobookSpeechSegmentReviewStatus.PENDING,
             null,
             now,
@@ -198,7 +198,7 @@ public class AudiobookLibraryService {
         AudioAsset asset = new AudioAsset(
             assetId,
             project,
-            scene,
+            speechSegment,
             AudioAssetType.PREVIEW_MP3,
             version,
             storageKey,
@@ -209,7 +209,7 @@ public class AudiobookLibraryService {
             AudioAssetStatus.READY,
             now
         );
-        segmentRepository.save(scene);
+        segmentRepository.save(speechSegment);
         assetRepository.save(asset);
         return asset;
     }
@@ -217,7 +217,7 @@ public class AudiobookLibraryService {
     @Transactional
     public void persistGeneratedPreview(CurrentUser user, TtsAudioFile audioFile, Integer speakerCount, Integer totalDurationSeconds) {
         String projectId = UUID.randomUUID().toString();
-        String sceneId = UUID.randomUUID().toString();
+        String speechSegmentId = UUID.randomUUID().toString();
         String assetId = UUID.randomUUID().toString();
         String storageKey = storageKeyBuilder.projectAsset(user.id(), projectId, AudioAssetType.PREVIEW_MP3, 1, "mp3");
 
@@ -242,11 +242,11 @@ public class AudiobookLibraryService {
         );
         projectRepository.save(project);
 
-        AudiobookSpeechSegment scene = new AudiobookSpeechSegment(
-            sceneId,
+        AudiobookSpeechSegment speechSegment = new AudiobookSpeechSegment(
+            speechSegmentId,
             project,
             0,
-            "Preview scene",
+            "Preview speech segment",
             AudiobookSpeechSegmentReviewStatus.PENDING,
             totalDurationSeconds,
             now,
@@ -256,12 +256,12 @@ public class AudiobookLibraryService {
             null,
             null
         );
-        segmentRepository.save(scene);
+        segmentRepository.save(speechSegment);
 
         AudioAsset asset = new AudioAsset(
             assetId,
             project,
-            scene,
+            speechSegment,
             AudioAssetType.PREVIEW_MP3,
             1,
             storageKey,
@@ -278,7 +278,7 @@ public class AudiobookLibraryService {
     private AudioAssetResponse assetResponse(AudioAsset asset) {
         return new AudioAssetResponse(
             asset.getId(),
-            asset.getSceneId(),
+            asset.getSpeechSegmentId(),
             asset.getType(),
             asset.getVersion(),
             asset.getFilename(),
