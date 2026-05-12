@@ -52,6 +52,9 @@ public class AudiobookSpeechSegment {
     @Column(name = "original_text")
     private String originalText;
 
+    @Column(name = "styled_text")
+    private String styledText;
+
     @Column(name = "character_id")
     private String characterId;
 
@@ -80,7 +83,7 @@ public class AudiobookSpeechSegment {
         String voiceName,
         String performanceDirections
     ) {
-        this(id, project, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, null, null);
+        this(id, project, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, null, null, null);
     }
 
     public AudiobookSpeechSegment(
@@ -97,6 +100,7 @@ public class AudiobookSpeechSegment {
         String voiceName,
         String performanceDirections,
         String originalText,
+        String styledText,
         String characterId
     ) {
         this.id = id;
@@ -112,6 +116,7 @@ public class AudiobookSpeechSegment {
         this.voiceName = voiceName;
         this.performanceDirections = performanceDirections;
         this.originalText = originalText;
+        this.styledText = styledText;
         this.characterId = characterId;
     }
 
@@ -130,7 +135,7 @@ public class AudiobookSpeechSegment {
         String voiceName,
         String performanceDirections
     ) {
-        this(id, projectId, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, null, null);
+        this(id, projectId, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, null, null, null);
     }
 
     public AudiobookSpeechSegment(
@@ -147,6 +152,7 @@ public class AudiobookSpeechSegment {
         String voiceName,
         String performanceDirections,
         String originalText,
+        String styledText,
         String characterId
     ) {
         this.id = id;
@@ -162,6 +168,7 @@ public class AudiobookSpeechSegment {
         this.voiceName = voiceName;
         this.performanceDirections = performanceDirections;
         this.originalText = originalText;
+        this.styledText = styledText;
         this.characterId = characterId;
     }
 
@@ -274,6 +281,14 @@ public class AudiobookSpeechSegment {
 
     public void setOriginalText(String originalText) {
         this.originalText = originalText;
+    }
+
+    public String getStyledText() {
+        return styledText;
+    }
+
+    public void setStyledText(String styledText) {
+        this.styledText = styledText;
     }
 
     public String getCharacterId() {

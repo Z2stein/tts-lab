@@ -11,6 +11,7 @@ public record AudiobookSpeechSegmentResponse(
     String speakerName,
     String speakerRoleDescription,
     String voiceName,
-    String performanceDirections
+    String performanceDirections,
+    String styledText
 ) {
 }

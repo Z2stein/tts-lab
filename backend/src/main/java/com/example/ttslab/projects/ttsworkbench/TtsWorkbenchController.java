@@ -7,6 +7,7 @@ import com.example.ttslab.common.DurationEstimator;
 import com.example.ttslab.audiobooks.wf.AudiobookProjectCreationService;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
+import com.example.ttslab.projects.ttsworkbench.service.EmotionAnnotationPersistenceService;
 import com.example.ttslab.projects.ttsworkbench.service.SpeakerSplitPersistenceService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
@@ -40,6 +41,7 @@ public class TtsWorkbenchController {
     private final TtsWorkbenchService ttsWorkbenchService;
     private final SpeakerVoiceAnalysisService speakerVoiceAnalysisService;
     private final SpeakerSplitPersistenceService speakerSplitPersistenceService;
+    private final EmotionAnnotationPersistenceService emotionAnnotationPersistenceService;
     private final AudiobookProjectCreationService audiobookProjectCreationService;
     private final CurrentUserResolver currentUserResolver;
     private final PromptHistoryService promptHistoryService;
@@ -52,6 +54,7 @@ public class TtsWorkbenchController {
         TtsWorkbenchService ttsWorkbenchService,
         SpeakerVoiceAnalysisService speakerVoiceAnalysisService,
         SpeakerSplitPersistenceService speakerSplitPersistenceService,
+        EmotionAnnotationPersistenceService emotionAnnotationPersistenceService,
         AudiobookProjectCreationService audiobookProjectCreationService,
         CurrentUserResolver currentUserResolver,
         PromptHistoryService promptHistoryService,
@@ -64,6 +67,7 @@ public class TtsWorkbenchController {
         this.ttsWorkbenchService = ttsWorkbenchService;
         this.speakerVoiceAnalysisService = speakerVoiceAnalysisService;
         this.speakerSplitPersistenceService = speakerSplitPersistenceService;
+        this.emotionAnnotationPersistenceService = emotionAnnotationPersistenceService;
         this.audiobookProjectCreationService = audiobookProjectCreationService;
         this.currentUserResolver = currentUserResolver;
         this.promptHistoryService = promptHistoryService;
@@ -105,8 +109,12 @@ public class TtsWorkbenchController {
     }
 
     @PostMapping("/emotion-annotation-analysis")
-    public EmotionAnnotationAnalysisResponse annotateEmotions(@RequestBody EmotionAnnotationAnalysisRequest request) {
-        return ttsWorkbenchService.annotate(request.turns());
+    public EmotionAnnotationAnalysisResponse annotateEmotions(@Valid @RequestBody EmotionAnnotationAnalysisRequest request, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
+        EmotionAnnotationAnalysisResponse response = ttsWorkbenchService.annotate(request.turns());
+        emotionAnnotationPersistenceService.persistStyledText(project, response.turns());
+        return response;
     }
 
     @PostMapping("/final-request-preview")

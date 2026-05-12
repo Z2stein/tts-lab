@@ -148,6 +148,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
+  private lastKnownProjectId: string | null = null;
 
   constructor(
     private readonly facade: AudiobookStudioFacade,
@@ -299,6 +300,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   useSampleStory(): void {
     this.storyTextControl.setValue(this.sampleStory);
     this.facade.resetPipeline();
+    this.lastKnownProjectId = null;
   }
 
   focusStoryInput(event?: Event): void {
@@ -347,6 +349,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   async analyzeStory(): Promise<void> {
     await this.facade.analyzeStory(this.storyTextControl.value);
+    this.lastKnownProjectId = this.facade.currentProjectId();
     if (this.facade.cast().length > 0) {
       void this.liveAnnouncer.announce(`Found ${this.facade.cast().length} characters`, 'polite');
     } else if (this.facade.error()) {
@@ -356,6 +359,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   async createScriptPreview(): Promise<void> {
     await this.facade.createScriptPreview(this.storyTextControl.value);
+    this.lastKnownProjectId = this.facade.currentProjectId();
     if (this.facade.scriptTurns().length > 0) {
       void this.liveAnnouncer.announce(`Script ready with ${this.facade.scriptTurns().length} turns`, 'polite');
     } else if (this.facade.error()) {
@@ -364,6 +368,9 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   async createPerformanceNotes(): Promise<void> {
+    if (!this.facade.currentProjectId() && this.lastKnownProjectId) {
+      this.facade.setCurrentProjectId(this.lastKnownProjectId);
+    }
     await this.facade.createPerformanceNotes();
     if (this.facade.annotatedTurns().length > 0) {
       void this.liveAnnouncer.announce('Performance notes added', 'polite');
@@ -391,6 +398,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     const projectId = await this.fullAudioGenerationService.generate(this.renderRequests, this.facade.currentProjectId() ?? undefined);
     if (projectId) {
       this.facade.setCurrentProjectId(projectId);
+      this.lastKnownProjectId = projectId;
     }
     if (this.fullAudioGenerationService.audioUrl) {
       void this.liveAnnouncer.announce('Audiobook preview is ready', 'polite');

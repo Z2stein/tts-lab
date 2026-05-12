@@ -58,11 +58,11 @@ describe('AudiobookWorkflowService', () => {
       turns: [{ speaker: 'Alice', text: '[urgent] Hello!' }]
     });
 
-    const turns = await service.annotateEmotions([{ speaker: 'Alice', text: 'Hello!' }]);
+    const turns = await service.annotateEmotions([{ speaker: 'Alice', text: 'Hello!' }], 'project-1');
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
       '/api/projects/tts-workbench/emotion-annotation-analysis',
-      { turns: [{ speaker: 'Alice', text: 'Hello!' }] },
+      { turns: [{ speaker: 'Alice', text: 'Hello!' }], projectId: 'project-1' },
       'Emotion annotation analysis failed'
     );
     expect(turns[0].text).toBe('[urgent] Hello!');

@@ -136,7 +136,11 @@ export class AudiobookStudioFacade {
 
   async createPerformanceNotes(): Promise<void> {
     await this.runStep('notes', async () => {
-      const annotatedTurns = await this.audiobookWorkflowService.annotateEmotions(this._scriptTurns());
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const annotatedTurns = await this.audiobookWorkflowService.annotateEmotions(this._scriptTurns(), projectId);
       this._annotatedTurns.set(annotatedTurns);
       this._finalRequest.set(null);
       this._audioProductionPlan.set(null);

@@ -9,6 +9,7 @@ import com.example.ttslab.audiobooks.model.AudioAssetType;
 import com.example.ttslab.audiobooks.model.AudioAssetStatus;
 import com.example.ttslab.error.GlobalApiExceptionHandler;
 import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
+import com.example.ttslab.projects.ttsworkbench.service.EmotionAnnotationPersistenceService;
 import com.example.ttslab.projects.ttsworkbench.service.SpeakerSplitPersistenceService;
 import com.example.ttslab.audiobooks.wf.AudiobookProjectCreationService;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisService;
@@ -63,6 +64,9 @@ class TtsWorkbenchControllerTest {
 
     @MockBean
     private SpeakerSplitPersistenceService speakerSplitPersistenceService;
+
+    @MockBean
+    private EmotionAnnotationPersistenceService emotionAnnotationPersistenceService;
 
     @MockBean
     private AudiobookProjectCreationService audiobookProjectCreationService;
@@ -177,11 +181,24 @@ class TtsWorkbenchControllerTest {
 
         mockMvc.perform(post("/api/projects/tts-workbench/emotion-annotation-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"turns\":[{\"speaker\":\"A\",\"text\":\"Hello!\"}]}"))
+                .content("{\"projectId\":\"test-project-1\",\"turns\":[{\"speaker\":\"A\",\"text\":\"Hello!\"}]}"))
             .andExpect(status().isOk())
             .andExpect(content().json("""
                 {"turns":[{"speaker":"A","text":"[urgent] Hello!"}]}
                 """));
+
+        verify(audiobookLibraryService).getProjectForUser(eq("test-project-1"), any(CurrentUser.class));
+        verify(emotionAnnotationPersistenceService).persistStyledText(eq(testProject), anyList());
+    }
+
+    @Test
+    void emotionAnnotationAnalysisRejectsMissingProjectId() throws Exception {
+        mockMvc.perform(post("/api/projects/tts-workbench/emotion-annotation-analysis")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"turns\":[{\"speaker\":\"A\",\"text\":\"Hello!\"}]}"))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
+            .andExpect(jsonPath("$.message").value("The request is invalid. Please check your input and try again."));
     }
 
     @Test
