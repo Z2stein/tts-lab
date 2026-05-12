@@ -54,6 +54,7 @@ class AudiobookLibraryIntegrationTest {
     private String projectD;
     private String speechSegmentA1;
     private String speechSegmentB1;
+    private String speechSegmentB2;
     private String assetA1;
     private String assetA2;
     private String assetA3;
@@ -62,6 +63,7 @@ class AudiobookLibraryIntegrationTest {
     private String assetB2;
     private String assetB3;
     private String assetB4;
+    private String assetB5;
     private String assetC1;
 
     @BeforeEach
@@ -78,6 +80,7 @@ class AudiobookLibraryIntegrationTest {
         projectD = UUID.randomUUID().toString();
         speechSegmentA1 = UUID.randomUUID().toString();
         speechSegmentB1 = UUID.randomUUID().toString();
+        speechSegmentB2 = UUID.randomUUID().toString();
         assetA1 = UUID.randomUUID().toString();
         assetA2 = UUID.randomUUID().toString();
         assetA3 = UUID.randomUUID().toString();
@@ -86,6 +89,7 @@ class AudiobookLibraryIntegrationTest {
         assetB2 = UUID.randomUUID().toString();
         assetB3 = UUID.randomUUID().toString();
         assetB4 = UUID.randomUUID().toString();
+        assetB5 = UUID.randomUUID().toString();
         assetC1 = UUID.randomUUID().toString();
 
         // Fixture A: Basic Project with Mixed Asset States (user-1)
@@ -109,10 +113,12 @@ class AudiobookLibraryIntegrationTest {
         ));
 
         // Speech segment with metadata
-        repository.addSpeechSegment(new AudiobookSpeechSegment(
+        AudiobookSpeechSegment fixtureASegment = new AudiobookSpeechSegment(
             speechSegmentA1, projectA, 1, "Opening Speech Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
             30, null, null, "narrator", "Main narrator", null, null
-        ));
+        );
+        fixtureASegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        repository.addSpeechSegment(fixtureASegment);
 
         // 2 READY assets (15 + 30 seconds)
         repository.addAsset(new AudioAsset(
@@ -144,10 +150,19 @@ class AudiobookLibraryIntegrationTest {
             "TTS_WORKBENCH", 0, null, null, null, null
         ));
 
-        repository.addSpeechSegment(new AudiobookSpeechSegment(
+        AudiobookSpeechSegment fixtureBSegment = new AudiobookSpeechSegment(
             speechSegmentB1, projectB, 1, "Multi-Speaker Speech Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
             55, null, null, null, null, null, null
-        ));
+        );
+        fixtureBSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        repository.addSpeechSegment(fixtureBSegment);
+
+        AudiobookSpeechSegment generatedLinkSegment = new AudiobookSpeechSegment(
+            speechSegmentB2, projectB, 2, "Generated Audio Link Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
+            55, null, null, null, null, null, null
+        );
+        generatedLinkSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.GENERATED_AUDIO);
+        repository.addSpeechSegment(generatedLinkSegment);
 
         // 4 READY assets with distinct speakers extracted from filenames
         repository.addAsset(new AudioAsset(
@@ -166,6 +181,10 @@ class AudiobookLibraryIntegrationTest {
             assetB4, projectB, speechSegmentB1, AudioAssetType.PREVIEW_MP3, 1, "key-b4",
             "segment-4-alex.mp3", "audio/mpeg", 100000, 10, AudioAssetStatus.READY, null
         ));
+        repository.addAsset(new AudioAsset(
+            assetB5, projectB, speechSegmentB2, AudioAssetType.PREVIEW_MP3, 1, "key-b5",
+            "segment-5-link.mp3", "audio/mpeg", 50000, null, AudioAssetStatus.GENERATING, null
+        ));
     }
 
     private void createFixtureC() {
@@ -176,10 +195,12 @@ class AudiobookLibraryIntegrationTest {
             "TTS_WORKBENCH", 0, null, null, null, null
         ));
 
-        repository.addSpeechSegment(new AudiobookSpeechSegment(
+        AudiobookSpeechSegment fixtureCSegment = new AudiobookSpeechSegment(
             speechSegmentC1, projectC, 1, "Private Speech Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
             20, null, null, "james", null, null, null
-        ));
+        );
+        fixtureCSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        repository.addSpeechSegment(fixtureCSegment);
 
         repository.addAsset(new AudioAsset(
             assetC1, projectC, speechSegmentC1, AudioAssetType.PREVIEW_MP3, 1, "key-c1",
@@ -238,7 +259,7 @@ class AudiobookLibraryIntegrationTest {
         assertThat(response.updatedAt()).isNotNull();
         assertThat(response.speechSegments()).hasSize(1);
         assertThat(response.speechSegments().get(0).title()).isEqualTo("Multi-Speaker Speech Segment");
-        assertThat(response.audioAssets()).hasSize(4);
+        assertThat(response.audioAssets()).hasSize(5);
     }
 
     // ============================================================================
@@ -296,14 +317,15 @@ class AudiobookLibraryIntegrationTest {
     @DisplayName("Metadata calculator correctly extracts and deduplicates speakers from filenames")
     void testDetailExtractsSpeakerNamesFromAssetFilenames() throws Exception {
         List<AudioAsset> assets = repository.findAssets(projectB);
-        assertThat(assets).hasSize(4);
+        assertThat(assets).hasSize(5);
 
         List<String> filenames = assets.stream().map(AudioAsset::getFilename).toList();
         assertThat(filenames).containsAll(List.of(
             "segment-1-narrator.mp3",
             "segment-2-mara.mp3",
             "segment-3-narrator.mp3",
-            "segment-4-alex.mp3"
+            "segment-4-alex.mp3",
+            "segment-5-link.mp3"
         ));
 
         // Verify list endpoint calculates speaker count correctly (narrator, mara, alex deduplicated = 3)

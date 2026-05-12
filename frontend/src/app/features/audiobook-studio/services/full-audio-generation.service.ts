@@ -14,6 +14,7 @@ export class FullAudioGenerationService {
   // Track currently running full generation
   private fullGenerationController: AbortController | null = null;
   private currentFullRunId = 0;
+  private activePartIndexes = new Set<number>();
   // Fallback blob tracking specifically for the merged download
   private fullPlanBlob: Blob | null = null;
 
@@ -29,7 +30,7 @@ export class FullAudioGenerationService {
    * Only incomplete parts are generated over the network. If all parts are already downloaded,
    * this operation is entirely local and instantaneous.
    */
-  async generate(renderRequests: SingleSpeakerRenderRequest[]): Promise<string | null> {
+  async generate(renderRequests: SingleSpeakerRenderRequest[], projectId?: string): Promise<string | null> {
     if (this.loading) return null;
 
     this.loading = true;
@@ -41,7 +42,7 @@ export class FullAudioGenerationService {
     this.fullGenerationController = new AbortController();
     const signal = this.fullGenerationController.signal;
 
-    let fallbackProjectId: string | null = null;
+    let fallbackProjectId: string | null = projectId ?? null;
 
     try {
       const partsToTrigger: { index: number; request: SingleSpeakerRenderRequest }[] = [];
@@ -55,12 +56,13 @@ export class FullAudioGenerationService {
       });
 
       if (partsToTrigger.length > 0) {
+        partsToTrigger.forEach(({ index }) => this.activePartIndexes.add(index));
         this.statusMessage = `Preparing ${partsToTrigger.length} incomplete ${partsToTrigger.length === 1 ? 'part' : 'parts'}...`;
         const generationPromises = partsToTrigger.map(({ index, request }) =>
-          this.renderRequestAudioService.generate(request, index, { fullRunId: runId })
+          this.renderRequestAudioService.generate(request, index, { fullRunId: runId, projectId })
             .catch(() => undefined) // Local orchestration catches failures via getState later
         );
-        const projectIds = await Promise.all(generationPromises);
+        const projectIds = await this.awaitWithAbort(Promise.all(generationPromises), signal);
         if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
         fallbackProjectId = projectIds.find((id) => id !== undefined) ?? null;
       }
@@ -71,7 +73,8 @@ export class FullAudioGenerationService {
         .filter((p) => p !== null);
 
       if (pendingPromises.length > 0) {
-        const remainingProjectIds = await Promise.all(pendingPromises);
+        const remainingProjectIds = await this.awaitWithAbort(Promise.all(pendingPromises), signal);
+        if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
         if (!fallbackProjectId) {
           fallbackProjectId = remainingProjectIds.find((id) => id !== undefined) ?? null;
         }
@@ -115,6 +118,7 @@ export class FullAudioGenerationService {
       if (this.currentFullRunId === runId) {
         this.loading = false;
         this.fullGenerationController = null;
+        this.activePartIndexes.clear();
         if (this.statusMessage === 'Waiting for all parts to finish...' || this.statusMessage === 'Merging audio parts...') {
           this.statusMessage = null;
         }
@@ -123,6 +127,7 @@ export class FullAudioGenerationService {
   }
 
   cancel(): void {
+    this.activePartIndexes.forEach((index) => this.renderRequestAudioService.cancel(index));
     if (this.fullGenerationController) {
       this.fullGenerationController.abort();
       this.fullGenerationController = null;
@@ -146,5 +151,26 @@ export class FullAudioGenerationService {
     if (this.audioUrl) {
       this.statusMessage = message;
     }
+  }
+
+  private async awaitWithAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {
+    if (signal.aborted) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+
+    return new Promise<T>((resolve, reject) => {
+      const onAbort = () => reject(new DOMException('Aborted', 'AbortError'));
+      signal.addEventListener('abort', onAbort, { once: true });
+      promise.then(
+        (value) => {
+          signal.removeEventListener('abort', onAbort);
+          resolve(value);
+        },
+        (error) => {
+          signal.removeEventListener('abort', onAbort);
+          reject(error);
+        }
+      );
+    });
   }
 }

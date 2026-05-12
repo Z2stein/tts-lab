@@ -98,8 +98,9 @@ export class AudiobookStudioFacade {
 
   async analyzeStory(storyText: string): Promise<void> {
     await this.runStep('cast', async () => {
-      const cast = await this.audiobookWorkflowService.analyzeSpeakers(storyText);
-      this._cast.set(cast);
+      const analysis = await this.audiobookWorkflowService.analyzeSpeakers(storyText);
+      this._cast.set(analysis.speakers);
+      this._currentProjectId.set(analysis.projectId);
       this._scriptTurns.set([]);
       this._annotatedTurns.set([]);
       this._finalRequest.set(null);
@@ -115,7 +116,11 @@ export class AudiobookStudioFacade {
 
   async createScriptPreview(storyText: string): Promise<void> {
     await this.runStep('script', async () => {
-      const scriptTurns = await this.audiobookWorkflowService.splitDialogue(storyText, this._cast());
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const scriptTurns = await this.audiobookWorkflowService.splitDialogue(storyText, this._cast(), projectId);
       this._scriptTurns.set(scriptTurns);
       this._annotatedTurns.set([]);
       this._finalRequest.set(null);
@@ -164,6 +169,7 @@ export class AudiobookStudioFacade {
 
   approveScript(): void {
     this._scriptApproved.set(true);
+    this._performanceNotesStale.set(true);
   }
 
   // ── Edit operations ───────────────────────────────────────────────────────

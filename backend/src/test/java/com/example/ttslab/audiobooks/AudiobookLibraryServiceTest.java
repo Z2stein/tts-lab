@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
+import org.mockito.ArgumentCaptor;
 
 class AudiobookLibraryServiceTest {
     @Test
@@ -166,7 +167,9 @@ class AudiobookLibraryServiceTest {
         verify(repository, never()).updateProjectMetadata(any(), any(), any(), any());
 
         // Verify asset and speech segment were created using JPA repositories
-        verify(segmentRepository).save(any());
+        ArgumentCaptor<AudiobookSpeechSegment> segmentCaptor = ArgumentCaptor.forClass(AudiobookSpeechSegment.class);
+        verify(segmentRepository).save(segmentCaptor.capture());
+        assertEquals(AudiobookSpeechSegmentOrigin.GENERATED_AUDIO, segmentCaptor.getValue().getSegmentOrigin());
         verify(assetRepository).save(any());
     }
 }

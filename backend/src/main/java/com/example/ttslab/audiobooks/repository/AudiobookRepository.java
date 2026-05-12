@@ -10,6 +10,7 @@ import java.util.Optional;
 import com.example.ttslab.audiobooks.model.AudioAsset;
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.*;
+import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Repository;
@@ -41,11 +42,15 @@ public class AudiobookRepository {
     }
 
     public List<AudiobookSpeechSegment> findSpeechSegments(String projectId) {
+        return findPreviewSpeechSegments(projectId);
+    }
+
+    public List<AudiobookSpeechSegment> findPreviewSpeechSegments(String projectId) {
         return jdbcTemplate.query("""
             SELECT id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at,
-                   speaker_name, speaker_role_description, voice_name, performance_directions
+                   speaker_name, speaker_role_description, voice_name, performance_directions, original_text, character_id, segment_origin
             FROM audiobook_speech_segment
-            WHERE project_id = ?
+            WHERE project_id = ? AND segment_origin = 'SCRIPT_PREVIEW'
             ORDER BY order_index ASC
             """, sceneMapper(), projectId);
     }
@@ -89,11 +94,11 @@ public class AudiobookRepository {
 
     public void addSpeechSegment(AudiobookSpeechSegment speechSegment) {
         jdbcTemplate.update("""
-            INSERT INTO audiobook_speech_segment (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at, speaker_name, speaker_role_description, voice_name, performance_directions)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?)
+            INSERT INTO audiobook_speech_segment (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at, speaker_name, speaker_role_description, voice_name, performance_directions, original_text, character_id, segment_origin)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?, ?)
             """,
             speechSegment.getId(), speechSegment.getProjectId(), speechSegment.getOrderIndex(), speechSegment.getTitle(), speechSegment.getReviewStatus().name(), speechSegment.getDurationSeconds(),
-            speechSegment.getSpeakerName(), speechSegment.getSpeakerRoleDescription(), speechSegment.getVoiceName(), speechSegment.getPerformanceDirections());
+            speechSegment.getSpeakerName(), speechSegment.getSpeakerRoleDescription(), speechSegment.getVoiceName(), speechSegment.getPerformanceDirections(), speechSegment.getOriginalText(), speechSegment.getCharacterId(), speechSegment.getSegmentOrigin().name());
     }
 
     public void addAsset(AudioAsset asset) {
@@ -128,20 +133,34 @@ public class AudiobookRepository {
     }
 
     private RowMapper<AudiobookSpeechSegment> sceneMapper() {
-        return (rs, rowNum) -> new AudiobookSpeechSegment(
-            rs.getString("id"),
-            rs.getString("project_id"),
-            rs.getInt("order_index"),
-            rs.getString("title"),
-            AudiobookSpeechSegmentReviewStatus.valueOf(rs.getString("review_status")),
-            integer(rs, "duration_seconds"),
-            instant(rs, "created_at"),
-            instant(rs, "updated_at"),
-            rs.getString("speaker_name"),
-            rs.getString("speaker_role_description"),
-            rs.getString("voice_name"),
-            rs.getString("performance_directions")
-        );
+        return (rs, rowNum) -> {
+            AudiobookSpeechSegment segment = new AudiobookSpeechSegment(
+                rs.getString("id"),
+                rs.getString("project_id"),
+                rs.getInt("order_index"),
+                rs.getString("title"),
+                AudiobookSpeechSegmentReviewStatus.valueOf(rs.getString("review_status")),
+                integer(rs, "duration_seconds"),
+                instant(rs, "created_at"),
+                instant(rs, "updated_at"),
+                rs.getString("speaker_name"),
+                rs.getString("speaker_role_description"),
+                rs.getString("voice_name"),
+                rs.getString("performance_directions"),
+                rs.getString("original_text"),
+                rs.getString("character_id")
+            );
+            segment.setSegmentOrigin(segmentOrigin(rs, "segment_origin"));
+            return segment;
+        };
+    }
+
+    private AudiobookSpeechSegmentOrigin segmentOrigin(ResultSet rs, String columnName) throws SQLException {
+        String value = rs.getString(columnName);
+        if (value == null || value.isBlank()) {
+            return AudiobookSpeechSegmentOrigin.LEGACY;
+        }
+        return AudiobookSpeechSegmentOrigin.valueOf(value);
     }
 
     private RowMapper<AudioAsset> assetMapper() {

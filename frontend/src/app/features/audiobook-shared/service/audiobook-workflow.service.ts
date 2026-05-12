@@ -13,6 +13,11 @@ export interface SpeakerVoiceAnalysisItem {
   voiceSuggestion: string;
 }
 
+export interface SpeakerVoiceAnalysisResponse {
+  speakers: SpeakerVoiceAnalysisItem[];
+  projectId: string | null;
+}
+
 export interface SpeakerSplitTurn {
   speaker: string;
   text: string;
@@ -29,10 +34,6 @@ export interface FinalTtsRequestPreview {
   audioConfig: unknown;
 }
 
-interface SpeakerVoiceAnalysisResponse {
-  speakers: SpeakerVoiceAnalysisItem[];
-}
-
 interface SpeakerSplitAnalysisResponse {
   turns: SpeakerSplitTurn[];
 }
@@ -45,19 +46,18 @@ interface EmotionAnnotationAnalysisResponse {
 export class AudiobookWorkflowService {
   constructor(private readonly audiobookApiService: AudiobookApiService) {}
 
-  async analyzeSpeakers(rawDialogue: string): Promise<SpeakerVoiceAnalysisItem[]> {
-    const data = await this.audiobookApiService.post<SpeakerVoiceAnalysisResponse>(
+  async analyzeSpeakers(rawDialogue: string): Promise<SpeakerVoiceAnalysisResponse> {
+    return this.audiobookApiService.post<SpeakerVoiceAnalysisResponse>(
       '/api/projects/tts-workbench/speaker-voice-analysis',
       { rawDialogue },
       'Speaker voice analysis failed'
     );
-    return data.speakers;
   }
 
-  async splitDialogue(rawDialogue: string, speakers: SpeakerVoiceAnalysisItem[]): Promise<SpeakerSplitTurn[]> {
+  async splitDialogue(rawDialogue: string, speakers: SpeakerVoiceAnalysisItem[], projectId: string): Promise<SpeakerSplitTurn[]> {
     const data = await this.audiobookApiService.post<SpeakerSplitAnalysisResponse>(
       '/api/projects/tts-workbench/speaker-split-analysis',
-      { rawDialogue, speakers },
+      { rawDialogue, speakers, projectId },
       'Speaker split analysis failed'
     );
     return data.turns;

@@ -1,7 +1,9 @@
 package com.example.ttslab.audiobooks.repository;
 
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
+import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
@@ -18,4 +20,8 @@ public interface AudiobookSpeechSegmentRepository extends JpaRepository<Audioboo
 
     @Query("SELECT s FROM AudiobookSpeechSegment s WHERE s.id = ?1 AND s.project.id = ?2")
     Optional<AudiobookSpeechSegment> findByIdAndProjectId(String id, String projectId);
+
+    @Modifying
+    @Query("DELETE FROM AudiobookSpeechSegment s WHERE s.project.id = ?1 AND s.segmentOrigin = ?2")
+    void deleteByProjectIdAndSegmentOrigin(String projectId, AudiobookSpeechSegmentOrigin segmentOrigin);
 }

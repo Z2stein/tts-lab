@@ -49,6 +49,16 @@ public class AudiobookSpeechSegment {
     @Column(name = "performance_directions")
     private String performanceDirections;
 
+    @Column(name = "original_text")
+    private String originalText;
+
+    @Column(name = "character_id")
+    private String characterId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "segment_origin", nullable = false)
+    private AudiobookSpeechSegmentOrigin segmentOrigin = AudiobookSpeechSegmentOrigin.LEGACY;
+
     @OneToMany(mappedBy = "segment", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private List<AudioAsset> assets = new ArrayList<>();
 
@@ -70,6 +80,25 @@ public class AudiobookSpeechSegment {
         String voiceName,
         String performanceDirections
     ) {
+        this(id, project, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, null, null);
+    }
+
+    public AudiobookSpeechSegment(
+        String id,
+        AudiobookProject project,
+        int orderIndex,
+        String title,
+        AudiobookSpeechSegmentReviewStatus reviewStatus,
+        Integer durationSeconds,
+        Instant createdAt,
+        Instant updatedAt,
+        String speakerName,
+        String speakerRoleDescription,
+        String voiceName,
+        String performanceDirections,
+        String originalText,
+        String characterId
+    ) {
         this.id = id;
         this.project = project;
         this.orderIndex = orderIndex;
@@ -82,6 +111,8 @@ public class AudiobookSpeechSegment {
         this.speakerRoleDescription = speakerRoleDescription;
         this.voiceName = voiceName;
         this.performanceDirections = performanceDirections;
+        this.originalText = originalText;
+        this.characterId = characterId;
     }
 
     // Constructor for JDBC/legacy code with projectId string
@@ -99,6 +130,25 @@ public class AudiobookSpeechSegment {
         String voiceName,
         String performanceDirections
     ) {
+        this(id, projectId, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, null, null);
+    }
+
+    public AudiobookSpeechSegment(
+        String id,
+        String projectId,
+        int orderIndex,
+        String title,
+        AudiobookSpeechSegmentReviewStatus reviewStatus,
+        Integer durationSeconds,
+        Instant createdAt,
+        Instant updatedAt,
+        String speakerName,
+        String speakerRoleDescription,
+        String voiceName,
+        String performanceDirections,
+        String originalText,
+        String characterId
+    ) {
         this.id = id;
         this.projectIdValue = projectId;
         this.orderIndex = orderIndex;
@@ -111,6 +161,8 @@ public class AudiobookSpeechSegment {
         this.speakerRoleDescription = speakerRoleDescription;
         this.voiceName = voiceName;
         this.performanceDirections = performanceDirections;
+        this.originalText = originalText;
+        this.characterId = characterId;
     }
 
     public String getId() {
@@ -214,6 +266,30 @@ public class AudiobookSpeechSegment {
 
     public void setPerformanceDirections(String performanceDirections) {
         this.performanceDirections = performanceDirections;
+    }
+
+    public String getOriginalText() {
+        return originalText;
+    }
+
+    public void setOriginalText(String originalText) {
+        this.originalText = originalText;
+    }
+
+    public String getCharacterId() {
+        return characterId;
+    }
+
+    public void setCharacterId(String characterId) {
+        this.characterId = characterId;
+    }
+
+    public AudiobookSpeechSegmentOrigin getSegmentOrigin() {
+        return segmentOrigin;
+    }
+
+    public void setSegmentOrigin(AudiobookSpeechSegmentOrigin segmentOrigin) {
+        this.segmentOrigin = segmentOrigin == null ? AudiobookSpeechSegmentOrigin.LEGACY : segmentOrigin;
     }
 
     public List<AudioAsset> getAssets() {

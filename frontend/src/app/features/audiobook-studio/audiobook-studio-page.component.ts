@@ -388,7 +388,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   async generateAudio(): Promise<void> {
     if (!this.facade.audioProductionPlan() || this.renderRequests.length === 0) return;
-    const projectId = await this.fullAudioGenerationService.generate(this.renderRequests);
+    const projectId = await this.fullAudioGenerationService.generate(this.renderRequests, this.facade.currentProjectId() ?? undefined);
     if (projectId) {
       this.facade.setCurrentProjectId(projectId);
     }
@@ -402,7 +402,10 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     requestIndex: number,
     options: { fullRunId?: number } = {}
   ): Promise<void> {
-    await this.renderRequestAudioService.generate(renderRequest, requestIndex, options);
+    await this.renderRequestAudioService.generate(renderRequest, requestIndex, {
+      ...options,
+      projectId: this.facade.currentProjectId() ?? undefined,
+    });
 
     const state = this.renderRequestAudioService.audioStates[requestIndex];
     if (state?.status === 'generated' && this.fullAudioGenerationService.audioUrl) {

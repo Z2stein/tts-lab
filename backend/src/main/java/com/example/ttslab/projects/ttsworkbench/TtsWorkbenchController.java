@@ -7,6 +7,7 @@ import com.example.ttslab.common.DurationEstimator;
 import com.example.ttslab.audiobooks.wf.AudiobookProjectCreationService;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
+import com.example.ttslab.projects.ttsworkbench.service.SpeakerSplitPersistenceService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;
@@ -26,6 +27,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -37,6 +39,7 @@ public class TtsWorkbenchController {
     private static final Logger log = LoggerFactory.getLogger(TtsWorkbenchController.class);
     private final TtsWorkbenchService ttsWorkbenchService;
     private final SpeakerVoiceAnalysisService speakerVoiceAnalysisService;
+    private final SpeakerSplitPersistenceService speakerSplitPersistenceService;
     private final AudiobookProjectCreationService audiobookProjectCreationService;
     private final CurrentUserResolver currentUserResolver;
     private final PromptHistoryService promptHistoryService;
@@ -48,6 +51,7 @@ public class TtsWorkbenchController {
     public TtsWorkbenchController(
         TtsWorkbenchService ttsWorkbenchService,
         SpeakerVoiceAnalysisService speakerVoiceAnalysisService,
+        SpeakerSplitPersistenceService speakerSplitPersistenceService,
         AudiobookProjectCreationService audiobookProjectCreationService,
         CurrentUserResolver currentUserResolver,
         PromptHistoryService promptHistoryService,
@@ -59,6 +63,7 @@ public class TtsWorkbenchController {
     ) {
         this.ttsWorkbenchService = ttsWorkbenchService;
         this.speakerVoiceAnalysisService = speakerVoiceAnalysisService;
+        this.speakerSplitPersistenceService = speakerSplitPersistenceService;
         this.audiobookProjectCreationService = audiobookProjectCreationService;
         this.currentUserResolver = currentUserResolver;
         this.promptHistoryService = promptHistoryService;
@@ -85,11 +90,12 @@ public class TtsWorkbenchController {
     }
 
     @PostMapping("/speaker-split-analysis")
-    public SpeakerSplitAnalysisResponse splitDialogue(@RequestBody SpeakerSplitAnalysisRequest request, Authentication authentication) {
+    public SpeakerSplitAnalysisResponse splitDialogue(@Valid @RequestBody SpeakerSplitAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
-            SpeakerSplitAnalysisResponse response = ttsWorkbenchService.split(request.rawDialogue(), request.speakers());
+            AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
+            SpeakerSplitAnalysisResponse response = speakerSplitPersistenceService.splitAndPersist(project, request.rawDialogue(), request.speakers());
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return response;
         } catch (RuntimeException ex) {

@@ -22,17 +22,19 @@ describe('AudiobookWorkflowService', () => {
 
   it('posts raw dialogue to the speaker voice analysis endpoint', async () => {
     audiobookApiServiceSpy.post.and.resolveTo({
-      speakers: [{ speakerName: 'Alice', roleDescription: 'Detected dialogue speaker', voiceSuggestion: 'Warm voice' }]
+      speakers: [{ speakerName: 'Alice', roleDescription: 'Detected dialogue speaker', voiceSuggestion: 'Warm voice' }],
+      projectId: 'project-1'
     });
 
-    const speakers = await service.analyzeSpeakers('Alice: Hello');
+    const response = await service.analyzeSpeakers('Alice: Hello');
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
       '/api/projects/tts-workbench/speaker-voice-analysis',
       { rawDialogue: 'Alice: Hello' },
       'Speaker voice analysis failed'
     );
-    expect(speakers[0].speakerName).toBe('Alice');
+    expect(response.speakers[0].speakerName).toBe('Alice');
+    expect(response.projectId).toBe('project-1');
   });
 
   it('posts dialogue and speakers to the speaker split endpoint', async () => {
@@ -41,11 +43,11 @@ describe('AudiobookWorkflowService', () => {
     });
 
     const speakers = [{ speakerName: 'Alice', roleDescription: 'Detected dialogue speaker', voiceSuggestion: 'Warm voice' }];
-    const turns = await service.splitDialogue('Alice: Hello', speakers);
+    const turns = await service.splitDialogue('Alice: Hello', speakers, 'project-1');
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
       '/api/projects/tts-workbench/speaker-split-analysis',
-      { rawDialogue: 'Alice: Hello', speakers },
+      { rawDialogue: 'Alice: Hello', speakers, projectId: 'project-1' },
       'Speaker split analysis failed'
     );
     expect(turns[0].text).toBe('Hello');

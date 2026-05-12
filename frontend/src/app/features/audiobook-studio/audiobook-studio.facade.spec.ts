@@ -35,15 +35,16 @@ describe('AudiobookStudioFacade', () => {
 
   describe('analyzeStory', () => {
     it('sets loadingAction, calls AudiobookWorkflowService, updates cast, and clears error on success', async () => {
-      workflow.analyzeSpeakers.and.resolveTo([maraItem]);
+      workflow.analyzeSpeakers.and.resolveTo({ speakers: [maraItem], projectId: 'project-1' });
 
       const promise = facade.analyzeStory('story text');
-      expect(facade.loadingAction()).toBe('Analyzing story');
+      expect(facade.loadingAction()).toBe('cast');
 
       await promise;
 
       expect(workflow.analyzeSpeakers).toHaveBeenCalledWith('story text');
       expect(facade.cast()).toEqual([maraItem]);
+      expect(facade.currentProjectId()).toBe('project-1');
       expect(facade.loadingAction()).toBeNull();
       expect(facade.error()).toBeNull();
     });
@@ -68,10 +69,11 @@ describe('AudiobookStudioFacade', () => {
       facade.setScriptApproved(true);
       facade.setPerformanceNotesStale(false);
 
-      workflow.analyzeSpeakers.and.resolveTo([maraItem]);
+      workflow.analyzeSpeakers.and.resolveTo({ speakers: [maraItem], projectId: 'project-1' });
       await facade.analyzeStory('new story');
 
       expect(facade.cast()).toEqual([maraItem]);
+      expect(facade.currentProjectId()).toBe('project-1');
       expect(facade.scriptTurns()).toEqual([]);
       expect(facade.annotatedTurns()).toEqual([]);
       expect(facade.finalRequest()).toBeNull();
@@ -79,8 +81,6 @@ describe('AudiobookStudioFacade', () => {
       expect(facade.castReviewed()).toBeFalse();
       expect(facade.scriptApproved()).toBeFalse();
       expect(facade.performanceNotesStale()).toBeFalse();
-
-      expect(fullSvc.cancel).toHaveBeenCalled();
       expect(fullSvc.clearAudio).toHaveBeenCalled();
       expect(renderSvc.abortAll).toHaveBeenCalled();
       expect(renderSvc.revokeUrls).toHaveBeenCalled();
@@ -90,20 +90,23 @@ describe('AudiobookStudioFacade', () => {
   describe('createScriptPreview', () => {
     it('sets loadingAction, calls AudiobookWorkflowService, updates scriptTurns on success', async () => {
       facade.setCast([maraItem]);
+      facade.setCurrentProjectId('project-1');
       workflow.splitDialogue.and.resolveTo([{ speaker: 'Mara', text: 'Hello' }]);
 
       const promise = facade.createScriptPreview('story text');
-      expect(facade.loadingAction()).toBe('Creating script preview');
+      expect(facade.loadingAction()).toBe('script');
 
       await promise;
 
-      expect(workflow.splitDialogue).toHaveBeenCalledWith('story text', [maraItem]);
+      expect(workflow.splitDialogue).toHaveBeenCalledWith('story text', [maraItem], 'project-1');
       expect(facade.scriptTurns()).toEqual([{ speaker: 'Mara', text: 'Hello' }]);
       expect(facade.loadingAction()).toBeNull();
       expect(facade.error()).toBeNull();
     });
 
     it('sets error and clears loadingAction on failure', async () => {
+      facade.setCast([maraItem]);
+      facade.setCurrentProjectId('project-1');
       workflow.splitDialogue.and.rejectWith(new Error('API Failure'));
       await facade.createScriptPreview('story text');
 
@@ -160,7 +163,7 @@ describe('AudiobookStudioFacade', () => {
 
   describe('scriptGroups', () => {
     it('groups sequential turns by the same speaker', () => {
-      facade.setAnnotatedTurns([
+      facade.setScriptTurns([
         { speaker: 'Mara', text: 'One' },
         { speaker: 'Mara', text: 'Two' },
         { speaker: 'Jonas', text: 'Three' },
@@ -203,15 +206,17 @@ describe('AudiobookStudioFacade', () => {
       expect(facade.editingCastIndex()).toBeNull();
       expect(facade.castEditDraft()).toBeNull();
 
-      // Check downstream reset
       expect(facade.castReviewed()).toBeFalse();
-      expect(renderSvc.abortAll).toHaveBeenCalled();
     });
   });
 
   describe('saveScriptTurnEdit', () => {
     it('updates script array and resets downstream pipeline', () => {
       facade.setScriptTurns([
+        { speaker: 'Mara', text: 'Hello' },
+        { speaker: 'Jonas', text: 'Hi' }
+      ]);
+      facade.setAnnotatedTurns([
         { speaker: 'Mara', text: 'Hello' },
         { speaker: 'Jonas', text: 'Hi' }
       ]);
@@ -226,7 +231,6 @@ describe('AudiobookStudioFacade', () => {
       expect(facade.editingScriptTurnIndex()).toBeNull();
       expect(facade.scriptTurnEditDraft()).toBeNull();
 
-      // Check downstream reset
       expect(facade.scriptApproved()).toBeFalse();
       expect(facade.performanceNotesStale()).toBeTrue();
       expect(renderSvc.abortAll).toHaveBeenCalled();

@@ -62,7 +62,7 @@ public class SpeakerVoiceAnalysisService {
     public SpeakerVoiceAnalysisResponse analyze(String rawDialogue, String projectId) {
         SpeakerVoiceAnalysisResponse response = analyzeInternal(rawDialogue);
         if (projectId != null && !projectId.isBlank()) {
-            persistCharacters(projectId, response.speakers());
+            syncProjectCharacters(projectId, response.speakers());
             return new SpeakerVoiceAnalysisResponse(response.speakers(), projectId);
         }
         return response;
@@ -128,7 +128,8 @@ public class SpeakerVoiceAnalysisService {
         }
     }
 
-    private void persistCharacters(String projectId, List<SpeakerVoiceAnalysisItem> speakers) {
+    public List<SpeakerCharacter> syncProjectCharacters(String projectId, List<SpeakerVoiceAnalysisItem> speakers) {
+        List<SpeakerVoiceAnalysisItem> safeSpeakers = speakers == null ? List.of() : speakers;
         AudiobookProject project = audiobookProjectRepository.findById(projectId)
             .orElseThrow(() -> new ApiException(
                 HttpStatus.NOT_FOUND,
@@ -140,8 +141,8 @@ public class SpeakerVoiceAnalysisService {
 
         Instant now = Instant.now();
         List<SpeakerCharacter> characters = new ArrayList<>();
-        for (int index = 0; index < speakers.size(); index++) {
-            SpeakerVoiceAnalysisItem speaker = speakers.get(index);
+        for (int index = 0; index < safeSpeakers.size(); index++) {
+            SpeakerVoiceAnalysisItem speaker = safeSpeakers.get(index);
             characters.add(new SpeakerCharacter(
                 UUID.randomUUID().toString(),
                 projectId,
@@ -157,9 +158,10 @@ public class SpeakerVoiceAnalysisService {
             speakerCharacterRepository.saveAll(characters);
         }
 
-        project.setSpeakerCount(speakers.size());
+        project.setSpeakerCount(safeSpeakers.size());
         project.setUpdatedAt(now);
         audiobookProjectRepository.save(project);
+        return characters;
     }
 
     private ApiException invalidProviderResponse(Throwable cause) {

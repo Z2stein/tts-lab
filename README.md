@@ -332,7 +332,7 @@ The page now includes a frontend-only review and correction layer before generat
 Audiobook Studio currently calls legacy workflow endpoints under `/api/projects/tts-workbench/*`. These URLs are retained for compatibility even though the standalone TTS Workbench page has been removed:
 
 - `POST /api/projects/tts-workbench/speaker-voice-analysis` with raw dialogue returns suggested rows containing `speakerName`, `roleDescription`, and `voiceSuggestion`.
-- `POST /api/projects/tts-workbench/speaker-split-analysis` with raw dialogue and speaker suggestions returns `turns` containing `speaker` and `text`.
+- `POST /api/projects/tts-workbench/speaker-split-analysis` with raw dialogue, speaker suggestions, and `projectId` returns `turns` containing `speaker` and `text` while persisting split rows to `audiobook_speech_segment`.
 - `POST /api/projects/tts-workbench/emotion-annotation-analysis` with split turns returns annotated `turns` containing `speaker` and marked-up `text`.
 - `POST /api/projects/tts-workbench/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
 - `POST /api/projects/tts-workbench/single-speaker-render-plan` with the final request JSON returns `renderRequests`, where each item is provider-shaped JSON containing `input.text`, `voice.languageCode`, `voice.name`, `voice.modelName`, and `audioConfig.audioEncoding`.

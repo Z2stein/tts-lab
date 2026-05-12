@@ -9,6 +9,7 @@ import com.example.ttslab.audiobooks.model.AudioAssetType;
 import com.example.ttslab.audiobooks.model.AudioAssetStatus;
 import com.example.ttslab.error.GlobalApiExceptionHandler;
 import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
+import com.example.ttslab.projects.ttsworkbench.service.SpeakerSplitPersistenceService;
 import com.example.ttslab.audiobooks.wf.AudiobookProjectCreationService;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisResponse;
@@ -36,7 +37,9 @@ import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -57,6 +60,9 @@ class TtsWorkbenchControllerTest {
 
     @MockBean
     private SpeakerVoiceAnalysisService speakerVoiceAnalysisService;
+
+    @MockBean
+    private SpeakerSplitPersistenceService speakerSplitPersistenceService;
 
     @MockBean
     private AudiobookProjectCreationService audiobookProjectCreationService;
@@ -103,6 +109,8 @@ class TtsWorkbenchControllerTest {
         );
         when(audiobookLibraryService.createProjectForGeneration(any()))
             .thenReturn(testProject);
+        when(audiobookLibraryService.getProjectForUser(anyString(), any(CurrentUser.class)))
+            .thenReturn(testProject);
 
         AudioAsset testAsset = new AudioAsset(
             "test-asset-1",
@@ -145,17 +153,20 @@ class TtsWorkbenchControllerTest {
 
     @Test
     void speakerSplitAnalysisReturnsTurns() throws Exception {
-        when(ttsWorkbenchService.split(eq("A: Hello"), any())).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
+        when(speakerSplitPersistenceService.splitAndPersist(eq(testProject), eq("A: Hello"), anyList())).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
             new SpeakerSplitTurn("A", "Hello")
         )));
 
         mockMvc.perform(post("/api/projects/tts-workbench/speaker-split-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"rawDialogue\":\"A: Hello\",\"speakers\":[]}"))
+                .content("{\"rawDialogue\":\"A: Hello\",\"speakers\":[],\"projectId\":\"test-project-1\"}"))
             .andExpect(status().isOk())
             .andExpect(content().json("""
                 {"turns":[{"speaker":"A","text":"Hello"}]}
                 """));
+
+        verify(audiobookLibraryService).getProjectForUser(eq("test-project-1"), any(CurrentUser.class));
+        verify(speakerSplitPersistenceService).splitAndPersist(eq(testProject), eq("A: Hello"), anyList());
     }
 
     @Test

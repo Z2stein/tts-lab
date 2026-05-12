@@ -4,6 +4,7 @@ import com.example.ttslab.audiobooks.dto.AudiobookDetailResponse;
 import com.example.ttslab.audiobooks.dto.AudiobookSpeechSegmentResponse;
 import com.example.ttslab.audiobooks.dto.AudiobookSummaryResponse;
 import com.example.ttslab.audiobooks.model.*;
+import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import com.example.ttslab.audiobooks.repository.*;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
@@ -84,7 +85,7 @@ public class AudiobookLibraryService {
             project.getTotalDurationSeconds(),
             project.getCreatedAt(),
             project.getUpdatedAt(),
-            repository.findSpeechSegments(project.getId()).stream()
+            repository.findPreviewSpeechSegments(project.getId()).stream()
                 .map(speechSegment -> new AudiobookSpeechSegmentResponse(
                     speechSegment.getId(),
                     speechSegment.getOrderIndex(),
@@ -195,6 +196,7 @@ public class AudiobookLibraryService {
             voiceName,
             performanceDirections
         );
+        speechSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.GENERATED_AUDIO);
         AudioAsset asset = new AudioAsset(
             assetId,
             project,
@@ -256,6 +258,7 @@ public class AudiobookLibraryService {
             null,
             null
         );
+        speechSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.GENERATED_PREVIEW);
         segmentRepository.save(speechSegment);
 
         AudioAsset asset = new AudioAsset(

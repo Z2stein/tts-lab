@@ -1,6 +1,7 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
 
 const e2eBaseUrl = process.env['E2E_BASE_URL'] || 'http://127.0.0.1:4200';
+const testProjectId = 'project-1';
 
 async function authenticate(context: BrowserContext, page: Page): Promise<void> {
   await context.addCookies([
@@ -44,7 +45,8 @@ test('audiobook studio shows cast cards after story analysis succeeds', async ({
         speakers: [
           { speakerName: 'Mara', roleDescription: 'Determined lead', voiceSuggestion: 'Warm alto voice' },
           { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
-        ]
+        ],
+        projectId: testProjectId
       })
     });
   });
@@ -68,7 +70,8 @@ test('audiobook studio shows script preview turns after cast analysis continues'
         speakers: [
           { speakerName: 'Mara', roleDescription: 'Determined lead', voiceSuggestion: 'Warm alto voice' },
           { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
-        ]
+        ],
+        projectId: testProjectId
       })
     });
   });
@@ -88,6 +91,7 @@ test('audiobook studio shows script preview turns after cast analysis continues'
   await page.goto('/audiobook-studio');
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
+  await expect(page.getByText('Detected character')).toHaveCount(2);
   await page.locator('#cast-section').getByRole('button', { name: 'Review script' }).click();
 
   await expect(page.locator('h2', { hasText: 'Review script' })).toBeVisible();
@@ -105,7 +109,8 @@ test('audiobook studio edits a script preview turn without freezing the app', as
         speakers: [
           { speakerName: 'Narrator', roleDescription: 'Story voice', voiceSuggestion: 'Clear narrator' },
           { speakerName: 'Mara', roleDescription: 'Determined lead', voiceSuggestion: 'Warm alto voice' }
-        ]
+        ],
+        projectId: testProjectId
       })
     });
   });

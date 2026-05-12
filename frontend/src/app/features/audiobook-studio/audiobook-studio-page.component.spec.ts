@@ -1,11 +1,13 @@
 import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks } from '@angular/core/testing';
 import { AudiobookStudioPageComponent, formatSpeakerDisplayName } from './audiobook-studio-page.component';
+import { AudiobookApiService } from '../audiobook-shared/service/audiobook-api.service';
 import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
 
 describe('AudiobookStudioPageComponent', () => {
   let fixture: ComponentFixture<AudiobookStudioPageComponent>;
   let component: AudiobookStudioPageComponent;
   let audiobookWorkflowService: jasmine.SpyObj<AudiobookWorkflowService>;
+  let audiobookApiService: jasmine.SpyObj<AudiobookApiService>;
 
   beforeEach(async () => {
     audiobookWorkflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
@@ -14,13 +16,25 @@ describe('AudiobookStudioPageComponent', () => {
       'annotateEmotions',
       'generateFinalJson',
       'planSingleSpeakerRenderRequests',
-      'createAudio',
-      'createAudioForRenderRequest'
+      'createAudio'
     ]);
+    audiobookApiService = jasmine.createSpyObj<AudiobookApiService>('AudiobookApiService', [
+      'createAudio',
+      'createAudioForRenderRequest',
+      'post',
+      'postResponse'
+    ]);
+    audiobookApiService.createAudioForRenderRequest.and.callFake(async () => ({
+      blob: new Blob(['generated'], { type: 'audio/mpeg' }),
+      filename: 'tts-render-request-1.mp3'
+    }));
 
     await TestBed.configureTestingModule({
       imports: [AudiobookStudioPageComponent],
-      providers: [{ provide: AudiobookWorkflowService, useValue: audiobookWorkflowService }]
+      providers: [
+        { provide: AudiobookWorkflowService, useValue: audiobookWorkflowService },
+        { provide: AudiobookApiService, useValue: audiobookApiService }
+      ]
     }).compileComponents();
 
     fixture = TestBed.createComponent(AudiobookStudioPageComponent);
@@ -39,9 +53,10 @@ describe('AudiobookStudioPageComponent', () => {
   });
 
   it('shows cast cards after story analysis succeeds', async () => {
-    audiobookWorkflowService.analyzeSpeakers.and.resolveTo([
-      { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }
-    ]);
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
+      projectId: 'project-1'
+    });
     component.storyTextControl.setValue('Mara: We go now.');
 
     await component.analyzeStory();
@@ -79,9 +94,13 @@ describe('AudiobookStudioPageComponent', () => {
 
   it('uses edited cast data when continuing to script preview', async () => {
     component.storyTextControl.setValue('StationKeeper: All aboard.');
-    component.cast = [
-      { speakerName: 'StationKeeper', roleDescription: 'Old role', voiceSuggestion: 'Old voice' }
-    ];
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [
+        { speakerName: 'StationKeeper', roleDescription: 'Old role', voiceSuggestion: 'Old voice' }
+      ],
+      projectId: 'project-1'
+    });
+    await component.analyzeStory();
     fixture.detectChanges();
 
     clickButton('Edit');
@@ -104,15 +123,20 @@ describe('AudiobookStudioPageComponent', () => {
         roleDescription: 'Caretaker of the midnight platform',
         voiceSuggestion: 'Warm gravelly voice'
       }
-    ]);
+    ], 'project-1');
   });
 
   it('shows script preview turns after cast analysis continues', async () => {
     component.storyTextControl.setValue('Mara: We go now.\nJonas: Together.');
-    component.cast = [
-      { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' },
-      { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
-    ];
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [
+        { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' },
+        { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
+      ],
+      projectId: 'project-1'
+    });
+    await component.analyzeStory();
+    fixture.detectChanges();
     audiobookWorkflowService.splitDialogue.and.resolveTo([
       { speaker: 'Mara', text: 'We go now.' },
       { speaker: 'Jonas', text: 'Together.' }
@@ -121,7 +145,7 @@ describe('AudiobookStudioPageComponent', () => {
     await component.createScriptPreview();
     fixture.detectChanges();
 
-    expect(audiobookWorkflowService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast);
+    expect(audiobookWorkflowService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast, 'project-1');
     expect(fixture.nativeElement.textContent).toContain('Review script');
     expect(fixture.nativeElement.textContent).toContain('We go now.');
     expect(fixture.nativeElement.textContent).toContain('Together.');
@@ -223,7 +247,7 @@ describe('AudiobookStudioPageComponent', () => {
       ]
     };
     prepareGeneratedPart(0, 'part-1.mp3', 'part one');
-    audiobookWorkflowService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookApiService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -248,7 +272,7 @@ describe('AudiobookStudioPageComponent', () => {
     component.audioProductionPlan = {
       renderRequests: [{ input: { text: 'Only part' }, voice: { name: 'Kore' }, audioConfig: {} }]
     };
-    audiobookWorkflowService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookApiService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -267,7 +291,7 @@ describe('AudiobookStudioPageComponent', () => {
     component.audioProductionPlan = {
       renderRequests: [{ input: { text: 'Only part' }, voice: { name: 'Kore' }, audioConfig: {} }]
     };
-    audiobookWorkflowService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookApiService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -276,7 +300,7 @@ describe('AudiobookStudioPageComponent', () => {
     const first = component.generateAudioForRenderRequest(component.renderRequests[0], 0);
     const second = component.generateAudioForRenderRequest(component.renderRequests[0], 0);
 
-    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
     component.cancelRenderRequestGeneration(0);
     await Promise.all([first, second]);
   });
@@ -291,7 +315,7 @@ describe('AudiobookStudioPageComponent', () => {
     };
     prepareGeneratedPart(0, 'part-1.mp3', 'part one');
     prepareGeneratedPart(1, 'part-2.mp3', 'part two');
-    audiobookWorkflowService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookApiService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -310,19 +334,20 @@ describe('AudiobookStudioPageComponent', () => {
     expect(component.renderRequestAudioState(1).status).toBe('generated');
     expect(component.renderRequestAudioState(2).status).toBe('canceled');
     expect(component.fullPlanAudioLoading).toBeFalse();
-    expect(component.fullPlanAudioStatusMessage).toBe('Generation canceled. You can retry the pending part.');
+    expect(component.fullPlanAudioError).toBe('Audiobook preview generation was canceled.');
+    expect(component.currentGenerationStatusLabel()).toBe('Audiobook preview generation was canceled.');
 
-    audiobookWorkflowService.createAudioForRenderRequest.and.resolveTo({
+    audiobookApiService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['part three'], { type: 'audio/mpeg' }),
       filename: 'part-3.mp3'
     });
-    audiobookWorkflowService.createAudioForRenderRequest.calls.reset();
+    audiobookApiService.createAudioForRenderRequest.calls.reset();
 
     await component.generateAudio();
     fixture.detectChanges();
 
-    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
-    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledWith(
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[2],
       jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
       undefined
@@ -336,7 +361,7 @@ describe('AudiobookStudioPageComponent', () => {
     component.audioProductionPlan = {
       renderRequests: [{ input: {}, voice: { name: 'Kore' }, audioConfig: {} }]
     };
-    audiobookWorkflowService.createAudioForRenderRequest.and.resolveTo({
+    audiobookApiService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['fake mp3'], { type: 'audio/mpeg' }),
       filename: 'part.mp3'
     });
@@ -345,7 +370,7 @@ describe('AudiobookStudioPageComponent', () => {
     fixture.detectChanges();
 
     const player = fixture.nativeElement.querySelector('.generated-audio-player .waveform-canvas') as HTMLElement | null;
-    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledWith(
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[0],
       jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
       undefined
@@ -353,7 +378,7 @@ describe('AudiobookStudioPageComponent', () => {
     expect(player).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
     expect(fixture.nativeElement.textContent).toContain('Download MP3');
-    expect(component.fullPlanAudioFilename).toBe('audiobook-preview.mp3');
+    expect(component.fullPlanAudioFilename).toBe('audiobook-preview-merged.mp3');
     expect(anchorClickSpy).not.toHaveBeenCalled();
   });
 
@@ -365,7 +390,7 @@ describe('AudiobookStudioPageComponent', () => {
         { input: { text: 'Second' }, voice: { name: 'Iapetus' }, audioConfig: {} }
       ]
     };
-    audiobookWorkflowService.createAudioForRenderRequest.and.resolveTo({
+    audiobookApiService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['part one'], { type: 'audio/mpeg' }),
       filename: 'part-1.mp3'
     });
@@ -389,19 +414,19 @@ describe('AudiobookStudioPageComponent', () => {
         { input: { text: 'Third' }, voice: { name: 'Kore' }, audioConfig: {} }
       ]
     };
-    audiobookWorkflowService.createAudioForRenderRequest.and.resolveTo({
+    audiobookApiService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['mp3'], { type: 'audio/mpeg' }),
       filename: 'part.mp3'
     });
 
     await component.generateAudioForRenderRequest(component.renderRequests[0], 0);
     await component.generateAudioForRenderRequest(component.renderRequests[1], 1);
-    audiobookWorkflowService.createAudioForRenderRequest.calls.reset();
+    audiobookApiService.createAudioForRenderRequest.calls.reset();
 
     await component.generateAudio();
 
-    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
-    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledWith(
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[2],
       jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
       undefined
@@ -450,7 +475,7 @@ describe('AudiobookStudioPageComponent', () => {
         { input: { text: 'Third' }, voice: { name: 'Kore' }, audioConfig: {} }
       ]
     };
-    audiobookWorkflowService.createAudioForRenderRequest.and.callFake(async (renderRequest) => {
+    audiobookApiService.createAudioForRenderRequest.and.callFake(async (renderRequest) => {
       if (renderRequest === component.renderRequests[1]) {
         throw new Error('Provider exploded');
       }
@@ -467,7 +492,7 @@ describe('AudiobookStudioPageComponent', () => {
     expect(component.renderRequestAudioState(1).status).toBe('failed');
     expect(component.renderRequestAudioState(2).status).toBe('generated');
     expect(component.fullPlanAudioUrl).toBeNull();
-    expect(component.currentGenerationStatusLabel()).toBe('2 of 3 parts ready - 1 failed');
+    expect(component.currentGenerationStatusLabel()).toBe('1 part failed to generate. Please retry them individually before generating the final preview.');
     expect(component.currentGenerationDetails()).toBe('Generate audiobook preview will use the parts that are already ready and only generate the 1 missing, canceled, failed, or timed-out part before merging.');
   });
 
