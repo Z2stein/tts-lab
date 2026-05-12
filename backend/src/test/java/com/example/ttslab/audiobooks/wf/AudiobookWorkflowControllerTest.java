@@ -1,4 +1,4 @@
-package com.example.ttslab.projects.ttsworkbench;
+package com.example.ttslab.audiobooks.wf;
 
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
@@ -8,9 +8,9 @@ import com.example.ttslab.audiobooks.model.AudioAsset;
 import com.example.ttslab.audiobooks.model.AudioAssetType;
 import com.example.ttslab.audiobooks.model.AudioAssetStatus;
 import com.example.ttslab.error.GlobalApiExceptionHandler;
+import com.example.ttslab.projects.ttsworkbench.*;
 import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
 import com.example.ttslab.projects.ttsworkbench.service.SpeakerSplitPersistenceService;
-import com.example.ttslab.audiobooks.wf.AudiobookProjectCreationService;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisResponse;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisItem;
@@ -49,9 +49,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 
 @AutoConfigureMockMvc(addFilters = false)
-@WebMvcTest(TtsWorkbenchController.class)
+@WebMvcTest(AudiobookWorkflowController.class)
 @Import(GlobalApiExceptionHandler.class)
-class TtsWorkbenchControllerTest {
+class AudiobookWorkflowControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
