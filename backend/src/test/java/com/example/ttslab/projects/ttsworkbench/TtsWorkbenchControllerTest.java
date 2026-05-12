@@ -10,7 +10,6 @@ import com.example.ttslab.audiobooks.model.AudioAssetStatus;
 import com.example.ttslab.error.GlobalApiExceptionHandler;
 import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
 import com.example.ttslab.audiobooks.wf.AudiobookProjectCreationService;
-import com.example.ttslab.audiobooks.wf.ProjectCreationRequest;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisResponse;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisItem;
@@ -24,6 +23,7 @@ import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import java.util.List;
 import com.example.ttslab.error.ApiException;
 import java.util.Map;
+import org.mockito.InOrder;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -124,10 +124,10 @@ class TtsWorkbenchControllerTest {
 
     @Test
     void speakerVoiceAnalysisReturnsSuggestedVoices() throws Exception {
-        when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
+        when(speakerVoiceAnalysisService.analyze("Alice: Hello", "test-project-1")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
             new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)
-        ), null));
-        when(audiobookProjectCreationService.createProject(any(ProjectCreationRequest.class))).thenReturn(testProject);
+        ), "test-project-1"));
+        when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
 
         mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -137,6 +137,9 @@ class TtsWorkbenchControllerTest {
                 {"speakers":[{"speakerName":"Alice","roleDescription":"Detected dialogue speaker","voiceSuggestion":"ACHIRD"}],"projectId":"test-project-1"}
                 """));
 
+        InOrder inOrder = org.mockito.Mockito.inOrder(audiobookProjectCreationService, speakerVoiceAnalysisService);
+        inOrder.verify(audiobookProjectCreationService).createProject("u1");
+        inOrder.verify(speakerVoiceAnalysisService).analyze("Alice: Hello", "test-project-1");
         verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq("mock"), eq("Alice: Hello"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
     }
 
@@ -228,13 +231,14 @@ class TtsWorkbenchControllerTest {
 
     @Test
     void apiExceptionReturnsStructuredErrorResponse() throws Exception {
-        when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenThrow(new ApiException(
+        when(speakerVoiceAnalysisService.analyze("Alice: Hello", "test-project-1")).thenThrow(new ApiException(
             HttpStatus.BAD_GATEWAY,
             "TTS_WORKBENCH_PROVIDER_FAILED",
             "The speaker voice analysis provider is currently unavailable. Please try again later.",
             null,
             new RuntimeException("provider timeout")
         ));
+        when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
 
         mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
                 .header("X-Request-Id", "test-request-1")
@@ -249,7 +253,8 @@ class TtsWorkbenchControllerTest {
 
     @Test
     void unexpectedExceptionReturnsSafeStructuredErrorResponse() throws Exception {
-        when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenThrow(new IllegalStateException("database-password=secret"));
+        when(speakerVoiceAnalysisService.analyze("Alice: Hello", "test-project-1")).thenThrow(new IllegalStateException("database-password=secret"));
+        when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
 
         mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)

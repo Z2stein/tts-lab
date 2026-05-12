@@ -5,7 +5,6 @@ import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.common.DurationEstimator;
 import com.example.ttslab.audiobooks.wf.AudiobookProjectCreationService;
-import com.example.ttslab.audiobooks.wf.ProjectCreationRequest;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
 import com.example.ttslab.prompts.CurrentUserResolver;
@@ -75,20 +74,10 @@ public class TtsWorkbenchController {
         CurrentUser user = currentUserResolver.resolve(authentication);
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
-            SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue());
-            if (analysisResponse.speakers() == null || analysisResponse.speakers().isEmpty()) {
-                return analysisResponse;
-            }
-
-            ProjectCreationRequest creationRequest = new ProjectCreationRequest(
-                    request.rawDialogue(),
-                    user.id(),
-                    analysisResponse.speakers().size()
-            );
-            AudiobookProject project = audiobookProjectCreationService.createProject(creationRequest);
-
+            var project = audiobookProjectCreationService.createProject(user.id());
+            SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue(), project.getId());
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
-            return new SpeakerVoiceAnalysisResponse(analysisResponse.speakers(), project.getId());
+            return analysisResponse;
         } catch (RuntimeException ex) {
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.FAILED);
             throw ex;

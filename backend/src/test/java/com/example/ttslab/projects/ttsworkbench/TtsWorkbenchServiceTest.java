@@ -1,6 +1,7 @@
 package com.example.ttslab.projects.ttsworkbench;
 
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
+import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerCharacterRepository;
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatResponse;
 import com.example.ttslab.chat.ChatService;
@@ -159,8 +160,10 @@ class TtsWorkbenchServiceTest {
     private TtsWorkbenchService createService(ChatService chatService, String provider) {
         DeterministicTtsWorkbenchFallbackService fallbackService = new DeterministicTtsWorkbenchFallbackService();
         DefaultTtsWorkbenchPromptProvider promptProvider = new DefaultTtsWorkbenchPromptProvider(objectMapper);
+        AudiobookProjectRepository audiobookProjectRepository = mock(AudiobookProjectRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
         return new TtsWorkbenchService(
-            new SpeakerVoiceAnalysisService(chatService, objectMapper, promptProvider, fallbackService, provider),
+            new SpeakerVoiceAnalysisService(chatService, objectMapper, promptProvider, fallbackService, audiobookProjectRepository, speakerCharacterRepository, provider),
             new SpeakerSplitAnalysisService(chatService, objectMapper, promptProvider, fallbackService, provider),
             new EmotionAnnotationService(chatService, objectMapper, promptProvider, fallbackService, provider),
             new FinalTtsRequestBuilder(),

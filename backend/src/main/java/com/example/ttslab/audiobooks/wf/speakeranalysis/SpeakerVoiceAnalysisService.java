@@ -1,5 +1,8 @@
 package com.example.ttslab.audiobooks.wf.speakeranalysis;
 
+import com.example.ttslab.audiobooks.model.AudiobookProject;
+import com.example.ttslab.audiobooks.model.SpeakerCharacter;
+import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatService;
 import com.example.ttslab.error.ApiException;
@@ -9,14 +12,16 @@ import com.example.ttslab.projects.ttsworkbench.TtsWorkbenchPromptProvider;
 import com.example.ttslab.projects.ttsworkbench.service.DeterministicTtsWorkbenchFallbackService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-
+import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class SpeakerVoiceAnalysisService {
@@ -27,6 +32,8 @@ public class SpeakerVoiceAnalysisService {
     private final ObjectMapper objectMapper;
     private final TtsWorkbenchPromptProvider promptProvider;
     private final DeterministicTtsWorkbenchFallbackService fallbackService;
+    private final AudiobookProjectRepository audiobookProjectRepository;
+    private final SpeakerCharacterRepository speakerCharacterRepository;
     private final String chatbotProvider;
 
     public SpeakerVoiceAnalysisService(
@@ -34,23 +41,41 @@ public class SpeakerVoiceAnalysisService {
         ObjectMapper objectMapper,
         TtsWorkbenchPromptProvider promptProvider,
         DeterministicTtsWorkbenchFallbackService fallbackService,
+        AudiobookProjectRepository audiobookProjectRepository,
+        SpeakerCharacterRepository speakerCharacterRepository,
         @Value("${chatbot.provider:mock}") String chatbotProvider
     ) {
         this.chatService = chatService;
         this.objectMapper = objectMapper;
         this.promptProvider = promptProvider;
         this.fallbackService = fallbackService;
+        this.audiobookProjectRepository = audiobookProjectRepository;
+        this.speakerCharacterRepository = speakerCharacterRepository;
         this.chatbotProvider = chatbotProvider == null ? "mock" : chatbotProvider.trim().toLowerCase();
     }
 
     public SpeakerVoiceAnalysisResponse analyze(String rawDialogue) {
+        return analyze(rawDialogue, null);
+    }
+
+    @Transactional
+    public SpeakerVoiceAnalysisResponse analyze(String rawDialogue, String projectId) {
+        SpeakerVoiceAnalysisResponse response = analyzeInternal(rawDialogue);
+        if (projectId != null && !projectId.isBlank()) {
+            persistCharacters(projectId, response.speakers());
+            return new SpeakerVoiceAnalysisResponse(response.speakers(), projectId);
+        }
+        return response;
+    }
+
+    private SpeakerVoiceAnalysisResponse analyzeInternal(String rawDialogue) {
         if (rawDialogue == null || rawDialogue.isBlank()) {
-            log.debug("chatbotProvider:"+chatbotProvider);
+            log.debug("chatbotProvider:" + chatbotProvider);
             return new SpeakerVoiceAnalysisResponse(List.of(), null);
         }
 
         if (!PROVIDER_GEMINI.equals(chatbotProvider)) {
-            log.debug("chatbotProvider:"+chatbotProvider);
+            log.debug("chatbotProvider:" + chatbotProvider);
             return new SpeakerVoiceAnalysisResponse(fallbackService.analyzeSpeakers(rawDialogue), null);
         }
 
@@ -71,8 +96,7 @@ public class SpeakerVoiceAnalysisService {
     }
 
     private List<SpeakerVoiceAnalysisItem> parseProviderAnswer(String answer) {
-
-        log.debug("start parsing answer:\n "+answer);
+        log.debug("start parsing answer:\n " + answer);
 
         if (answer == null || answer.isBlank()) {
             throw invalidProviderResponse(null);
@@ -102,6 +126,40 @@ public class SpeakerVoiceAnalysisService {
         } catch (Exception ex) {
             throw invalidProviderResponse(ex);
         }
+    }
+
+    private void persistCharacters(String projectId, List<SpeakerVoiceAnalysisItem> speakers) {
+        AudiobookProject project = audiobookProjectRepository.findById(projectId)
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND,
+                "AUDIOBOOK_NOT_FOUND",
+                "The audiobook project was not found."
+            ));
+
+        speakerCharacterRepository.deleteByProjectId(projectId);
+
+        Instant now = Instant.now();
+        List<SpeakerCharacter> characters = new ArrayList<>();
+        for (int index = 0; index < speakers.size(); index++) {
+            SpeakerVoiceAnalysisItem speaker = speakers.get(index);
+            characters.add(new SpeakerCharacter(
+                UUID.randomUUID().toString(),
+                projectId,
+                index,
+                speaker.speakerName(),
+                speaker.roleDescription(),
+                speaker.voiceSuggestion(),
+                now
+            ));
+        }
+
+        if (!characters.isEmpty()) {
+            speakerCharacterRepository.saveAll(characters);
+        }
+
+        project.setSpeakerCount(speakers.size());
+        project.setUpdatedAt(now);
+        audiobookProjectRepository.save(project);
     }
 
     private ApiException invalidProviderResponse(Throwable cause) {

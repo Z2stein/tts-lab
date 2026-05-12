@@ -3,10 +3,9 @@ package com.example.ttslab.audiobooks.wf;
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.AudiobookProjectStatus;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
-import org.springframework.stereotype.Service;
-
 import java.time.Instant;
 import java.util.UUID;
+import org.springframework.stereotype.Service;
 
 @Service
 public class AudiobookProjectCreationService {
@@ -17,19 +16,18 @@ public class AudiobookProjectCreationService {
         this.audiobookProjectRepository = audiobookProjectRepository;
     }
 
-    public AudiobookProject createProject(ProjectCreationRequest request) {
+    public AudiobookProject createProject(String userId) {
         String projectId = UUID.randomUUID().toString();
         Instant now = Instant.now();
-        String title = generateProjectTitle(request.rawDialogue());
 
         AudiobookProject project = new AudiobookProject(
                 projectId,
-                request.userId(),
-                title,
+                userId,
+                "Speaker analysis",
                 AudiobookProjectStatus.DRAFT,
                 "voice_analysis",
                 0,
-                request.speakerCount(),
+                null,
                 null,
                 now,
                 now
@@ -37,12 +35,5 @@ public class AudiobookProjectCreationService {
 
         audiobookProjectRepository.save(project);
         return project;
-    }
-
-    private String generateProjectTitle(String rawDialogue) {
-        int maxLength = 255;
-        String prefix = "Analysis: ";
-        String truncated = rawDialogue.substring(0, Math.min(rawDialogue.length(), maxLength - prefix.length()));
-        return prefix + truncated.replace("\n", " ").replace("\r", "");
     }
 }
