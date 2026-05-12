@@ -10,7 +10,7 @@ import java.util.regex.Pattern;
 import com.example.ttslab.projects.ttsworkbench.AnnotatedSpeakerTurn;
 import com.example.ttslab.projects.ttsworkbench.SpeakerSplitTurn;
 import com.example.ttslab.projects.ttsworkbench.SpeakerVoice;
-import com.example.ttslab.projects.ttsworkbench.SpeakerVoiceAnalysisItem;
+import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisItem;
 import org.springframework.stereotype.Service;
 
 @Service

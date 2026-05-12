@@ -7,6 +7,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisItem;
 import org.springframework.stereotype.Component;
 
 import static org.springframework.ai.util.json.JsonParser.toJson;

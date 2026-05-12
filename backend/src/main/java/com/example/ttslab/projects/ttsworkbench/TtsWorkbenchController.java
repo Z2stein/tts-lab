@@ -4,6 +4,9 @@ import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.common.DurationEstimator;
+import com.example.ttslab.audiobooks.wf.AudiobookProjectCreationService;
+import com.example.ttslab.audiobooks.wf.ProjectCreationRequest;
+import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
@@ -13,6 +16,8 @@ import com.example.ttslab.ratelimit.RequestRateLimitExceededException;
 import com.example.ttslab.ratelimit.RequestRateLimitResult;
 import com.example.ttslab.ratelimit.RequestRateLimitService;
 import com.example.ttslab.ratelimit.RequestUsageMeasurer;
+import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisRequest;
+import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisResponse;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -32,6 +37,8 @@ import org.springframework.web.bind.annotation.RestController;
 public class TtsWorkbenchController {
     private static final Logger log = LoggerFactory.getLogger(TtsWorkbenchController.class);
     private final TtsWorkbenchService ttsWorkbenchService;
+    private final SpeakerVoiceAnalysisService speakerVoiceAnalysisService;
+    private final AudiobookProjectCreationService audiobookProjectCreationService;
     private final CurrentUserResolver currentUserResolver;
     private final PromptHistoryService promptHistoryService;
     private final RequestRateLimitService requestRateLimitService;
@@ -41,6 +48,8 @@ public class TtsWorkbenchController {
 
     public TtsWorkbenchController(
         TtsWorkbenchService ttsWorkbenchService,
+        SpeakerVoiceAnalysisService speakerVoiceAnalysisService,
+        AudiobookProjectCreationService audiobookProjectCreationService,
         CurrentUserResolver currentUserResolver,
         PromptHistoryService promptHistoryService,
         RequestRateLimitService requestRateLimitService,
@@ -50,6 +59,8 @@ public class TtsWorkbenchController {
         @Value("${spring.ai.google.genai.chat.options.model:}") String chatModelName
     ) {
         this.ttsWorkbenchService = ttsWorkbenchService;
+        this.speakerVoiceAnalysisService = speakerVoiceAnalysisService;
+        this.audiobookProjectCreationService = audiobookProjectCreationService;
         this.currentUserResolver = currentUserResolver;
         this.promptHistoryService = promptHistoryService;
         this.requestRateLimitService = requestRateLimitService;
@@ -64,9 +75,20 @@ public class TtsWorkbenchController {
         CurrentUser user = currentUserResolver.resolve(authentication);
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
-            SpeakerVoiceAnalysisResponse response = ttsWorkbenchService.analyzeAndCreateProject(request.rawDialogue(), user.id());
+            SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue());
+            if (analysisResponse.speakers() == null || analysisResponse.speakers().isEmpty()) {
+                return analysisResponse;
+            }
+
+            ProjectCreationRequest creationRequest = new ProjectCreationRequest(
+                    request.rawDialogue(),
+                    user.id(),
+                    analysisResponse.speakers().size()
+            );
+            AudiobookProject project = audiobookProjectCreationService.createProject(creationRequest);
+
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
-            return response;
+            return new SpeakerVoiceAnalysisResponse(analysisResponse.speakers(), project.getId());
         } catch (RuntimeException ex) {
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.FAILED);
             throw ex;

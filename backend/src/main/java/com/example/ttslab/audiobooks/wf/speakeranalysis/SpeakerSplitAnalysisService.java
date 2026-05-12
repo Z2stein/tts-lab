@@ -1,24 +1,24 @@
-package com.example.ttslab.projects.ttsworkbench;
+package com.example.ttslab.audiobooks.wf.speakeranalysis;
 
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatService;
 import com.example.ttslab.error.ApiException;
+import com.example.ttslab.projects.ttsworkbench.SpeakerSplitAnalysisResponse;
+import com.example.ttslab.projects.ttsworkbench.SpeakerSplitTurn;
+import com.example.ttslab.projects.ttsworkbench.TtsWorkbenchJson;
+import com.example.ttslab.projects.ttsworkbench.TtsWorkbenchPromptProvider;
 import com.example.ttslab.projects.ttsworkbench.service.DeterministicTtsWorkbenchFallbackService;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 @Service
-public class SpeakerVoiceAnalysisService {
+public class SpeakerSplitAnalysisService {
     private static final String PROVIDER_GEMINI = "gemini";
-    private static final Logger log = LoggerFactory.getLogger(SpeakerVoiceAnalysisService.class);
 
     private final ChatService chatService;
     private final ObjectMapper objectMapper;
@@ -26,7 +26,7 @@ public class SpeakerVoiceAnalysisService {
     private final DeterministicTtsWorkbenchFallbackService fallbackService;
     private final String chatbotProvider;
 
-    public SpeakerVoiceAnalysisService(
+    public SpeakerSplitAnalysisService(
         ChatService chatService,
         ObjectMapper objectMapper,
         TtsWorkbenchPromptProvider promptProvider,
@@ -40,54 +40,48 @@ public class SpeakerVoiceAnalysisService {
         this.chatbotProvider = chatbotProvider == null ? "mock" : chatbotProvider.trim().toLowerCase();
     }
 
-    public SpeakerVoiceAnalysisResponse analyze(String rawDialogue) {
+    public SpeakerSplitAnalysisResponse split(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers) {
         if (rawDialogue == null || rawDialogue.isBlank()) {
-            log.debug("chatbotProvider:"+chatbotProvider);
-            return new SpeakerVoiceAnalysisResponse(List.of(), null);
+            return new SpeakerSplitAnalysisResponse(List.of());
         }
 
         if (!PROVIDER_GEMINI.equals(chatbotProvider)) {
-            log.debug("chatbotProvider:"+chatbotProvider);
-            return new SpeakerVoiceAnalysisResponse(fallbackService.analyzeSpeakers(rawDialogue), null);
+            return new SpeakerSplitAnalysisResponse(fallbackService.splitDialogue(rawDialogue));
         }
 
         try {
-            String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerVoiceAnalysisPrompt(rawDialogue), null)).answer();
-            return new SpeakerVoiceAnalysisResponse(parseProviderAnswer(answer), null);
+            String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerSplitPrompt(rawDialogue, speakers == null ? List.of() : speakers), null)).answer();
+            return new SpeakerSplitAnalysisResponse(parseProviderAnswer(answer));
         } catch (ApiException ex) {
             throw ex;
         } catch (Exception ex) {
             throw new ApiException(
                 HttpStatus.BAD_GATEWAY,
                 "TTS_WORKBENCH_PROVIDER_FAILED",
-                "The speaker voice analysis provider is currently unavailable. Please try again later.",
+                "The speaker split provider is currently unavailable. Please try again later.",
                 null,
                 ex
             );
         }
     }
 
-    private List<SpeakerVoiceAnalysisItem> parseProviderAnswer(String answer) {
-
-        log.debug("start parsing answer:\n "+answer);
-
+    private List<SpeakerSplitTurn> parseProviderAnswer(String answer) {
         if (answer == null || answer.isBlank()) {
             throw invalidProviderResponse(null);
         }
 
         try {
-            JsonNode speakers = objectMapper.readTree(TtsWorkbenchJson.stripMarkdownFence(answer)).path("speakers");
-            if (!speakers.isArray()) {
+            JsonNode turns = objectMapper.readTree(TtsWorkbenchJson.stripMarkdownFence(answer)).path("turns");
+            if (!turns.isArray()) {
                 throw invalidProviderResponse(null);
             }
 
-            List<SpeakerVoiceAnalysisItem> items = new ArrayList<>();
-            for (JsonNode speaker : speakers) {
-                String speakerName = speaker.path("speakerName").asText("").trim();
-                String roleDescription = speaker.path("roleDescription").asText("").trim();
-                SpeakerVoice voiceSuggestion = SpeakerVoice.valueOf(speaker.path("voiceSuggestion").asText("").trim().toUpperCase());
-                if (!speakerName.isBlank()) {
-                    items.add(new SpeakerVoiceAnalysisItem(speakerName, roleDescription, voiceSuggestion));
+            List<SpeakerSplitTurn> items = new ArrayList<>();
+            for (JsonNode turn : turns) {
+                String speaker = turn.path("speaker").asText("").trim();
+                String text = turn.path("text").asText("").trim();
+                if (!speaker.isBlank() && !text.isBlank()) {
+                    items.add(new SpeakerSplitTurn(speaker, text));
                 }
             }
             if (items.isEmpty()) {
@@ -105,7 +99,7 @@ public class SpeakerVoiceAnalysisService {
         return new ApiException(
             HttpStatus.BAD_GATEWAY,
             "TTS_WORKBENCH_PROVIDER_RESPONSE_INVALID",
-            "The speaker voice analysis provider returned an invalid response. Please try again later.",
+            "The speaker split provider returned an invalid response. Please try again later.",
             null,
             cause
         );

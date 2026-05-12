@@ -1,4 +1,4 @@
-package com.example.ttslab.projects.ttsworkbench;
+package com.example.ttslab.audiobooks.wf.speakeranalysis;
 
 import java.util.List;
 
