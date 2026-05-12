@@ -6,6 +6,7 @@ import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatService;
 import com.example.ttslab.error.ApiException;
+import com.example.ttslab.config.ChatbotProperties;
 import com.example.ttslab.projects.ttsworkbench.SpeakerVoice;
 import com.example.ttslab.projects.ttsworkbench.TtsWorkbenchJson;
 import com.example.ttslab.projects.ttsworkbench.TtsWorkbenchPromptProvider;
@@ -18,7 +19,7 @@ import java.util.List;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,6 +37,7 @@ public class SpeakerVoiceAnalysisService {
     private final SpeakerCharacterRepository speakerCharacterRepository;
     private final String chatbotProvider;
 
+    @Autowired
     public SpeakerVoiceAnalysisService(
         ChatService chatService,
         ObjectMapper objectMapper,
@@ -43,7 +45,27 @@ public class SpeakerVoiceAnalysisService {
         DeterministicTtsWorkbenchFallbackService fallbackService,
         AudiobookProjectRepository audiobookProjectRepository,
         SpeakerCharacterRepository speakerCharacterRepository,
-        @Value("${chatbot.provider:mock}") String chatbotProvider
+        ChatbotProperties chatbotProperties
+    ) {
+        this(
+            chatService,
+            objectMapper,
+            promptProvider,
+            fallbackService,
+            audiobookProjectRepository,
+            speakerCharacterRepository,
+            chatbotProperties == null ? "mock" : chatbotProperties.provider()
+        );
+    }
+
+    public SpeakerVoiceAnalysisService(
+        ChatService chatService,
+        ObjectMapper objectMapper,
+        TtsWorkbenchPromptProvider promptProvider,
+        DeterministicTtsWorkbenchFallbackService fallbackService,
+        AudiobookProjectRepository audiobookProjectRepository,
+        SpeakerCharacterRepository speakerCharacterRepository,
+        String chatbotProvider
     ) {
         this.chatService = chatService;
         this.objectMapper = objectMapper;

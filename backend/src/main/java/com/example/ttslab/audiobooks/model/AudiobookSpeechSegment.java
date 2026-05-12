@@ -120,6 +120,25 @@ public class AudiobookSpeechSegment {
         this.characterId = characterId;
     }
 
+    public AudiobookSpeechSegment(
+        String id,
+        AudiobookProject project,
+        int orderIndex,
+        String title,
+        AudiobookSpeechSegmentReviewStatus reviewStatus,
+        Integer durationSeconds,
+        Instant createdAt,
+        Instant updatedAt,
+        String speakerName,
+        String speakerRoleDescription,
+        String voiceName,
+        String performanceDirections,
+        String originalText,
+        String characterId
+    ) {
+        this(id, project, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, originalText, null, characterId);
+    }
+
     // Constructor for JDBC/legacy code with projectId string
     public AudiobookSpeechSegment(
         String id,
@@ -170,6 +189,25 @@ public class AudiobookSpeechSegment {
         this.originalText = originalText;
         this.styledText = styledText;
         this.characterId = characterId;
+    }
+
+    public AudiobookSpeechSegment(
+        String id,
+        String projectId,
+        int orderIndex,
+        String title,
+        AudiobookSpeechSegmentReviewStatus reviewStatus,
+        Integer durationSeconds,
+        Instant createdAt,
+        Instant updatedAt,
+        String speakerName,
+        String speakerRoleDescription,
+        String voiceName,
+        String performanceDirections,
+        String originalText,
+        String characterId
+    ) {
+        this(id, projectId, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, originalText, null, characterId);
     }
 
     public String getId() {

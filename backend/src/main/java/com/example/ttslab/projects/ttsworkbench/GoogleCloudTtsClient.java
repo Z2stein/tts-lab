@@ -1,5 +1,6 @@
 package com.example.ttslab.projects.ttsworkbench;
 
+import com.example.ttslab.config.TtsWorkbenchGoogleProperties;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.texttospeech.v1.*;
@@ -11,7 +12,8 @@ import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -19,9 +21,14 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
     private static final Logger log = LoggerFactory.getLogger(GoogleCloudTtsClient.class);
     private final String serviceAccountJsonBase64;
 
-    public GoogleCloudTtsClient(
-        @Value("${tts-workbench.google.service-account-json-b64:}") String serviceAccountJsonBase64
-    ) {
+    @Autowired
+    public GoogleCloudTtsClient(ObjectProvider<TtsWorkbenchGoogleProperties> propertiesProvider) {
+        this(propertiesProvider == null || propertiesProvider.getIfAvailable() == null
+            ? ""
+            : propertiesProvider.getIfAvailable().serviceAccountJsonB64());
+    }
+
+    public GoogleCloudTtsClient(String serviceAccountJsonBase64) {
         this.serviceAccountJsonBase64 = serviceAccountJsonBase64 == null ? "" : serviceAccountJsonBase64.trim();
     }
 

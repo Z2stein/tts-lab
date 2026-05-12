@@ -1,14 +1,27 @@
 package com.example.ttslab.audiobooks.wf;
 
 import com.example.ttslab.audiobooks.model.AudiobookProject;
-import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
-import com.example.ttslab.common.DurationEstimator;
+import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisRequest;
+import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisResponse;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisService;
-import com.example.ttslab.projects.ttsworkbench.*;
-import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
+import com.example.ttslab.auth.CurrentUser;
+import com.example.ttslab.common.DurationEstimator;
+import com.example.ttslab.config.ChatbotProperties;
+import com.example.ttslab.projects.ttsworkbench.AudiobookProjectCreationService;
+import com.example.ttslab.projects.ttsworkbench.EmotionAnnotationAnalysisRequest;
+import com.example.ttslab.projects.ttsworkbench.EmotionAnnotationAnalysisResponse;
+import com.example.ttslab.projects.ttsworkbench.FinalTtsRequestPreviewRequest;
+import com.example.ttslab.projects.ttsworkbench.FinalTtsRequestPreviewResponse;
+import com.example.ttslab.projects.ttsworkbench.ScriptPreviewSaveRequest;
+import com.example.ttslab.projects.ttsworkbench.SingleSpeakerRenderPlanRequest;
+import com.example.ttslab.projects.ttsworkbench.SingleSpeakerRenderPlanResponse;
+import com.example.ttslab.projects.ttsworkbench.SpeakerSplitAnalysisRequest;
+import com.example.ttslab.projects.ttsworkbench.SpeakerSplitAnalysisResponse;
+import com.example.ttslab.projects.ttsworkbench.TtsAudioFile;
 import com.example.ttslab.projects.ttsworkbench.service.EmotionAnnotationPersistenceService;
 import com.example.ttslab.projects.ttsworkbench.service.SpeakerSplitPersistenceService;
+import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;
@@ -17,18 +30,16 @@ import com.example.ttslab.ratelimit.RequestRateLimitExceededException;
 import com.example.ttslab.ratelimit.RequestRateLimitResult;
 import com.example.ttslab.ratelimit.RequestRateLimitService;
 import com.example.ttslab.ratelimit.RequestUsageMeasurer;
-import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisRequest;
-import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisResponse;
+import jakarta.validation.Valid;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
-import org.springframework.beans.factory.annotation.Value;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -38,6 +49,7 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/projects/tts-workbench")
 public class AudiobookWorkflowController {
     private static final Logger log = LoggerFactory.getLogger(AudiobookWorkflowController.class);
+
     private final TtsWorkbenchService ttsWorkbenchService;
     private final SpeakerVoiceAnalysisService speakerVoiceAnalysisService;
     private final SpeakerSplitPersistenceService speakerSplitPersistenceService;
@@ -61,7 +73,7 @@ public class AudiobookWorkflowController {
         RequestRateLimitService requestRateLimitService,
         RequestUsageMeasurer requestUsageMeasurer,
         AudiobookLibraryService audiobookLibraryService,
-        @Value("${chatbot.provider:mock}") String chatbotProvider,
+        ChatbotProperties chatbotProperties,
         @Value("${spring.ai.google.genai.chat.options.model:}") String chatModelName
     ) {
         this.ttsWorkbenchService = ttsWorkbenchService;
@@ -74,21 +86,12 @@ public class AudiobookWorkflowController {
         this.requestRateLimitService = requestRateLimitService;
         this.requestUsageMeasurer = requestUsageMeasurer;
         this.audiobookLibraryService = audiobookLibraryService;
-        this.analysisProviderModelName = providerModelName(chatbotProvider, chatModelName);
+        this.analysisProviderModelName = providerModelName(chatbotProperties == null ? "mock" : chatbotProperties.provider(), chatModelName);
     }
 
-    /**
-     * Workflow for Audiobook Creation
-     * Step 1 & 2
-     * Create a Project and Analyse Charakters in Dialogue
-     *
-     * @param request
-     * @param authentication
-     * @return
-     */
     @PostMapping("/speaker-voice-analysis")
     public SpeakerVoiceAnalysisResponse analyzeSpeakers(@RequestBody SpeakerVoiceAnalysisRequest request, Authentication authentication) {
-        log.debug("/speaker-voice-analysis will send request "+request.toString());
+        log.debug("/speaker-voice-analysis will send request {}", request);
         CurrentUser user = currentUserResolver.resolve(authentication);
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
@@ -102,15 +105,6 @@ public class AudiobookWorkflowController {
         }
     }
 
-    /**
-     * Workflow for Audiobook Creation
-     * Step 3
-     * find Speech Sequences in Dialogue
-     *
-     * @param request
-     * @param authentication
-     * @return
-     */
     @PostMapping("/speaker-split-analysis")
     public SpeakerSplitAnalysisResponse splitDialogue(@Valid @RequestBody SpeakerSplitAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
@@ -126,15 +120,6 @@ public class AudiobookWorkflowController {
         }
     }
 
-    /**
-     * Workflow for Audiobook Creation
-     * Step 4
-     * Find Emotions for every Speech Sequence in Dialogue
-     *
-     * @param request
-     * @param authentication
-     * @return
-     */
     @PostMapping("/emotion-annotation-analysis")
     public EmotionAnnotationAnalysisResponse annotateEmotions(@Valid @RequestBody EmotionAnnotationAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
@@ -152,28 +137,16 @@ public class AudiobookWorkflowController {
         return new SpeakerSplitAnalysisResponse(emotionAnnotationPersistenceService.saveScriptPreviewTurns(project, request.turns()));
     }
 
-
     @PostMapping("/final-request-preview")
     public FinalTtsRequestPreviewResponse previewFinalRequest(@RequestBody FinalTtsRequestPreviewRequest request) {
         return ttsWorkbenchService.buildFinalRequest(request);
     }
 
     @PostMapping("/single-speaker-render-plan")
-    public SingleSpeakerRenderPlanResponse previewSingleSpeakerRenderPlan(
-        @RequestBody SingleSpeakerRenderPlanRequest request
-    ) {
+    public SingleSpeakerRenderPlanResponse previewSingleSpeakerRenderPlan(@RequestBody SingleSpeakerRenderPlanRequest request) {
         return ttsWorkbenchService.planSingleSpeakerRenderRequests(request);
     }
 
-    /**
-     * Workflow for Audiobook Creation
-     * Step 5
-     * CGenerate Audio for every Styled Speech Sequence in Dialogue
-     *
-     * @param request
-     * @param authentication
-     * @return
-     */
     @PostMapping("/create-audio")
     public ResponseEntity<byte[]> createAudio(
         @RequestBody SingleSpeakerRenderPlanResponse requestPlan,
@@ -185,23 +158,18 @@ public class AudiobookWorkflowController {
         String providerModelName = renderProviderModelName(requestPlan);
         enforceLimit(user, ModelType.SPEECH_MODEL, promptText, providerModelName);
         try {
-            // Extract unique speakers and segment count from render requests
             Set<String> uniqueSpeakers = new HashSet<>();
             int segmentCount = 0;
             String firstSpeakerName = null;
             String firstVoiceName = null;
 
             if (requestPlan.renderRequests() != null && !requestPlan.renderRequests().isEmpty()) {
-                // Extract metadata from first render request for persistence
                 var firstRequest = requestPlan.renderRequests().get(0);
                 firstSpeakerName = stringValue(firstRequest.voice(), "speakerName");
                 firstVoiceName = stringValue(firstRequest.voice(), "speakerId");
 
                 for (var request : requestPlan.renderRequests()) {
-                    // Count render requests as segments
                     segmentCount++;
-
-                    // Extract speaker name from voice configuration
                     String speaker = stringValue(request.voice(), "speakerName");
                     if (speaker != null && !speaker.isBlank()) {
                         uniqueSpeakers.add(speaker);

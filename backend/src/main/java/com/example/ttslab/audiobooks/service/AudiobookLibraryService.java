@@ -36,7 +36,8 @@ public class AudiobookLibraryService {
         AudiobookSpeechSegmentRepository segmentRepository,
         AudioAssetRepository assetRepository,
         FileStorageService fileStorageService,
-        StorageKeyBuilder storageKeyBuilder
+        StorageKeyBuilder storageKeyBuilder,
+        AudiobookMetadataCalculator metadataCalculator
     ) {
         this.repository = repository;
         this.projectRepository = projectRepository;
@@ -44,7 +45,7 @@ public class AudiobookLibraryService {
         this.assetRepository = assetRepository;
         this.fileStorageService = fileStorageService;
         this.storageKeyBuilder = storageKeyBuilder;
-        this.metadataCalculator = new AudiobookMetadataCalculator(repository);
+        this.metadataCalculator = metadataCalculator;
     }
 
     public AudiobookSummaryResponse list(CurrentUser user) {

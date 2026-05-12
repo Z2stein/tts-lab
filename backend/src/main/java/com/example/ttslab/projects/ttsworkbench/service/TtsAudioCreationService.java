@@ -1,13 +1,14 @@
 package com.example.ttslab.projects.ttsworkbench.service;
 
 import com.example.ttslab.error.ApiException;
+import com.example.ttslab.config.ChatbotProperties;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import com.example.ttslab.projects.ttsworkbench.*;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -20,9 +21,17 @@ public class TtsAudioCreationService {
     private final ObjectProvider<GoogleTtsClient> googleTtsClientProvider;
     private final String chatbotProvider;
 
+    @Autowired
     public TtsAudioCreationService(
         ObjectProvider<GoogleTtsClient> googleTtsClientProvider,
-        @Value("${chatbot.provider:mock}") String chatbotProvider
+        ChatbotProperties chatbotProperties
+    ) {
+        this(googleTtsClientProvider, chatbotProperties == null ? PROVIDER_MOCK : chatbotProperties.provider());
+    }
+
+    public TtsAudioCreationService(
+        ObjectProvider<GoogleTtsClient> googleTtsClientProvider,
+        String chatbotProvider
     ) {
         this.googleTtsClientProvider = googleTtsClientProvider;
         this.chatbotProvider = chatbotProvider == null ? PROVIDER_MOCK : chatbotProvider.trim().toLowerCase();

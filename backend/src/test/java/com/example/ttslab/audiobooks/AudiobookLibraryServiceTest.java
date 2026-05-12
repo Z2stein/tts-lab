@@ -13,6 +13,7 @@ import com.example.ttslab.audiobooks.repository.AudioAssetRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookSpeechSegmentRepository;
+import com.example.ttslab.audiobooks.service.AudiobookMetadataCalculator;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
@@ -41,7 +42,8 @@ class AudiobookLibraryServiceTest {
             segmentRepository,
             assetRepository,
             storage,
-            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch"))
+            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
+            new AudiobookMetadataCalculator(repository)
         );
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
@@ -65,7 +67,8 @@ class AudiobookLibraryServiceTest {
             segmentRepository,
             assetRepository,
             storage,
-            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch"))
+            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
+            new AudiobookMetadataCalculator(repository)
         );
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
         AudioAsset asset = new AudioAsset("asset-1", "project-1", null, AudioAssetType.PREVIEW_MP3, 1, "key", "a.mp3", "audio/mpeg", 3, null, AudioAssetStatus.GENERATING, Instant.now());
@@ -91,7 +94,8 @@ class AudiobookLibraryServiceTest {
             segmentRepository,
             assetRepository,
             storage,
-            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch"))
+            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
+            new AudiobookMetadataCalculator(repository)
         );
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
@@ -143,7 +147,8 @@ class AudiobookLibraryServiceTest {
             segmentRepository,
             assetRepository,
             storage,
-            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch"))
+            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
+            new AudiobookMetadataCalculator(repository)
         );
 
         AudiobookProject project = new AudiobookProject(

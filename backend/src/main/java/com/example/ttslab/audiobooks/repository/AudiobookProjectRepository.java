@@ -10,5 +10,6 @@ import java.util.Optional;
 @Repository
 public interface AudiobookProjectRepository extends JpaRepository<AudiobookProject, String> {
     List<AudiobookProject> findByUserId(String userId);
+    List<AudiobookProject> findByUserIdOrderByUpdatedAtDescCreatedAtDesc(String userId);
     Optional<AudiobookProject> findByIdAndUserId(String id, String userId);
 }

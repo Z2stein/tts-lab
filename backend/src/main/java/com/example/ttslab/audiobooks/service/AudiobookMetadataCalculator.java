@@ -3,9 +3,9 @@ package com.example.ttslab.audiobooks.service;
 import com.example.ttslab.audiobooks.model.AudioAsset;
 import com.example.ttslab.audiobooks.model.AudioAssetStatus;
 import com.example.ttslab.audiobooks.repository.AudiobookRepository;
-
 import java.util.HashSet;
 import java.util.Set;
+import org.springframework.stereotype.Component;
 
 /**
  * Calculates audiobook metadata on-demand from existing audio assets.
@@ -15,6 +15,7 @@ import java.util.Set;
  * This prevents stale metadata issues that occur when metadata is persisted
  * in the audiobook_project table.
  */
+@Component
 public class AudiobookMetadataCalculator {
     private final AudiobookRepository repository;
 

@@ -3,6 +3,7 @@ package com.example.ttslab.audiobooks.wf.speakeranalysis;
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatService;
 import com.example.ttslab.error.ApiException;
+import com.example.ttslab.config.ChatbotProperties;
 import com.example.ttslab.projects.ttsworkbench.SpeakerSplitAnalysisResponse;
 import com.example.ttslab.projects.ttsworkbench.SpeakerSplitTurn;
 import com.example.ttslab.projects.ttsworkbench.TtsWorkbenchJson;
@@ -12,7 +13,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.List;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
@@ -26,12 +27,23 @@ public class SpeakerSplitAnalysisService {
     private final DeterministicTtsWorkbenchFallbackService fallbackService;
     private final String chatbotProvider;
 
+    @Autowired
     public SpeakerSplitAnalysisService(
         ChatService chatService,
         ObjectMapper objectMapper,
         TtsWorkbenchPromptProvider promptProvider,
         DeterministicTtsWorkbenchFallbackService fallbackService,
-        @Value("${chatbot.provider:mock}") String chatbotProvider
+        ChatbotProperties chatbotProperties
+    ) {
+        this(chatService, objectMapper, promptProvider, fallbackService, chatbotProperties == null ? "mock" : chatbotProperties.provider());
+    }
+
+    public SpeakerSplitAnalysisService(
+        ChatService chatService,
+        ObjectMapper objectMapper,
+        TtsWorkbenchPromptProvider promptProvider,
+        DeterministicTtsWorkbenchFallbackService fallbackService,
+        String chatbotProvider
     ) {
         this.chatService = chatService;
         this.objectMapper = objectMapper;

@@ -1,6 +1,7 @@
 package com.example.ttslab.chat;
 
 import com.example.ttslab.auth.CurrentUser;
+import com.example.ttslab.config.ChatbotProperties;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;
@@ -29,14 +30,14 @@ public class ChatController {
     public ChatController(ChatService chatService, CurrentUserResolver currentUserResolver,
                           PromptHistoryService promptHistoryService, RequestRateLimitService requestRateLimitService,
                           RequestUsageMeasurer requestUsageMeasurer,
-                          @Value("${chatbot.provider:mock}") String chatbotProvider,
+                          ChatbotProperties chatbotProperties,
                           @Value("${spring.ai.google.genai.chat.options.model:}") String chatModelName) {
         this.chatService = chatService;
         this.currentUserResolver = currentUserResolver;
         this.promptHistoryService = promptHistoryService;
         this.requestRateLimitService = requestRateLimitService;
         this.requestUsageMeasurer = requestUsageMeasurer;
-        this.providerModelName = providerModelName(chatbotProvider, chatModelName);
+        this.providerModelName = providerModelName(chatbotProperties == null ? "mock" : chatbotProperties.provider(), chatModelName);
     }
 
     @PostMapping

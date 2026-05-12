@@ -2,6 +2,7 @@ package com.example.ttslab.audiobooks.wf;
 
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
+import com.example.ttslab.config.ChatbotProperties;
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.AudiobookProjectStatus;
 import com.example.ttslab.audiobooks.model.AudioAsset;
@@ -86,11 +87,18 @@ class AudiobookWorkflowControllerTest {
     @MockBean
     private AudiobookLibraryService audiobookLibraryService;
 
+    @MockBean
+    private EmotionAnnotationPersistenceService emotionAnnotationPersistenceService;
+
+    @MockBean
+    private ChatbotProperties chatbotProperties;
+
     private AudiobookProject testProject;
 
     @org.junit.jupiter.api.BeforeEach
     void setupCurrentUser() {
         when(currentUserResolver.resolve(any())).thenReturn(new CurrentUser("u1", "u1@example.com", "User One", List.of("USER"), "mock"));
+        when(chatbotProperties.provider()).thenReturn("mock");
         when(requestRateLimitService.unit()).thenReturn(RequestRateLimitUnit.WORDS);
         when(requestUsageMeasurer.measure(any(), eq(RequestRateLimitUnit.WORDS))).thenReturn(1L);
         when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.SPEECH_MODEL), eq(1L)))

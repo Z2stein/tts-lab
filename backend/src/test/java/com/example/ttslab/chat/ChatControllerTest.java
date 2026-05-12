@@ -1,6 +1,7 @@
 package com.example.ttslab.chat;
 
 import com.example.ttslab.auth.CurrentUser;
+import com.example.ttslab.config.ChatbotProperties;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.PromptHistoryService;
 import com.example.ttslab.ratelimit.RequestRateLimitResult;
@@ -47,10 +48,14 @@ class ChatControllerTest {
     @MockBean
     private RequestUsageMeasurer requestUsageMeasurer;
 
+    @MockBean
+    private ChatbotProperties chatbotProperties;
+
 
     @BeforeEach
     void setupRateLimitDefaults() {
         when(currentUserResolver.resolve(any())).thenReturn(new CurrentUser("u1", "u1@example.com", "User One", java.util.List.of("USER"), "mock"));
+        when(chatbotProperties.provider()).thenReturn("mock");
         when(requestRateLimitService.unit()).thenReturn(RequestRateLimitUnit.WORDS);
         when(requestUsageMeasurer.measure(any(), eq(RequestRateLimitUnit.WORDS))).thenReturn(1L);
         when(requestRateLimitService.checkAndConsume(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq(1L)))
