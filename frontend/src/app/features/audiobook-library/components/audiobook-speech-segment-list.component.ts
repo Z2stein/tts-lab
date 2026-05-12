@@ -34,8 +34,8 @@ import { parsePerformanceDirections } from '../utils/performance-parser';
                 <span *ngFor="let tag of getEmotionTags(speechSegment)" class="emotion-badge">{{ tag }}</span>
               </div>
 
-              <div *ngIf="getOriginalText(speechSegment)" class="speech-segment-text">
-                {{ getOriginalText(speechSegment) }}
+              <div *ngIf="getStyledText(speechSegment)" class="speech-segment-text">
+                {{ getStyledText(speechSegment) }}
               </div>
 
               <div *ngIf="speechSegment.voiceName" class="speech-segment-meta">
@@ -86,6 +86,10 @@ export class AudiobookSpeechSegmentListComponent {
   getOriginalText(speechSegment: AudiobookSpeechSegment): string | undefined {
     const parsed = parsePerformanceDirections(speechSegment.performanceDirections);
     return parsed.originalText;
+  }
+
+  getStyledText(speechSegment: AudiobookSpeechSegment): string | undefined {
+    return speechSegment.styledText || this.getOriginalText(speechSegment);
   }
 
   getSpeakerColor(speakerName?: string): string {

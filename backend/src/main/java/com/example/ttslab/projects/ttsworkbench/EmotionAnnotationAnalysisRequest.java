@@ -1,6 +1,6 @@
 package com.example.ttslab.projects.ttsworkbench;
 
-import java.util.List;
+import jakarta.validation.constraints.NotBlank;
 
-public record EmotionAnnotationAnalysisRequest(List<SpeakerSplitTurn> turns) {
+public record EmotionAnnotationAnalysisRequest(@NotBlank String projectId) {
 }

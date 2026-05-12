@@ -95,7 +95,7 @@ export class AudiobookReviewPageComponent implements OnInit {
         speakerRole: speechSegment.speakerRoleDescription,
         voiceName: speechSegment.voiceName,
         emotionTags: parsed.emotionTags,
-        originalText: parsed.originalText,
+        originalText: speechSegment.styledText || parsed.originalText,
         durationSeconds: speechSegment.durationSeconds || undefined,
         status: speechSegment.reviewStatus,
         audioUrl: this.getAudioStreamUrl(speechSegment),

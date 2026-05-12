@@ -38,6 +38,10 @@ interface SpeakerSplitAnalysisResponse {
   turns: SpeakerSplitTurn[];
 }
 
+interface ScriptPreviewSaveResponse {
+  turns: SpeakerSplitTurn[];
+}
+
 interface EmotionAnnotationAnalysisResponse {
   turns: AnnotatedSpeakerTurn[];
 }
@@ -63,10 +67,19 @@ export class AudiobookWorkflowService {
     return data.turns;
   }
 
-  async annotateEmotions(turns: SpeakerSplitTurn[]): Promise<AnnotatedSpeakerTurn[]> {
+  async saveScriptPreview(projectId: string, turns: SpeakerSplitTurn[]): Promise<SpeakerSplitTurn[]> {
+    const data = await this.audiobookApiService.post<ScriptPreviewSaveResponse>(
+      '/api/projects/tts-workbench/script-preview-save',
+      { projectId, turns },
+      'Script preview save failed'
+    );
+    return data.turns;
+  }
+
+  async annotateEmotions(projectId: string): Promise<AnnotatedSpeakerTurn[]> {
     const data = await this.audiobookApiService.post<EmotionAnnotationAnalysisResponse>(
       '/api/projects/tts-workbench/emotion-annotation-analysis',
-      { turns },
+      { projectId },
       'Emotion annotation analysis failed'
     );
     return data.turns;

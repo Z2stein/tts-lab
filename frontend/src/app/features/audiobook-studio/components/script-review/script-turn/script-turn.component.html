@@ -22,8 +22,8 @@
     <textarea [id]="'script-text-' + indexedTurn.index" [name]="'script-text-' + indexedTurn.index" rows="4" [(ngModel)]="editDraft!.text"></textarea>
 
     <div class="button-row compact-actions">
-      <button type="button" class="primary-button small-button" (click)="saveEdit.emit()">Save</button>
-      <button type="button" class="secondary-button small-button" (click)="cancelEdit.emit()">Cancel</button>
+      <button type="button" class="primary-button small-button" (click)="saveEdit.emit()" [disabled]="isLoading()">Save</button>
+      <button type="button" class="secondary-button small-button" (click)="cancelEdit.emit()" [disabled]="isLoading()">Cancel</button>
     </div>
   </ng-template>
 </div>

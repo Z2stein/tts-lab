@@ -48,7 +48,7 @@ public class AudiobookRepository {
     public List<AudiobookSpeechSegment> findPreviewSpeechSegments(String projectId) {
         return jdbcTemplate.query("""
             SELECT id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at,
-                   speaker_name, speaker_role_description, voice_name, performance_directions, original_text, character_id, segment_origin
+                   speaker_name, speaker_role_description, voice_name, performance_directions, original_text, styled_text, character_id, segment_origin
             FROM audiobook_speech_segment
             WHERE project_id = ? AND segment_origin = 'SCRIPT_PREVIEW'
             ORDER BY order_index ASC
@@ -94,11 +94,11 @@ public class AudiobookRepository {
 
     public void addSpeechSegment(AudiobookSpeechSegment speechSegment) {
         jdbcTemplate.update("""
-            INSERT INTO audiobook_speech_segment (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at, speaker_name, speaker_role_description, voice_name, performance_directions, original_text, character_id, segment_origin)
-            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?, ?)
+            INSERT INTO audiobook_speech_segment (id, project_id, order_index, title, review_status, duration_seconds, created_at, updated_at, speaker_name, speaker_role_description, voice_name, performance_directions, original_text, styled_text, character_id, segment_origin)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             speechSegment.getId(), speechSegment.getProjectId(), speechSegment.getOrderIndex(), speechSegment.getTitle(), speechSegment.getReviewStatus().name(), speechSegment.getDurationSeconds(),
-            speechSegment.getSpeakerName(), speechSegment.getSpeakerRoleDescription(), speechSegment.getVoiceName(), speechSegment.getPerformanceDirections(), speechSegment.getOriginalText(), speechSegment.getCharacterId(), speechSegment.getSegmentOrigin().name());
+            speechSegment.getSpeakerName(), speechSegment.getSpeakerRoleDescription(), speechSegment.getVoiceName(), speechSegment.getPerformanceDirections(), speechSegment.getOriginalText(), speechSegment.getStyledText(), speechSegment.getCharacterId(), speechSegment.getSegmentOrigin().name());
     }
 
     public void addAsset(AudioAsset asset) {
@@ -148,6 +148,7 @@ public class AudiobookRepository {
                 rs.getString("voice_name"),
                 rs.getString("performance_directions"),
                 rs.getString("original_text"),
+                rs.getString("styled_text"),
                 rs.getString("character_id")
             );
             segment.setSegmentOrigin(segmentOrigin(rs, "segment_origin"));

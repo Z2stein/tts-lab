@@ -1,12 +1,13 @@
-package com.example.ttslab.projects.ttsworkbench;
+package com.example.ttslab.audiobooks.wf;
 
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.common.DurationEstimator;
-import com.example.ttslab.audiobooks.wf.AudiobookProjectCreationService;
 import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisService;
+import com.example.ttslab.projects.ttsworkbench.*;
 import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
+import com.example.ttslab.projects.ttsworkbench.service.EmotionAnnotationPersistenceService;
 import com.example.ttslab.projects.ttsworkbench.service.SpeakerSplitPersistenceService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
@@ -35,11 +36,12 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/projects/tts-workbench")
-public class TtsWorkbenchController {
-    private static final Logger log = LoggerFactory.getLogger(TtsWorkbenchController.class);
+public class AudiobookWorkflowController {
+    private static final Logger log = LoggerFactory.getLogger(AudiobookWorkflowController.class);
     private final TtsWorkbenchService ttsWorkbenchService;
     private final SpeakerVoiceAnalysisService speakerVoiceAnalysisService;
     private final SpeakerSplitPersistenceService speakerSplitPersistenceService;
+    private final EmotionAnnotationPersistenceService emotionAnnotationPersistenceService;
     private final AudiobookProjectCreationService audiobookProjectCreationService;
     private final CurrentUserResolver currentUserResolver;
     private final PromptHistoryService promptHistoryService;
@@ -48,10 +50,11 @@ public class TtsWorkbenchController {
     private final AudiobookLibraryService audiobookLibraryService;
     private final String analysisProviderModelName;
 
-    public TtsWorkbenchController(
+    public AudiobookWorkflowController(
         TtsWorkbenchService ttsWorkbenchService,
         SpeakerVoiceAnalysisService speakerVoiceAnalysisService,
         SpeakerSplitPersistenceService speakerSplitPersistenceService,
+        EmotionAnnotationPersistenceService emotionAnnotationPersistenceService,
         AudiobookProjectCreationService audiobookProjectCreationService,
         CurrentUserResolver currentUserResolver,
         PromptHistoryService promptHistoryService,
@@ -64,6 +67,7 @@ public class TtsWorkbenchController {
         this.ttsWorkbenchService = ttsWorkbenchService;
         this.speakerVoiceAnalysisService = speakerVoiceAnalysisService;
         this.speakerSplitPersistenceService = speakerSplitPersistenceService;
+        this.emotionAnnotationPersistenceService = emotionAnnotationPersistenceService;
         this.audiobookProjectCreationService = audiobookProjectCreationService;
         this.currentUserResolver = currentUserResolver;
         this.promptHistoryService = promptHistoryService;
@@ -73,6 +77,15 @@ public class TtsWorkbenchController {
         this.analysisProviderModelName = providerModelName(chatbotProvider, chatModelName);
     }
 
+    /**
+     * Workflow for Audiobook Creation
+     * Step 1 & 2
+     * Create a Project and Analyse Charakters in Dialogue
+     *
+     * @param request
+     * @param authentication
+     * @return
+     */
     @PostMapping("/speaker-voice-analysis")
     public SpeakerVoiceAnalysisResponse analyzeSpeakers(@RequestBody SpeakerVoiceAnalysisRequest request, Authentication authentication) {
         log.debug("/speaker-voice-analysis will send request "+request.toString());
@@ -89,6 +102,15 @@ public class TtsWorkbenchController {
         }
     }
 
+    /**
+     * Workflow for Audiobook Creation
+     * Step 3
+     * find Speech Sequences in Dialogue
+     *
+     * @param request
+     * @param authentication
+     * @return
+     */
     @PostMapping("/speaker-split-analysis")
     public SpeakerSplitAnalysisResponse splitDialogue(@Valid @RequestBody SpeakerSplitAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
@@ -104,10 +126,32 @@ public class TtsWorkbenchController {
         }
     }
 
+    /**
+     * Workflow for Audiobook Creation
+     * Step 4
+     * Find Emotions for every Speech Sequence in Dialogue
+     *
+     * @param request
+     * @param authentication
+     * @return
+     */
     @PostMapping("/emotion-annotation-analysis")
-    public EmotionAnnotationAnalysisResponse annotateEmotions(@RequestBody EmotionAnnotationAnalysisRequest request) {
-        return ttsWorkbenchService.annotate(request.turns());
+    public EmotionAnnotationAnalysisResponse annotateEmotions(@Valid @RequestBody EmotionAnnotationAnalysisRequest request, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
+        var turns = emotionAnnotationPersistenceService.loadScriptPreviewTurns(project);
+        EmotionAnnotationAnalysisResponse response = ttsWorkbenchService.annotate(turns);
+        emotionAnnotationPersistenceService.persistStyledText(project, response.turns());
+        return response;
     }
+
+    @PostMapping("/script-preview-save")
+    public SpeakerSplitAnalysisResponse saveScriptPreview(@Valid @RequestBody ScriptPreviewSaveRequest request, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
+        return new SpeakerSplitAnalysisResponse(emotionAnnotationPersistenceService.saveScriptPreviewTurns(project, request.turns()));
+    }
+
 
     @PostMapping("/final-request-preview")
     public FinalTtsRequestPreviewResponse previewFinalRequest(@RequestBody FinalTtsRequestPreviewRequest request) {
@@ -121,6 +165,15 @@ public class TtsWorkbenchController {
         return ttsWorkbenchService.planSingleSpeakerRenderRequests(request);
     }
 
+    /**
+     * Workflow for Audiobook Creation
+     * Step 5
+     * CGenerate Audio for every Styled Speech Sequence in Dialogue
+     *
+     * @param request
+     * @param authentication
+     * @return
+     */
     @PostMapping("/create-audio")
     public ResponseEntity<byte[]> createAudio(
         @RequestBody SingleSpeakerRenderPlanResponse requestPlan,
