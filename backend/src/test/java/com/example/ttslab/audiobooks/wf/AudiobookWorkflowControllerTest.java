@@ -175,19 +175,24 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void emotionAnnotationAnalysisReturnsAnnotatedTurns() throws Exception {
+        when(emotionAnnotationPersistenceService.loadScriptPreviewTurns(testProject)).thenReturn(List.of(
+            new SpeakerSplitTurn("A", "Hello!")
+        ));
         when(ttsWorkbenchService.annotate(any())).thenReturn(new EmotionAnnotationAnalysisResponse(List.of(
             new AnnotatedSpeakerTurn("A", "[urgent] Hello!")
         )));
 
         mockMvc.perform(post("/api/projects/tts-workbench/emotion-annotation-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"projectId\":\"test-project-1\",\"turns\":[{\"speaker\":\"A\",\"text\":\"Hello!\"}]}"))
+                .content("{\"projectId\":\"test-project-1\"}"))
             .andExpect(status().isOk())
             .andExpect(content().json("""
                 {"turns":[{"speaker":"A","text":"[urgent] Hello!"}]}
                 """));
 
         verify(audiobookLibraryService).getProjectForUser(eq("test-project-1"), any(CurrentUser.class));
+        verify(emotionAnnotationPersistenceService).loadScriptPreviewTurns(eq(testProject));
+        verify(ttsWorkbenchService).annotate(List.of(new SpeakerSplitTurn("A", "Hello!")));
         verify(emotionAnnotationPersistenceService).persistStyledText(eq(testProject), anyList());
     }
 
@@ -195,10 +200,31 @@ class AudiobookWorkflowControllerTest {
     void emotionAnnotationAnalysisRejectsMissingProjectId() throws Exception {
         mockMvc.perform(post("/api/projects/tts-workbench/emotion-annotation-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"turns\":[{\"speaker\":\"A\",\"text\":\"Hello!\"}]}"))
+                .content("{}"))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
             .andExpect(jsonPath("$.message").value("The request is invalid. Please check your input and try again."));
+    }
+
+    @Test
+    void saveScriptPreviewPersistsEditedTurns() throws Exception {
+        when(emotionAnnotationPersistenceService.saveScriptPreviewTurns(eq(testProject), anyList())).thenReturn(List.of(
+            new SpeakerSplitTurn("Narrator", "The opening line."),
+            new SpeakerSplitTurn("Mara", "We go now.")
+        ));
+
+        mockMvc.perform(post("/api/projects/tts-workbench/script-preview-save")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {"projectId":"test-project-1","turns":[{"speaker":"Narrator","text":"The opening line."},{"speaker":"Mara","text":"We go now."}]}
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(content().json("""
+                {"turns":[{"speaker":"Narrator","text":"The opening line."},{"speaker":"Mara","text":"We go now."}]}
+                """));
+
+        verify(audiobookLibraryService).getProjectForUser(eq("test-project-1"), any(CurrentUser.class));
+        verify(emotionAnnotationPersistenceService).saveScriptPreviewTurns(eq(testProject), anyList());
     }
 
     @Test

@@ -440,7 +440,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   cancelCastEdit(): void { this.facade.cancelCastEdit(); }
 
   startScriptTurnEdit(index: number): void { this.facade.startScriptTurnEdit(index); }
-  saveScriptTurnEdit(index: number): void { this.facade.saveScriptTurnEdit(index); }
+  async saveScriptTurnEdit(index: number): Promise<void> { await this.facade.saveScriptTurnEdit(index); }
   cancelScriptTurnEdit(): void { this.facade.cancelScriptTurnEdit(); }
 
   // ── Presentation helpers ──────────────────────────────────────────────────

@@ -13,6 +13,7 @@ describe('AudiobookStudioPageComponent', () => {
     audiobookWorkflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
       'analyzeSpeakers',
       'splitDialogue',
+      'saveScriptPreview',
       'annotateEmotions',
       'generateFinalJson',
       'planSingleSpeakerRenderRequests',
@@ -28,6 +29,7 @@ describe('AudiobookStudioPageComponent', () => {
       blob: new Blob(['generated'], { type: 'audio/mpeg' }),
       filename: 'tts-render-request-1.mp3'
     }));
+    audiobookWorkflowService.saveScriptPreview.and.callFake(async (_projectId, turns) => turns);
 
     await TestBed.configureTestingModule({
       imports: [AudiobookStudioPageComponent],
@@ -158,14 +160,15 @@ describe('AudiobookStudioPageComponent', () => {
       { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
     ];
     component.scriptTurns = [{ speaker: 'Mara', text: 'We go now.' }];
+    (component as any).facade.setCurrentProjectId('project-1');
     fixture.detectChanges();
 
-    clickButton('Edit', 2);
+    component.startScriptTurnEdit(0);
     fixture.detectChanges();
 
-    setSelectValue('#script-speaker-0', 'Jonas');
-    setInputValue('#script-text-0', 'We wait for the signal.');
-    clickButton('Save');
+    component.scriptTurnEditDraft!.speaker = 'Jonas';
+    component.scriptTurnEditDraft!.text = 'We wait for the signal.';
+    await component.saveScriptTurnEdit(0);
     fixture.detectChanges();
 
     expect(component.scriptTurns[0]).toEqual({ speaker: 'Jonas', text: 'We wait for the signal.' });
@@ -209,6 +212,8 @@ describe('AudiobookStudioPageComponent', () => {
     setInputValue('#script-text-0', 'We go at sunrise.');
     clickButton('Save');
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
 
     const planButton = buttonByText('Next: Prepare audiobook');
     expect(fixture.nativeElement.textContent).toContain('Script changed. Update the emotion & pacing before generating the audiobook.');
@@ -237,7 +242,7 @@ describe('AudiobookStudioPageComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith(component.scriptTurns, 'project-1');
+    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1');
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
   });
 

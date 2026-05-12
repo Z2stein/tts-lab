@@ -53,16 +53,31 @@ describe('AudiobookWorkflowService', () => {
     expect(turns[0].text).toBe('Hello');
   });
 
+  it('posts script preview turns to the save endpoint', async () => {
+    audiobookApiServiceSpy.post.and.resolveTo({
+      turns: [{ speaker: 'Alice', text: 'Hello there' }]
+    });
+
+    const turns = await service.saveScriptPreview('project-1', [{ speaker: 'Alice', text: 'Hello there' }]);
+
+    expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
+      '/api/projects/tts-workbench/script-preview-save',
+      { projectId: 'project-1', turns: [{ speaker: 'Alice', text: 'Hello there' }] },
+      'Script preview save failed'
+    );
+    expect(turns[0].text).toBe('Hello there');
+  });
+
   it('posts turns to the emotion annotation endpoint', async () => {
     audiobookApiServiceSpy.post.and.resolveTo({
       turns: [{ speaker: 'Alice', text: '[urgent] Hello!' }]
     });
 
-    const turns = await service.annotateEmotions([{ speaker: 'Alice', text: 'Hello!' }], 'project-1');
+    const turns = await service.annotateEmotions('project-1');
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
       '/api/projects/tts-workbench/emotion-annotation-analysis',
-      { turns: [{ speaker: 'Alice', text: 'Hello!' }], projectId: 'project-1' },
+      { projectId: 'project-1' },
       'Emotion annotation analysis failed'
     );
     expect(turns[0].text).toBe('[urgent] Hello!');

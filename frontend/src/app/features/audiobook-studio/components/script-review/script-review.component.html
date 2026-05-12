@@ -17,6 +17,7 @@
       [editing]="editingScriptTurnIndex === indexedTurn.index"
       [editDraft]="editingScriptTurnIndex === indexedTurn.index ? scriptTurnEditDraft : null"
       [speakerOptions]="speakerOptions"
+      [loadingAction]="loadingAction"
       (startEdit)="startTurnEdit.emit(indexedTurn.index)"
       (saveEdit)="saveTurnEdit.emit(indexedTurn.index)"
       (cancelEdit)="cancelTurnEdit.emit()"
@@ -27,6 +28,6 @@
 <button type="button" class="primary-button next-action" (click)="approveScript.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || scriptApproved">
   Approve script & continue
 </button>
-<button type="button" class="secondary-button" (click)="addEmotionAndPacing.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || !scriptApproved">
+<button type="button" class="secondary-button" (click)="addEmotionAndPacing.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || !scriptApproved || hasOpenEdit()">
   {{ isLoading('notes') ? 'Adding emotion & pacing...' : 'Add emotion & pacing' }}
 </button>

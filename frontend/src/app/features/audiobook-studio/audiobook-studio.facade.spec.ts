@@ -16,7 +16,7 @@ describe('AudiobookStudioFacade', () => {
   beforeEach(() => {
     workflow = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
       'analyzeSpeakers', 'splitDialogue', 'annotateEmotions',
-      'generateFinalJson', 'planSingleSpeakerRenderRequests',
+      'saveScriptPreview', 'generateFinalJson', 'planSingleSpeakerRenderRequests',
     ]);
     renderSvc = jasmine.createSpyObj<RenderRequestAudioService>('RenderRequestAudioService', ['abortAll', 'revokeUrls']);
     fullSvc = jasmine.createSpyObj<FullAudioGenerationService>('FullAudioGenerationService', ['cancel', 'clearAudio']);
@@ -124,9 +124,20 @@ describe('AudiobookStudioFacade', () => {
 
       await facade.createPerformanceNotes();
 
-      expect(workflow.annotateEmotions).toHaveBeenCalledWith([{ speaker: 'Mara', text: 'Hello' }], 'project-1');
+      expect(workflow.annotateEmotions).toHaveBeenCalledWith('project-1');
       expect(facade.annotatedTurns()).toEqual([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
       expect(facade.performanceNotesStale()).toBeFalse();
+    });
+
+    it('blocks annotation while a script edit is still open', async () => {
+      facade.setScriptTurns([{ speaker: 'Mara', text: 'Hello' }]);
+      facade.setCurrentProjectId('project-1');
+      facade.startScriptTurnEdit(0);
+
+      await facade.createPerformanceNotes();
+
+      expect(facade.error()).toBe('Save or cancel the script edit before adding emotion and pacing.');
+      expect(workflow.annotateEmotions).not.toHaveBeenCalled();
     });
 
     it('sets an error when the project id is missing', async () => {
@@ -221,7 +232,7 @@ describe('AudiobookStudioFacade', () => {
   });
 
   describe('saveScriptTurnEdit', () => {
-    it('updates script array and resets downstream pipeline', () => {
+    it('persists edited turns before closing the editor and resets downstream pipeline', async () => {
       facade.setScriptTurns([
         { speaker: 'Mara', text: 'Hello' },
         { speaker: 'Jonas', text: 'Hi' }
@@ -230,16 +241,27 @@ describe('AudiobookStudioFacade', () => {
         { speaker: 'Mara', text: 'Hello' },
         { speaker: 'Jonas', text: 'Hi' }
       ]);
+      facade.setCurrentProjectId('project-1');
       facade.startScriptTurnEdit(1);
 
       const draft = facade.scriptTurnEditDraft()!;
       draft.text = 'Greetings';
+      workflow.saveScriptPreview.and.resolveTo([
+        { speaker: 'Mara', text: 'Hello' },
+        { speaker: 'Jonas', text: 'Greetings' }
+      ]);
 
-      facade.saveScriptTurnEdit(1);
+      const promise = facade.saveScriptTurnEdit(1);
+      expect(facade.loadingAction()).toBe('script-edit');
+      await promise;
 
       expect(facade.scriptTurns()[1].text).toBe('Greetings');
       expect(facade.editingScriptTurnIndex()).toBeNull();
       expect(facade.scriptTurnEditDraft()).toBeNull();
+      expect(workflow.saveScriptPreview).toHaveBeenCalledWith('project-1', [
+        { speaker: 'Mara', text: 'Hello' },
+        { speaker: 'Jonas', text: 'Greetings' }
+      ]);
 
       expect(facade.scriptApproved()).toBeFalse();
       expect(facade.performanceNotesStale()).toBeTrue();

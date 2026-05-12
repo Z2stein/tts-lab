@@ -41,4 +41,8 @@ export class ScriptReviewComponent {
   isLoading(action: string): boolean {
     return this.loadingAction === action;
   }
+
+  hasOpenEdit(): boolean {
+    return this.editingScriptTurnIndex !== null;
+  }
 }

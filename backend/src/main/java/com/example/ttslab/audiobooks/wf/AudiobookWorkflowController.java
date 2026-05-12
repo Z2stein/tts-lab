@@ -139,9 +139,17 @@ public class AudiobookWorkflowController {
     public EmotionAnnotationAnalysisResponse annotateEmotions(@Valid @RequestBody EmotionAnnotationAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
         AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
-        EmotionAnnotationAnalysisResponse response = ttsWorkbenchService.annotate(request.turns());
+        var turns = emotionAnnotationPersistenceService.loadScriptPreviewTurns(project);
+        EmotionAnnotationAnalysisResponse response = ttsWorkbenchService.annotate(turns);
         emotionAnnotationPersistenceService.persistStyledText(project, response.turns());
         return response;
+    }
+
+    @PostMapping("/script-preview-save")
+    public SpeakerSplitAnalysisResponse saveScriptPreview(@Valid @RequestBody ScriptPreviewSaveRequest request, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
+        return new SpeakerSplitAnalysisResponse(emotionAnnotationPersistenceService.saveScriptPreviewTurns(project, request.turns()));
     }
 
 

@@ -128,9 +128,25 @@ test('audiobook studio edits a script preview turn without freezing the app', as
       })
     });
   });
-  await page.route('**/api/projects/tts-workbench/emotion-annotation-analysis', async (route) => {
-    const body = route.request().postDataJSON() as { projectId?: string };
+  await page.route('**/api/projects/tts-workbench/script-preview-save', async (route) => {
+    const body = route.request().postDataJSON() as { projectId?: string; turns?: Array<{ speaker?: string; text?: string }> };
     expect(body.projectId).toBe(testProjectId);
+    expect(body.turns).toEqual([
+      { speaker: 'Narrator', text: 'The last train had already left, and the station clock was wrong.' },
+      { speaker: 'Mara', text: 'Jonas, tell me you did not hide this here all winter.' }
+    ]);
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        turns: body.turns
+      })
+    });
+  });
+  await page.route('**/api/projects/tts-workbench/emotion-annotation-analysis', async (route) => {
+    const body = route.request().postDataJSON() as { projectId?: string; turns?: unknown };
+    expect(body.projectId).toBe(testProjectId);
+    expect(body.turns).toBeUndefined();
     await route.fulfill({
       status: 200,
       contentType: 'application/json',

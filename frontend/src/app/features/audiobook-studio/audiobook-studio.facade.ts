@@ -136,11 +136,14 @@ export class AudiobookStudioFacade {
 
   async createPerformanceNotes(): Promise<void> {
     await this.runStep('notes', async () => {
+      if (this._editingScriptTurnIndex() !== null) {
+        throw new Error('Save or cancel the script edit before adding emotion and pacing.');
+      }
       const projectId = this._currentProjectId();
       if (!projectId) {
         throw new Error('Story analysis did not return a project id.');
       }
-      const annotatedTurns = await this.audiobookWorkflowService.annotateEmotions(this._scriptTurns(), projectId);
+      const annotatedTurns = await this.audiobookWorkflowService.annotateEmotions(projectId);
       this._annotatedTurns.set(annotatedTurns);
       this._finalRequest.set(null);
       this._audioProductionPlan.set(null);
@@ -200,18 +203,27 @@ export class AudiobookStudioFacade {
     this._scriptTurnEditDraft.set({ ...this._scriptTurns()[index] });
   }
 
-  saveScriptTurnEdit(index: number): void {
-    const draft = this._scriptTurnEditDraft();
-    if (!draft) return;
-    this._scriptTurns.update((turns) => turns.map((t, i) => (i === index ? { ...draft } : t)));
-    this.cancelScriptTurnEdit();
-    this._scriptApproved.set(false);
-    if (this._annotatedTurns().length > 0) {
-      this._performanceNotesStale.set(true);
-      this._finalRequest.set(null);
-      this._audioProductionPlan.set(null);
-      this.resetAudio();
-    }
+  async saveScriptTurnEdit(index: number): Promise<void> {
+    await this.runStep('script-edit', async () => {
+      const draft = this._scriptTurnEditDraft();
+      const projectId = this._currentProjectId();
+      if (!draft) return;
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+
+      const nextTurns = this._scriptTurns().map((turn, i) => (i === index ? { ...draft } : { ...turn }));
+      const persistedTurns = await this.audiobookWorkflowService.saveScriptPreview(projectId, nextTurns);
+      this._scriptTurns.set(persistedTurns);
+      this.cancelScriptTurnEdit();
+      this._scriptApproved.set(false);
+      if (this._annotatedTurns().length > 0) {
+        this._performanceNotesStale.set(true);
+        this._finalRequest.set(null);
+        this._audioProductionPlan.set(null);
+        this.resetAudio();
+      }
+    }, 'Script turn save failed.');
   }
 
   cancelScriptTurnEdit(): void {
