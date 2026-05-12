@@ -3,7 +3,7 @@ import {
   AudiobookApiService,
   SingleSpeakerRenderRequest,
 } from './audiobook-api.service';
-import { SpeakerVoiceAnalysisItem } from '../../tts-workbench/tts-workbench.service';
+import { SpeakerVoiceAnalysisItem } from './audiobook-workflow.service';
 import { RenderRequestAudioState } from '../../audiobook-studio/models/audiobook-studio.types';
 
 export interface GenerateOptions {

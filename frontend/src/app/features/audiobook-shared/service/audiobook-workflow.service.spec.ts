@@ -1,9 +1,9 @@
 import { TestBed } from '@angular/core/testing';
-import { AudiobookApiService } from '../audiobook-shared/service/audiobook-api.service';
-import { TtsWorkbenchService } from './tts-workbench.service';
+import { AudiobookApiService } from './audiobook-api.service';
+import { AudiobookWorkflowService } from './audiobook-workflow.service';
 
-describe('TtsWorkbenchService', () => {
-  let service: TtsWorkbenchService;
+describe('AudiobookWorkflowService', () => {
+  let service: AudiobookWorkflowService;
   let audiobookApiServiceSpy: jasmine.SpyObj<AudiobookApiService>;
 
   beforeEach(() => {
@@ -13,11 +13,11 @@ describe('TtsWorkbenchService', () => {
 
     TestBed.configureTestingModule({
       providers: [
-        TtsWorkbenchService,
+        AudiobookWorkflowService,
         { provide: AudiobookApiService, useValue: audiobookApiServiceSpy }
       ]
     });
-    service = TestBed.inject(TtsWorkbenchService);
+    service = TestBed.inject(AudiobookWorkflowService);
   });
 
   it('posts raw dialogue to the speaker voice analysis endpoint', async () => {

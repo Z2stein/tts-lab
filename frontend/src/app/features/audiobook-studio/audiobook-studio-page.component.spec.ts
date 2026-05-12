@@ -1,14 +1,14 @@
 import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks } from '@angular/core/testing';
 import { AudiobookStudioPageComponent, formatSpeakerDisplayName } from './audiobook-studio-page.component';
-import { TtsWorkbenchService } from '../tts-workbench/tts-workbench.service';
+import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
 
 describe('AudiobookStudioPageComponent', () => {
   let fixture: ComponentFixture<AudiobookStudioPageComponent>;
   let component: AudiobookStudioPageComponent;
-  let ttsWorkbenchService: jasmine.SpyObj<TtsWorkbenchService>;
+  let audiobookWorkflowService: jasmine.SpyObj<AudiobookWorkflowService>;
 
   beforeEach(async () => {
-    ttsWorkbenchService = jasmine.createSpyObj<TtsWorkbenchService>('TtsWorkbenchService', [
+    audiobookWorkflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
       'analyzeSpeakers',
       'splitDialogue',
       'annotateEmotions',
@@ -20,7 +20,7 @@ describe('AudiobookStudioPageComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [AudiobookStudioPageComponent],
-      providers: [{ provide: TtsWorkbenchService, useValue: ttsWorkbenchService }]
+      providers: [{ provide: AudiobookWorkflowService, useValue: audiobookWorkflowService }]
     }).compileComponents();
 
     fixture = TestBed.createComponent(AudiobookStudioPageComponent);
@@ -39,7 +39,7 @@ describe('AudiobookStudioPageComponent', () => {
   });
 
   it('shows cast cards after story analysis succeeds', async () => {
-    ttsWorkbenchService.analyzeSpeakers.and.resolveTo([
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo([
       { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }
     ]);
     component.storyTextControl.setValue('Mara: We go now.');
@@ -47,7 +47,7 @@ describe('AudiobookStudioPageComponent', () => {
     await component.analyzeStory();
     fixture.detectChanges();
 
-    expect(ttsWorkbenchService.analyzeSpeakers).toHaveBeenCalledWith('Mara: We go now.');
+    expect(audiobookWorkflowService.analyzeSpeakers).toHaveBeenCalledWith('Mara: We go now.');
     expect(fixture.nativeElement.textContent).toContain('Mara');
     expect(fixture.nativeElement.textContent).toContain('Detected character');
     expect(fixture.nativeElement.textContent).toContain('Warm alto voice');
@@ -92,13 +92,13 @@ describe('AudiobookStudioPageComponent', () => {
     clickButton('Save');
     fixture.detectChanges();
 
-    ttsWorkbenchService.splitDialogue.and.resolveTo([
+    audiobookWorkflowService.splitDialogue.and.resolveTo([
       { speaker: 'Station Keeper', text: 'All aboard.' }
     ]);
 
     await component.createScriptPreview();
 
-    expect(ttsWorkbenchService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, [
+    expect(audiobookWorkflowService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, [
       {
         speakerName: 'Station Keeper',
         roleDescription: 'Caretaker of the midnight platform',
@@ -113,7 +113,7 @@ describe('AudiobookStudioPageComponent', () => {
       { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' },
       { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
     ];
-    ttsWorkbenchService.splitDialogue.and.resolveTo([
+    audiobookWorkflowService.splitDialogue.and.resolveTo([
       { speaker: 'Mara', text: 'We go now.' },
       { speaker: 'Jonas', text: 'Together.' }
     ]);
@@ -121,7 +121,7 @@ describe('AudiobookStudioPageComponent', () => {
     await component.createScriptPreview();
     fixture.detectChanges();
 
-    expect(ttsWorkbenchService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast);
+    expect(audiobookWorkflowService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast);
     expect(fixture.nativeElement.textContent).toContain('Review script');
     expect(fixture.nativeElement.textContent).toContain('We go now.');
     expect(fixture.nativeElement.textContent).toContain('Together.');
@@ -190,7 +190,7 @@ describe('AudiobookStudioPageComponent', () => {
     expect(planButton.disabled).toBeTrue();
 
     clickButton('Approve script & continue');
-    ttsWorkbenchService.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '[hopeful] We go at sunrise.' }]);
+    audiobookWorkflowService.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '[hopeful] We go at sunrise.' }]);
     await component.createPerformanceNotes();
     fixture.detectChanges();
 
@@ -200,7 +200,7 @@ describe('AudiobookStudioPageComponent', () => {
 
   it('continues the emotion annotation flow after the user approves the script', async () => {
     component.scriptTurns = [{ speaker: 'Narrator', text: 'The lamps dimmed.' }];
-    ttsWorkbenchService.annotateEmotions.and.resolveTo([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
+    audiobookWorkflowService.annotateEmotions.and.resolveTo([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
     fixture.detectChanges();
 
     expect(buttonByText('Add emotion & pacing').disabled).toBeTrue();
@@ -211,7 +211,7 @@ describe('AudiobookStudioPageComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(ttsWorkbenchService.annotateEmotions).toHaveBeenCalledWith(component.scriptTurns);
+    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith(component.scriptTurns);
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
   });
 
@@ -223,7 +223,7 @@ describe('AudiobookStudioPageComponent', () => {
       ]
     };
     prepareGeneratedPart(0, 'part-1.mp3', 'part one');
-    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookWorkflowService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -248,7 +248,7 @@ describe('AudiobookStudioPageComponent', () => {
     component.audioProductionPlan = {
       renderRequests: [{ input: { text: 'Only part' }, voice: { name: 'Kore' }, audioConfig: {} }]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookWorkflowService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -267,7 +267,7 @@ describe('AudiobookStudioPageComponent', () => {
     component.audioProductionPlan = {
       renderRequests: [{ input: { text: 'Only part' }, voice: { name: 'Kore' }, audioConfig: {} }]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookWorkflowService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -276,7 +276,7 @@ describe('AudiobookStudioPageComponent', () => {
     const first = component.generateAudioForRenderRequest(component.renderRequests[0], 0);
     const second = component.generateAudioForRenderRequest(component.renderRequests[0], 0);
 
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
     component.cancelRenderRequestGeneration(0);
     await Promise.all([first, second]);
   });
@@ -291,7 +291,7 @@ describe('AudiobookStudioPageComponent', () => {
     };
     prepareGeneratedPart(0, 'part-1.mp3', 'part one');
     prepareGeneratedPart(1, 'part-2.mp3', 'part two');
-    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookWorkflowService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -312,17 +312,17 @@ describe('AudiobookStudioPageComponent', () => {
     expect(component.fullPlanAudioLoading).toBeFalse();
     expect(component.fullPlanAudioStatusMessage).toBe('Generation canceled. You can retry the pending part.');
 
-    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+    audiobookWorkflowService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['part three'], { type: 'audio/mpeg' }),
       filename: 'part-3.mp3'
     });
-    ttsWorkbenchService.createAudioForRenderRequest.calls.reset();
+    audiobookWorkflowService.createAudioForRenderRequest.calls.reset();
 
     await component.generateAudio();
     fixture.detectChanges();
 
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
+    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[2],
       jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
       undefined
@@ -336,7 +336,7 @@ describe('AudiobookStudioPageComponent', () => {
     component.audioProductionPlan = {
       renderRequests: [{ input: {}, voice: { name: 'Kore' }, audioConfig: {} }]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+    audiobookWorkflowService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['fake mp3'], { type: 'audio/mpeg' }),
       filename: 'part.mp3'
     });
@@ -345,7 +345,7 @@ describe('AudiobookStudioPageComponent', () => {
     fixture.detectChanges();
 
     const player = fixture.nativeElement.querySelector('.generated-audio-player .waveform-canvas') as HTMLElement | null;
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
+    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[0],
       jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
       undefined
@@ -365,7 +365,7 @@ describe('AudiobookStudioPageComponent', () => {
         { input: { text: 'Second' }, voice: { name: 'Iapetus' }, audioConfig: {} }
       ]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+    audiobookWorkflowService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['part one'], { type: 'audio/mpeg' }),
       filename: 'part-1.mp3'
     });
@@ -389,19 +389,19 @@ describe('AudiobookStudioPageComponent', () => {
         { input: { text: 'Third' }, voice: { name: 'Kore' }, audioConfig: {} }
       ]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+    audiobookWorkflowService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['mp3'], { type: 'audio/mpeg' }),
       filename: 'part.mp3'
     });
 
     await component.generateAudioForRenderRequest(component.renderRequests[0], 0);
     await component.generateAudioForRenderRequest(component.renderRequests[1], 1);
-    ttsWorkbenchService.createAudioForRenderRequest.calls.reset();
+    audiobookWorkflowService.createAudioForRenderRequest.calls.reset();
 
     await component.generateAudio();
 
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
+    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(audiobookWorkflowService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[2],
       jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
       undefined
@@ -450,7 +450,7 @@ describe('AudiobookStudioPageComponent', () => {
         { input: { text: 'Third' }, voice: { name: 'Kore' }, audioConfig: {} }
       ]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.callFake(async (renderRequest) => {
+    audiobookWorkflowService.createAudioForRenderRequest.and.callFake(async (renderRequest) => {
       if (renderRequest === component.renderRequests[1]) {
         throw new Error('Provider exploded');
       }
@@ -472,7 +472,7 @@ describe('AudiobookStudioPageComponent', () => {
   });
 
   it('shows a user-facing backend error when analysis fails', async () => {
-    ttsWorkbenchService.analyzeSpeakers.and.rejectWith(new Error('The cast analysis provider is currently unavailable. Please try again later.'));
+    audiobookWorkflowService.analyzeSpeakers.and.rejectWith(new Error('The cast analysis provider is currently unavailable. Please try again later.'));
     component.storyTextControl.setValue('Mara: Hello');
 
     await component.analyzeStory();

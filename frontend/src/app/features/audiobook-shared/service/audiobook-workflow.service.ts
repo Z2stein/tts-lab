@@ -5,7 +5,7 @@ import {
   RequestOptions,
   SingleSpeakerRenderPlan,
   SingleSpeakerRenderRequest
-} from '../audiobook-shared/service/audiobook-api.service';
+} from './audiobook-api.service';
 
 export interface SpeakerVoiceAnalysisItem {
   speakerName: string;
@@ -42,7 +42,7 @@ interface EmotionAnnotationAnalysisResponse {
 }
 
 @Injectable({ providedIn: 'root' })
-export class TtsWorkbenchService {
+export class AudiobookWorkflowService {
   constructor(private readonly audiobookApiService: AudiobookApiService) {}
 
   async analyzeSpeakers(rawDialogue: string): Promise<SpeakerVoiceAnalysisItem[]> {

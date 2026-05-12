@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { SpeakerVoiceAnalysisItem } from '../../../tts-workbench/tts-workbench.service';
+import { SpeakerVoiceAnalysisItem } from '../../../audiobook-shared/service/audiobook-workflow.service';
 import { formatSpeakerDisplayName } from '../../utils/speaker-name';
 import { CastCardComponent } from './cast-card/cast-card.component';
 

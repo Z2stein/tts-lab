@@ -5,7 +5,7 @@ import { LiveAnnouncer } from '@angular/cdk/a11y';
 import {
   FinalTtsRequestPreview,
   SpeakerVoiceAnalysisItem,
-} from '../tts-workbench/tts-workbench.service';
+} from '../audiobook-shared/service/audiobook-workflow.service';
 import {
   SingleSpeakerRenderPlan,
   SingleSpeakerRenderRequest,

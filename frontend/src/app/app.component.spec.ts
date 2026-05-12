@@ -44,7 +44,6 @@ describe('AppComponent layout and chatbot visibility', () => {
     expect(text).toContain('Home');
     expect(text).toContain('Audiobook Studio');
     expect(text).toContain('My Audiobooks');
-    expect(text).toContain('TTS Workbench');
     expect(text).toContain('Prompt History');
   });
 

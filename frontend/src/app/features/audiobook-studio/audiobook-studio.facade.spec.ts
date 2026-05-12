@@ -1,12 +1,12 @@
 import { TestBed } from '@angular/core/testing';
-import { TtsWorkbenchService } from '../tts-workbench/tts-workbench.service';
+import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
 import { AudiobookStudioFacade } from './audiobook-studio.facade';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
 import { RenderRequestAudioService } from '../audiobook-shared/service/render-request-audio.service';
 
 describe('AudiobookStudioFacade', () => {
   let facade: AudiobookStudioFacade;
-  let tts: jasmine.SpyObj<TtsWorkbenchService>;
+  let workflow: jasmine.SpyObj<AudiobookWorkflowService>;
   let renderSvc: jasmine.SpyObj<RenderRequestAudioService>;
   let fullSvc: jasmine.SpyObj<FullAudioGenerationService>;
 
@@ -14,7 +14,7 @@ describe('AudiobookStudioFacade', () => {
   const jonasItem = { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Iapetus' };
 
   beforeEach(() => {
-    tts = jasmine.createSpyObj<TtsWorkbenchService>('TtsWorkbenchService', [
+    workflow = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
       'analyzeSpeakers', 'splitDialogue', 'annotateEmotions',
       'generateFinalJson', 'planSingleSpeakerRenderRequests',
     ]);
@@ -24,7 +24,7 @@ describe('AudiobookStudioFacade', () => {
     TestBed.configureTestingModule({
       providers: [
         AudiobookStudioFacade,
-        { provide: TtsWorkbenchService, useValue: tts },
+        { provide: AudiobookWorkflowService, useValue: workflow },
         { provide: RenderRequestAudioService, useValue: renderSvc },
         { provide: FullAudioGenerationService, useValue: fullSvc },
       ],
@@ -34,22 +34,22 @@ describe('AudiobookStudioFacade', () => {
   });
 
   describe('analyzeStory', () => {
-    it('sets loadingAction, calls TtsWorkbenchService, updates cast, and clears error on success', async () => {
-      tts.analyzeSpeakers.and.resolveTo([maraItem]);
+    it('sets loadingAction, calls AudiobookWorkflowService, updates cast, and clears error on success', async () => {
+      workflow.analyzeSpeakers.and.resolveTo([maraItem]);
 
       const promise = facade.analyzeStory('story text');
       expect(facade.loadingAction()).toBe('Analyzing story');
 
       await promise;
 
-      expect(tts.analyzeSpeakers).toHaveBeenCalledWith('story text');
+      expect(workflow.analyzeSpeakers).toHaveBeenCalledWith('story text');
       expect(facade.cast()).toEqual([maraItem]);
       expect(facade.loadingAction()).toBeNull();
       expect(facade.error()).toBeNull();
     });
 
     it('sets error and clears loadingAction on failure', async () => {
-      tts.analyzeSpeakers.and.rejectWith(new Error('Network Error'));
+      workflow.analyzeSpeakers.and.rejectWith(new Error('Network Error'));
 
       await facade.analyzeStory('story text');
 
@@ -68,7 +68,7 @@ describe('AudiobookStudioFacade', () => {
       facade.setScriptApproved(true);
       facade.setPerformanceNotesStale(false);
 
-      tts.analyzeSpeakers.and.resolveTo([maraItem]);
+      workflow.analyzeSpeakers.and.resolveTo([maraItem]);
       await facade.analyzeStory('new story');
 
       expect(facade.cast()).toEqual([maraItem]);
@@ -88,23 +88,23 @@ describe('AudiobookStudioFacade', () => {
   });
 
   describe('createScriptPreview', () => {
-    it('sets loadingAction, calls TtsWorkbenchService, updates scriptTurns on success', async () => {
+    it('sets loadingAction, calls AudiobookWorkflowService, updates scriptTurns on success', async () => {
       facade.setCast([maraItem]);
-      tts.splitDialogue.and.resolveTo([{ speaker: 'Mara', text: 'Hello' }]);
+      workflow.splitDialogue.and.resolveTo([{ speaker: 'Mara', text: 'Hello' }]);
 
       const promise = facade.createScriptPreview('story text');
       expect(facade.loadingAction()).toBe('Creating script preview');
 
       await promise;
 
-      expect(tts.splitDialogue).toHaveBeenCalledWith('story text', [maraItem]);
+      expect(workflow.splitDialogue).toHaveBeenCalledWith('story text', [maraItem]);
       expect(facade.scriptTurns()).toEqual([{ speaker: 'Mara', text: 'Hello' }]);
       expect(facade.loadingAction()).toBeNull();
       expect(facade.error()).toBeNull();
     });
 
     it('sets error and clears loadingAction on failure', async () => {
-      tts.splitDialogue.and.rejectWith(new Error('API Failure'));
+      workflow.splitDialogue.and.rejectWith(new Error('API Failure'));
       await facade.createScriptPreview('story text');
 
       expect(facade.error()).toBe('API Failure');
@@ -115,12 +115,12 @@ describe('AudiobookStudioFacade', () => {
   describe('createPerformanceNotes', () => {
     it('updates annotatedTurns and clears stale flag on success', async () => {
       facade.setScriptTurns([{ speaker: 'Mara', text: 'Hello' }]);
-      tts.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
+      workflow.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
       facade.setPerformanceNotesStale(true);
 
       await facade.createPerformanceNotes();
 
-      expect(tts.annotateEmotions).toHaveBeenCalledWith([{ speaker: 'Mara', text: 'Hello' }]);
+      expect(workflow.annotateEmotions).toHaveBeenCalledWith([{ speaker: 'Mara', text: 'Hello' }]);
       expect(facade.annotatedTurns()).toEqual([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
       expect(facade.performanceNotesStale()).toBeFalse();
     });
@@ -141,17 +141,17 @@ describe('AudiobookStudioFacade', () => {
       const finalReq = { input: { text: 'test' }, voice: {}, audioConfig: {} };
       const plan = { renderRequests: [] };
 
-      tts.generateFinalJson.and.resolveTo(finalReq);
-      tts.planSingleSpeakerRenderRequests.and.resolveTo(plan);
+      workflow.generateFinalJson.and.resolveTo(finalReq);
+      workflow.planSingleSpeakerRenderRequests.and.resolveTo(plan);
 
       await facade.createAudioProductionPlan(requestParams);
 
-      expect(tts.generateFinalJson).toHaveBeenCalledWith({
+      expect(workflow.generateFinalJson).toHaveBeenCalledWith({
         ...requestParams,
         speakers: [maraItem],
         annotatedTurns: [{ speaker: 'Mara', text: '<speak>Hi</speak>' }]
       });
-      expect(tts.planSingleSpeakerRenderRequests).toHaveBeenCalledWith(finalReq);
+      expect(workflow.planSingleSpeakerRenderRequests).toHaveBeenCalledWith(finalReq);
 
       expect(facade.finalRequest()).toBe(finalReq);
       expect(facade.audioProductionPlan()).toBe(plan);

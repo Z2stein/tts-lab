@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { SpeakerVoiceAnalysisItem } from '../../../../tts-workbench/tts-workbench.service';
+import { SpeakerVoiceAnalysisItem } from '../../../../audiobook-shared/service/audiobook-workflow.service';
 import { formatSpeakerDisplayName, speakerInitials } from '../../../utils/speaker-name';
 
 @Component({

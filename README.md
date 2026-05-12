@@ -20,7 +20,6 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 - [API error responses](#api-error-responses)
 - [Authentication modes](#authentication-modes)
 - [Audiobook Studio MVP](#audiobook-studio-mvp)
-- [TTS Workbench (MVP)](#tts-workbench-mvp)
 - [Chatbot (MVP)](#chatbot-mvp)
 - [Request limits (MVP)](#request-limits-mvp)
 
@@ -198,7 +197,7 @@ npm run test:e2e
 
 Die Playwright-Suite unterscheidet zwischen:
 
-- gemockten UI-E2E-Tests (`tts-workbench.spec.ts`), die gezielt Backend-Routen mocken, um UI-Erfolg und UI-Fehler deterministisch zu prüfen;
+- gemockten UI-E2E-Tests (`audiobook-studio.spec.ts`), die gezielt Backend-Routen mocken, um UI-Erfolg und UI-Fehler deterministisch zu prüfen;
 - realen Frontend-Backend-E2E-Tests (`real-backend-health.spec.ts`), die die geprüfte Backend-Route nicht mocken und standardmäßig über die lokal gestarteten Playwright-Webserver laufen.
 
 E2E gegen eine deployte Umgebung:
@@ -301,7 +300,7 @@ Feature deployments do not create or inject Google OAuth secrets.
 Frontend behavior note:
 
 - On startup, the frontend first checks `/api/me` and shows a short loading state until auth is resolved. If `/api/me` fails (for example due to CORS/network issues), the UI no longer hangs in loading and falls back to unauthenticated with a visible error message and browser console logs.
-- The authenticated app uses a shared header and client-side routes: `/` for the landing page, `/audiobook-studio` for the Audiobook Studio MVP, and `/tts-workbench` for the TTS Workbench speaker/voice analysis MVP. Unknown frontend routes redirect to `/`.
+- The authenticated app uses a shared header and client-side routes: `/` for the landing page and `/audiobook-studio` for the Audiobook Studio MVP. Unknown frontend routes redirect to `/`.
 - Only authenticated users see the routed app pages and chatbot widget.
 - Unauthenticated users see only the sign-in UI, which starts OAuth via `/oauth2/authorization/google`.
 - Logged-in users also see their auth state in the header and a logout button that calls `/logout` and returns to `/`.
@@ -309,7 +308,7 @@ Frontend behavior note:
 
 ## Audiobook Studio MVP
 
-Audiobook Studio is a user-friendly frontend flow built on top of the existing TTS Workbench endpoints. It is available at `/audiobook-studio` and reframes the same pipeline as story input, cast discovery, script preview, performance notes, an audio production plan, and generated audio.
+Audiobook Studio is a user-friendly frontend flow built on top of the existing audiobook workflow API. It is available at `/audiobook-studio` and reframes the same pipeline as story input, cast discovery, script preview, performance notes, an audio production plan, and generated audio.
 
 The MVP does not add database tables or new backend endpoints. It reuses the existing speaker analysis, speaker split, emotion annotation, final request preview, single-speaker render plan, and audio creation APIs while presenting story-focused language and a dark cinematic studio interface.
 
@@ -330,25 +329,14 @@ The page now includes a frontend-only review and correction layer before generat
 - Editing the script after performance notes exist marks those notes stale and blocks audio production planning until notes are regenerated.
 - These review states are local component state only; no persistence, auth, deployment, database, provider, or Helm behavior changed.
 
-## TTS Workbench (MVP)
-
-The TTS Workbench page is a step-by-step development workbench for inspecting the intermediate data that will later feed a text-to-speech provider. It currently supports:
-
-1. Raw dialogue input
-2. Speaker and voice suggestions
-3. Speaker split preview
-4. Emotion annotation preview with simple markup such as `[happy]`, `[sad]`, `[calm]`, `[urgent]`, `[sigh]`, `[short pause]`, and `[medium pause]`
-5. Final request JSON preview
-6. Single-speaker render plan preview that groups only consecutive turns from the same speaker and outputs provider-shaped render requests
-
-Backend endpoints:
+Audiobook Studio currently calls legacy workflow endpoints under `/api/projects/tts-workbench/*`. These URLs are retained for compatibility even though the standalone TTS Workbench page has been removed:
 
 - `POST /api/projects/tts-workbench/speaker-voice-analysis` with raw dialogue returns suggested rows containing `speakerName`, `roleDescription`, and `voiceSuggestion`.
 - `POST /api/projects/tts-workbench/speaker-split-analysis` with raw dialogue and speaker suggestions returns `turns` containing `speaker` and `text`.
 - `POST /api/projects/tts-workbench/emotion-annotation-analysis` with split turns returns annotated `turns` containing `speaker` and marked-up `text`.
 - `POST /api/projects/tts-workbench/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
 - `POST /api/projects/tts-workbench/single-speaker-render-plan` with the final request JSON returns `renderRequests`, where each item is provider-shaped JSON containing `input.text`, `voice.languageCode`, `voice.name`, `voice.modelName`, and `audioConfig.audioEncoding`.
-- `POST /api/projects/tts-workbench/create-audio` with the step 6 `renderRequests` returns a downloadable MP3 for one render request or one concatenated MP3 for multiple requests. The UI keeps the full-plan button and also shows a per-render-request **Create audio** button. A per-request button sends only that one render request and downloads a filename such as `tts-render-request-2.mp3`; the full-plan flow downloads `tts-render-request-1.mp3` for a single request or `tts-render-plan.mp3` for multiple requests.
+- `POST /api/projects/tts-workbench/create-audio` with `renderRequests` returns a downloadable MP3 for one render request or one concatenated MP3 for multiple requests.
 
 Single-speaker render requests intentionally do not return internal planning metadata such as turn indexes or speaker aliases. The preview JSON matches the provider request shape, for example:
 

@@ -1,9 +1,9 @@
 import { computed, Injectable, signal } from '@angular/core';
 import {
+  AudiobookWorkflowService,
   FinalTtsRequestPreview,
   SpeakerVoiceAnalysisItem,
-  TtsWorkbenchService,
-} from '../tts-workbench/tts-workbench.service';
+} from '../audiobook-shared/service/audiobook-workflow.service';
 import {
   SingleSpeakerRenderPlan,
 } from '../audiobook-shared/service/audiobook-api.service';
@@ -78,7 +78,7 @@ export class AudiobookStudioFacade {
   onAudioReset: (() => void) | null = null;
 
   constructor(
-    private readonly ttsWorkbenchService: TtsWorkbenchService,
+    private readonly audiobookWorkflowService: AudiobookWorkflowService,
     private readonly renderRequestAudioService: RenderRequestAudioService,
     private readonly fullAudioGenerationService: FullAudioGenerationService,
   ) {}
@@ -98,7 +98,7 @@ export class AudiobookStudioFacade {
 
   async analyzeStory(storyText: string): Promise<void> {
     await this.runStep('cast', async () => {
-      const cast = await this.ttsWorkbenchService.analyzeSpeakers(storyText);
+      const cast = await this.audiobookWorkflowService.analyzeSpeakers(storyText);
       this._cast.set(cast);
       this._scriptTurns.set([]);
       this._annotatedTurns.set([]);
@@ -115,7 +115,7 @@ export class AudiobookStudioFacade {
 
   async createScriptPreview(storyText: string): Promise<void> {
     await this.runStep('script', async () => {
-      const scriptTurns = await this.ttsWorkbenchService.splitDialogue(storyText, this._cast());
+      const scriptTurns = await this.audiobookWorkflowService.splitDialogue(storyText, this._cast());
       this._scriptTurns.set(scriptTurns);
       this._annotatedTurns.set([]);
       this._finalRequest.set(null);
@@ -131,7 +131,7 @@ export class AudiobookStudioFacade {
 
   async createPerformanceNotes(): Promise<void> {
     await this.runStep('notes', async () => {
-      const annotatedTurns = await this.ttsWorkbenchService.annotateEmotions(this._scriptTurns());
+      const annotatedTurns = await this.audiobookWorkflowService.annotateEmotions(this._scriptTurns());
       this._annotatedTurns.set(annotatedTurns);
       this._finalRequest.set(null);
       this._audioProductionPlan.set(null);
@@ -147,7 +147,7 @@ export class AudiobookStudioFacade {
     audioEncoding: string;
   }): Promise<void> {
     await this.runStep('plan', async () => {
-      const finalRequest = await this.ttsWorkbenchService.generateFinalJson({
+      const finalRequest = await this.audiobookWorkflowService.generateFinalJson({
         prompt: options.prompt,
         speakers: this._cast(),
         annotatedTurns: this._annotatedTurns(),
@@ -156,7 +156,7 @@ export class AudiobookStudioFacade {
         audioEncoding: options.audioEncoding,
       });
       this._finalRequest.set(finalRequest);
-      const audioProductionPlan = await this.ttsWorkbenchService.planSingleSpeakerRenderRequests(finalRequest);
+      const audioProductionPlan = await this.audiobookWorkflowService.planSingleSpeakerRenderRequests(finalRequest);
       this._audioProductionPlan.set(audioProductionPlan);
       this.resetAudio();
     }, 'Audio production plan failed.');

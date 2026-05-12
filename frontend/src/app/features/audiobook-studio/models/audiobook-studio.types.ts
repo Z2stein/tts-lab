@@ -1,4 +1,4 @@
-import { AnnotatedSpeakerTurn, SpeakerSplitTurn } from '../../tts-workbench/tts-workbench.service';
+import { AnnotatedSpeakerTurn, SpeakerSplitTurn } from '../../audiobook-shared/service/audiobook-workflow.service';
 
 export interface ScriptGroup {
   speaker: string;
