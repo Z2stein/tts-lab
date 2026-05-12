@@ -39,6 +39,7 @@ export interface AudiobookSpeechSegment {
   speakerRoleDescription?: string;
   voiceName?: string;
   performanceDirections?: string;
+  styledText?: string;
 }
 
 export interface AudiobookDetail extends AudiobookSummary {

@@ -95,7 +95,8 @@ public class AudiobookLibraryService {
                     speechSegment.getSpeakerName(),
                     speechSegment.getSpeakerRoleDescription(),
                     speechSegment.getVoiceName(),
-                    speechSegment.getPerformanceDirections()
+                    speechSegment.getPerformanceDirections(),
+                    speechSegment.getStyledText()
                 ))
                 .toList(),
             repository.findAssets(project.getId()).stream().map(this::assetResponse).toList()
@@ -194,7 +195,10 @@ public class AudiobookLibraryService {
             speakerName,
             speakerRoleDescription,
             voiceName,
-            performanceDirections
+            performanceDirections,
+            null,
+            null,
+            null
         );
         speechSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.GENERATED_AUDIO);
         AudioAsset asset = new AudioAsset(

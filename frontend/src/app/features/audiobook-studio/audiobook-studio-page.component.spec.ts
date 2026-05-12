@@ -201,6 +201,7 @@ describe('AudiobookStudioPageComponent', () => {
     component.scriptTurns = [{ speaker: 'Mara', text: 'We go now.' }];
     component.scriptApproved = true;
     component.annotatedTurns = [{ speaker: 'Mara', text: '[urgent] We go now.' }];
+    (component as any).facade.setCurrentProjectId('project-1');
     fixture.detectChanges();
 
     clickButton('Edit', 1);
@@ -224,6 +225,7 @@ describe('AudiobookStudioPageComponent', () => {
 
   it('continues the emotion annotation flow after the user approves the script', async () => {
     component.scriptTurns = [{ speaker: 'Narrator', text: 'The lamps dimmed.' }];
+    (component as any).facade.setCurrentProjectId('project-1');
     audiobookWorkflowService.annotateEmotions.and.resolveTo([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
     fixture.detectChanges();
 
@@ -235,7 +237,7 @@ describe('AudiobookStudioPageComponent', () => {
     fixture.detectChanges();
     await fixture.whenStable();
 
-    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith(component.scriptTurns);
+    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith(component.scriptTurns, 'project-1');
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
   });
 

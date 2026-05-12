@@ -63,10 +63,10 @@ export class AudiobookWorkflowService {
     return data.turns;
   }
 
-  async annotateEmotions(turns: SpeakerSplitTurn[]): Promise<AnnotatedSpeakerTurn[]> {
+  async annotateEmotions(turns: SpeakerSplitTurn[], projectId: string): Promise<AnnotatedSpeakerTurn[]> {
     const data = await this.audiobookApiService.post<EmotionAnnotationAnalysisResponse>(
       '/api/projects/tts-workbench/emotion-annotation-analysis',
-      { turns },
+      { turns, projectId },
       'Emotion annotation analysis failed'
     );
     return data.turns;

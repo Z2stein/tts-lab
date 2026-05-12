@@ -118,14 +118,24 @@ describe('AudiobookStudioFacade', () => {
   describe('createPerformanceNotes', () => {
     it('updates annotatedTurns and clears stale flag on success', async () => {
       facade.setScriptTurns([{ speaker: 'Mara', text: 'Hello' }]);
+      facade.setCurrentProjectId('project-1');
       workflow.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
       facade.setPerformanceNotesStale(true);
 
       await facade.createPerformanceNotes();
 
-      expect(workflow.annotateEmotions).toHaveBeenCalledWith([{ speaker: 'Mara', text: 'Hello' }]);
+      expect(workflow.annotateEmotions).toHaveBeenCalledWith([{ speaker: 'Mara', text: 'Hello' }], 'project-1');
       expect(facade.annotatedTurns()).toEqual([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
       expect(facade.performanceNotesStale()).toBeFalse();
+    });
+
+    it('sets an error when the project id is missing', async () => {
+      facade.setScriptTurns([{ speaker: 'Mara', text: 'Hello' }]);
+
+      await facade.createPerformanceNotes();
+
+      expect(facade.error()).toBe('Story analysis did not return a project id.');
+      expect(workflow.annotateEmotions).not.toHaveBeenCalled();
     });
   });
 
