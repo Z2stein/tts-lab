@@ -198,7 +198,7 @@ npm run test:e2e
 
 Die Playwright-Suite unterscheidet zwischen:
 
-- gemockten UI-E2E-Tests (`text-length.spec.ts`, `tts-workbench.spec.ts`), die gezielt Backend-Routen mocken, um UI-Erfolg und UI-Fehler deterministisch zu prüfen;
+- gemockten UI-E2E-Tests (`tts-workbench.spec.ts`), die gezielt Backend-Routen mocken, um UI-Erfolg und UI-Fehler deterministisch zu prüfen;
 - realen Frontend-Backend-E2E-Tests (`real-backend-health.spec.ts`), die die geprüfte Backend-Route nicht mocken und standardmäßig über die lokal gestarteten Playwright-Webserver laufen.
 
 E2E gegen eine deployte Umgebung:
@@ -226,18 +226,6 @@ Behavior by environment:
 
 Prompt history is visible in the frontend `Prompt History` tab and is filtered to the current authenticated user. The backend also records prompts from the text chat flow and the TTS workbench flow.
 
-
-## Akzeptanzkriterien (Textlänge)
-
-The frontend calls `POST /api/projects/text-length/calculate`. For backward compatibility, `POST /api/text-length` remains supported with the same behavior.
-
-Bewusst unterstützte Fälle für both Text Length endpoints:
-
-- Leerer Text (`""`) liefert `length = 0`.
-- Unicode-Eingaben (z. B. Umlaute/Emoji) werden akzeptiert und gezählt.
-- Große Inputs (z. B. 10.000 Zeichen) werden verarbeitet.
-- Ungültige JSON-Payloads werden mit HTTP `400 Bad Request` und strukturierter Fehlerantwort abgelehnt.
-- Fehlende `text`-Property wird wie `null` behandelt und liefert `length = 0`.
 
 ## Health endpoints
 
@@ -313,7 +301,7 @@ Feature deployments do not create or inject Google OAuth secrets.
 Frontend behavior note:
 
 - On startup, the frontend first checks `/api/me` and shows a short loading state until auth is resolved. If `/api/me` fails (for example due to CORS/network issues), the UI no longer hangs in loading and falls back to unauthenticated with a visible error message and browser console logs.
-- The authenticated app uses a shared header and client-side routes: `/` for the landing page, `/audiobook-studio` for the Audiobook Studio MVP, `/text-length` for the existing text-length UI, and `/tts-workbench` for the TTS Workbench speaker/voice analysis MVP. Unknown frontend routes redirect to `/`.
+- The authenticated app uses a shared header and client-side routes: `/` for the landing page, `/audiobook-studio` for the Audiobook Studio MVP, and `/tts-workbench` for the TTS Workbench speaker/voice analysis MVP. Unknown frontend routes redirect to `/`.
 - Only authenticated users see the routed app pages and chatbot widget.
 - Unauthenticated users see only the sign-in UI, which starts OAuth via `/oauth2/authorization/google`.
 - Logged-in users also see their auth state in the header and a logout button that calls `/logout` and returns to `/`.

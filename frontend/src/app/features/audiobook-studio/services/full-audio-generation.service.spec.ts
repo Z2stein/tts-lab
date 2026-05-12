@@ -76,8 +76,7 @@ describe('FullAudioGenerationService', () => {
     const p0 = part('One', 'V1');
 
     // Hang the API call so generate() blocks.
-    let resolveApi!: () => void;
-    tts.createAudioForRenderRequest.and.returnValue(new Promise<any>(r => resolveApi = r));
+    tts.createAudioForRenderRequest.and.returnValue(new Promise<never>(() => undefined));
 
     const genPromise = service.generate([p0]);
     expect(service.loading).toBeTrue();

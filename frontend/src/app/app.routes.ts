@@ -1,6 +1,5 @@
 import { Routes } from '@angular/router';
 import { LandingPageComponent } from './features/home/landing-page.component';
-import { TextLengthPageComponent } from './features/text-length/text-length-page.component';
 import { TtsWorkbenchPageComponent } from './features/tts-workbench/tts-workbench-page.component';
 import { PromptHistoryPageComponent } from './features/prompt-history/prompt-history-page.component';
 import { AudiobookStudioPageComponent } from './features/audiobook-studio/audiobook-studio-page.component';
@@ -15,7 +14,6 @@ export const routes: Routes = [
   { path: 'audiobook-library', component: AudiobookLibraryPageComponent, title: 'My Audiobooks | TTS Lab' },
   { path: 'audiobook-library/:id', component: AudiobookReviewPageComponent, title: 'Audiobook Review | TTS Lab' },
   { path: 'library', redirectTo: 'audiobook-library', pathMatch: 'full' },
-  { path: 'text-length', component: TextLengthPageComponent, title: 'Text Length | TTS Lab' },
   { path: 'tts-workbench', component: TtsWorkbenchPageComponent, title: 'TTS Workbench | TTS Lab' },
   { path: 'prompt-history', component: PromptHistoryPageComponent, title: 'Prompt History | TTS Lab' },
   { path: '**', redirectTo: '' }
