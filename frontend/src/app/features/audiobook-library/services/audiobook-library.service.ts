@@ -1,24 +1,32 @@
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { AudiobookDetailResponse, AudiobookSummary, AudiobookSummaryResponse } from '../../../shared/api-contract.generated';
 
 @Injectable({ providedIn: 'root' })
 export class AudiobookLibraryService {
+  constructor(private readonly http: HttpClient) {}
+
   async list(): Promise<AudiobookSummary[]> {
-    const response = await fetch('/api/audiobooks');
-    if (!response.ok) {
-      throw new Error(`Audiobook library failed (HTTP ${response.status}).`);
+    try {
+      const response = await firstValueFrom(this.http.get<AudiobookSummaryResponse>('/api/audiobooks'));
+      return response.items;
+    } catch (error) {
+      if (error instanceof HttpErrorResponse) {
+        throw new Error(`Audiobook library failed (HTTP ${error.status}).`);
+      }
+      throw error;
     }
-    const raw: unknown = await response.json();
-    const data = raw as AudiobookSummaryResponse;
-    return data.items;
   }
 
   async detail(id: string): Promise<AudiobookDetailResponse> {
-    const response = await fetch(`/api/audiobooks/${encodeURIComponent(id)}`);
-    if (!response.ok) {
-      throw new Error(`Audiobook detail failed (HTTP ${response.status}).`);
+    try {
+      return await firstValueFrom(this.http.get<AudiobookDetailResponse>(`/api/audiobooks/${encodeURIComponent(id)}`));
+    } catch (error) {
+      if (error instanceof HttpErrorResponse) {
+        throw new Error(`Audiobook detail failed (HTTP ${error.status}).`);
+      }
+      throw error;
     }
-    const raw: unknown = await response.json();
-    return raw as AudiobookDetailResponse;
   }
 }

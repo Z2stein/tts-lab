@@ -23,7 +23,8 @@ describe('AudiobookStudioPageComponent', () => {
       'createAudio',
       'createAudioForRenderRequest',
       'post',
-      'postResponse'
+      'postJsonResponse',
+      'postBlobResponse'
     ]);
     audiobookApiService.createAudioForRenderRequest.and.callFake(async () => ({
       blob: new Blob(['generated'], { type: 'audio/mpeg' }),

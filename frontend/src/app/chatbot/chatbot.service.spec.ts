@@ -1,32 +1,71 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting, HttpTestingController } from '@angular/common/http/testing';
+import { TestBed } from '@angular/core/testing';
+import { CurrentUserService } from '../current-user.service';
 import { ChatbotService } from './chatbot.service';
-import { loadTestContractJson } from '../shared/test-contracts';
 
 describe('ChatbotService', () => {
+  let service: ChatbotService;
+  let httpMock: HttpTestingController;
+  let currentUserService: jasmine.SpyObj<CurrentUserService>;
+
+  beforeEach(() => {
+    currentUserService = jasmine.createSpyObj<CurrentUserService>('CurrentUserService', ['refreshRequestLimits']);
+    currentUserService.refreshRequestLimits.and.resolveTo(null);
+
+    TestBed.configureTestingModule({
+      providers: [
+        ChatbotService,
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: CurrentUserService, useValue: currentUserService }
+      ]
+    });
+
+    service = TestBed.inject(ChatbotService);
+    httpMock = TestBed.inject(HttpTestingController);
+  });
+
+  afterEach(() => {
+    httpMock.verify();
+  });
+
   it('sends POST request to /api/chat and handles success', async () => {
-    const ensureCsrfToken = jasmine.createSpy().and.resolveTo('csrf-token');
-    const service = new ChatbotService({ ensureCsrfToken } as any);
-    const response = await loadTestContractJson<{ answer: string; conversationId: string }>('chat/success/response.json');
-    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify(response), { status: 200 }));
+    const promise = service.sendMessage('hello', null);
 
-    const res = await service.sendMessage('hello', null);
+    const req = httpMock.expectOne('/api/chat');
+    expect(req.request.method).toBe('POST');
+    expect(req.request.body).toEqual({ message: 'hello', conversationId: null });
 
-    expect(window.fetch).toHaveBeenCalledWith('/api/chat', jasmine.objectContaining({ method: 'POST' }));
-    expect(res.answer).toBe('hello');
+    req.flush({ answer: 'hello', conversationId: 'conversation-1' });
+
+    await expectAsync(promise).toBeResolvedTo({ answer: 'hello', conversationId: 'conversation-1' });
+    expect(currentUserService.refreshRequestLimits).toHaveBeenCalled();
   });
 
   it('handles backend error', async () => {
-    const service = new ChatbotService({ ensureCsrfToken: async () => 'csrf' } as any);
-    spyOn(window, 'fetch').and.resolveTo(new Response('{}', { status: 500 }));
+    const promise = service.sendMessage('hello', null);
 
-    await expectAsync(service.sendMessage('hello', null)).toBeRejected();
+    const req = httpMock.expectOne('/api/chat');
+    req.flush({ message: 'Chat request failed from backend.' }, { status: 500, statusText: 'Server Error' });
+
+    await expectAsync(promise).toBeRejectedWithError('Chat request failed from backend.');
+    expect(currentUserService.refreshRequestLimits).toHaveBeenCalled();
   });
 
   it('maps rate-limit response to a user-facing message', async () => {
-    const service = new ChatbotService({ ensureCsrfToken: async () => 'csrf' } as any);
-    const response = await loadTestContractJson<{ message: string }>('chat/rate-limited/response.json');
-    spyOn(window, 'fetch').and.resolveTo(new Response(JSON.stringify(response), { status: 429 }));
+    const promise = service.sendMessage('hello', null);
 
-    await expectAsync(service.sendMessage('hello', null)).toBeRejectedWithError('Usage limit exceeded. Please try again later.');
+    const req = httpMock.expectOne('/api/chat');
+    req.flush(
+      {
+        message: 'Usage limit exceeded. Please try again later.',
+        code: 'RATE_LIMIT_EXCEEDED'
+      },
+      { status: 429, statusText: 'Too Many Requests' }
+    );
+
+    await expectAsync(promise).toBeRejectedWithError('Usage limit exceeded. Please try again later.');
+    expect(currentUserService.refreshRequestLimits).toHaveBeenCalled();
   });
-
 });

@@ -19,7 +19,7 @@ describe('FullAudioGenerationService', () => {
 
   beforeEach(() => {
     tts = jasmine.createSpyObj<AudiobookApiService>('AudiobookApiService', [
-      'createAudio', 'createAudioForRenderRequest', 'post', 'postResponse'
+      'createAudio', 'createAudioForRenderRequest', 'post', 'postJsonResponse', 'postBlobResponse'
     ]);
     spyOn(window.URL, 'createObjectURL').and.returnValue('blob:mock-full');
     spyOn(window.URL, 'revokeObjectURL');
