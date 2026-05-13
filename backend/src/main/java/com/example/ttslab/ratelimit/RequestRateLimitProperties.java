@@ -1,20 +1,24 @@
 package com.example.ttslab.ratelimit;
 
 import java.time.Duration;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Positive;
+import org.hibernate.validator.constraints.time.DurationMin;
 import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.validation.annotation.Validated;
 
 @ConfigurationProperties(prefix = "request-limits")
+@Validated
 public record RequestRateLimitProperties(
     boolean enabled,
+    @NotNull
+    @DurationMin(seconds = 1)
     Duration window,
+    @Positive
     long speechModelLimit,
+    @Positive
     long textModelMultiplier,
+    @NotNull
     RequestRateLimitUnit unit
 ) {
-    public RequestRateLimitProperties {
-        window = window == null ? Duration.ofHours(12) : window;
-        speechModelLimit = speechModelLimit <= 0 ? 600 : speechModelLimit;
-        textModelMultiplier = textModelMultiplier <= 0 ? 1 : textModelMultiplier;
-        unit = unit == null ? RequestRateLimitUnit.WORDS : unit;
-    }
 }
