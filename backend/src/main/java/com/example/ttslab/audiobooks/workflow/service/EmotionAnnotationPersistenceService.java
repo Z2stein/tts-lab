@@ -79,7 +79,6 @@ public class EmotionAnnotationPersistenceService {
         speechSegmentRepository.saveAll(segments);
     }
 
-    @Transactional
     public List<SpeakerSplitTurn> saveScriptPreviewTurns(AudiobookProject project, List<SpeakerSplitTurn> turns) {
         List<AudiobookSpeechSegment> segments = speechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(
             project.getId(),

@@ -16,6 +16,7 @@ import com.example.ttslab.error.GlobalApiExceptionHandler;
 import com.example.ttslab.audiobooks.workflow.*;
 import com.example.ttslab.audiobooks.workflow.service.AudiobookWorkflowService;
 import com.example.ttslab.audiobooks.workflow.service.EmotionAnnotationPersistenceService;
+import com.example.ttslab.audiobooks.workflow.service.ScriptPreviewWorkflowService;
 import com.example.ttslab.audiobooks.workflow.service.SpeakerSplitPersistenceService;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisResponse;
@@ -48,6 +49,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -74,6 +76,9 @@ class AudiobookWorkflowControllerTest {
 
     @MockBean
     private EmotionAnnotationPersistenceService emotionAnnotationPersistenceService;
+
+    @MockBean
+    private ScriptPreviewWorkflowService scriptPreviewWorkflowService;
 
     @MockBean
     private AudiobookProjectCreationService audiobookProjectCreationService;
@@ -229,10 +234,10 @@ class AudiobookWorkflowControllerTest {
     @Test
     void saveScriptPreviewPersistsEditedTurns() throws Exception {
         testProject.setWorkflowStage(AudiobookWorkflowStage.CAST_APPROVED);
-        when(emotionAnnotationPersistenceService.saveScriptPreviewTurns(eq(testProject), anyList())).thenReturn(List.of(
+        when(scriptPreviewWorkflowService.saveScriptPreview(any(), any(ScriptPreviewSaveRequest.class))).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
             new SpeakerSplitTurn("Narrator", "The opening line."),
             new SpeakerSplitTurn("Mara", "We go now.")
-        ));
+        )));
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/script-preview-save")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -241,8 +246,9 @@ class AudiobookWorkflowControllerTest {
             .andExpect(content().json(readText("audiobook-workflow/script-preview-save/default/response.json")))
             .andReturn();
 
-        verify(audiobookLibraryService).getProjectForUser(eq("test-project-1"), any(CurrentUser.class));
-        verify(emotionAnnotationPersistenceService).saveScriptPreviewTurns(eq(testProject), anyList());
+        verify(scriptPreviewWorkflowService).saveScriptPreview(any(CurrentUser.class), any(ScriptPreviewSaveRequest.class));
+        verify(emotionAnnotationPersistenceService, never()).saveScriptPreviewTurns(any(), anyList());
+        verify(audiobookWorkflowStateService, never()).markScriptReview(any());
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 

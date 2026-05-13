@@ -22,6 +22,7 @@ import com.example.ttslab.audiobooks.workflow.SpeakerSplitAnalysisRequest;
 import com.example.ttslab.audiobooks.workflow.SpeakerSplitAnalysisResponse;
 import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
 import com.example.ttslab.audiobooks.workflow.service.EmotionAnnotationPersistenceService;
+import com.example.ttslab.audiobooks.workflow.service.ScriptPreviewWorkflowService;
 import com.example.ttslab.audiobooks.workflow.service.SpeakerSplitPersistenceService;
 import com.example.ttslab.audiobooks.workflow.service.AudiobookWorkflowService;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStateService;
@@ -61,6 +62,7 @@ public class AudiobookWorkflowController {
     private final SpeakerVoiceAnalysisService speakerVoiceAnalysisService;
     private final SpeakerSplitPersistenceService speakerSplitPersistenceService;
     private final EmotionAnnotationPersistenceService emotionAnnotationPersistenceService;
+    private final ScriptPreviewWorkflowService scriptPreviewWorkflowService;
     private final AudiobookProjectCreationService audiobookProjectCreationService;
     private final AudiobookWorkflowStateService audiobookWorkflowStateService;
     private final CurrentUserResolver currentUserResolver;
@@ -75,6 +77,7 @@ public class AudiobookWorkflowController {
         SpeakerVoiceAnalysisService speakerVoiceAnalysisService,
         SpeakerSplitPersistenceService speakerSplitPersistenceService,
         EmotionAnnotationPersistenceService emotionAnnotationPersistenceService,
+        ScriptPreviewWorkflowService scriptPreviewWorkflowService,
         AudiobookProjectCreationService audiobookProjectCreationService,
         AudiobookWorkflowStateService audiobookWorkflowStateService,
         CurrentUserResolver currentUserResolver,
@@ -89,6 +92,7 @@ public class AudiobookWorkflowController {
         this.speakerVoiceAnalysisService = speakerVoiceAnalysisService;
         this.speakerSplitPersistenceService = speakerSplitPersistenceService;
         this.emotionAnnotationPersistenceService = emotionAnnotationPersistenceService;
+        this.scriptPreviewWorkflowService = scriptPreviewWorkflowService;
         this.audiobookProjectCreationService = audiobookProjectCreationService;
         this.audiobookWorkflowStateService = audiobookWorkflowStateService;
         this.currentUserResolver = currentUserResolver;
@@ -166,10 +170,7 @@ public class AudiobookWorkflowController {
     @PostMapping("/script-preview-save")
     public SpeakerSplitAnalysisResponse saveScriptPreview(@Valid @RequestBody ScriptPreviewSaveRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
-        AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
-        SpeakerSplitAnalysisResponse response = new SpeakerSplitAnalysisResponse(emotionAnnotationPersistenceService.saveScriptPreviewTurns(project, request.turns()));
-        audiobookWorkflowStateService.markScriptReview(project);
-        return response;
+        return scriptPreviewWorkflowService.saveScriptPreview(user, request);
     }
 
     @PatchMapping("/projects/{projectId}/production-settings")
