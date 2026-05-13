@@ -1,6 +1,6 @@
 package com.example.ttslab.audiobooks.model;
 
-import com.example.ttslab.projects.ttsworkbench.SpeakerVoice;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -111,3 +111,4 @@ public class SpeakerCharacter {
         this.createdAt = createdAt;
     }
 }
+

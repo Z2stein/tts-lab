@@ -10,7 +10,7 @@ tags:
   - name: Audiobooks
   - name: Chat
   - name: Prompts
-  - name: TTS Workbench
+  - name: Audiobook Workflow
 paths:
   /api/me:
     get:
@@ -176,9 +176,9 @@ paths:
         '502':
           $ref: '#/components/responses/ProviderUnavailableError'
 
-  /api/projects/tts-workbench/speaker-voice-analysis:
+  /api/audiobooks/workflow/speaker-voice-analysis:
     post:
-      tags: [TTS Workbench]
+      tags: [Audiobook Workflow]
       operationId: analyzeSpeakerVoices
       requestBody:
         required: true
@@ -202,9 +202,9 @@ paths:
         '502':
           $ref: '#/components/responses/ProviderUnavailableError'
 
-  /api/projects/tts-workbench/speaker-split-analysis:
+  /api/audiobooks/workflow/speaker-split-analysis:
     post:
-      tags: [TTS Workbench]
+      tags: [Audiobook Workflow]
       operationId: splitDialogue
       requestBody:
         required: true
@@ -226,9 +226,9 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/projects/tts-workbench/emotion-annotation-analysis:
+  /api/audiobooks/workflow/emotion-annotation-analysis:
     post:
-      tags: [TTS Workbench]
+      tags: [Audiobook Workflow]
       operationId: annotateEmotions
       requestBody:
         required: true
@@ -248,9 +248,9 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/projects/tts-workbench/script-preview-save:
+  /api/audiobooks/workflow/script-preview-save:
     post:
-      tags: [TTS Workbench]
+      tags: [Audiobook Workflow]
       operationId: saveScriptPreview
       requestBody:
         required: true
@@ -270,9 +270,9 @@ paths:
         '500':
           $ref: '#/components/responses/InternalError'
 
-  /api/projects/tts-workbench/final-request-preview:
+  /api/audiobooks/workflow/final-request-preview:
     post:
-      tags: [TTS Workbench]
+      tags: [Audiobook Workflow]
       operationId: buildFinalRequestPreview
       requestBody:
         required: true
@@ -288,9 +288,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/FinalTtsRequestPreviewResponse'
 
-  /api/projects/tts-workbench/single-speaker-render-plan:
+  /api/audiobooks/workflow/single-speaker-render-plan:
     post:
-      tags: [TTS Workbench]
+      tags: [Audiobook Workflow]
       operationId: buildSingleSpeakerRenderPlan
       requestBody:
         required: true
@@ -306,9 +306,9 @@ paths:
               schema:
                 $ref: '#/components/schemas/SingleSpeakerRenderPlanResponse'
 
-  /api/projects/tts-workbench/create-audio:
+  /api/audiobooks/workflow/create-audio:
     post:
-      tags: [TTS Workbench]
+      tags: [Audiobook Workflow]
       operationId: createAudio
       parameters:
         - name: projectId
@@ -898,3 +898,5 @@ components:
           items:
             $ref: '#/components/schemas/SingleSpeakerRenderRequest'
       additionalProperties: false
+
+

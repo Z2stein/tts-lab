@@ -111,7 +111,7 @@ class AudiobookLibraryIntegrationTest {
         // Project: "The Amber Signal"
         repository.createProject(new AudiobookProject(
             projectA, "user-1", "The Amber Signal", AudiobookProjectStatus.DRAFT,
-            "TTS_WORKBENCH", 0, null, null, null, null
+            "AUDIOBOOK_WORKFLOW", 0, null, null, null, null
         ));
 
         // Speech segment with metadata
@@ -149,7 +149,7 @@ class AudiobookLibraryIntegrationTest {
         // Project: "Voices Unbound"
         repository.createProject(new AudiobookProject(
             projectB, "user-1", "Voices Unbound", AudiobookProjectStatus.NEEDS_REVIEW,
-            "TTS_WORKBENCH", 0, null, null, null, null
+            "AUDIOBOOK_WORKFLOW", 0, null, null, null, null
         ));
 
         AudiobookSpeechSegment fixtureBSegment = new AudiobookSpeechSegment(
@@ -194,7 +194,7 @@ class AudiobookLibraryIntegrationTest {
         String speechSegmentC1 = UUID.randomUUID().toString();
         repository.createProject(new AudiobookProject(
             projectC, "user-2", "Private Audiobook", AudiobookProjectStatus.APPROVED,
-            "TTS_WORKBENCH", 0, null, null, null, null
+            "AUDIOBOOK_WORKFLOW", 0, null, null, null, null
         ));
 
         AudiobookSpeechSegment fixtureCSegment = new AudiobookSpeechSegment(
@@ -214,7 +214,7 @@ class AudiobookLibraryIntegrationTest {
         // Project: "Empty Draft" with no speech segments or assets
         repository.createProject(new AudiobookProject(
             projectD, "user-1", "Empty Draft", AudiobookProjectStatus.NEEDS_REVIEW,
-            "TTS_WORKBENCH", 0, null, null, null, null
+            "AUDIOBOOK_WORKFLOW", 0, null, null, null, null
         ));
     }
 
@@ -577,3 +577,4 @@ class AudiobookLibraryIntegrationTest {
         );
     }
 }
+

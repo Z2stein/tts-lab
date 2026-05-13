@@ -23,7 +23,7 @@ describe('AudiobookWorkflowService', () => {
 
   it('posts raw dialogue to the speaker voice analysis endpoint', async () => {
     const baseResponse = await loadTestContractJson<{ speakers: Array<{ speakerName: string; roleDescription: string; voiceSuggestion: string }>; projectId: string }>(
-      'tts-workbench/speaker-voice-analysis/default/response.json'
+      'audiobook-workflow/speaker-voice-analysis/default/response.json'
     );
     audiobookApiServiceSpy.post.and.resolveTo({
       ...baseResponse,
@@ -34,7 +34,7 @@ describe('AudiobookWorkflowService', () => {
     const response = await service.analyzeSpeakers('Alice: Hello');
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
-      '/api/projects/tts-workbench/speaker-voice-analysis',
+      '/api/audiobooks/workflow/speaker-voice-analysis',
       { rawDialogue: 'Alice: Hello' },
       'Speaker voice analysis failed'
     );
@@ -44,7 +44,7 @@ describe('AudiobookWorkflowService', () => {
 
   it('posts dialogue and speakers to the speaker split endpoint', async () => {
     const response = await loadTestContractJson<{ turns: Array<{ speaker: string; text: string }> }>(
-      'tts-workbench/speaker-split-analysis/default/response.json'
+      'audiobook-workflow/speaker-split-analysis/default/response.json'
     );
     audiobookApiServiceSpy.post.and.resolveTo({
       ...response,
@@ -55,7 +55,7 @@ describe('AudiobookWorkflowService', () => {
     const turns = await service.splitDialogue('Alice: Hello', speakers, 'project-1');
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
-      '/api/projects/tts-workbench/speaker-split-analysis',
+      '/api/audiobooks/workflow/speaker-split-analysis',
       { rawDialogue: 'Alice: Hello', speakers, projectId: 'project-1' },
       'Speaker split analysis failed'
     );
@@ -70,7 +70,7 @@ describe('AudiobookWorkflowService', () => {
     const turns = await service.saveScriptPreview('project-1', [{ speaker: 'Alice', text: 'Hello there' }]);
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
-      '/api/projects/tts-workbench/script-preview-save',
+      '/api/audiobooks/workflow/script-preview-save',
       { projectId: 'project-1', turns: [{ speaker: 'Alice', text: 'Hello there' }] },
       'Script preview save failed'
     );
@@ -79,7 +79,7 @@ describe('AudiobookWorkflowService', () => {
 
   it('posts turns to the emotion annotation endpoint', async () => {
     const response = await loadTestContractJson<{ turns: Array<{ speaker: string; text: string }> }>(
-      'tts-workbench/emotion-annotation-analysis/default/response.json'
+      'audiobook-workflow/emotion-annotation-analysis/default/response.json'
     );
     audiobookApiServiceSpy.post.and.resolveTo({
       ...response,
@@ -89,7 +89,7 @@ describe('AudiobookWorkflowService', () => {
     const turns = await service.annotateEmotions('project-1');
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
-      '/api/projects/tts-workbench/emotion-annotation-analysis',
+      '/api/audiobooks/workflow/emotion-annotation-analysis',
       { projectId: 'project-1' },
       'Emotion annotation analysis failed'
     );
@@ -101,7 +101,7 @@ describe('AudiobookWorkflowService', () => {
       input: Record<string, unknown>;
       voice: Record<string, unknown>;
       audioConfig: Record<string, unknown>;
-    }>('tts-workbench/final-request-preview/default/response.json');
+    }>('audiobook-workflow/final-request-preview/default/response.json');
     audiobookApiServiceSpy.post.and.resolveTo(response);
 
     const request = {
@@ -115,7 +115,7 @@ describe('AudiobookWorkflowService', () => {
     const finalJson = await service.generateFinalJson(request);
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
-      '/api/projects/tts-workbench/final-request-preview',
+      '/api/audiobooks/workflow/final-request-preview',
       request,
       'Final request preview failed'
     );
@@ -124,7 +124,7 @@ describe('AudiobookWorkflowService', () => {
 
   it('posts final request JSON to the single-speaker render plan endpoint', async () => {
     const response = await loadTestContractJson<{ renderRequests: Array<{ input: Record<string, unknown>; voice: Record<string, unknown>; audioConfig: Record<string, unknown> }> }>(
-      'tts-workbench/single-speaker-render-plan/default/response.json'
+      'audiobook-workflow/single-speaker-render-plan/default/response.json'
     );
     audiobookApiServiceSpy.post.and.resolveTo(response);
 
@@ -136,7 +136,7 @@ describe('AudiobookWorkflowService', () => {
     const plan = await service.planSingleSpeakerRenderRequests(request);
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
-      '/api/projects/tts-workbench/single-speaker-render-plan',
+      '/api/audiobooks/workflow/single-speaker-render-plan',
       request,
       'Single-speaker render plan preview failed'
     );
@@ -171,3 +171,5 @@ describe('AudiobookWorkflowService', () => {
     expect(result).toBe(download);
   });
 });
+
+

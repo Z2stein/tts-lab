@@ -56,7 +56,7 @@ audiobooks:
     environment: ${ENVIRONMENT:feature}
     branch-slug: ${BRANCH_SLUG:${ENVIRONMENT:feature}}
 
-tts-workbench:
+audiobook-workflow:
   google:
     service-account-json-b64: ${TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64:}
 
@@ -77,3 +77,4 @@ logging:
   level:
     root: info
     com.example.ttslab: DEBUG
+

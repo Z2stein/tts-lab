@@ -132,7 +132,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/tts-workbench/speaker-voice-analysis": {
+    "/api/audiobooks/workflow/speaker-voice-analysis": {
         parameters: {
             query?: never;
             header?: never;
@@ -148,7 +148,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/tts-workbench/speaker-split-analysis": {
+    "/api/audiobooks/workflow/speaker-split-analysis": {
         parameters: {
             query?: never;
             header?: never;
@@ -164,7 +164,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/tts-workbench/emotion-annotation-analysis": {
+    "/api/audiobooks/workflow/emotion-annotation-analysis": {
         parameters: {
             query?: never;
             header?: never;
@@ -180,7 +180,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/tts-workbench/script-preview-save": {
+    "/api/audiobooks/workflow/script-preview-save": {
         parameters: {
             query?: never;
             header?: never;
@@ -196,7 +196,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/tts-workbench/final-request-preview": {
+    "/api/audiobooks/workflow/final-request-preview": {
         parameters: {
             query?: never;
             header?: never;
@@ -212,7 +212,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/tts-workbench/single-speaker-render-plan": {
+    "/api/audiobooks/workflow/single-speaker-render-plan": {
         parameters: {
             query?: never;
             header?: never;
@@ -228,7 +228,7 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
-    "/api/projects/tts-workbench/create-audio": {
+    "/api/audiobooks/workflow/create-audio": {
         parameters: {
             query?: never;
             header?: never;

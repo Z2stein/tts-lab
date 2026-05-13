@@ -80,7 +80,7 @@ npm run test:e2e
 
 The Playwright suite contains two kinds of tests:
 
-- Mocked UI E2E specs, such as `text-length.spec.ts` and `tts-workbench.spec.ts`, mock selected backend routes to keep UI behavior deterministic.
+- Mocked UI E2E specs, such as `text-length.spec.ts` and `audiobook-studio.spec.ts`, mock selected backend routes to keep UI behavior deterministic.
 - Real frontend-backend E2E specs, such as `real-backend-health.spec.ts`, must not mock the backend route they verify and should use stable internal endpoints without external provider dependencies.
 
 Contract testing applies alongside E2E for API-surface changes:

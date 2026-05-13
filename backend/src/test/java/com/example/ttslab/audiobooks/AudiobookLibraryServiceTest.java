@@ -17,7 +17,7 @@ import com.example.ttslab.audiobooks.service.AudiobookMetadataCalculator;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
-import com.example.ttslab.projects.ttsworkbench.TtsAudioFile;
+import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
 import com.example.ttslab.storage.FileStorageService;
 import com.example.ttslab.storage.StorageKeyBuilder;
 import com.example.ttslab.storage.StorageProperties;
@@ -105,7 +105,7 @@ class AudiobookLibraryServiceTest {
             "user-1",
             "Test Audiobook",
             AudiobookProjectStatus.NEEDS_REVIEW,
-            "TTS_WORKBENCH",
+            "AUDIOBOOK_WORKFLOW",
             0,  // Stale speechSegmentCount
             0,  // Stale speakerCount
             0,  // Stale totalDurationSeconds
@@ -156,7 +156,7 @@ class AudiobookLibraryServiceTest {
             "user-1",
             "Test Audiobook",
             AudiobookProjectStatus.NEEDS_REVIEW,
-            "TTS_WORKBENCH",
+            "AUDIOBOOK_WORKFLOW",
             0,
             null,
             null,
@@ -178,3 +178,5 @@ class AudiobookLibraryServiceTest {
         verify(assetRepository).save(any());
     }
 }
+
+

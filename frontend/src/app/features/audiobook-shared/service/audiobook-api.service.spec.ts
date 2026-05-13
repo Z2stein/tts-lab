@@ -31,8 +31,8 @@ describe('AudiobookApiService', () => {
   });
 
   it('posts JSON payloads and returns the parsed response', async () => {
-    const promise = service.post<{ answer: string }>('/api/projects/tts-workbench/speaker-voice-analysis', { rawDialogue: 'Mara: Hello' }, 'Speaker voice analysis failed');
-    const req = httpMock.expectOne('/api/projects/tts-workbench/speaker-voice-analysis');
+    const promise = service.post<{ answer: string }>('/api/audiobooks/workflow/speaker-voice-analysis', { rawDialogue: 'Mara: Hello' }, 'Speaker voice analysis failed');
+    const req = httpMock.expectOne('/api/audiobooks/workflow/speaker-voice-analysis');
 
     expect(req.request.method).toBe('POST');
     expect(req.request.body).toEqual({ rawDialogue: 'Mara: Hello' });
@@ -57,7 +57,7 @@ describe('AudiobookApiService', () => {
       {},
       'project-1'
     );
-    const req = httpMock.expectOne('/api/projects/tts-workbench/create-audio?projectId=project-1');
+    const req = httpMock.expectOne('/api/audiobooks/workflow/create-audio?projectId=project-1');
 
     expect(req.request.method).toBe('POST');
 
@@ -77,8 +77,8 @@ describe('AudiobookApiService', () => {
   });
 
   it('maps API error responses into a stable message', async () => {
-    const promise = service.post('/api/projects/tts-workbench/speaker-split-analysis', { rawDialogue: 'Mara: Hello' }, 'Speaker split analysis failed');
-    const req = httpMock.expectOne('/api/projects/tts-workbench/speaker-split-analysis');
+    const promise = service.post('/api/audiobooks/workflow/speaker-split-analysis', { rawDialogue: 'Mara: Hello' }, 'Speaker split analysis failed');
+    const req = httpMock.expectOne('/api/audiobooks/workflow/speaker-split-analysis');
 
     req.flush({ message: 'Speaker split analysis failed from backend.' }, { status: 500, statusText: 'Server Error' });
 
@@ -98,7 +98,7 @@ describe('AudiobookApiService', () => {
         ]
       }
     );
-    const req = httpMock.expectOne('/api/projects/tts-workbench/create-audio');
+    const req = httpMock.expectOne('/api/audiobooks/workflow/create-audio');
 
     req.flush(new Blob([JSON.stringify({ message: 'Audio creation failed from backend.' })], { type: 'application/json' }), {
       status: 500,
@@ -110,3 +110,5 @@ describe('AudiobookApiService', () => {
     expect(currentUserService.refreshRequestLimits).toHaveBeenCalled();
   });
 });
+
+

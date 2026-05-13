@@ -33,11 +33,11 @@ test('audiobook studio fills the story textarea with sample content', async ({ c
 
 test('audiobook studio shows cast cards after story analysis succeeds', async ({ context, page }) => {
   await authenticate(context, page);
-  await page.route('**/api/projects/tts-workbench/speaker-voice-analysis', async (route) => {
+  await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(await loadTestContractJson('tts-workbench/speaker-voice-analysis/cast-analysis/response.json'))
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-voice-analysis/cast-analysis/response.json'))
     });
   });
 
@@ -52,18 +52,18 @@ test('audiobook studio shows cast cards after story analysis succeeds', async ({
 
 test('audiobook studio shows script preview turns after cast analysis continues', async ({ context, page }) => {
   await authenticate(context, page);
-  await page.route('**/api/projects/tts-workbench/speaker-voice-analysis', async (route) => {
+  await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(await loadTestContractJson('tts-workbench/speaker-voice-analysis/cast-analysis/response.json'))
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-voice-analysis/cast-analysis/response.json'))
     });
   });
-  await page.route('**/api/projects/tts-workbench/speaker-split-analysis', async (route) => {
+  await page.route('**/api/audiobooks/workflow/speaker-split-analysis', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(await loadTestContractJson('tts-workbench/speaker-split-analysis/script-preview/response.json'))
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-split-analysis/script-preview/response.json'))
     });
   });
 
@@ -80,23 +80,23 @@ test('audiobook studio shows script preview turns after cast analysis continues'
 
 test('audiobook studio edits a script preview turn without freezing the app', async ({ context, page }) => {
   await authenticate(context, page);
-  await page.route('**/api/projects/tts-workbench/speaker-voice-analysis', async (route) => {
+  await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(await loadTestContractJson('tts-workbench/speaker-voice-analysis/cast-analysis/response.json'))
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-voice-analysis/cast-analysis/response.json'))
     });
   });
-  await page.route('**/api/projects/tts-workbench/speaker-split-analysis', async (route) => {
+  await page.route('**/api/audiobooks/workflow/speaker-split-analysis', async (route) => {
     const body = route.request().postDataJSON() as { projectId?: string };
     expect(body.projectId).toBe(testProjectId);
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(await loadTestContractJson('tts-workbench/speaker-split-analysis/script-preview/response.json'))
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-split-analysis/script-preview/response.json'))
     });
   });
-  await page.route('**/api/projects/tts-workbench/script-preview-save', async (route) => {
+  await page.route('**/api/audiobooks/workflow/script-preview-save', async (route) => {
     const body = route.request().postDataJSON() as { projectId?: string; turns?: Array<{ speaker?: string; text?: string }> };
     expect(body.projectId).toBe(testProjectId);
     expect(body.turns).toEqual([
@@ -111,14 +111,14 @@ test('audiobook studio edits a script preview turn without freezing the app', as
       })
     });
   });
-  await page.route('**/api/projects/tts-workbench/emotion-annotation-analysis', async (route) => {
+  await page.route('**/api/audiobooks/workflow/emotion-annotation-analysis', async (route) => {
     const body = route.request().postDataJSON() as { projectId?: string; turns?: unknown };
     expect(body.projectId).toBe(testProjectId);
     expect(body.turns).toBeUndefined();
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(await loadTestContractJson('tts-workbench/emotion-annotation-analysis/script-preview/response.json'))
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/emotion-annotation-analysis/script-preview/response.json'))
     });
   });
 
@@ -144,8 +144,8 @@ test('audiobook studio edits a script preview turn without freezing the app', as
 
 test('audiobook studio shows structured backend errors without internal details', async ({ context, page }) => {
   await authenticate(context, page);
-  const providerUnavailable = await loadTestContractJson<{ status?: number }>('tts-workbench/speaker-voice-analysis/provider-unavailable/response.json');
-  await page.route('**/api/projects/tts-workbench/speaker-voice-analysis', async (route) => {
+  const providerUnavailable = await loadTestContractJson<{ status?: number }>('audiobook-workflow/speaker-voice-analysis/provider-unavailable/response.json');
+  await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {
     await route.fulfill({
       status: providerUnavailable.status ?? 502,
       contentType: 'application/json',
@@ -158,6 +158,8 @@ test('audiobook studio shows structured backend errors without internal details'
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
 
   await expect(page.getByRole('alert')).toContainText('The speaker voice analysis provider is currently unavailable. Please try again later.');
-  await expect(page.getByText('TTS_WORKBENCH_PROVIDER_FAILED')).toHaveCount(0);
+  await expect(page.getByText('AUDIOBOOK_WORKFLOW_PROVIDER_FAILED')).toHaveCount(0);
   await expect(page.getByText('request-1')).toHaveCount(0);
 });
+
+

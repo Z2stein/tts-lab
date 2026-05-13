@@ -16,7 +16,7 @@ export class AudiobookApiService {
   ) {}
 
   async createAudio(renderPlan: SingleSpeakerRenderPlanResponse, options: RequestOptions = {}, projectId?: string): Promise<CreatedAudioDownload> {
-    const url = projectId ? `/api/projects/tts-workbench/create-audio?projectId=${encodeURIComponent(projectId)}` : '/api/projects/tts-workbench/create-audio';
+    const url = projectId ? `/api/audiobooks/workflow/create-audio?projectId=${encodeURIComponent(projectId)}` : '/api/audiobooks/workflow/create-audio';
     const response = await this.postBlobResponse(url, renderPlan, 'Audio creation failed', options);
 
     if (!response.body) {
@@ -187,3 +187,5 @@ export class AudiobookApiService {
     return null;
   }
 }
+
+

@@ -8,7 +8,7 @@ import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import com.example.ttslab.audiobooks.repository.*;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
-import com.example.ttslab.projects.ttsworkbench.TtsAudioFile;
+import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
 import com.example.ttslab.storage.FileStorageService;
 import com.example.ttslab.storage.StorageKeyBuilder;
 import com.example.ttslab.storage.StoredFile;
@@ -131,7 +131,7 @@ public class AudiobookLibraryService {
             user.id(),
             "Generated audiobook " + timestamp,
             AudiobookProjectStatus.NEEDS_REVIEW,
-            "TTS_WORKBENCH",
+            "AUDIOBOOK_WORKFLOW",
             0,
             null,
             null,
@@ -240,7 +240,7 @@ public class AudiobookLibraryService {
             user.id(),
             "Generated audiobook preview",
             AudiobookProjectStatus.NEEDS_REVIEW,
-            "TTS_WORKBENCH",
+            "AUDIOBOOK_WORKFLOW",
             1,
             speakerCount,
             totalDurationSeconds,
@@ -300,3 +300,5 @@ public class AudiobookLibraryService {
         );
     }
 }
+
+

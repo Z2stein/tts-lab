@@ -15,7 +15,7 @@ spec:
     metadata:
       annotations:
         tts-lab/chat-provider: {{ .Values.chat.provider | quote }}
-        tts-lab/google-tts-credentials-checksum: {{ .Values.ttsWorkbench.googleCredentialsChecksum | quote }}
+        tts-lab/google-tts-credentials-checksum: {{ .Values.audiobookWorkflow.googleCredentialsChecksum | quote }}
       labels:
         app.kubernetes.io/instance: {{ .Release.Name }}
         app.kubernetes.io/component: backend
@@ -118,11 +118,11 @@ spec:
                   name: {{ .Values.chat.geminiSecretName }}
                   key: api-key
                   optional: true
-            {{- if .Values.ttsWorkbench.googleCredentialsSecretName }}
+            {{- if .Values.audiobookWorkflow.googleCredentialsSecretName }}
             - name: TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64
               valueFrom:
                 secretKeyRef:
-                  name: {{ .Values.ttsWorkbench.googleCredentialsSecretName }}
+                  name: {{ .Values.audiobookWorkflow.googleCredentialsSecretName }}
                   key: service-account-json-b64
                   optional: true
             {{- end }}
@@ -160,3 +160,4 @@ spec:
           {{- else }}
           emptyDir: {}
           {{- end }}
+
