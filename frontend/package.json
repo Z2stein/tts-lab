@@ -7,7 +7,7 @@
     "build": "ng build",
     "generate:api-contract": "openapi-typescript ../shared/api-contract/tts-lab-openapi.yaml --root-types --root-types-no-schema-prefix --export-type -o src/app/shared/api-contract.generated.ts",
     "verify:api-contract": "openapi-typescript ../shared/api-contract/tts-lab-openapi.yaml --root-types --root-types-no-schema-prefix --export-type -o src/app/shared/api-contract.generated.ts --check",
-    "lint": "node scripts/lint-src.mjs",
+    "lint": "eslint src --ext .ts --max-warnings=0",
     "test": "ng test --watch=false --browsers=ChromeHeadless",
     "test:e2e": "playwright test",
     "test:e2e:headed": "playwright test --headed"
