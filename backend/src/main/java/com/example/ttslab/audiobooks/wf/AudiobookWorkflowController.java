@@ -8,7 +8,6 @@ import com.example.ttslab.audiobooks.wf.speakeranalysis.SpeakerVoiceAnalysisServ
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.common.DurationEstimator;
 import com.example.ttslab.config.ChatbotProperties;
-import com.example.ttslab.projects.ttsworkbench.AudiobookProjectCreationService;
 import com.example.ttslab.projects.ttsworkbench.EmotionAnnotationAnalysisRequest;
 import com.example.ttslab.projects.ttsworkbench.EmotionAnnotationAnalysisResponse;
 import com.example.ttslab.projects.ttsworkbench.FinalTtsRequestPreviewRequest;
@@ -22,6 +21,7 @@ import com.example.ttslab.projects.ttsworkbench.TtsAudioFile;
 import com.example.ttslab.projects.ttsworkbench.service.EmotionAnnotationPersistenceService;
 import com.example.ttslab.projects.ttsworkbench.service.SpeakerSplitPersistenceService;
 import com.example.ttslab.projects.ttsworkbench.service.TtsWorkbenchService;
+import com.example.ttslab.audiobooks.wf.AudiobookProjectCreationService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;

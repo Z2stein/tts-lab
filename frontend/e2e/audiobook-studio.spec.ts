@@ -2,6 +2,7 @@ import { test, expect, BrowserContext, Page } from '@playwright/test';
 import { loadTestContractJson } from '../src/app/shared/test-contracts';
 
 const e2eBaseUrl = process.env['E2E_BASE_URL'] || 'http://127.0.0.1:4200';
+const testProjectId = 'project-1';
 
 async function authenticate(context: BrowserContext, page: Page): Promise<void> {
   await context.addCookies([
@@ -99,8 +100,8 @@ test('audiobook studio edits a script preview turn without freezing the app', as
     const body = route.request().postDataJSON() as { projectId?: string; turns?: Array<{ speaker?: string; text?: string }> };
     expect(body.projectId).toBe(testProjectId);
     expect(body.turns).toEqual([
-      { speaker: 'Narrator', text: 'The last train had already left, and the station clock was wrong.' },
-      { speaker: 'Mara', text: 'Jonas, tell me you did not hide this here all winter.' }
+      { speaker: 'Mara', text: 'The last train had already left, and the station clock was wrong.' },
+      { speaker: 'Jonas', text: 'Together.' }
     ]);
     await route.fulfill({
       status: 200,

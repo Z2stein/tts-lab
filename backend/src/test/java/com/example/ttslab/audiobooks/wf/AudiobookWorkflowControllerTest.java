@@ -93,9 +93,6 @@ class AudiobookWorkflowControllerTest {
     private AudiobookLibraryService audiobookLibraryService;
 
     @MockBean
-    private EmotionAnnotationPersistenceService emotionAnnotationPersistenceService;
-
-    @MockBean
     private ChatbotProperties chatbotProperties;
 
     private AudiobookProject testProject;

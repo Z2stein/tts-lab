@@ -21,9 +21,6 @@ public interface AudiobookSpeechSegmentRepository extends JpaRepository<Audioboo
     @Query("SELECT s FROM AudiobookSpeechSegment s WHERE s.project.id = ?1")
     List<AudiobookSpeechSegment> findByProjectId(String projectId);
 
-    @Query("SELECT s FROM AudiobookSpeechSegment s WHERE s.project.id = ?1 AND s.segmentOrigin = ?2 ORDER BY s.orderIndex ASC")
-    List<AudiobookSpeechSegment> findByProjectIdAndSegmentOriginOrderByOrderIndex(String projectId, AudiobookSpeechSegmentOrigin segmentOrigin);
-
     @Query("SELECT s FROM AudiobookSpeechSegment s WHERE s.id = ?1 AND s.project.id = ?2")
     Optional<AudiobookSpeechSegment> findByIdAndProjectId(String id, String projectId);
 

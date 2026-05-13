@@ -13,6 +13,19 @@ import {
 } from '../../../shared/api-contract.generated';
 import { CreatedAudioDownload, RequestOptions } from '../../../shared/api-client-types';
 
+export type {
+  AnnotatedSpeakerTurn,
+  EmotionAnnotationAnalysisResponse,
+  FinalTtsRequestPreviewResponse,
+  SingleSpeakerRenderPlanResponse,
+  SingleSpeakerRenderRequest,
+  SpeakerSplitAnalysisResponse,
+  SpeakerSplitTurn,
+  SpeakerVoiceAnalysisItem,
+  SpeakerVoiceAnalysisResponse
+} from '../../../shared/api-contract.generated';
+export type { CreatedAudioDownload, RequestOptions } from '../../../shared/api-client-types';
+
 @Injectable({ providedIn: 'root' })
 export class AudiobookWorkflowService {
   constructor(private readonly audiobookApiService: AudiobookApiService) {}
