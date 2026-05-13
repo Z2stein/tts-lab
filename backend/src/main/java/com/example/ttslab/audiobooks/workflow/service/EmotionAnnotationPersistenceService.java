@@ -72,6 +72,7 @@ public class EmotionAnnotationPersistenceService {
         for (int i = 0; i < segments.size(); i++) {
             AudiobookSpeechSegment segment = segments.get(i);
             segment.setStyledText(annotatedTurns.get(i).text());
+            segment.setReviewStatus(AudiobookSpeechSegmentReviewStatus.APPROVED);
             segment.setUpdatedAt(now);
         }
 
@@ -110,6 +111,7 @@ public class EmotionAnnotationPersistenceService {
             SpeakerCharacter character = charactersByName.get(normalized(speaker));
 
             boolean needsChanges = segment.getReviewStatus() == AudiobookSpeechSegmentReviewStatus.APPROVED
+                || segment.getReviewStatus() == AudiobookSpeechSegmentReviewStatus.NEEDS_CHANGES
                 || (segment.getStyledText() != null && !segment.getStyledText().isBlank());
 
             segment.setSpeakerName(character != null ? character.getSpeakerName() : speaker.trim());

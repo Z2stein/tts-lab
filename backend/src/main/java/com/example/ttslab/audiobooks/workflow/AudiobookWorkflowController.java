@@ -10,6 +10,9 @@ import com.example.ttslab.common.DurationEstimator;
 import com.example.ttslab.config.ChatbotProperties;
 import com.example.ttslab.audiobooks.workflow.EmotionAnnotationAnalysisRequest;
 import com.example.ttslab.audiobooks.workflow.EmotionAnnotationAnalysisResponse;
+import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowProductionSettings;
+import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowProductionSettingsRequest;
+import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowSnapshotResponse;
 import com.example.ttslab.audiobooks.workflow.FinalTtsRequestPreviewRequest;
 import com.example.ttslab.audiobooks.workflow.FinalTtsRequestPreviewResponse;
 import com.example.ttslab.audiobooks.workflow.ScriptPreviewSaveRequest;
@@ -21,6 +24,7 @@ import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
 import com.example.ttslab.audiobooks.workflow.service.EmotionAnnotationPersistenceService;
 import com.example.ttslab.audiobooks.workflow.service.SpeakerSplitPersistenceService;
 import com.example.ttslab.audiobooks.workflow.service.AudiobookWorkflowService;
+import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStateService;
 import com.example.ttslab.audiobooks.workflow.AudiobookProjectCreationService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
@@ -40,6 +44,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,6 +62,7 @@ public class AudiobookWorkflowController {
     private final SpeakerSplitPersistenceService speakerSplitPersistenceService;
     private final EmotionAnnotationPersistenceService emotionAnnotationPersistenceService;
     private final AudiobookProjectCreationService audiobookProjectCreationService;
+    private final AudiobookWorkflowStateService audiobookWorkflowStateService;
     private final CurrentUserResolver currentUserResolver;
     private final PromptHistoryService promptHistoryService;
     private final RequestRateLimitService requestRateLimitService;
@@ -68,6 +76,7 @@ public class AudiobookWorkflowController {
         SpeakerSplitPersistenceService speakerSplitPersistenceService,
         EmotionAnnotationPersistenceService emotionAnnotationPersistenceService,
         AudiobookProjectCreationService audiobookProjectCreationService,
+        AudiobookWorkflowStateService audiobookWorkflowStateService,
         CurrentUserResolver currentUserResolver,
         PromptHistoryService promptHistoryService,
         RequestRateLimitService requestRateLimitService,
@@ -81,12 +90,19 @@ public class AudiobookWorkflowController {
         this.speakerSplitPersistenceService = speakerSplitPersistenceService;
         this.emotionAnnotationPersistenceService = emotionAnnotationPersistenceService;
         this.audiobookProjectCreationService = audiobookProjectCreationService;
+        this.audiobookWorkflowStateService = audiobookWorkflowStateService;
         this.currentUserResolver = currentUserResolver;
         this.promptHistoryService = promptHistoryService;
         this.requestRateLimitService = requestRateLimitService;
         this.requestUsageMeasurer = requestUsageMeasurer;
         this.audiobookLibraryService = audiobookLibraryService;
         this.analysisProviderModelName = providerModelName(chatbotProperties == null ? "mock" : chatbotProperties.provider(), chatModelName);
+    }
+
+    @GetMapping("/projects/{projectId}")
+    public AudiobookWorkflowSnapshotResponse getProjectSnapshot(@PathVariable String projectId, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.snapshot(user, projectId);
     }
 
     @PostMapping("/speaker-voice-analysis")
@@ -96,7 +112,7 @@ public class AudiobookWorkflowController {
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
             SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue());
-            var project = audiobookProjectCreationService.createProject(user.id(), analysisResponse.projectTitle());
+            var project = audiobookProjectCreationService.createProject(user.id(), analysisResponse.projectTitle(), request.rawDialogue());
             speakerVoiceAnalysisService.syncProjectCharacters(project.getId(), analysisResponse.speakers());
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return new SpeakerVoiceAnalysisResponse(analysisResponse.speakers(), project.getId(), analysisResponse.projectTitle());
@@ -106,13 +122,21 @@ public class AudiobookWorkflowController {
         }
     }
 
+    @PostMapping("/projects/{projectId}/cast-approval")
+    public AudiobookWorkflowSnapshotResponse approveCast(@PathVariable String projectId, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.approveCast(user, projectId);
+    }
+
     @PostMapping("/speaker-split-analysis")
     public SpeakerSplitAnalysisResponse splitDialogue(@Valid @RequestBody SpeakerSplitAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
             AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
+            audiobookWorkflowStateService.ensureScriptReviewReady(project);
             SpeakerSplitAnalysisResponse response = speakerSplitPersistenceService.splitAndPersist(project, request.rawDialogue(), request.speakers());
+            audiobookWorkflowStateService.markScriptReview(project);
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return response;
         } catch (RuntimeException ex) {
@@ -121,13 +145,21 @@ public class AudiobookWorkflowController {
         }
     }
 
+    @PostMapping("/projects/{projectId}/script-approval")
+    public AudiobookWorkflowSnapshotResponse approveScript(@PathVariable String projectId, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.approveScript(user, projectId);
+    }
+
     @PostMapping("/emotion-annotation-analysis")
     public EmotionAnnotationAnalysisResponse annotateEmotions(@Valid @RequestBody EmotionAnnotationAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
         AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
+        audiobookWorkflowStateService.ensurePerformanceNotesReady(project);
         var turns = emotionAnnotationPersistenceService.loadScriptPreviewTurns(project);
         EmotionAnnotationAnalysisResponse response = audiobookWorkflowService.annotate(turns);
         emotionAnnotationPersistenceService.persistStyledText(project, response.turns());
+        audiobookWorkflowStateService.markPerformanceReady(project);
         return response;
     }
 
@@ -135,7 +167,23 @@ public class AudiobookWorkflowController {
     public SpeakerSplitAnalysisResponse saveScriptPreview(@Valid @RequestBody ScriptPreviewSaveRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
         AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
-        return new SpeakerSplitAnalysisResponse(emotionAnnotationPersistenceService.saveScriptPreviewTurns(project, request.turns()));
+        SpeakerSplitAnalysisResponse response = new SpeakerSplitAnalysisResponse(emotionAnnotationPersistenceService.saveScriptPreviewTurns(project, request.turns()));
+        audiobookWorkflowStateService.markScriptReview(project);
+        return response;
+    }
+
+    @PatchMapping("/projects/{projectId}/production-settings")
+    public AudiobookWorkflowSnapshotResponse updateProductionSettings(
+        @PathVariable String projectId,
+        @Valid @RequestBody AudiobookWorkflowProductionSettingsRequest request,
+        Authentication authentication
+    ) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.updateProductionSettings(
+            user,
+            projectId,
+            new AudiobookWorkflowProductionSettings(request.prompt(), request.languageCode(), request.modelName(), request.audioEncoding())
+        );
     }
 
     @PostMapping("/final-request-preview")
@@ -188,9 +236,11 @@ public class AudiobookWorkflowController {
                 project = audiobookLibraryService.createProjectForGeneration(user);
             } else {
                 project = audiobookLibraryService.getProjectForUser(projectId, user);
+                audiobookWorkflowStateService.ensureAudioGenerationReady(project);
             }
 
             audiobookLibraryService.persistAudioAsset(project, audioFile, segmentCount, 1, speakerCount, estimatedDuration, firstSpeakerName, null, firstVoiceName, null);
+            audiobookWorkflowStateService.markAudioGenerated(project);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")

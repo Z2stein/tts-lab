@@ -17,12 +17,31 @@ public class AudiobookProject {
     @Column(nullable = false)
     private String title;
 
+    @Column(name = "story_text")
+    private String storyText;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private AudiobookProjectStatus status;
 
     @Column(name = "source_type", nullable = false)
     private String sourceType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(name = "workflow_stage")
+    private com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStage workflowStage;
+
+    @Column(name = "production_prompt")
+    private String productionPrompt;
+
+    @Column(name = "production_language_code")
+    private String productionLanguageCode;
+
+    @Column(name = "production_model_name")
+    private String productionModelName;
+
+    @Column(name = "production_audio_encoding")
+    private String productionAudioEncoding;
 
     @Column(name = "speech_segment_count", nullable = false)
     private int speechSegmentCount;
@@ -96,6 +115,14 @@ public class AudiobookProject {
         this.title = title;
     }
 
+    public String getStoryText() {
+        return storyText;
+    }
+
+    public void setStoryText(String storyText) {
+        this.storyText = storyText;
+    }
+
     public AudiobookProjectStatus getStatus() {
         return status;
     }
@@ -110,6 +137,46 @@ public class AudiobookProject {
 
     public void setSourceType(String sourceType) {
         this.sourceType = sourceType;
+    }
+
+    public com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStage getWorkflowStage() {
+        return workflowStage;
+    }
+
+    public void setWorkflowStage(com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStage workflowStage) {
+        this.workflowStage = workflowStage;
+    }
+
+    public String getProductionPrompt() {
+        return productionPrompt;
+    }
+
+    public void setProductionPrompt(String productionPrompt) {
+        this.productionPrompt = productionPrompt;
+    }
+
+    public String getProductionLanguageCode() {
+        return productionLanguageCode;
+    }
+
+    public void setProductionLanguageCode(String productionLanguageCode) {
+        this.productionLanguageCode = productionLanguageCode;
+    }
+
+    public String getProductionModelName() {
+        return productionModelName;
+    }
+
+    public void setProductionModelName(String productionModelName) {
+        this.productionModelName = productionModelName;
+    }
+
+    public String getProductionAudioEncoding() {
+        return productionAudioEncoding;
+    }
+
+    public void setProductionAudioEncoding(String productionAudioEncoding) {
+        this.productionAudioEncoding = productionAudioEncoding;
     }
 
     public int getSpeechSegmentCount() {

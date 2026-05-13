@@ -9,6 +9,7 @@ import com.example.ttslab.audiobooks.repository.*;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
+import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStage;
 import com.example.ttslab.storage.FileStorageService;
 import com.example.ttslab.storage.StorageKeyBuilder;
 import com.example.ttslab.storage.StoredFile;
@@ -165,6 +166,11 @@ public class AudiobookLibraryService {
             now,
             now
         );
+        project.setWorkflowStage(AudiobookWorkflowStage.AUDIO_GENERATED);
+        project.setProductionPrompt("An immersive audiobook performance with a clear narrator and distinct character voices.");
+        project.setProductionLanguageCode("en-US");
+        project.setProductionModelName("gemini-3.1-flash-tts-preview");
+        project.setProductionAudioEncoding("MP3");
         projectRepository.save(project);
         return project;
     }
@@ -207,6 +213,8 @@ public class AudiobookLibraryService {
 
         // Update project timestamp
         project.setUpdatedAt(Instant.now());
+        project.setStatus(AudiobookProjectStatus.NEEDS_REVIEW);
+        project.setWorkflowStage(AudiobookWorkflowStage.AUDIO_GENERATED);
         projectRepository.save(project);
 
         String speechSegmentTitle = speakerName != null && !speakerName.isBlank() ? speakerName : "Generated speech segment";
@@ -274,6 +282,11 @@ public class AudiobookLibraryService {
             now,
             now
         );
+        project.setWorkflowStage(AudiobookWorkflowStage.AUDIO_GENERATED);
+        project.setProductionPrompt("An immersive audiobook performance with a clear narrator and distinct character voices.");
+        project.setProductionLanguageCode("en-US");
+        project.setProductionModelName("gemini-3.1-flash-tts-preview");
+        project.setProductionAudioEncoding("MP3");
         projectRepository.save(project);
 
         AudiobookSpeechSegment speechSegment = new AudiobookSpeechSegment(

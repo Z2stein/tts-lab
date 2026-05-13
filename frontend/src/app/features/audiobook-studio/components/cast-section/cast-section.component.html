@@ -26,5 +26,5 @@
 </div>
 
 <button type="button" class="primary-button next-action" (click)="createScriptPreview.emit()" [disabled]="loadingAction !== null || cast.length === 0">
-  {{ isLoading('script') ? 'Creating script preview...' : 'Next: Review script' }}
+  {{ isLoading('script') ? 'Creating script preview...' : 'Approve voices & continue' }}
 </button>

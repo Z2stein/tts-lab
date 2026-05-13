@@ -17,8 +17,9 @@ describe('AudiobookStudioFacade', () => {
 
   beforeEach(() => {
     workflow = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
-      'analyzeSpeakers', 'splitDialogue', 'annotateEmotions',
-      'saveScriptPreview', 'generateFinalJson', 'planSingleSpeakerRenderRequests',
+      'analyzeSpeakers', 'approveCast', 'splitDialogue', 'annotateEmotions',
+      'saveScriptPreview', 'saveProductionSettings', 'approveScript',
+      'getProjectSnapshot', 'generateFinalJson', 'planSingleSpeakerRenderRequests',
     ]);
     library = jasmine.createSpyObj<AudiobookLibraryService>('AudiobookLibraryService', ['updateTitle']);
     renderSvc = jasmine.createSpyObj<RenderRequestAudioService>('RenderRequestAudioService', ['abortAll', 'revokeUrls']);
@@ -97,6 +98,7 @@ describe('AudiobookStudioFacade', () => {
     it('sets loadingAction, calls AudiobookWorkflowService, updates scriptTurns on success', async () => {
       facade.setCast([maraItem]);
       facade.setCurrentProjectId('project-1');
+      facade.setCastReviewed(true);
       workflow.splitDialogue.and.resolveTo([{ speaker: 'Mara', text: 'Hello' }]);
 
       const promise = facade.createScriptPreview('story text');
@@ -113,11 +115,70 @@ describe('AudiobookStudioFacade', () => {
     it('sets error and clears loadingAction on failure', async () => {
       facade.setCast([maraItem]);
       facade.setCurrentProjectId('project-1');
+      facade.setCastReviewed(true);
       workflow.splitDialogue.and.rejectWith(new Error('API Failure'));
       await facade.createScriptPreview('story text');
 
       expect(facade.error()).toBe('API Failure');
       expect(facade.loadingAction()).toBeNull();
+    });
+  });
+
+  describe('approveCast', () => {
+    it('persists the cast approval snapshot and marks the cast as reviewed', async () => {
+      facade.setCurrentProjectId('project-1');
+      workflow.approveCast.and.resolveTo({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'CAST_APPROVED',
+        speakers: [maraItem],
+        scriptTurns: [],
+        annotatedTurns: [],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        audioAssets: [],
+        audioAssetsCurrent: false,
+        performanceNotesStale: false
+      } as never);
+
+      await facade.approveCast();
+
+      expect(workflow.approveCast).toHaveBeenCalledWith('project-1');
+      expect(facade.castReviewed()).toBeTrue();
+      expect(facade.audioAssetsCurrent()).toBeFalse();
+    });
+  });
+
+  describe('hydrateFromSnapshot', () => {
+    it('hydrates stale performance notes from the backend snapshot', () => {
+      facade.hydrateFromSnapshot({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'SCRIPT_APPROVED',
+        speakers: [maraItem],
+        scriptTurns: [{ speaker: 'Mara', text: 'Hello' }],
+        annotatedTurns: [{ speaker: 'Mara', text: '[calm] Hello' }],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        audioAssets: [],
+        audioAssetsCurrent: false,
+        performanceNotesStale: true
+      } as never);
+
+      expect(facade.currentProjectId()).toBe('project-1');
+      expect(facade.performanceNotesStale()).toBeTrue();
+      expect(facade.scriptApproved()).toBeTrue();
+      expect(facade.castReviewed()).toBeTrue();
     });
   });
 
@@ -167,15 +228,30 @@ describe('AudiobookStudioFacade', () => {
 
       facade.setCast([maraItem]);
       facade.setAnnotatedTurns([{ speaker: 'Mara', text: '<speak>Hi</speak>' }]);
+      facade.setCurrentProjectId('project-1');
 
       const finalReq = { input: { text: 'test' }, voice: {}, audioConfig: {} };
       const plan = { renderRequests: [] };
 
+      workflow.saveProductionSettings.and.resolveTo({
+        projectId: 'project-1',
+        title: 'Generated audiobook',
+        storyText: null,
+        workflowStage: 'CAST_REVIEW',
+        speakers: [maraItem],
+        scriptTurns: [],
+        annotatedTurns: [],
+        productionSettings: requestParams,
+        audioAssets: [],
+        audioAssetsCurrent: false,
+        performanceNotesStale: false
+      } as never);
       workflow.generateFinalJson.and.resolveTo(finalReq);
       workflow.planSingleSpeakerRenderRequests.and.resolveTo(plan);
 
       await facade.createAudioProductionPlan(requestParams);
 
+      expect(workflow.saveProductionSettings).toHaveBeenCalledWith('project-1', requestParams);
       expect(workflow.generateFinalJson).toHaveBeenCalledWith({
         ...requestParams,
         speakers: [maraItem],
@@ -212,10 +288,30 @@ describe('AudiobookStudioFacade', () => {
   });
 
   describe('approveScript', () => {
-    it('sets scriptApproved true and performanceNotesStale true', () => {
-      facade.approveScript();
+    it('sets scriptApproved true and performanceNotesStale false', async () => {
+      facade.setCurrentProjectId('project-1');
+      workflow.approveScript.and.resolveTo({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'SCRIPT_APPROVED',
+        speakers: [maraItem],
+        scriptTurns: [{ speaker: 'Mara', text: 'Hello' }],
+        annotatedTurns: [],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        audioAssets: [],
+        audioAssetsCurrent: false,
+        performanceNotesStale: false
+      } as never);
+
+      await facade.approveScript();
       expect(facade.scriptApproved()).toBeTrue();
-      expect(facade.performanceNotesStale()).toBeTrue();
+      expect(facade.performanceNotesStale()).toBeFalse();
     });
   });
 
@@ -283,6 +379,7 @@ describe('AudiobookStudioFacade', () => {
         { speaker: 'Mara', text: 'Hello' },
         { speaker: 'Jonas', text: 'Greetings' }
       ]);
+      facade.setAudioAssetsCurrent(true);
 
       const promise = facade.saveScriptTurnEdit(1);
       expect(facade.loadingAction()).toBe('script-edit');
@@ -298,6 +395,7 @@ describe('AudiobookStudioFacade', () => {
 
       expect(facade.scriptApproved()).toBeFalse();
       expect(facade.performanceNotesStale()).toBeTrue();
+      expect(facade.audioAssetsCurrent()).toBeFalse();
       expect(renderSvc.abortAll).toHaveBeenCalled();
     });
   });

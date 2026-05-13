@@ -20,6 +20,7 @@ import com.example.ttslab.audiobooks.workflow.service.SpeakerSplitPersistenceSer
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisResponse;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisItem;
+import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStateService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.PromptHistoryService;
 import com.example.ttslab.prompts.ModelType;
@@ -93,6 +94,9 @@ class AudiobookWorkflowControllerTest {
     private AudiobookLibraryService audiobookLibraryService;
 
     @MockBean
+    private AudiobookWorkflowStateService audiobookWorkflowStateService;
+
+    @MockBean
     private ChatbotProperties chatbotProperties;
 
     private AudiobookProject testProject;
@@ -149,7 +153,7 @@ class AudiobookWorkflowControllerTest {
         when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
             new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)
         ), null, "The Hidden Signal"));
-        when(audiobookProjectCreationService.createProject("u1", "The Hidden Signal")).thenReturn(testProject);
+        when(audiobookProjectCreationService.createProject("u1", "The Hidden Signal", "Alice: Hello")).thenReturn(testProject);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -160,7 +164,7 @@ class AudiobookWorkflowControllerTest {
 
         InOrder inOrder = org.mockito.Mockito.inOrder(speakerVoiceAnalysisService, audiobookProjectCreationService);
         inOrder.verify(speakerVoiceAnalysisService).analyze("Alice: Hello");
-        inOrder.verify(audiobookProjectCreationService).createProject("u1", "The Hidden Signal");
+        inOrder.verify(audiobookProjectCreationService).createProject("u1", "The Hidden Signal", "Alice: Hello");
         verify(speakerVoiceAnalysisService).syncProjectCharacters("test-project-1", List.of(new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)));
         verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq("mock"), eq("Alice: Hello"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
@@ -168,6 +172,7 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void speakerSplitAnalysisReturnsTurns() throws Exception {
+        testProject.setWorkflowStage(AudiobookWorkflowStage.CAST_APPROVED);
         when(speakerSplitPersistenceService.splitAndPersist(eq(testProject), eq("A: Hello"), anyList())).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
             new SpeakerSplitTurn("A", "Hello")
         )));
@@ -186,6 +191,7 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void emotionAnnotationAnalysisReturnsAnnotatedTurns() throws Exception {
+        testProject.setWorkflowStage(AudiobookWorkflowStage.SCRIPT_APPROVED);
         when(emotionAnnotationPersistenceService.loadScriptPreviewTurns(testProject)).thenReturn(List.of(
             new SpeakerSplitTurn("A", "Hello!")
         ));
@@ -222,6 +228,7 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void saveScriptPreviewPersistsEditedTurns() throws Exception {
+        testProject.setWorkflowStage(AudiobookWorkflowStage.CAST_APPROVED);
         when(emotionAnnotationPersistenceService.saveScriptPreviewTurns(eq(testProject), anyList())).thenReturn(List.of(
             new SpeakerSplitTurn("Narrator", "The opening line."),
             new SpeakerSplitTurn("Mara", "We go now.")
@@ -236,6 +243,59 @@ class AudiobookWorkflowControllerTest {
 
         verify(audiobookLibraryService).getProjectForUser(eq("test-project-1"), any(CurrentUser.class));
         verify(emotionAnnotationPersistenceService).saveScriptPreviewTurns(eq(testProject), anyList());
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void getProjectSnapshotReturnsWorkflowSnapshot() throws Exception {
+        when(audiobookWorkflowStateService.snapshot(any(CurrentUser.class), eq("test-project-1"))).thenReturn(new AudiobookWorkflowSnapshotResponse(
+            "test-project-1",
+            "Test Audiobook",
+            "Mara: We go now.",
+            AudiobookWorkflowStage.CAST_REVIEW,
+            List.of(new SpeakerVoiceAnalysisItem("Mara", "Bold traveler", SpeakerVoice.ACHIRD)),
+            List.of(new SpeakerSplitTurn("Mara", "We go now.")),
+            List.of(),
+            new AudiobookWorkflowProductionSettings("Prompt", "en-US", "gemini-3.1-flash-tts-preview", "MP3"),
+            List.of(),
+            false,
+            false
+        ));
+
+        MvcResult result = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/audiobooks/workflow/projects/test-project-1"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.projectId").value("test-project-1"))
+            .andExpect(jsonPath("$.workflowStage").value("CAST_REVIEW"))
+            .andExpect(jsonPath("$.audioAssetsCurrent").value(false))
+            .andExpect(jsonPath("$.performanceNotesStale").value(false))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void approveCastAdvancesWorkflowStageAndReturnsSnapshot() throws Exception {
+        when(audiobookWorkflowStateService.approveCast(any(CurrentUser.class), eq("test-project-1"))).thenReturn(new AudiobookWorkflowSnapshotResponse(
+            "test-project-1",
+            "Test Audiobook",
+            "Mara: We go now.",
+            AudiobookWorkflowStage.CAST_APPROVED,
+            List.of(new SpeakerVoiceAnalysisItem("Mara", "Bold traveler", SpeakerVoice.ACHIRD)),
+            List.of(),
+            List.of(),
+            new AudiobookWorkflowProductionSettings("Prompt", "en-US", "gemini-3.1-flash-tts-preview", "MP3"),
+            List.of(),
+            false,
+            false
+        ));
+
+        MvcResult result = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/audiobooks/workflow/projects/test-project-1/cast-approval"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.workflowStage").value("CAST_APPROVED"))
+            .andExpect(jsonPath("$.performanceNotesStale").value(false))
+            .andReturn();
+
+        verify(audiobookWorkflowStateService).approveCast(any(CurrentUser.class), eq("test-project-1"));
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 

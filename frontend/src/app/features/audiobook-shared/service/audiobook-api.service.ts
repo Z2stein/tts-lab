@@ -48,6 +48,30 @@ export class AudiobookApiService {
     return response.body;
   }
 
+  async getJsonResponse<T>(url: string, errorPrefix: string, options: RequestOptions = {}): Promise<HttpResponse<T>> {
+    try {
+      const response = await this.executeRequest(
+        this.http.get<T>(url, {
+          observe: 'response' as const
+        }),
+        options.signal
+      );
+      await this.refreshRequestLimits();
+      return response;
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status !== 0) {
+        await this.refreshRequestLimits();
+      }
+
+      const apiError = await this.readApiError(error);
+      if (error instanceof HttpErrorResponse) {
+        throw new Error(apiError?.message || `${errorPrefix} (HTTP ${error.status}).`);
+      }
+
+      throw error;
+    }
+  }
+
   async postJsonResponse<T>(url: string, body: unknown, errorPrefix: string, options: RequestOptions = {}): Promise<HttpResponse<T>> {
     try {
       const response = await this.executeRequest(
@@ -78,6 +102,30 @@ export class AudiobookApiService {
         this.http.post(url, body, {
           observe: 'response' as const,
           responseType: 'blob' as const
+        }),
+        options.signal
+      );
+      await this.refreshRequestLimits();
+      return response;
+    } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status !== 0) {
+        await this.refreshRequestLimits();
+      }
+
+      const apiError = await this.readApiError(error);
+      if (error instanceof HttpErrorResponse) {
+        throw new Error(apiError?.message || `${errorPrefix} (HTTP ${error.status}).`);
+      }
+
+      throw error;
+    }
+  }
+
+  async patchJsonResponse<T>(url: string, body: unknown, errorPrefix: string, options: RequestOptions = {}): Promise<HttpResponse<T>> {
+    try {
+      const response = await this.executeRequest(
+        this.http.patch<T>(url, body, {
+          observe: 'response' as const
         }),
         options.signal
       );

@@ -1,5 +1,6 @@
-<section class="studio" aria-labelledby="audiobook-studio-title">
+<section class="studio">
   <app-studio-hero
+    *ngIf="showHero"
     [heroCast]="heroCast"
     [benefitChips]="benefitChips"
     [activeSampleKey]="activeSampleKey"
@@ -114,7 +115,7 @@
         </div>
       </div>
 
-      <p *ngIf="!audioProductionPlan" class="empty-state">The audiobook setup will appear after performance notes.</p>
+      <p *ngIf="!audioProductionPlan && audioAssets.length === 0" class="empty-state">The audiobook setup will appear after performance notes.</p>
       <div *ngIf="audioProductionPlan" class="plan-summary" aria-label="Audiobook setup">
         <div class="plan-summary-status">
           <span>Generation state</span>
@@ -190,6 +191,34 @@
           Download MP3
         </button>
       </app-waveform-player>
+
+      <section *ngIf="audioAssets.length > 0" class="saved-audio-assets" aria-labelledby="saved-audio-assets-title">
+        <div class="step-heading">
+          <span class="step-number">Saved</span>
+          <div>
+            <h3 id="saved-audio-assets-title">Saved audio assets</h3>
+            <p>These generated previews were restored from the backend so you can continue where you left off.</p>
+          </div>
+        </div>
+        <div class="render-list">
+          <article *ngFor="let asset of audioAssets" class="render-request">
+            <div class="render-identity">
+              <span class="cast-avatar part-avatar" aria-hidden="true">MP3</span>
+              <div>
+                <span class="badge">{{ asset.type }}</span>
+                <h3>{{ asset.filename }}</h3>
+                <p class="part-meta" *ngIf="asset.durationSeconds !== null">
+                  Duration: {{ asset.durationSeconds }}s
+                </p>
+              </div>
+            </div>
+            <div class="button-row compact-actions">
+              <a class="secondary-button" [href]="asset.streamUrl" target="_blank" rel="noreferrer">Stream</a>
+              <a class="secondary-button" [href]="asset.downloadUrl" [download]="asset.filename">Download</a>
+            </div>
+          </article>
+        </div>
+      </section>
 
       <details *ngIf="renderRequests.length > 0" class="audio-parts-details">
         <summary>Audio parts and individual previews</summary>

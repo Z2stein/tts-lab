@@ -3,6 +3,8 @@ import { AudiobookApiService } from './audiobook-api.service';
 import {
   AnnotatedSpeakerTurn,
   EmotionAnnotationAnalysisResponse,
+  AudiobookWorkflowProductionSettingsRequest,
+  AudiobookWorkflowSnapshotResponse,
   FinalTtsRequestPreviewResponse,
   SingleSpeakerRenderPlanResponse,
   SingleSpeakerRenderRequest,
@@ -16,6 +18,10 @@ import { CreatedAudioDownload, RequestOptions } from '../../../shared/api-client
 export type {
   AnnotatedSpeakerTurn,
   EmotionAnnotationAnalysisResponse,
+  AudiobookWorkflowProductionSettings,
+  AudiobookWorkflowProductionSettingsRequest,
+  AudiobookWorkflowSnapshotResponse,
+  AudiobookWorkflowStage,
   FinalTtsRequestPreviewResponse,
   SingleSpeakerRenderPlanResponse,
   SingleSpeakerRenderRequest,
@@ -36,6 +42,47 @@ export class AudiobookWorkflowService {
       { rawDialogue },
       'Speaker voice analysis failed'
     );
+  }
+
+  async getProjectSnapshot(projectId: string): Promise<AudiobookWorkflowSnapshotResponse> {
+    return this.audiobookApiService.getJsonResponse<AudiobookWorkflowSnapshotResponse>(
+      `/api/audiobooks/workflow/projects/${encodeURIComponent(projectId)}`,
+      'Audiobook workflow snapshot failed'
+    ).then((response) => {
+      if (!response.body) {
+        throw new Error('Audiobook workflow snapshot failed.');
+      }
+      return response.body;
+    });
+  }
+
+  async approveCast(projectId: string): Promise<AudiobookWorkflowSnapshotResponse> {
+    return this.audiobookApiService.post<AudiobookWorkflowSnapshotResponse>(
+      `/api/audiobooks/workflow/projects/${encodeURIComponent(projectId)}/cast-approval`,
+      undefined,
+      'Cast approval failed'
+    );
+  }
+
+  async approveScript(projectId: string): Promise<AudiobookWorkflowSnapshotResponse> {
+    return this.audiobookApiService.post<AudiobookWorkflowSnapshotResponse>(
+      `/api/audiobooks/workflow/projects/${encodeURIComponent(projectId)}/script-approval`,
+      undefined,
+      'Script approval failed'
+    );
+  }
+
+  async saveProductionSettings(projectId: string, request: AudiobookWorkflowProductionSettingsRequest): Promise<AudiobookWorkflowSnapshotResponse> {
+    return this.audiobookApiService.patchJsonResponse<AudiobookWorkflowSnapshotResponse>(
+      `/api/audiobooks/workflow/projects/${encodeURIComponent(projectId)}/production-settings`,
+      request,
+      'Production settings save failed'
+    ).then((response) => {
+      if (!response.body) {
+        throw new Error('Production settings save failed.');
+      }
+      return response.body;
+    });
   }
 
   async splitDialogue(rawDialogue: string, speakers: SpeakerVoiceAnalysisItem[], projectId: string): Promise<SpeakerSplitTurn[]> {

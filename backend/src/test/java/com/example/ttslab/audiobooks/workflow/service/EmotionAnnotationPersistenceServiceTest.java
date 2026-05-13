@@ -159,6 +159,8 @@ class EmotionAnnotationPersistenceServiceTest {
         verify(repository).saveAll(anyList());
         org.assertj.core.api.Assertions.assertThat(first.getStyledText()).isEqualTo("[calm] Hello");
         org.assertj.core.api.Assertions.assertThat(second.getStyledText()).isEqualTo("[warm] Hi");
+        org.assertj.core.api.Assertions.assertThat(first.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.APPROVED);
+        org.assertj.core.api.Assertions.assertThat(second.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.APPROVED);
     }
 
     @Test
@@ -239,6 +241,54 @@ class EmotionAnnotationPersistenceServiceTest {
         org.assertj.core.api.Assertions.assertThat(first.getStyledText()).isNull();
         org.assertj.core.api.Assertions.assertThat(first.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.NEEDS_CHANGES);
         org.assertj.core.api.Assertions.assertThat(second.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.PENDING);
+    }
+
+    @Test
+    void saveScriptPreviewTurnsMarksPreviouslyAnnotatedRowsForReviewAgain() {
+        AudiobookSpeechSegmentRepository repository = mock(AudiobookSpeechSegmentRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
+        EmotionAnnotationPersistenceService service = new EmotionAnnotationPersistenceService(repository, speakerCharacterRepository);
+
+        AudiobookProject project = new AudiobookProject(
+            "project-1",
+            "user-1",
+            "Project",
+            AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
+        AudiobookSpeechSegment first = new AudiobookSpeechSegment(
+            "segment-1",
+            project,
+            0,
+            "Speech segment 1",
+            AudiobookSpeechSegmentReviewStatus.APPROVED,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z"),
+            "Narrator",
+            null,
+            null,
+            null,
+            "Hello",
+            "[calm] Hello",
+            "character-1"
+        );
+        first.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+
+        when(repository.findByProjectIdAndSegmentOriginOrderByOrderIndex(eq("project-1"), eq(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW)))
+            .thenReturn(List.of(first));
+        when(speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc(eq("project-1"))).thenReturn(List.of(
+            new SpeakerCharacter("character-1", "project-1", 0, "Narrator", "Story voice", SpeakerVoice.ZEPHYR, Instant.parse("2026-05-12T10:00:00Z"))
+        ));
+
+        service.saveScriptPreviewTurns(project, List.of(new SpeakerSplitTurn("Narrator", "The opening line.")));
+
+        org.assertj.core.api.Assertions.assertThat(first.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.NEEDS_CHANGES);
     }
 
     @Test

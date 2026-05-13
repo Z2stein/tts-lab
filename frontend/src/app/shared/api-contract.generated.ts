@@ -244,6 +244,70 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/audiobooks/workflow/projects/{projectId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getAudiobookWorkflowSnapshot"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audiobooks/workflow/projects/{projectId}/cast-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approveAudiobookCast"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audiobooks/workflow/projects/{projectId}/script-approval": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["approveAudiobookScript"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/audiobooks/workflow/projects/{projectId}/production-settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateAudiobookWorkflowProductionSettings"];
+        trace?: never;
+    };
 };
 export type webhooks = Record<string, never>;
 export type components = {
@@ -375,6 +439,33 @@ export type components = {
             updatedAt: string;
             speechSegments: components["schemas"]["AudiobookSpeechSegmentResponse"][];
             audioAssets: components["schemas"]["AudioAssetResponse"][];
+        };
+        /** @enum {string} */
+        AudiobookWorkflowStage: "CAST_REVIEW" | "CAST_APPROVED" | "SCRIPT_REVIEW" | "SCRIPT_APPROVED" | "PERFORMANCE_READY" | "AUDIO_GENERATED";
+        AudiobookWorkflowProductionSettings: {
+            prompt: string;
+            languageCode: string;
+            modelName: string;
+            audioEncoding: string;
+        };
+        AudiobookWorkflowProductionSettingsRequest: {
+            prompt: string;
+            languageCode: string;
+            modelName: string;
+            audioEncoding: string;
+        };
+        AudiobookWorkflowSnapshotResponse: {
+            projectId: string;
+            title: string;
+            storyText?: string | null;
+            workflowStage: components["schemas"]["AudiobookWorkflowStage"];
+            speakers: components["schemas"]["SpeakerVoiceAnalysisItem"][];
+            scriptTurns: components["schemas"]["SpeakerSplitTurn"][];
+            annotatedTurns: components["schemas"]["AnnotatedSpeakerTurn"][];
+            productionSettings: components["schemas"]["AudiobookWorkflowProductionSettings"];
+            audioAssets: components["schemas"]["AudioAssetResponse"][];
+            audioAssetsCurrent: boolean;
+            performanceNotesStale: boolean;
         };
         ChatRequest: {
             message: string;
@@ -557,6 +648,10 @@ export type AudiobookSummaryResponse = components['schemas']['AudiobookSummaryRe
 export type AudiobookSummary = components['schemas']['AudiobookSummary'];
 export type AudiobookSpeechSegmentResponse = components['schemas']['AudiobookSpeechSegmentResponse'];
 export type AudiobookDetailResponse = components['schemas']['AudiobookDetailResponse'];
+export type AudiobookWorkflowStage = components['schemas']['AudiobookWorkflowStage'];
+export type AudiobookWorkflowProductionSettings = components['schemas']['AudiobookWorkflowProductionSettings'];
+export type AudiobookWorkflowProductionSettingsRequest = components['schemas']['AudiobookWorkflowProductionSettingsRequest'];
+export type AudiobookWorkflowSnapshotResponse = components['schemas']['AudiobookWorkflowSnapshotResponse'];
 export type ChatRequest = components['schemas']['ChatRequest'];
 export type ChatResponse = components['schemas']['ChatResponse'];
 export type SpeakerVoiceAnalysisItem = components['schemas']['SpeakerVoiceAnalysisItem'];
@@ -980,6 +1075,105 @@ export interface operations {
             400: components["responses"]["ValidationError"];
             429: components["responses"]["RateLimitedError"];
             500: components["responses"]["InternalError"];
+        };
+    };
+    getAudiobookWorkflowSnapshot: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current audiobook workflow snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudiobookWorkflowSnapshotResponse"];
+                };
+            };
+            404: components["responses"]["NotFoundError"];
+        };
+    };
+    approveAudiobookCast: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated audiobook workflow snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudiobookWorkflowSnapshotResponse"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            404: components["responses"]["NotFoundError"];
+        };
+    };
+    approveAudiobookScript: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Updated audiobook workflow snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudiobookWorkflowSnapshotResponse"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            404: components["responses"]["NotFoundError"];
+        };
+    };
+    updateAudiobookWorkflowProductionSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudiobookWorkflowProductionSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated audiobook workflow snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudiobookWorkflowSnapshotResponse"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            404: components["responses"]["NotFoundError"];
         };
     };
 }

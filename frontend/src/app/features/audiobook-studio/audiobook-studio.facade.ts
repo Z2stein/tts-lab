@@ -3,6 +3,7 @@ import {
   AudiobookWorkflowService,
   SpeakerVoiceAnalysisItem,
   AnnotatedSpeakerTurn,
+  AudiobookWorkflowSnapshotResponse,
   SpeakerSplitTurn,
   FinalTtsRequestPreviewResponse,
   SingleSpeakerRenderPlanResponse,
@@ -11,6 +12,7 @@ import { AudiobookLibraryService } from '../audiobook-library/services/audiobook
 import { ScriptGroup } from './models/audiobook-studio.types';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
 import { RenderRequestAudioService } from '../audiobook-shared/service/render-request-audio.service';
+import { AudioAssetResponse } from '../../shared/api-contract.generated';
 
 @Injectable()
 export class AudiobookStudioFacade {
@@ -20,6 +22,8 @@ export class AudiobookStudioFacade {
   private readonly _finalRequest = signal<FinalTtsRequestPreviewResponse | null>(null);
   private readonly _audioProductionPlan = signal<SingleSpeakerRenderPlanResponse | null>(null);
   private readonly _projectTitle = signal('');
+  private readonly _audioAssets = signal<AudioAssetResponse[]>([]);
+  private readonly _audioAssetsCurrent = signal(false);
   private readonly _castReviewed = signal(false);
   private readonly _scriptApproved = signal(false);
   private readonly _performanceNotesStale = signal(false);
@@ -37,6 +41,8 @@ export class AudiobookStudioFacade {
   readonly finalRequest = this._finalRequest.asReadonly();
   readonly audioProductionPlan = this._audioProductionPlan.asReadonly();
   readonly projectTitle = this._projectTitle.asReadonly();
+  readonly audioAssets = this._audioAssets.asReadonly();
+  readonly audioAssetsCurrent = this._audioAssetsCurrent.asReadonly();
   readonly castReviewed = this._castReviewed.asReadonly();
   readonly scriptApproved = this._scriptApproved.asReadonly();
   readonly performanceNotesStale = this._performanceNotesStale.asReadonly();
@@ -91,6 +97,8 @@ export class AudiobookStudioFacade {
   setFinalRequest(value: FinalTtsRequestPreviewResponse | null): void { this._finalRequest.set(value); }
   setAudioProductionPlan(value: SingleSpeakerRenderPlanResponse | null): void { this._audioProductionPlan.set(value); }
   setProjectTitle(value: string): void { this._projectTitle.set(value); }
+  setAudioAssets(value: AudioAssetResponse[]): void { this._audioAssets.set(value); }
+  setAudioAssetsCurrent(value: boolean): void { this._audioAssetsCurrent.set(value); }
   setCastReviewed(value: boolean): void { this._castReviewed.set(value); }
   setScriptApproved(value: boolean): void { this._scriptApproved.set(value); }
   setPerformanceNotesStale(value: boolean): void { this._performanceNotesStale.set(value); }
@@ -111,6 +119,8 @@ export class AudiobookStudioFacade {
       this._castReviewed.set(false);
       this._scriptApproved.set(false);
       this._performanceNotesStale.set(false);
+      this._audioAssets.set([]);
+      this._audioAssetsCurrent.set(false);
       this.cancelCastEdit();
       this.cancelScriptTurnEdit();
       this.resetAudio();
@@ -119,6 +129,9 @@ export class AudiobookStudioFacade {
 
   async createScriptPreview(storyText: string): Promise<void> {
     await this.runStep('script', async () => {
+      if (!this._castReviewed()) {
+        throw new Error('Approve the cast before creating the script preview.');
+      }
       const projectId = this._currentProjectId();
       if (!projectId) {
         throw new Error('Story analysis did not return a project id.');
@@ -128,13 +141,27 @@ export class AudiobookStudioFacade {
       this._annotatedTurns.set([]);
       this._finalRequest.set(null);
       this._audioProductionPlan.set(null);
-      this._castReviewed.set(true);
+      this._audioAssetsCurrent.set(false);
       this._scriptApproved.set(false);
       this._performanceNotesStale.set(false);
       this.cancelCastEdit();
       this.cancelScriptTurnEdit();
       this.resetAudio();
     }, 'Script preview failed.');
+  }
+
+  async approveCast(): Promise<void> {
+    await this.runStep('cast-approval', async () => {
+      if (this._castReviewed()) {
+        return;
+      }
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const snapshot = await this.audiobookWorkflowService.approveCast(projectId);
+      this.applyWorkflowSnapshot(snapshot);
+    }, 'Cast approval failed.');
   }
 
   async createPerformanceNotes(): Promise<void> {
@@ -162,6 +189,16 @@ export class AudiobookStudioFacade {
     audioEncoding: string;
   }): Promise<void> {
     await this.runStep('plan', async () => {
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      await this.audiobookWorkflowService.saveProductionSettings(projectId, {
+        prompt: options.prompt,
+        languageCode: options.languageCode,
+        modelName: options.modelName,
+        audioEncoding: options.audioEncoding,
+      });
       const finalRequest = await this.audiobookWorkflowService.generateFinalJson({
         prompt: options.prompt,
         speakers: this._cast(),
@@ -177,9 +214,15 @@ export class AudiobookStudioFacade {
     }, 'Audio production plan failed.');
   }
 
-  approveScript(): void {
-    this._scriptApproved.set(true);
-    this._performanceNotesStale.set(true);
+  async approveScript(): Promise<void> {
+    await this.runStep('script-approval', async () => {
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const snapshot = await this.audiobookWorkflowService.approveScript(projectId);
+      this.applyWorkflowSnapshot(snapshot);
+    }, 'Script approval failed.');
   }
 
   async saveProjectTitle(title: string): Promise<void> {
@@ -231,12 +274,11 @@ export class AudiobookStudioFacade {
       this._scriptTurns.set(persistedTurns);
       this.cancelScriptTurnEdit();
       this._scriptApproved.set(false);
-      if (this._annotatedTurns().length > 0) {
-        this._performanceNotesStale.set(true);
-        this._finalRequest.set(null);
-        this._audioProductionPlan.set(null);
-        this.resetAudio();
-      }
+      this._performanceNotesStale.set(this._annotatedTurns().length > 0);
+      this._finalRequest.set(null);
+      this._audioProductionPlan.set(null);
+      this._audioAssetsCurrent.set(false);
+      this.resetAudio();
     }, 'Script turn save failed.');
   }
 
@@ -254,6 +296,8 @@ export class AudiobookStudioFacade {
     this._finalRequest.set(null);
     this._audioProductionPlan.set(null);
     this._projectTitle.set('');
+    this._audioAssets.set([]);
+    this._audioAssetsCurrent.set(false);
     this._castReviewed.set(false);
     this._scriptApproved.set(false);
     this._performanceNotesStale.set(false);
@@ -268,11 +312,32 @@ export class AudiobookStudioFacade {
     this._currentProjectId.set(id);
   }
 
+  hydrateFromSnapshot(snapshot: AudiobookWorkflowSnapshotResponse): void {
+    this.resetPipeline();
+    this.applyWorkflowSnapshot(snapshot);
+  }
+
   private resetAudio(): void {
     this.renderRequestAudioService.abortAll();
     this.renderRequestAudioService.revokeUrls();
     this.fullAudioGenerationService.clearAudio();
     this.onAudioReset?.();
+  }
+
+  private applyWorkflowSnapshot(snapshot: AudiobookWorkflowSnapshotResponse): void {
+    this._currentProjectId.set(snapshot.projectId);
+    this._projectTitle.set(snapshot.title);
+    this._cast.set(snapshot.speakers);
+    this._scriptTurns.set(snapshot.scriptTurns);
+    this._annotatedTurns.set(snapshot.annotatedTurns);
+    this._audioAssets.set(snapshot.audioAssets);
+    this._audioAssetsCurrent.set(snapshot.audioAssetsCurrent);
+    const stage = snapshot.workflowStage;
+    this._castReviewed.set(stage !== 'CAST_REVIEW');
+    this._scriptApproved.set(stage === 'SCRIPT_APPROVED' || stage === 'PERFORMANCE_READY' || stage === 'AUDIO_GENERATED');
+    this._performanceNotesStale.set(snapshot.performanceNotesStale);
+    this._error.set(null);
+    this._loadingAction.set(null);
   }
 
   private async runStep(action: string, step: () => Promise<void>, fallbackMessage: string): Promise<void> {
