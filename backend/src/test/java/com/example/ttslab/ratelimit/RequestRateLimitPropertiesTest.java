@@ -1,4 +1,4 @@
-package com.example.ttslab.chat;
+package com.example.ttslab.ratelimit;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -11,7 +11,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.boot.test.context.runner.ApplicationContextRunner;
 import org.springframework.context.annotation.Configuration;
 
-class ChatRateLimitPropertiesTest {
+class RequestRateLimitPropertiesTest {
     private final ApplicationContextRunner contextRunner = new ApplicationContextRunner()
         .withConfiguration(AutoConfigurations.of(
             ConfigurationPropertiesAutoConfiguration.class,
@@ -23,18 +23,20 @@ class ChatRateLimitPropertiesTest {
     void validValuesBindExactly() {
         contextRunner
             .withPropertyValues(
-                "chat-limit.enabled=true",
-                "chat-limit.window=PT1H",
-                "chat-limit.max-requests=5",
-                "chat-limit.id-header=X-User-Id"
+                "request-limits.enabled=true",
+                "request-limits.window=PT12H",
+                "request-limits.speech-model-limit=600",
+                "request-limits.text-model-multiplier=1",
+                "request-limits.unit=WORDS"
             )
             .run(context -> {
                 assertThat(context).hasNotFailed();
-                ChatRateLimitProperties props = context.getBean(ChatRateLimitProperties.class);
+                RequestRateLimitProperties props = context.getBean(RequestRateLimitProperties.class);
                 assertThat(props.enabled()).isTrue();
-                assertThat(props.window()).isEqualTo(Duration.ofHours(1));
-                assertThat(props.maxRequests()).isEqualTo(5);
-                assertThat(props.idHeader()).isEqualTo("X-User-Id");
+                assertThat(props.window()).isEqualTo(Duration.ofHours(12));
+                assertThat(props.speechModelLimit()).isEqualTo(600L);
+                assertThat(props.textModelMultiplier()).isEqualTo(1L);
+                assertThat(props.unit()).isEqualTo(RequestRateLimitUnit.WORDS);
             });
     }
 
@@ -42,16 +44,17 @@ class ChatRateLimitPropertiesTest {
     void invalidValuesFailBinding() {
         contextRunner
             .withPropertyValues(
-                "chat-limit.enabled=true",
-                "chat-limit.window=PT0S",
-                "chat-limit.max-requests=0",
-                "chat-limit.id-header="
+                "request-limits.enabled=true",
+                "request-limits.window=PT0S",
+                "request-limits.speech-model-limit=0",
+                "request-limits.text-model-multiplier=0",
+                "request-limits.unit=WORDS"
             )
             .run(context -> assertThat(context).hasFailed());
     }
 
     @Configuration(proxyBeanMethods = false)
-    @EnableConfigurationProperties(ChatRateLimitProperties.class)
+    @EnableConfigurationProperties(RequestRateLimitProperties.class)
     static class TestConfig {
     }
 }
