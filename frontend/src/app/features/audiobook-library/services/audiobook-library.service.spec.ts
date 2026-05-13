@@ -60,6 +60,23 @@ describe('AudiobookLibraryService', () => {
     } as any);
   });
 
+  it('updates audiobook titles', async () => {
+    const promise = service.updateTitle('project-1', 'Updated title');
+    const req = httpMock.expectOne('/api/audiobooks/project-1');
+
+    expect(req.request.method).toBe('PATCH');
+    expect(req.request.body).toEqual({ title: 'Updated title' });
+    req.flush({
+      id: 'project-1',
+      title: 'Updated title'
+    });
+
+    await expectAsync(promise).toBeResolvedTo({
+      id: 'project-1',
+      title: 'Updated title'
+    } as any);
+  });
+
   it('throws a stable error message when listing fails', async () => {
     const promise = service.list();
     const req = httpMock.expectOne('/api/audiobooks');

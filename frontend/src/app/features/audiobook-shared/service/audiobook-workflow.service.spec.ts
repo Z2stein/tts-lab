@@ -22,13 +22,14 @@ describe('AudiobookWorkflowService', () => {
   });
 
   it('posts raw dialogue to the speaker voice analysis endpoint', async () => {
-    const baseResponse = await loadTestContractJson<{ speakers: Array<{ speakerName: string; roleDescription: string; voiceSuggestion: string }>; projectId: string }>(
+    const baseResponse = await loadTestContractJson<{ speakers: Array<{ speakerName: string; roleDescription: string; voiceSuggestion: string }>; projectId: string; projectTitle: string }>(
       'audiobook-workflow/speaker-voice-analysis/default/response.json'
     );
     audiobookApiServiceSpy.post.and.resolveTo({
       ...baseResponse,
       speakers: [{ speakerName: 'Alice', roleDescription: 'Detected dialogue speaker', voiceSuggestion: 'Warm voice' }],
-      projectId: 'project-1'
+      projectId: 'project-1',
+      projectTitle: 'The Hidden Signal'
     });
 
     const response = await service.analyzeSpeakers('Alice: Hello');
@@ -40,6 +41,7 @@ describe('AudiobookWorkflowService', () => {
     );
     expect(response.speakers[0].speakerName).toBe('Alice');
     expect(response.projectId).toBe('project-1');
+    expect(response.projectTitle).toBe('The Hidden Signal');
   });
 
   it('posts dialogue and speakers to the speaker split endpoint', async () => {

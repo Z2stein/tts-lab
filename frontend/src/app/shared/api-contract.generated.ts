@@ -81,7 +81,7 @@ export type paths = {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        patch: operations["updateAudiobookTitle"];
         trace?: never;
     };
     "/api/audiobooks/{id}/audio-assets/{assetId}/download": {
@@ -395,6 +395,7 @@ export type components = {
         SpeakerVoiceAnalysisResponse: {
             speakers: components["schemas"]["SpeakerVoiceAnalysisItem"][];
             projectId: string | null;
+            projectTitle: string;
         };
         SpeakerSplitTurn: {
             speaker: string;
@@ -421,6 +422,9 @@ export type components = {
         ScriptPreviewSaveRequest: {
             projectId: string;
             turns: components["schemas"]["SpeakerSplitTurn"][];
+        };
+        UpdateAudiobookTitleRequest: {
+            title: string;
         };
         FinalTtsRequestPreviewRequest: {
             prompt: string;
@@ -565,6 +569,7 @@ export type AnnotatedSpeakerTurn = components['schemas']['AnnotatedSpeakerTurn']
 export type EmotionAnnotationAnalysisRequest = components['schemas']['EmotionAnnotationAnalysisRequest'];
 export type EmotionAnnotationAnalysisResponse = components['schemas']['EmotionAnnotationAnalysisResponse'];
 export type ScriptPreviewSaveRequest = components['schemas']['ScriptPreviewSaveRequest'];
+export type UpdateAudiobookTitleRequest = components['schemas']['UpdateAudiobookTitleRequest'];
 export type FinalTtsRequestPreviewRequest = components['schemas']['FinalTtsRequestPreviewRequest'];
 export type FinalTtsRequestPreviewResponse = components['schemas']['FinalTtsRequestPreviewResponse'];
 export type SingleSpeakerRenderPlanRequest = components['schemas']['SingleSpeakerRenderPlanRequest'];
@@ -681,6 +686,34 @@ export interface operations {
                     "application/json": components["schemas"]["AudiobookDetailResponse"];
                 };
             };
+            404: components["responses"]["NotFoundError"];
+        };
+    };
+    updateAudiobookTitle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAudiobookTitleRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated audiobook detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudiobookDetailResponse"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
             404: components["responses"]["NotFoundError"];
         };
     };

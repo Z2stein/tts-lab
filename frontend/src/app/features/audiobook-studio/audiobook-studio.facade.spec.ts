@@ -1,4 +1,5 @@
 import { TestBed } from '@angular/core/testing';
+import { AudiobookLibraryService } from '../audiobook-library/services/audiobook-library.service';
 import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
 import { AudiobookStudioFacade } from './audiobook-studio.facade';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
@@ -7,6 +8,7 @@ import { RenderRequestAudioService } from '../audiobook-shared/service/render-re
 describe('AudiobookStudioFacade', () => {
   let facade: AudiobookStudioFacade;
   let workflow: jasmine.SpyObj<AudiobookWorkflowService>;
+  let library: jasmine.SpyObj<AudiobookLibraryService>;
   let renderSvc: jasmine.SpyObj<RenderRequestAudioService>;
   let fullSvc: jasmine.SpyObj<FullAudioGenerationService>;
 
@@ -18,6 +20,7 @@ describe('AudiobookStudioFacade', () => {
       'analyzeSpeakers', 'splitDialogue', 'annotateEmotions',
       'saveScriptPreview', 'generateFinalJson', 'planSingleSpeakerRenderRequests',
     ]);
+    library = jasmine.createSpyObj<AudiobookLibraryService>('AudiobookLibraryService', ['updateTitle']);
     renderSvc = jasmine.createSpyObj<RenderRequestAudioService>('RenderRequestAudioService', ['abortAll', 'revokeUrls']);
     fullSvc = jasmine.createSpyObj<FullAudioGenerationService>('FullAudioGenerationService', ['cancel', 'clearAudio']);
 
@@ -25,6 +28,7 @@ describe('AudiobookStudioFacade', () => {
       providers: [
         AudiobookStudioFacade,
         { provide: AudiobookWorkflowService, useValue: workflow },
+        { provide: AudiobookLibraryService, useValue: library },
         { provide: RenderRequestAudioService, useValue: renderSvc },
         { provide: FullAudioGenerationService, useValue: fullSvc },
       ],
@@ -35,7 +39,7 @@ describe('AudiobookStudioFacade', () => {
 
   describe('analyzeStory', () => {
     it('sets loadingAction, calls AudiobookWorkflowService, updates cast, and clears error on success', async () => {
-      workflow.analyzeSpeakers.and.resolveTo({ speakers: [maraItem], projectId: 'project-1' });
+      workflow.analyzeSpeakers.and.resolveTo({ speakers: [maraItem], projectId: 'project-1', projectTitle: 'The Hidden Signal' });
 
       const promise = facade.analyzeStory('story text');
       expect(facade.loadingAction()).toBe('cast');
@@ -45,6 +49,7 @@ describe('AudiobookStudioFacade', () => {
       expect(workflow.analyzeSpeakers).toHaveBeenCalledWith('story text');
       expect(facade.cast()).toEqual([maraItem]);
       expect(facade.currentProjectId()).toBe('project-1');
+      expect(facade.projectTitle()).toBe('The Hidden Signal');
       expect(facade.loadingAction()).toBeNull();
       expect(facade.error()).toBeNull();
     });
@@ -69,11 +74,12 @@ describe('AudiobookStudioFacade', () => {
       facade.setScriptApproved(true);
       facade.setPerformanceNotesStale(false);
 
-      workflow.analyzeSpeakers.and.resolveTo({ speakers: [maraItem], projectId: 'project-1' });
+      workflow.analyzeSpeakers.and.resolveTo({ speakers: [maraItem], projectId: 'project-1', projectTitle: 'The Hidden Signal' });
       await facade.analyzeStory('new story');
 
       expect(facade.cast()).toEqual([maraItem]);
       expect(facade.currentProjectId()).toBe('project-1');
+      expect(facade.projectTitle()).toBe('The Hidden Signal');
       expect(facade.scriptTurns()).toEqual([]);
       expect(facade.annotatedTurns()).toEqual([]);
       expect(facade.finalRequest()).toBeNull();
@@ -210,6 +216,33 @@ describe('AudiobookStudioFacade', () => {
       facade.approveScript();
       expect(facade.scriptApproved()).toBeTrue();
       expect(facade.performanceNotesStale()).toBeTrue();
+    });
+  });
+
+  describe('saveProjectTitle', () => {
+    it('persists the edited title and updates local state', async () => {
+      facade.setCurrentProjectId('project-1');
+      library.updateTitle.and.resolveTo({
+        id: 'project-1',
+        title: 'New Title',
+        status: 'NEEDS_REVIEW',
+        speechSegmentCount: 0,
+        speakerCount: null,
+        totalDurationSeconds: null,
+        createdAt: '2026-05-12T10:00:00Z',
+        updatedAt: '2026-05-12T10:01:00Z',
+        speechSegments: [],
+        audioAssets: []
+      } as never);
+
+      const promise = facade.saveProjectTitle('New Title');
+      expect(facade.loadingAction()).toBe('title');
+      await promise;
+
+      expect(library.updateTitle).toHaveBeenCalledWith('project-1', 'New Title');
+      expect(facade.projectTitle()).toBe('New Title');
+      expect(facade.loadingAction()).toBeNull();
+      expect(facade.error()).toBeNull();
     });
   });
 

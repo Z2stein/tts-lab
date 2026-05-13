@@ -48,6 +48,49 @@ test('audiobook studio shows cast cards after story analysis succeeds', async ({
   await expect(page.getByText('Detected character')).toHaveCount(2);
   await expect(page.getByRole('heading', { name: 'Mara' })).toBeVisible();
   await expect(page.getByText('Warm alto voice')).toBeVisible();
+  await expect(page.getByText('The Hidden Signal')).toBeVisible();
+});
+
+test('audiobook studio lets the user edit and persist the AI project title', async ({ context, page }) => {
+  await authenticate(context, page);
+  await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-voice-analysis/cast-analysis/response.json'))
+    });
+  });
+  await page.route('**/api/audiobooks/project-1', async (route) => {
+    const body = route.request().postDataJSON() as { title?: string };
+    expect(body.title).toBe('Updated Signal');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        id: 'project-1',
+        title: body.title,
+        status: 'NEEDS_REVIEW',
+        speechSegmentCount: 0,
+        speakerCount: null,
+        totalDurationSeconds: null,
+        createdAt: '2026-05-12T10:00:00Z',
+        updatedAt: '2026-05-12T10:01:00Z',
+        speechSegments: [],
+        audioAssets: []
+      })
+    });
+  });
+
+  await page.goto('/audiobook-studio');
+  await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
+  await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
+
+  await expect(page.getByText('The Hidden Signal')).toBeVisible();
+  await page.getByTestId('edit-project-title').click();
+  await page.getByTestId('project-title-input').fill('Updated Signal');
+  await page.getByTestId('save-project-title').click();
+
+  await expect(page.getByTestId('project-title-display')).toHaveText('Updated Signal');
 });
 
 test('audiobook studio shows script preview turns after cast analysis continues', async ({ context, page }) => {

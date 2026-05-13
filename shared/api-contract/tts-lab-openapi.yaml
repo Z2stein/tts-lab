@@ -87,6 +87,32 @@ paths:
                 $ref: '#/components/schemas/AudiobookDetailResponse'
         '404':
           $ref: '#/components/responses/NotFoundError'
+    patch:
+      tags: [Audiobooks]
+      operationId: updateAudiobookTitle
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAudiobookTitleRequest'
+      responses:
+        '200':
+          description: Updated audiobook detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudiobookDetailResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
   /api/audiobooks/{id}/audio-assets/{assetId}/download:
     get:
@@ -737,7 +763,7 @@ components:
 
     SpeakerVoiceAnalysisResponse:
       type: object
-      required: [speakers, projectId]
+      required: [speakers, projectId, projectTitle]
       properties:
         speakers:
           type: array
@@ -746,6 +772,8 @@ components:
         projectId:
           type: string
           nullable: true
+        projectTitle:
+          type: string
       additionalProperties: false
 
     SpeakerSplitTurn:
@@ -820,6 +848,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SpeakerSplitTurn'
+      additionalProperties: false
+
+    UpdateAudiobookTitleRequest:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 255
       additionalProperties: false
 
     FinalTtsRequestPreviewRequest:

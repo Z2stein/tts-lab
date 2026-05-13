@@ -4,6 +4,7 @@ import static com.example.ttslab.contract.OpenApiContractAssertions.assertIntera
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -11,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.example.ttslab.audiobooks.controller.AudiobookController;
 import com.example.ttslab.audiobooks.dto.AudiobookDetailResponse;
 import com.example.ttslab.audiobooks.dto.AudiobookSummaryResponse;
+import com.example.ttslab.audiobooks.controller.UpdateAudiobookTitleRequest;
 import com.example.ttslab.audiobooks.model.AudioAsset;
 import com.example.ttslab.audiobooks.model.AudioAssetStatus;
 import com.example.ttslab.audiobooks.model.AudioAssetType;
@@ -93,6 +95,31 @@ class AudiobookControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value("project-1"))
             .andExpect(jsonPath("$.title").value("The Amber Signal"))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void updatesCurrentUsersAudiobookTitle() throws Exception {
+        when(audiobookLibraryService.updateTitle(user, "project-1", "New Title")).thenReturn(new AudiobookDetailResponse(
+            "project-1",
+            "New Title",
+            AudiobookProjectStatus.NEEDS_REVIEW,
+            2,
+            3,
+            185,
+            Instant.parse("2026-05-09T09:30:00Z"),
+            Instant.parse("2026-05-09T10:00:00Z"),
+            List.of(),
+            List.of()
+        ));
+
+        MvcResult result = mockMvc.perform(patch("/api/audiobooks/project-1")
+                .contentType("application/json")
+                .content("{\"title\":\"New Title\"}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.title").value("New Title"))
             .andReturn();
 
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());

@@ -19,6 +19,16 @@
       (scrollTo)="scrollToSection($event)"
     ></app-workflow-progress>
 
+    <app-project-title-editor
+      [projectTitleControl]="projectTitleControl"
+      [projectTitleEditing]="projectTitleEditing"
+      [projectTitleVisible]="projectTitleEditing || projectTitleControl.value.trim().length > 0"
+      [loadingAction]="loadingAction"
+      (startProjectTitleEdit)="startProjectTitleEdit()"
+      (saveProjectTitle)="saveProjectTitle()"
+      (cancelProjectTitleEdit)="cancelProjectTitleEdit()"
+    ></app-project-title-editor>
+
     <app-story-input
       id="story-section"
       class="step-card story-card anchor-section"

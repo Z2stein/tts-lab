@@ -77,7 +77,7 @@ public class SpeakerVoiceAnalysisService {
     }
 
     public SpeakerVoiceAnalysisResponse analyze(String rawDialogue) {
-        return analyze(rawDialogue, null);
+        return analyzeInternal(rawDialogue);
     }
 
     @Transactional
@@ -85,7 +85,7 @@ public class SpeakerVoiceAnalysisService {
         SpeakerVoiceAnalysisResponse response = analyzeInternal(rawDialogue);
         if (projectId != null && !projectId.isBlank()) {
             syncProjectCharacters(projectId, response.speakers());
-            return new SpeakerVoiceAnalysisResponse(response.speakers(), projectId);
+            return new SpeakerVoiceAnalysisResponse(response.speakers(), projectId, response.projectTitle());
         }
         return response;
     }
@@ -93,17 +93,21 @@ public class SpeakerVoiceAnalysisService {
     private SpeakerVoiceAnalysisResponse analyzeInternal(String rawDialogue) {
         if (rawDialogue == null || rawDialogue.isBlank()) {
             log.debug("chatbotProvider:" + chatbotProvider);
-            return new SpeakerVoiceAnalysisResponse(List.of(), null);
+            return new SpeakerVoiceAnalysisResponse(List.of(), null, fallbackService.suggestProjectTitle(rawDialogue));
         }
 
         if (!PROVIDER_GEMINI.equals(chatbotProvider)) {
             log.debug("chatbotProvider:" + chatbotProvider);
-            return new SpeakerVoiceAnalysisResponse(fallbackService.analyzeSpeakers(rawDialogue), null);
+            return new SpeakerVoiceAnalysisResponse(
+                fallbackService.analyzeSpeakers(rawDialogue),
+                null,
+                fallbackService.suggestProjectTitle(rawDialogue)
+            );
         }
 
         try {
             String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerVoiceAnalysisPrompt(rawDialogue), null)).answer();
-            return new SpeakerVoiceAnalysisResponse(parseProviderAnswer(answer), null);
+            return parseProviderAnswer(answer, rawDialogue);
         } catch (ApiException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -117,7 +121,7 @@ public class SpeakerVoiceAnalysisService {
         }
     }
 
-    private List<SpeakerVoiceAnalysisItem> parseProviderAnswer(String answer) {
+    private SpeakerVoiceAnalysisResponse parseProviderAnswer(String answer, String rawDialogue) {
         log.debug("start parsing answer:\n " + answer);
 
         if (answer == null || answer.isBlank()) {
@@ -125,7 +129,8 @@ public class SpeakerVoiceAnalysisService {
         }
 
         try {
-            JsonNode speakers = objectMapper.readTree(AudiobookWorkflowJson.stripMarkdownFence(answer)).path("speakers");
+            JsonNode root = objectMapper.readTree(AudiobookWorkflowJson.stripMarkdownFence(answer));
+            JsonNode speakers = root.path("speakers");
             if (!speakers.isArray()) {
                 throw invalidProviderResponse(null);
             }
@@ -142,12 +147,23 @@ public class SpeakerVoiceAnalysisService {
             if (items.isEmpty()) {
                 throw invalidProviderResponse(null);
             }
-            return items;
+            String projectTitle = normalizeProjectTitle(root.path("projectTitle").asText(null), rawDialogue);
+            return new SpeakerVoiceAnalysisResponse(items, null, projectTitle);
         } catch (ApiException ex) {
             throw ex;
         } catch (Exception ex) {
             throw invalidProviderResponse(ex);
         }
+    }
+
+    private String normalizeProjectTitle(String projectTitle, String rawDialogue) {
+        if (projectTitle != null) {
+            String trimmed = projectTitle.trim();
+            if (!trimmed.isBlank()) {
+                return trimmed;
+            }
+        }
+        return fallbackService.suggestProjectTitle(rawDialogue);
     }
 
     public List<SpeakerCharacter> syncProjectCharacters(String projectId, List<SpeakerVoiceAnalysisItem> speakers) {

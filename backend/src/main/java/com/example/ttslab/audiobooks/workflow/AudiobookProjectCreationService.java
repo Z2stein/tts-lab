@@ -17,13 +17,18 @@ public class AudiobookProjectCreationService {
     }
 
     public AudiobookProject createProject(String userId) {
+        return createProject(userId, "Untitled audiobook");
+    }
+
+    public AudiobookProject createProject(String userId, String title) {
         String projectId = UUID.randomUUID().toString();
         Instant now = Instant.now();
+        String safeTitle = title == null || title.isBlank() ? "Untitled audiobook" : title.trim();
 
         AudiobookProject project = new AudiobookProject(
                 projectId,
                 userId,
-                "Speaker analysis",
+                safeTitle,
                 AudiobookProjectStatus.DRAFT,
                 "voice_analysis",
                 0,

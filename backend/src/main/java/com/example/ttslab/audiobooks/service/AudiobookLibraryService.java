@@ -77,6 +77,20 @@ public class AudiobookLibraryService {
     public AudiobookDetailResponse detail(CurrentUser user, String projectId) {
         AudiobookProject project = repository.findProjectForUser(projectId, user.id())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIOBOOK_NOT_FOUND", "The requested audiobook was not found."));
+        return toDetailResponse(project);
+    }
+
+    @Transactional
+    public AudiobookDetailResponse updateTitle(CurrentUser user, String projectId, String title) {
+        AudiobookProject project = repository.findProjectForUser(projectId, user.id())
+            .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIOBOOK_NOT_FOUND", "The requested audiobook was not found."));
+        project.setTitle(normalizeTitle(title));
+        project.setUpdatedAt(Instant.now());
+        projectRepository.save(project);
+        return toDetailResponse(project);
+    }
+
+    private AudiobookDetailResponse toDetailResponse(AudiobookProject project) {
         return new AudiobookDetailResponse(
             project.getId(),
             project.getTitle(),
@@ -104,6 +118,20 @@ public class AudiobookLibraryService {
         );
     }
 
+    private String normalizeTitle(String title) {
+        if (title == null) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "AUDIOBOOK_TITLE_INVALID", "The project title is required.");
+        }
+        String trimmed = title.trim();
+        if (trimmed.isBlank()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "AUDIOBOOK_TITLE_INVALID", "The project title is required.");
+        }
+        if (trimmed.length() > 255) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "AUDIOBOOK_TITLE_INVALID", "The project title is too long.");
+        }
+        return trimmed;
+    }
+
     public AudioAsset assetForDownload(CurrentUser user, String projectId, String assetId) {
         AudioAsset asset = repository.findAssetForUser(projectId, assetId, user.id())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIO_ASSET_NOT_FOUND", "The requested audio asset was not found."));
@@ -125,11 +153,10 @@ public class AudiobookLibraryService {
     public AudiobookProject createProjectForGeneration(CurrentUser user) {
         String projectId = UUID.randomUUID().toString();
         Instant now = Instant.now();
-        String timestamp = now.toString();
         AudiobookProject project = new AudiobookProject(
             projectId,
             user.id(),
-            "Generated audiobook " + timestamp,
+            "Generated audiobook",
             AudiobookProjectStatus.NEEDS_REVIEW,
             "AUDIOBOOK_WORKFLOW",
             0,

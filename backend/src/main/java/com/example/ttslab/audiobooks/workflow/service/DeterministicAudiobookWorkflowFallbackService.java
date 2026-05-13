@@ -1,21 +1,21 @@
 package com.example.ttslab.audiobooks.workflow.service;
 
+import com.example.ttslab.audiobooks.workflow.AnnotatedSpeakerTurn;
+import com.example.ttslab.audiobooks.workflow.SpeakerSplitTurn;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisItem;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.example.ttslab.audiobooks.workflow.AnnotatedSpeakerTurn;
-import com.example.ttslab.audiobooks.workflow.SpeakerSplitTurn;
-import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
-import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisItem;
 import org.springframework.stereotype.Service;
 
 @Service
 public class DeterministicAudiobookWorkflowFallbackService {
-    private static final Pattern SPEAKER_LINE = Pattern.compile("^\\s*([\\p{L}][\\p{L}0-9 ._'’-]{0,40})\\s*[:：-]\\s+(.+)\\s*$");
+    private static final Pattern SPEAKER_LINE = Pattern.compile("^\\s*([\\p{L}][\\p{L}0-9 ._'â€™-]{0,40})\\s*[:ï¼š-]\\s+(.+)\\s*$");
+    private static final Pattern LEADING_NON_TITLE_CHARS = Pattern.compile("^[^\\p{L}\\p{N}]+");
     private static final List<SpeakerVoice> MOCK_VOICES = List.of(SpeakerVoice.values());
 
     public List<SpeakerVoiceAnalysisItem> analyzeSpeakers(String rawDialogue) {
@@ -43,6 +43,46 @@ public class DeterministicAudiobookWorkflowFallbackService {
             MOCK_VOICES.get(index % MOCK_VOICES.size())
         )));
         return items;
+    }
+
+    public String suggestProjectTitle(String rawDialogue) {
+        String candidate = firstMeaningfulLine(rawDialogue);
+        if (candidate.isBlank()) {
+            return "Untitled audiobook";
+        }
+
+        Matcher speakerMatcher = SPEAKER_LINE.matcher(candidate);
+        if (speakerMatcher.matches()) {
+            candidate = speakerMatcher.group(2).trim();
+        }
+
+        String[] words = candidate
+            .replaceAll("[^\\p{L}\\p{N} ]+", " ")
+            .trim()
+            .split("\\s+");
+
+        if (words.length == 0 || words[0].isBlank()) {
+            return "Untitled audiobook";
+        }
+
+        int limit = Math.min(6, words.length);
+        StringBuilder title = new StringBuilder();
+        for (int i = 0; i < limit; i++) {
+            String word = words[i];
+            if (word.isBlank()) {
+                continue;
+            }
+            if (title.length() > 0) {
+                title.append(' ');
+            }
+            title.append(Character.toUpperCase(word.charAt(0)));
+            if (word.length() > 1) {
+                title.append(word.substring(1).toLowerCase());
+            }
+        }
+
+        String normalized = title.toString().trim();
+        return normalized.isBlank() ? "Untitled audiobook" : normalized;
     }
 
     public List<SpeakerSplitTurn> splitDialogue(String rawDialogue) {
@@ -118,6 +158,16 @@ public class DeterministicAudiobookWorkflowFallbackService {
         }
         return "[calm] " + marked;
     }
+
+    private String firstMeaningfulLine(String rawDialogue) {
+        if (rawDialogue == null || rawDialogue.isBlank()) {
+            return "";
+        }
+        return rawDialogue.lines()
+            .map(String::trim)
+            .filter(line -> !line.isBlank())
+            .map(line -> LEADING_NON_TITLE_CHARS.matcher(line).replaceFirst(""))
+            .findFirst()
+            .orElse("");
+    }
 }
-
-

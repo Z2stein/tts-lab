@@ -29,4 +29,15 @@ export class AudiobookLibraryService {
       throw error;
     }
   }
+
+  async updateTitle(id: string, title: string): Promise<AudiobookDetailResponse> {
+    try {
+      return await firstValueFrom(this.http.patch<AudiobookDetailResponse>(`/api/audiobooks/${encodeURIComponent(id)}`, { title }));
+    } catch (error) {
+      if (error instanceof HttpErrorResponse) {
+        throw new Error(`Audiobook title update failed (HTTP ${error.status}).`);
+      }
+      throw error;
+    }
+  }
 }

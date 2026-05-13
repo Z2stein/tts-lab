@@ -79,7 +79,14 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                 Analyze this prose/dialogue text for the audiobook workflow.
                 
                 Return only JSON with this shape:
-                {"speakers":[{"speakerName":"...","roleDescription":"...","voiceSuggestion":"..."}]}
+                {"projectTitle":"...","speakers":[{"speakerName":"...","roleDescription":"...","voiceSuggestion":"..."}]}
+
+                Project title rules:
+                - Generate a short, compelling audiobook project title.
+                - Prefer 3 to 8 words.
+                - Use title case.
+                - Do not wrap the title in quotes.
+                - Do not repeat the full story text.
                 
                 Important:
                 - If the text contains narration, descriptions, action beats, dialogue attribution, or non-quoted prose, you MUST include a speaker named "Narrator".

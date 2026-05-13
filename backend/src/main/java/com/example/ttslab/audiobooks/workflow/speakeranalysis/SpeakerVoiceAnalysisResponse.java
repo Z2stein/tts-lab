@@ -4,7 +4,8 @@ import java.util.List;
 
 public record SpeakerVoiceAnalysisResponse(
     List<SpeakerVoiceAnalysisItem> speakers,
-    String projectId
+    String projectId,
+    String projectTitle
 ) {
 }
 

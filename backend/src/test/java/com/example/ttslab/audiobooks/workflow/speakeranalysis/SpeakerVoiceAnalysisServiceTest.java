@@ -60,6 +60,7 @@ class SpeakerVoiceAnalysisServiceTest {
         SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello\nBob: Hi", projectId);
 
         assertThat(response.projectId()).isEqualTo(projectId);
+        assertThat(response.projectTitle()).isEqualTo("Hello");
         assertThat(response.speakers()).extracting(SpeakerVoiceAnalysisItem::speakerName).containsExactly("Alice", "Bob");
 
         @SuppressWarnings("unchecked")
@@ -98,6 +99,7 @@ class SpeakerVoiceAnalysisServiceTest {
         SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello");
 
         assertThat(response.projectId()).isNull();
+        assertThat(response.projectTitle()).isEqualTo("Hello");
         verify(speakerCharacterRepository, org.mockito.Mockito.never()).saveAll(anyList());
         verify(speakerCharacterRepository, org.mockito.Mockito.never()).deleteByProjectId(anyString());
     }

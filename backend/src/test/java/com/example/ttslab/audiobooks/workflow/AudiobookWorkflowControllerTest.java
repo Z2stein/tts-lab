@@ -146,10 +146,10 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void speakerVoiceAnalysisReturnsSuggestedVoices() throws Exception {
-        when(speakerVoiceAnalysisService.analyze("Alice: Hello", "test-project-1")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
+        when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
             new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)
-        ), "test-project-1"));
-        when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
+        ), null, "The Hidden Signal"));
+        when(audiobookProjectCreationService.createProject("u1", "The Hidden Signal")).thenReturn(testProject);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -158,9 +158,10 @@ class AudiobookWorkflowControllerTest {
             .andExpect(content().json(readText("audiobook-workflow/speaker-voice-analysis/default/response.json")))
             .andReturn();
 
-        InOrder inOrder = org.mockito.Mockito.inOrder(audiobookProjectCreationService, speakerVoiceAnalysisService);
-        inOrder.verify(audiobookProjectCreationService).createProject("u1");
-        inOrder.verify(speakerVoiceAnalysisService).analyze("Alice: Hello", "test-project-1");
+        InOrder inOrder = org.mockito.Mockito.inOrder(speakerVoiceAnalysisService, audiobookProjectCreationService);
+        inOrder.verify(speakerVoiceAnalysisService).analyze("Alice: Hello");
+        inOrder.verify(audiobookProjectCreationService).createProject("u1", "The Hidden Signal");
+        verify(speakerVoiceAnalysisService).syncProjectCharacters("test-project-1", List.of(new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)));
         verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq("mock"), eq("Alice: Hello"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
@@ -299,7 +300,6 @@ class AudiobookWorkflowControllerTest {
     void speakerVoiceAnalysisRateLimitedReturns429WithRetryAfter() throws Exception {
         when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.TEXT_MODEL), eq(1L)))
             .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, false, 600, 600, 0, 1, 42, 1, RequestRateLimitUnit.WORDS));
-        when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -314,14 +314,13 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void apiExceptionReturnsStructuredErrorResponse() throws Exception {
-        when(speakerVoiceAnalysisService.analyze("Alice: Hello", "test-project-1")).thenThrow(new ApiException(
+        when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenThrow(new ApiException(
             HttpStatus.BAD_GATEWAY,
             "AUDIOBOOK_WORKFLOW_PROVIDER_FAILED",
             "The speaker voice analysis provider is currently unavailable. Please try again later.",
             null,
             new RuntimeException("provider timeout")
         ));
-        when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/speaker-voice-analysis")
                 .header("X-Request-Id", "test-request-1")
@@ -339,8 +338,7 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void unexpectedExceptionReturnsSafeStructuredErrorResponse() throws Exception {
-        when(speakerVoiceAnalysisService.analyze("Alice: Hello", "test-project-1")).thenThrow(new IllegalStateException("database-password=secret"));
-        when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
+        when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenThrow(new IllegalStateException("database-password=secret"));
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)

@@ -1,4 +1,4 @@
-# tts-lab
+Ôªø# tts-lab
 
 Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
@@ -7,7 +7,7 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 ## Inhaltsverzeichnis
 
 - [Repo-Onboarding](#repo-onboarding-kurzer-config-block)
-- [Whatís new](#whats-new)
+- [What‚Äôs new](#whats-new)
 - [Deployment-Status](#deployment-status)
 - [Runtime-Architektur](#runtime-architektur)
 - [Ziel-Umgebungen](#ziel-umgebungen)
@@ -15,7 +15,7 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 - [CI/CD (GitHub Actions)](#cicd-github-actions)
 - [Lokal entwickeln](#lokal-entwickeln)
 - [Database and prompt history](#database-and-prompt-history)
-- [Akzeptanzkriterien (Textl‰nge)](#akzeptanzkriterien-textl‰nge)
+- [Akzeptanzkriterien (Textl√§nge)](#akzeptanzkriterien-textl√§nge)
 - [Health endpoints](#health-endpoints)
 - [API error responses](#api-error-responses)
 - [Authentication modes](#authentication-modes)
@@ -23,23 +23,23 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 - [Chatbot (MVP)](#chatbot-mvp)
 - [Request limits (MVP)](#request-limits-mvp)
 
-## Whatís new
+## What‚Äôs new
 
 This chat upgraded the existing Audiobook Studio MVP from an internal workflow page into a more premium, cinematic AI audiobook studio experience:
 
-- `/audiobook-studio` now opens with a frontend-only hero section: ìGive every character in your story a voice.î
+- `/audiobook-studio` now opens with a frontend-only hero section: ‚ÄúGive every character in your story a voice.‚Äù
 - The first viewport shows the intended product promise visually: pasted story text flows into a detected cast card and an audio waveform preview.
 - The hero includes `Create audio story` and `Listen to demo` actions; the primary CTA scrolls to and focuses the existing story textarea.
-- A new ìFrom plain text to performed storyî section explains the four-step journey: paste story, discover cast, direct performance, generate audio.
+- A new ‚ÄúFrom plain text to performed story‚Äù section explains the four-step journey: paste story, discover cast, direct performance, generate audio.
 - The existing functional workflow remains below the motivational sections and still uses the same Angular component state and backend APIs.
 - Detected cast cards now feel more like creative character/voice cards, with initials, stronger hierarchy, voice badges, and subtle per-card accent glows.
 - Technical production fields such as language code, model name, and audio encoding are tucked behind `Advanced production settings`, while the story direction stays visible.
-- This was a frontend-only UX/UI pass. No backend endpoints, database tables, provider behavior, Helm config, or business logic changed.
+- This feature adds backend workflow changes, a persisted project-title update endpoint, contract updates, and matching frontend behavior.
 - Verification run for this chat: `npm run build`, `npm run test -- --watch=false --browsers=ChromeHeadless`, and `npm run test:e2e -- e2e/audiobook-studio.spec.ts`.
 
 ## Repo-Onboarding (kurzer Config-Block)
 
-F¸r ein neues Repository muss nur ein kleiner Satz an Variablen gesetzt werden (statt Shell-Logik zu ‰ndern):
+F√ºr ein neues Repository muss nur ein kleiner Satz an Variablen gesetzt werden (statt Shell-Logik zu √§ndern):
 
 ```text
 # GitHub Actions Repository Variables (Settings ? Secrets and variables ? Actions)
@@ -51,8 +51,8 @@ HETZNER_PUBLIC_IP=<server-public-ip> # required deployment target (SSH/k3s serve
 Naming-Konventionen:
 
 - `APP_SLUG` in `kebab-case`.
-- `BASE_DOMAIN` ist die ˆffentliche Wildcard-Domain f¸r Ingress-Hosts.
-- `HETZNER_PUBLIC_IP` bleibt nur der SSH/k3s-Zielserver und wird nicht mehr in ˆffentlichen Hostnamen verwendet.
+- `BASE_DOMAIN` ist die √∂ffentliche Wildcard-Domain f√ºr Ingress-Hosts.
+- `HETZNER_PUBLIC_IP` bleibt nur der SSH/k3s-Zielserver und wird nicht mehr in √∂ffentlichen Hostnamen verwendet.
 - Aus `APP_SLUG` werden automatisch abgeleitet:
   - Namespaces/Releases: `<app-slug>`, `<app-slug>-dev`, `<app-slug>-<branch-slug>`
   - Hosts: `<app-slug>.<base-domain>`, `dev.<app-slug>.<base-domain>`, `<branch-slug>.<app-slug>.<base-domain>`
@@ -65,11 +65,11 @@ Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
 
 ## Deployment-Status
 
-**Prim‰rer Deployment-Weg ist k3s + Helm.**
+**Prim√§rer Deployment-Weg ist k3s + Helm.**
 
 - Keine Docker-Compose-Deployments mehr.
 - Kein Docker-Traefik-Runtime-Setup mehr.
-- Dockerfiles bleiben f¸r den Image-Build erhalten.
+- Dockerfiles bleiben f√ºr den Image-Build erhalten.
 
 ## Runtime-Architektur
 
@@ -85,7 +85,7 @@ Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
   - `/oauth2` ? Backend Service
   - `/login/oauth2` ? Backend Service
   - `/logout` ? Backend Service
-- Backend-Alias-Service `backend` bleibt standardm‰ﬂig aktiv f¸r `http://backend:8080` im Frontend-Container.
+- Backend-Alias-Service `backend` bleibt standardm√§√üig aktiv f√ºr `http://backend:8080` im Frontend-Container.
 
 ### In-Repo TLS activation
 
@@ -95,8 +95,8 @@ TLS im Ingress kann direkt per Helm-Values aktiviert werden:
 - `ingress.tls.secretName=<tls-secret-name>`
 - `ingress.annotations.cert-manager.io/cluster-issuer=<issuer-name>` (z. B. `letsencrypt-prod`)
 
-Der Ingress verwendet weiterhin `ingress.host` als Host f¸r `rules` und TLS-Mapping.
-Externe Voraussetzungen sind im Abschnitt **HTTPS-Voraussetzungen auﬂerhalb des Repos (Status)** dokumentiert.
+Der Ingress verwendet weiterhin `ingress.host` als Host f√ºr `rules` und TLS-Mapping.
+Externe Voraussetzungen sind im Abschnitt **HTTPS-Voraussetzungen au√üerhalb des Repos (Status)** dokumentiert.
 
 ## Ziel-Umgebungen
 
@@ -115,13 +115,13 @@ Externe Voraussetzungen sind im Abschnitt **HTTPS-Voraussetzungen auﬂerhalb des 
 
 ## Branch-Slug-Regel
 
-F¸r Feature-Branches im Workflow:
+F√ºr Feature-Branches im Workflow:
 
 1. Prefix entfernen: `feature/`, `bugfix/`, `hotfix/`, `release/`
 2. lowercase
 3. Sonderzeichen ? `-`
 4. Mehrfach-`-` reduzieren
-5. f¸hrende/abschlieﬂende `-` entfernen
+5. f√ºhrende/abschlie√üende `-` entfernen
 6. max. 10 Zeichen
 7. falls abgeschnittenes Ende `-` ist: entfernen
 
@@ -142,23 +142,23 @@ Ablauf bei Push:
 3. Frontend/Backend Image bauen
 4. Images nach GHCR pushen
 5. SSH auf Hetzner
-6. Den effektiven Provider (`mock` oder `gemini`) einmal berechnen und durchg‰ngig f¸r Secret-Validierung, Secret-Reconciliation und Helm verwenden
+6. Den effektiven Provider (`mock` oder `gemini`) einmal berechnen und durchg√§ngig f√ºr Secret-Validierung, Secret-Reconciliation und Helm verwenden
 7. Namespace idempotent anlegen/aktualisieren
 8. `ghcr-pull-secret` idempotent im Namespace anlegen/aktualisieren
 9. Wenn `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` gesetzt ist, die Google-TTS-Credentials vor dem Helm-Upgrade als Kubernetes Secret anlegen/aktualisieren; der Chat-Provider `gemini` funktioniert auch ohne dieses optionale TTS-Secret
-10. `helm upgrade --install --wait --timeout 5m` ausf¸hren
+10. `helm upgrade --install --wait --timeout 5m` ausf√ºhren
 11. Backend- und Frontend-Deployments per `kubectl rollout status` abwarten
 12. Backend- und Frontend-Pods per `kubectl wait --for=condition=Ready pod -l ...` abwarten
-13. Deployment-URL verˆffentlichen; parallel zum Deployment-Pfad f¸hrt der separate Job `e2e-local` die mandatory Playwright-E2E-Tests lokal im GitHub-Actions-Runner mit Playwright-Webservern aus, inklusive realem Frontend-Backend-Check ohne Mock f¸r die gepr¸fte Backend-Route
+13. Deployment-URL ver√∂ffentlichen; parallel zum Deployment-Pfad f√ºhrt der separate Job `e2e-local` die mandatory Playwright-E2E-Tests lokal im GitHub-Actions-Runner mit Playwright-Webservern aus, inklusive realem Frontend-Backend-Check ohne Mock f√ºr die gepr√ºfte Backend-Route
 
-Die Pipeline schl‰gt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn der separate `e2e-local`-Job fehlschl‰gt. Feste Sleep-Zeiten sind nicht der prim‰re Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend).
+Die Pipeline schl√§gt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn der separate `e2e-local`-Job fehlschl√§gt. Feste Sleep-Zeiten sind nicht der prim√§re Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend).
 
-Der lokale E2E-Job l‰uft mit `E2E_BASE_URL=http://127.0.0.1:4200` und `E2E_USE_LOCAL_SERVERS=true` (der Standard w‰re ebenfalls lokal), startet also Backend und Frontend ¸ber die bestehende Playwright-`webServer`-Konfiguration. Vor den Playwright-Tests laufen dort zus‰tzlich die Frontend-Unit-Tests und der Frontend-Build. Er enth‰lt weiterhin deterministische UI-Tests mit gemockten Backend-Routen und zus‰tzlich `real-backend-health.spec.ts`. Dieser reale Integrationscheck l‰dt das lokale Frontend und ruft aus dem Browser-Kontext `GET /api/health` auf. Die Route ist bewusst stabil, benˆtigt keine Anmeldung, keine CSRF-Token und keine externen Provider-Secrets. Der Test schl‰gt fehl, wenn der Browser das lokal gestartete Backend nicht erreicht, wenn die Antwort kein `200 {"status":"ok"}` ist, oder wenn das Frontend die Antwort nicht verarbeiten und anzeigen kann.
+Der lokale E2E-Job l√§uft mit `E2E_BASE_URL=http://127.0.0.1:4200` und `E2E_USE_LOCAL_SERVERS=true` (der Standard w√§re ebenfalls lokal), startet also Backend und Frontend √ºber die bestehende Playwright-`webServer`-Konfiguration. Vor den Playwright-Tests laufen dort zus√§tzlich die Frontend-Unit-Tests und der Frontend-Build. Er enth√§lt weiterhin deterministische UI-Tests mit gemockten Backend-Routen und zus√§tzlich `real-backend-health.spec.ts`. Dieser reale Integrationscheck l√§dt das lokale Frontend und ruft aus dem Browser-Kontext `GET /api/health` auf. Die Route ist bewusst stabil, ben√∂tigt keine Anmeldung, keine CSRF-Token und keine externen Provider-Secrets. Der Test schl√§gt fehl, wenn der Browser das lokal gestartete Backend nicht erreicht, wenn die Antwort kein `200 {"status":"ok"}` ist, oder wenn das Frontend die Antwort nicht verarbeiten und anzeigen kann.
 
 Cleanup:
 
 - Bei Branch-Delete oder PR-Close werden Feature-Releases + Namespace entfernt.
-- `main` und `develop` werden explizit nie gelˆscht.
+- `main` und `develop` werden explizit nie gel√∂scht.
 
 ## Lokal entwickeln
 
@@ -179,16 +179,16 @@ npm start
 
 ### Lokale Checks und E2E
 
-Empfohlene schnelle lokale/Codex-Checks sind Backend-Build/Unit-Tests, Frontend-Unit-Tests, Frontend-Linting und Frontend-Builds. E2E-Tests sind lokal optional und sollen gezielt laufen, wenn eine ƒnderung End-to-End-Verhalten, Routing, Auth, Deployment-Verhalten oder mehrere App-Schichten betrifft.
+Empfohlene schnelle lokale/Codex-Checks sind Backend-Build/Unit-Tests, Frontend-Unit-Tests, Frontend-Linting und Frontend-Builds. E2E-Tests sind lokal optional und sollen gezielt laufen, wenn eine √Ñnderung End-to-End-Verhalten, Routing, Auth, Deployment-Verhalten oder mehrere App-Schichten betrifft.
 
-Contract testing ist Teil der regul‰ren Validierung:
+Contract testing ist Teil der regul√§ren Validierung:
 
-- Backend-Controller-Tests pr¸fen Responses gegen `shared/api-contract/tts-lab-openapi.yaml`.
-- Frontend-Typen werden aus derselben OpenAPI-Datei generiert; `cd frontend && npm run verify:api-contract` pr¸ft, dass die generierten Typen zur Spezifikation passen.
+- Backend-Controller-Tests pr√ºfen Responses gegen `shared/api-contract/tts-lab-openapi.yaml`.
+- Frontend-Typen werden aus derselben OpenAPI-Datei generiert; `cd frontend && npm run verify:api-contract` pr√ºft, dass die generierten Typen zur Spezifikation passen.
 - Shared fixtures liegen unter `test-contracts/` und werden von Frontend- und Backend-Tests gemeinsam verwendet.
 
 Die OpenAPI-Contract-Datei liegt unter `shared/api-contract/tts-lab-openapi.yaml`; die Backend-Tests validieren controller responses gegen genau diese Datei.
-Die Frontend-Contract-Typen werden aus dieser OpenAPI-Datei generiert; `frontend/src/app/shared/api-contract.generated.ts` ist die generierte Quelle, `frontend/src/app/shared/api-contract.ts` ist nur ein d¸nner Alias-Layer, und `cd frontend && npm run verify:api-contract` pr¸ft die Generierung gegen dieselbe Quelle.
+Die Frontend-Contract-Typen werden aus dieser OpenAPI-Datei generiert; `frontend/src/app/shared/api-contract.generated.ts` ist die generierte Quelle, `frontend/src/app/shared/api-contract.ts` ist nur ein d√ºnner Alias-Layer, und `cd frontend && npm run verify:api-contract` pr√ºft die Generierung gegen dieselbe Quelle.
 
 ```bash
 cd backend
@@ -201,9 +201,9 @@ CHROME_BIN="${CHROME_BIN:-/tmp/chrome-no-sandbox}" npm test
 npm run build
 ```
 
-Hinweis: `npm run lint` deckt nur `src/**/*.ts` ab. Playwright-Spezifikationen unter `frontend/e2e/` werden mit `npx eslint --no-ignore e2e/**/*.ts` separat gepr¸ft.
+Hinweis: `npm run lint` deckt nur `src/**/*.ts` ab. Playwright-Spezifikationen unter `frontend/e2e/` werden mit `npx eslint --no-ignore e2e/**/*.ts` separat gepr√ºft.
 
-Lokale E2E-Tests starten standardm‰ﬂig Backend und Frontend ¸ber Playwright:
+Lokale E2E-Tests starten standardm√§√üig Backend und Frontend √ºber Playwright:
 
 ```bash
 cd frontend
@@ -212,8 +212,8 @@ npm run test:e2e
 
 Die Playwright-Suite unterscheidet zwischen:
 
-- gemockten UI-E2E-Tests (`audiobook-studio.spec.ts`), die gezielt Backend-Routen mocken, um UI-Erfolg und UI-Fehler deterministisch zu pr¸fen;
-- realen Frontend-Backend-E2E-Tests (`real-backend-health.spec.ts`), die die gepr¸fte Backend-Route nicht mocken und standardm‰ﬂig ¸ber die lokal gestarteten Playwright-Webserver laufen.
+- gemockten UI-E2E-Tests (`audiobook-studio.spec.ts`), die gezielt Backend-Routen mocken, um UI-Erfolg und UI-Fehler deterministisch zu pr√ºfen;
+- realen Frontend-Backend-E2E-Tests (`real-backend-health.spec.ts`), die die gepr√ºfte Backend-Route nicht mocken und standardm√§√üig √ºber die lokal gestarteten Playwright-Webserver laufen.
 
 E2E gegen eine deployte Umgebung:
 
@@ -222,9 +222,9 @@ cd frontend
 E2E_BASE_URL="https://<deployed-host>" E2E_USE_LOCAL_SERVERS=false npm run test:e2e
 ```
 
-Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory und l‰uft dort lokal im GitHub-Actions-Runner mit `E2E_USE_LOCAL_SERVERS=true`.
+Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory und l√§uft dort lokal im GitHub-Actions-Runner mit `E2E_USE_LOCAL_SERVERS=true`.
 
-Wichtig: Contract testing ist ebenfalls mandatory f¸r API-ƒnderungen. Wenn sich Request-/Response-Shapes, Statuscodes, Header oder Beispielpayloads ‰ndern, m¸ssen die OpenAPI-Spezifikation, die Shared Fixtures und die betroffenen Backend-/Frontend-Tests gemeinsam angepasst werden.
+Wichtig: Contract testing ist ebenfalls mandatory f√ºr API-√Ñnderungen. Wenn sich Request-/Response-Shapes, Statuscodes, Header oder Beispielpayloads √§ndern, m√ºssen die OpenAPI-Spezifikation, die Shared Fixtures und die betroffenen Backend-/Frontend-Tests gemeinsam angepasst werden.
 
 ## Database and prompt history
 
@@ -327,14 +327,16 @@ Frontend behavior note:
 
 Audiobook Studio is a user-friendly frontend flow built on top of the existing audiobook workflow API. It is available at `/audiobook-studio` and reframes the same pipeline as story input, cast discovery, script preview, performance notes, an audio production plan, and generated audio.
 
-The MVP does not add database tables or new backend endpoints. It reuses the existing speaker analysis, speaker split, emotion annotation, final request preview, single-speaker render plan, and audio creation APIs while presenting story-focused language and a dark cinematic studio interface.
+The MVP now also persists and edits the project title. It reuses the existing speaker analysis, speaker split, emotion annotation, final request preview, single-speaker render plan, and audio creation APIs while presenting story-focused language and a dark cinematic studio interface.
+
+The first workflow step asks the model for both speakers and a project title. The title is persisted on the audiobook project, displayed in the studio and library views, and can be edited through `PATCH /api/audiobooks/{id}`.
 
 The page now starts with a product-led landing/workflow layer:
 
-- A premium hero with the headline ìGive every character in your story a voice.î
+- A premium hero with the headline ‚ÄúGive every character in your story a voice.‚Äù
 - A static visual demo that shows story text transforming into a detected cast and an audio waveform.
 - Benefit chips for `Multi-speaker`, `Speech segment detection`, `Voice previews`, and `Export MP3`.
-- A four-card ìFrom plain text to performed storyî journey section.
+- A four-card ‚ÄúFrom plain text to performed story‚Äù journey section.
 - Hero CTAs that keep the existing workflow reachable: `Create audio story` focuses the story input, and `Listen to demo` loads the sample story before focusing the textarea.
 
 The page now includes a frontend-only review and correction layer before generation:
@@ -361,7 +363,7 @@ Single-speaker render requests intentionally do not return internal planning met
 ```json
 {
   "input": {
-    "text": "[calm]The rain had turned the windows silver by the time they reached the old station cafÈ.\n[serious]Mara folded the letter twice, then unfolded it again."
+    "text": "[calm]The rain had turned the windows silver by the time they reached the old station caf√©.\n[serious]Mara folded the letter twice, then unfolded it again."
   },
   "voice": {
     "languageCode": "en-US",
@@ -472,6 +474,8 @@ The prompt history shows the model type that was actually used:
 - `SPEECH_MODEL` for TTS audio creation
 
 That keeps the history table, top-bar counters, and backend enforcement lined up.
+
+
 
 
 

@@ -7,6 +7,7 @@ import {
   FinalTtsRequestPreviewResponse,
   SingleSpeakerRenderPlanResponse,
 } from '../audiobook-shared/service/audiobook-workflow.service';
+import { AudiobookLibraryService } from '../audiobook-library/services/audiobook-library.service';
 import { ScriptGroup } from './models/audiobook-studio.types';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
 import { RenderRequestAudioService } from '../audiobook-shared/service/render-request-audio.service';
@@ -18,6 +19,7 @@ export class AudiobookStudioFacade {
   private readonly _annotatedTurns = signal<AnnotatedSpeakerTurn[]>([]);
   private readonly _finalRequest = signal<FinalTtsRequestPreviewResponse | null>(null);
   private readonly _audioProductionPlan = signal<SingleSpeakerRenderPlanResponse | null>(null);
+  private readonly _projectTitle = signal('');
   private readonly _castReviewed = signal(false);
   private readonly _scriptApproved = signal(false);
   private readonly _performanceNotesStale = signal(false);
@@ -34,6 +36,7 @@ export class AudiobookStudioFacade {
   readonly annotatedTurns = this._annotatedTurns.asReadonly();
   readonly finalRequest = this._finalRequest.asReadonly();
   readonly audioProductionPlan = this._audioProductionPlan.asReadonly();
+  readonly projectTitle = this._projectTitle.asReadonly();
   readonly castReviewed = this._castReviewed.asReadonly();
   readonly scriptApproved = this._scriptApproved.asReadonly();
   readonly performanceNotesStale = this._performanceNotesStale.asReadonly();
@@ -75,6 +78,7 @@ export class AudiobookStudioFacade {
 
   constructor(
     private readonly audiobookWorkflowService: AudiobookWorkflowService,
+    private readonly audiobookLibraryService: AudiobookLibraryService,
     private readonly renderRequestAudioService: RenderRequestAudioService,
     private readonly fullAudioGenerationService: FullAudioGenerationService,
   ) {}
@@ -86,6 +90,7 @@ export class AudiobookStudioFacade {
   setAnnotatedTurns(value: AnnotatedSpeakerTurn[]): void { this._annotatedTurns.set(value); }
   setFinalRequest(value: FinalTtsRequestPreviewResponse | null): void { this._finalRequest.set(value); }
   setAudioProductionPlan(value: SingleSpeakerRenderPlanResponse | null): void { this._audioProductionPlan.set(value); }
+  setProjectTitle(value: string): void { this._projectTitle.set(value); }
   setCastReviewed(value: boolean): void { this._castReviewed.set(value); }
   setScriptApproved(value: boolean): void { this._scriptApproved.set(value); }
   setPerformanceNotesStale(value: boolean): void { this._performanceNotesStale.set(value); }
@@ -93,10 +98,12 @@ export class AudiobookStudioFacade {
   // ── Pipeline operations ───────────────────────────────────────────────────
 
   async analyzeStory(storyText: string): Promise<void> {
+    this._projectTitle.set('');
     await this.runStep('cast', async () => {
       const analysis = await this.audiobookWorkflowService.analyzeSpeakers(storyText);
       this._cast.set(analysis.speakers);
       this._currentProjectId.set(analysis.projectId);
+      this._projectTitle.set(analysis.projectTitle);
       this._scriptTurns.set([]);
       this._annotatedTurns.set([]);
       this._finalRequest.set(null);
@@ -175,6 +182,17 @@ export class AudiobookStudioFacade {
     this._performanceNotesStale.set(true);
   }
 
+  async saveProjectTitle(title: string): Promise<void> {
+    await this.runStep('title', async () => {
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const detail = await this.audiobookLibraryService.updateTitle(projectId, title);
+      this._projectTitle.set(detail.title);
+    }, 'Project title save failed.');
+  }
+
   // ── Edit operations ───────────────────────────────────────────────────────
 
   startCastEdit(index: number): void {
@@ -235,6 +253,7 @@ export class AudiobookStudioFacade {
     this._annotatedTurns.set([]);
     this._finalRequest.set(null);
     this._audioProductionPlan.set(null);
+    this._projectTitle.set('');
     this._castReviewed.set(false);
     this._scriptApproved.set(false);
     this._performanceNotesStale.set(false);

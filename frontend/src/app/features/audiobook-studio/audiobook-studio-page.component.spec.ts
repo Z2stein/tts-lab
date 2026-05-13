@@ -2,12 +2,14 @@ import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks } from '@an
 import { AudiobookStudioPageComponent, formatSpeakerDisplayName } from './audiobook-studio-page.component';
 import { AudiobookApiService } from '../audiobook-shared/service/audiobook-api.service';
 import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
+import { AudiobookLibraryService } from '../audiobook-library/services/audiobook-library.service';
 
 describe('AudiobookStudioPageComponent', () => {
   let fixture: ComponentFixture<AudiobookStudioPageComponent>;
   let component: AudiobookStudioPageComponent;
   let audiobookWorkflowService: jasmine.SpyObj<AudiobookWorkflowService>;
   let audiobookApiService: jasmine.SpyObj<AudiobookApiService>;
+  let audiobookLibraryService: jasmine.SpyObj<AudiobookLibraryService>;
 
   beforeEach(async () => {
     audiobookWorkflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
@@ -26,17 +28,36 @@ describe('AudiobookStudioPageComponent', () => {
       'postJsonResponse',
       'postBlobResponse'
     ]);
+    audiobookLibraryService = jasmine.createSpyObj<AudiobookLibraryService>('AudiobookLibraryService', ['updateTitle']);
     audiobookApiService.createAudioForRenderRequest.and.callFake(async () => ({
       blob: new Blob(['generated'], { type: 'audio/mpeg' }),
       filename: 'tts-render-request-1.mp3'
     }));
     audiobookWorkflowService.saveScriptPreview.and.callFake(async (_projectId, turns) => turns);
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [],
+      projectId: null,
+      projectTitle: ''
+    });
+    audiobookLibraryService.updateTitle.and.resolveTo({
+      id: 'project-1',
+      title: 'The Hidden Signal',
+      status: 'NEEDS_REVIEW',
+      speechSegmentCount: 0,
+      speakerCount: null,
+      totalDurationSeconds: null,
+      createdAt: '2026-05-12T10:00:00Z',
+      updatedAt: '2026-05-12T10:01:00Z',
+      speechSegments: [],
+      audioAssets: []
+    } as never);
 
     await TestBed.configureTestingModule({
       imports: [AudiobookStudioPageComponent],
       providers: [
         { provide: AudiobookWorkflowService, useValue: audiobookWorkflowService },
-        { provide: AudiobookApiService, useValue: audiobookApiService }
+        { provide: AudiobookApiService, useValue: audiobookApiService },
+        { provide: AudiobookLibraryService, useValue: audiobookLibraryService }
       ]
     }).compileComponents();
 
@@ -58,7 +79,8 @@ describe('AudiobookStudioPageComponent', () => {
   it('shows cast cards after story analysis succeeds', async () => {
     audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
-      projectId: 'project-1'
+      projectId: 'project-1',
+      projectTitle: 'The Hidden Signal'
     });
     component.storyTextControl.setValue('Mara: We go now.');
 
@@ -70,6 +92,47 @@ describe('AudiobookStudioPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Detected character');
     expect(fixture.nativeElement.textContent).toContain('Warm alto voice');
     expect(fixture.nativeElement.textContent).toContain('Cast needs review');
+    expect(fixture.nativeElement.textContent).toContain('The Hidden Signal');
+  });
+
+  it('shows and saves the AI project title from the first workflow step', async () => {
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
+      projectId: 'project-1',
+      projectTitle: 'The Hidden Signal'
+    });
+    component.storyTextControl.setValue('Mara: We go now.');
+
+    await component.analyzeStory();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('The Hidden Signal');
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-project-title"]')).not.toBeNull();
+
+    clickButton('Edit title');
+    fixture.detectChanges();
+
+    setInputValue('#project-title', 'Updated Signal');
+    audiobookLibraryService.updateTitle.and.resolveTo({
+      id: 'project-1',
+      title: 'Updated Signal',
+      status: 'NEEDS_REVIEW',
+      speechSegmentCount: 0,
+      speakerCount: null,
+      totalDurationSeconds: null,
+      createdAt: '2026-05-12T10:00:00Z',
+      updatedAt: '2026-05-12T10:02:00Z',
+      speechSegments: [],
+      audioAssets: []
+    } as never);
+
+    clickButton('Save title');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(audiobookLibraryService.updateTitle).toHaveBeenCalledWith('project-1', 'Updated Signal');
+    expect(component.projectTitleControl.value).toBe('Updated Signal');
+    expect(fixture.nativeElement.textContent).toContain('Updated Signal');
   });
 
   it('shows an edited cast speaker name after saving the cast card', async () => {
@@ -101,7 +164,8 @@ describe('AudiobookStudioPageComponent', () => {
       speakers: [
         { speakerName: 'StationKeeper', roleDescription: 'Old role', voiceSuggestion: 'Old voice' }
       ],
-      projectId: 'project-1'
+      projectId: 'project-1',
+      projectTitle: 'The Hidden Signal'
     });
     await component.analyzeStory();
     fixture.detectChanges();
@@ -136,7 +200,8 @@ describe('AudiobookStudioPageComponent', () => {
         { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' },
         { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
       ],
-      projectId: 'project-1'
+      projectId: 'project-1',
+      projectTitle: 'The Hidden Signal'
     });
     await component.analyzeStory();
     fixture.detectChanges();

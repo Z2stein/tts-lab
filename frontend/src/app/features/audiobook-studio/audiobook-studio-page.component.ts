@@ -13,6 +13,7 @@ import { CastSectionComponent } from './components/cast-section/cast-section.com
 import { JourneyGridComponent } from './components/journey-grid/journey-grid.component';
 import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
 import { ScriptReviewComponent } from './components/script-review/script-review.component';
+import { ProjectTitleEditorComponent } from './components/project-title-editor/project-title-editor.component';
 import { StoryInputComponent } from './components/story-input/story-input.component';
 import { StudioHeroComponent } from './components/studio-hero/studio-hero.component';
 import { WaveformPlayerComponent } from './components/waveform-player/waveform-player.component';
@@ -61,6 +62,7 @@ export { formatSpeakerDisplayName };
     WaveformPlayerComponent,
     JourneyGridComponent,
     WorkflowProgressComponent,
+    ProjectTitleEditorComponent,
     StoryInputComponent,
     CastSectionComponent,
     ScriptReviewComponent,
@@ -94,10 +96,12 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   readonly modelNameOptions = MODEL_NAME_OPTIONS;
 
   storyTextControl = new FormControl('', { nonNullable: true });
+  projectTitleControl = new FormControl('', { nonNullable: true });
   promptControl = new FormControl('An immersive audiobook performance with a clear narrator and distinct character voices.', { nonNullable: true });
   languageCodeControl = new FormControl('en-US', { nonNullable: true });
   modelNameControl = new FormControl('gemini-3.1-flash-tts-preview', { nonNullable: true });
   audioEncodingControl = new FormControl('MP3', { nonNullable: true });
+  projectTitleEditing = false;
 
   // ── Facade state proxies (spec reads/writes these directly) ───────────────
 
@@ -225,7 +229,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     if (this.storyTextControl.value.trim().length === 0) {
       return {
         title: 'Current task: Start with your story',
-        body: 'Paste your text or use the sample story. TTS Lab will find the narrator and characters for you.',
+        body: 'Paste your text or use the sample story. TTS Lab will find the narrator, characters, and a project title for you.',
         nextAction: 'Paste text or use the sample story, then click Find narrator & characters.',
         sectionId: 'story-section'
       };
@@ -298,6 +302,8 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   useSampleStory(): void {
     this.storyTextControl.setValue(this.sampleStory);
     this.facade.resetPipeline();
+    this.projectTitleControl.setValue('');
+    this.projectTitleEditing = false;
     this.lastKnownProjectId = null;
   }
 
@@ -346,7 +352,11 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   async analyzeStory(): Promise<void> {
+    this.projectTitleControl.setValue('');
+    this.projectTitleEditing = false;
     await this.facade.analyzeStory(this.storyTextControl.value);
+    this.projectTitleControl.setValue(this.facade.projectTitle());
+    this.projectTitleEditing = false;
     this.lastKnownProjectId = this.facade.currentProjectId();
     if (this.facade.cast().length > 0) {
       void this.liveAnnouncer.announce(`Found ${this.facade.cast().length} characters`, 'polite');
@@ -431,6 +441,24 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   approveScript(): void {
     this.facade.approveScript();
+  }
+
+  startProjectTitleEdit(): void {
+    this.projectTitleControl.setValue(this.facade.projectTitle());
+    this.projectTitleEditing = true;
+  }
+
+  async saveProjectTitle(): Promise<void> {
+    await this.facade.saveProjectTitle(this.projectTitleControl.value);
+    if (!this.facade.error()) {
+      this.projectTitleControl.setValue(this.facade.projectTitle());
+      this.projectTitleEditing = false;
+    }
+  }
+
+  cancelProjectTitleEdit(): void {
+    this.projectTitleControl.setValue(this.facade.projectTitle());
+    this.projectTitleEditing = false;
   }
 
   startCastEdit(index: number): void { this.facade.startCastEdit(index); }
