@@ -29,6 +29,7 @@ This repository is a deliberately simple learning project for:
 - Do not introduce unnecessary architecture, frameworks, infrastructure, or abstractions.
 - Fix the actual cause of broken behavior instead of hiding symptoms.
 - Prefer existing project capabilities over custom code: before writing new styling, utility logic, configuration, or infrastructure, check whether the project already has a simple established way to solve the task.
+- Do not bypass supported framework tooling with a hand-written workaround when the project already has a standard generator, integration, or extension point for the problem.
 
 ## Frontend-specific rules
 
