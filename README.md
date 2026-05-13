@@ -179,7 +179,7 @@ npm start
 
 ### Lokale Checks und E2E
 
-Empfohlene schnelle lokale/Codex-Checks sind Backend-Build/Unit-Tests, Frontend-Unit-Tests und Frontend-Builds. E2E-Tests sind lokal optional und sollen gezielt laufen, wenn eine Änderung End-to-End-Verhalten, Routing, Auth, Deployment-Verhalten oder mehrere App-Schichten betrifft.
+Empfohlene schnelle lokale/Codex-Checks sind Backend-Build/Unit-Tests, Frontend-Unit-Tests, Frontend-Linting und Frontend-Builds. E2E-Tests sind lokal optional und sollen gezielt laufen, wenn eine Änderung End-to-End-Verhalten, Routing, Auth, Deployment-Verhalten oder mehrere App-Schichten betrifft.
 
 Contract testing ist Teil der regulären Validierung:
 
@@ -195,9 +195,13 @@ cd backend
 gradle build
 
 cd ../frontend
+npm run lint
+npx eslint --no-ignore e2e/**/*.ts
 CHROME_BIN="${CHROME_BIN:-/tmp/chrome-no-sandbox}" npm test
 npm run build
 ```
+
+Hinweis: `npm run lint` deckt nur `src/**/*.ts` ab. Playwright-Spezifikationen unter `frontend/e2e/` werden mit `npx eslint --no-ignore e2e/**/*.ts` separat geprüft.
 
 Lokale E2E-Tests starten standardmäßig Backend und Frontend über Playwright:
 

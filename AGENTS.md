@@ -34,8 +34,9 @@ This repository is a deliberately simple learning project for:
 ## Frontend-specific rules
 
 - Structure frontend changes component-first: split UI into small, meaningful Angular components with clear responsibilities instead of growing large page-level templates.
-- When frontend behavior is changed, run the frontend unit tests, frontend build, and end-to-end tests.
+- When frontend behavior is changed, run the frontend unit tests, frontend build, frontend lint, and end-to-end tests.
 - Do not treat a frontend change as done until E2E tests have passed, unless the environment technically cannot run them. If they cannot be run, clearly state why.
+- Frontend linting must cover both application code and E2E specs. Run `cd frontend && npm run lint` for `src/**/*.ts`, and run `cd frontend && npx eslint --no-ignore e2e/**/*.ts` whenever Playwright specs or shared E2E helpers change.
 - Avoid expensive, mutating, regex-heavy, or non-memoized methods in templates/render paths.
 - Derived UI state should be precomputed, memoized, signal-based, selector-based, or otherwise cheap and pure.
 - New UI components should be small, focused, and compatible with the project’s preferred change-detection/rendering strategy.

@@ -144,7 +144,7 @@ test('audiobook studio edits a script preview turn without freezing the app', as
 
 test('audiobook studio shows structured backend errors without internal details', async ({ context, page }) => {
   await authenticate(context, page);
-  const providerUnavailable = await loadTestContractJson('tts-workbench/speaker-voice-analysis/provider-unavailable/response.json');
+  const providerUnavailable = await loadTestContractJson<{ status?: number }>('tts-workbench/speaker-voice-analysis/provider-unavailable/response.json');
   await page.route('**/api/projects/tts-workbench/speaker-voice-analysis', async (route) => {
     await route.fulfill({
       status: providerUnavailable.status ?? 502,
