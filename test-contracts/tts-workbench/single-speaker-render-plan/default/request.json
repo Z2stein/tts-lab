@@ -1,0 +1,10 @@
+{
+  "input": {
+    "prompt": "Prompt",
+    "multiSpeakerMarkup": {
+      "turns": []
+    }
+  },
+  "voice": {},
+  "audioConfig": {}
+}

@@ -1,0 +1,10 @@
+{
+  "speakers": [
+    {
+      "speakerName": "Alice",
+      "roleDescription": "Detected dialogue speaker",
+      "voiceSuggestion": "ACHIRD"
+    }
+  ],
+  "projectId": "test-project-1"
+}

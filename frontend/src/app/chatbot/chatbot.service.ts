@@ -1,19 +1,6 @@
 import { Injectable } from '@angular/core';
 import { CurrentUserService } from '../current-user.service';
-
-export interface ChatResponse {
-  answer: string;
-  conversationId: string;
-}
-
-interface ChatErrorResponse {
-  status?: number;
-  code?: string;
-  error?: string;
-  message?: string;
-  details?: string | null;
-  requestId?: string;
-}
+import { ApiErrorResponse, ChatResponse } from '../shared/api-contract.generated';
 
 @Injectable({ providedIn: 'root' })
 export class ChatbotService {
@@ -31,9 +18,9 @@ export class ChatbotService {
     await this.refreshRequestLimits();
 
     if (!response.ok) {
-      let errorBody: ChatErrorResponse | null = null;
+      let errorBody: (ApiErrorResponse & { error?: string }) | null = null;
       try {
-        errorBody = (await response.json()) as ChatErrorResponse;
+        errorBody = (await response.json()) as ApiErrorResponse & { error?: string };
       } catch {
         errorBody = null;
       }

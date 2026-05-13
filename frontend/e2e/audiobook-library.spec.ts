@@ -1,126 +1,38 @@
 import { test, expect, BrowserContext, Page } from '@playwright/test';
+import { loadTestContractJson } from '../src/app/shared/test-contracts';
 
 const e2eBaseUrl = process.env['E2E_BASE_URL'] || 'http://127.0.0.1:4200';
 
 async function authenticate(context: BrowserContext, page: Page): Promise<void> {
   await context.addCookies([{ name: 'XSRF-TOKEN', value: 'test-token', url: e2eBaseUrl }]);
+  const currentUser = await loadTestContractJson('auth/me/default/response.json');
+  const requestLimits = await loadTestContractJson('limits/request-limits-me/default/response.json');
   await page.route('**/api/me', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        id: '1',
-        email: 'learner@example.dev',
-        name: 'Learner',
-        roles: ['USER'],
-        authMode: 'mock'
-      })
+      body: JSON.stringify(currentUser)
     });
   });
   await page.route('**/api/request-limits/me', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        windowResetAt: '2026-05-09T12:00:00Z',
-        windowSeconds: 43200,
-        limits: [
-          { modelType: 'SPEECH_MODEL', used: 0, limit: 600, remaining: 600, unit: 'WORDS' },
-          { modelType: 'TEXT_MODEL', used: 0, limit: 600, remaining: 600, unit: 'WORDS' }
-        ]
-      })
+      body: JSON.stringify(requestLimits)
     });
   });
 }
 
-const project = {
-  id: 'project-amber',
-  title: 'The Amber Signal',
-  status: 'NEEDS_REVIEW',
-  speechSegmentCount: 2,
-  speakerCount: 3,
-  totalDurationSeconds: 185,
-  createdAt: '2026-05-08T08:30:00Z',
-  updatedAt: '2026-05-09T10:30:00Z',
-  audioAssets: [
-    {
-      id: 'asset-preview',
-      speechSegmentId: null,
-      type: 'PREVIEW_MP3',
-      version: 1,
-      filename: 'amber-signal-preview.mp3',
-      contentType: 'audio/mpeg',
-      sizeBytes: 1240000,
-      durationSeconds: 185,
-      status: 'READY',
-      createdAt: '2026-05-09T10:30:00Z',
-      downloadUrl: '/api/audiobooks/project-amber/audio-assets/asset-preview/download',
-      streamUrl: '/api/audiobooks/project-amber/audio-assets/asset-preview/stream'
-    },
-    {
-      id: 'asset-speech-segment-1',
-      speechSegmentId: 'speech-segment-1',
-      type: 'SPEECH_SEGMENT_MP3',
-      version: 2,
-      filename: 'speech-segment-1-v2.mp3',
-      contentType: 'audio/mpeg',
-      sizeBytes: 640000,
-      durationSeconds: 82,
-      status: 'READY',
-      createdAt: '2026-05-09T10:20:00Z',
-      downloadUrl: '/api/audiobooks/project-amber/audio-assets/asset-speech-segment-1/download',
-      streamUrl: '/api/audiobooks/project-amber/audio-assets/asset-speech-segment-1/stream'
-    },
-    {
-      id: 'asset-speech-segment-2',
-      speechSegmentId: 'speech-segment-2',
-      type: 'SPEECH_SEGMENT_MP3',
-      version: 2,
-      filename: 'speech-segment-2-v2.mp3',
-      contentType: 'audio/mpeg',
-      sizeBytes: 520000,
-      durationSeconds: 103,
-      status: 'READY',
-      createdAt: '2026-05-09T10:25:00Z',
-      downloadUrl: '/api/audiobooks/project-amber/audio-assets/asset-speech-segment-2/download',
-      streamUrl: '/api/audiobooks/project-amber/audio-assets/asset-speech-segment-2/stream'
-    }
-  ],
-  speechSegments: [
-    {
-      id: 'speech-segment-1',
-      orderIndex: 0,
-      title: 'Station clock',
-      reviewStatus: 'PENDING',
-      durationSeconds: 82,
-      createdAt: '2026-05-08T10:15:00Z',
-      updatedAt: '2026-05-09T10:15:00Z',
-      speakerName: 'Narrator',
-      speakerRoleDescription: 'Story narrator',
-      voiceName: 'aria',
-      performanceDirections: '[calm] [curious] Narrator, [short pause] the clock strikes midnight.'
-    },
-    {
-      id: 'speech-segment-2',
-      orderIndex: 1,
-      title: 'The winter key',
-      reviewStatus: 'APPROVED',
-      durationSeconds: 103,
-      createdAt: '2026-05-08T11:20:00Z',
-      updatedAt: '2026-05-09T10:30:00Z',
-      speakerName: 'Alice',
-      speakerRoleDescription: 'Protagonist',
-      voiceName: 'nova',
-      performanceDirections: '[serious] Alice, the key was hidden all along.'
-    }
-  ]
-};
+async function routeAudiobookList(page: Page, relativePath: string): Promise<void> {
+  const response = await loadTestContractJson<{ items: Array<{ title: string }> }>(relativePath);
+  await page.route('**/api/audiobooks', async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(response) });
+  });
+}
 
 test('authenticated user can open the empty audiobook library', async ({ context, page }) => {
   await authenticate(context, page);
-  await page.route('**/api/audiobooks', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [] }) });
-  });
+  await routeAudiobookList(page, 'audiobooks/list/empty/response.json');
 
   await page.goto('/audiobook-library');
 
@@ -131,9 +43,7 @@ test('authenticated user can open the empty audiobook library', async ({ context
 
 test('library cards render with ready preview actions', async ({ context, page }) => {
   await authenticate(context, page);
-  await page.route('**/api/audiobooks', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [project] }) });
-  });
+  await routeAudiobookList(page, 'audiobooks/list/amber-signal/response.json');
 
   await page.goto('/library');
 
@@ -146,34 +56,7 @@ test('library cards render with ready preview actions', async ({ context, page }
 
 test('multiple audiobook projects appear as distinct cards', async ({ context, page }) => {
   await authenticate(context, page);
-  const project2 = {
-    id: 'project-silver',
-    title: 'The Silver Key',
-    status: 'NEEDS_REVIEW',
-    speechSegmentCount: 1,
-    speakerCount: 2,
-    totalDurationSeconds: 120,
-    updatedAt: '2026-05-09T11:00:00Z',
-    audioAssets: [
-      {
-        id: 'asset-silver',
-        speechSegmentId: null,
-        type: 'PREVIEW_MP3',
-        version: 1,
-        filename: 'silver-preview.mp3',
-        contentType: 'audio/mpeg',
-        sizeBytes: 900000,
-        durationSeconds: 120,
-        status: 'READY',
-        createdAt: '2026-05-09T11:00:00Z',
-        downloadUrl: '/api/audiobooks/project-silver/audio-assets/asset-silver/download',
-        streamUrl: '/api/audiobooks/project-silver/audio-assets/asset-silver/stream'
-      }
-    ]
-  };
-  await page.route('**/api/audiobooks', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [project, project2] }) });
-  });
+  await routeAudiobookList(page, 'audiobooks/list/amber-and-silver/response.json');
 
   await page.goto('/library');
 
@@ -184,16 +67,12 @@ test('multiple audiobook projects appear as distinct cards', async ({ context, p
 
 test('play preview button opens waveform player modal instead of navigating', async ({ context, page }) => {
   await authenticate(context, page);
-  await page.route('**/api/audiobooks', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [project] }) });
-  });
+  await routeAudiobookList(page, 'audiobooks/list/amber-signal/response.json');
 
   await page.goto('/library');
 
-  // Click play preview
   await page.getByTestId('play-preview').click();
 
-  // Modal should appear with waveform controls
   await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
   await expect(page.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
@@ -201,24 +80,18 @@ test('play preview button opens waveform player modal instead of navigating', as
 
 test('closing waveform player modal returns to library view', async ({ context, page }) => {
   await authenticate(context, page);
-  await page.route('**/api/audiobooks', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [project] }) });
-  });
+  await routeAudiobookList(page, 'audiobooks/list/amber-signal/response.json');
 
   await page.goto('/library');
 
-  // Open modal
   await page.getByTestId('play-preview').click();
   await expect(page.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
 
-  // Close modal by clicking close button
   await page.getByRole('button', { name: 'Close', exact: true }).click();
 
-  // Library view should still be visible
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
   await expect(page.getByTestId('audiobook-card')).toHaveCount(1);
 });
-
 
 test('audiobook studio remains reachable from authenticated navigation', async ({ context, page }) => {
   await authenticate(context, page);
@@ -232,121 +105,33 @@ test('audiobook studio remains reachable from authenticated navigation', async (
 });
 
 test('library card displays correct metadata for multi-segment audiobook with repeated speakers', async ({ context, page }) => {
-  // This test verifies the FIX:
-  // - Backend now calculates metadata on-demand from audio assets
-  // - Card always displays fresh values, never stale persisted values
-  // - Works with repeated speakers (Narrator appears 2x, counts as 1)
-  //
-  // The backend's AudiobookMetadataCalculator computes:
-  // - speechSegmentCount = count of READY audio assets = 3
-  // - speakerCount = count of unique speakers from filenames = 2 (narrator, mara)
-  // - totalDurationSeconds = sum of all READY asset durations = 6 + 5 + 8 = 19 seconds
-
   await authenticate(context, page);
-
-  // Mock an audiobook with 3 audio segments but only 2 unique speakers
-  // (Narrator appears twice, which tests that speakers are deduplicated)
-  const multiSegmentProject = {
-    id: 'project-multi-speaker',
-    title: 'Generated audiobook 2026-05-09T20:50:36.213985432Z',
-    status: 'NEEDS_REVIEW',
-    speechSegmentCount: 3,  // 3 dialogue segments/parts
-    speakerCount: 2,  // 2 unique speakers (Narrator, Mara)
-    totalDurationSeconds: 19,  // Total preview duration
-    updatedAt: '2026-05-09T22:50:00Z',
-    audioAssets: [
-      {
-        id: 'segment-1-narrator',
-        speechSegmentId: 'speech-segment-1',
-        type: 'PREVIEW_MP3',
-        version: 1,
-        filename: 'segment-1-narrator.mp3',
-        contentType: 'audio/mpeg',
-        sizeBytes: 96000,
-        durationSeconds: 6,  // First Narrator segment: 6 seconds
-        status: 'READY',
-        createdAt: '2026-05-09T22:50:00Z',
-        downloadUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-1-narrator/download',
-        streamUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-1-narrator/stream'
-      },
-      {
-        id: 'segment-2-mara',
-        speechSegmentId: 'speech-segment-2',
-        type: 'PREVIEW_MP3',
-        version: 1,
-        filename: 'segment-2-mara.mp3',
-        contentType: 'audio/mpeg',
-        sizeBytes: 80000,
-        durationSeconds: 5,  // Mara segment: 5 seconds
-        status: 'READY',
-        createdAt: '2026-05-09T22:50:00Z',
-        downloadUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-2-mara/download',
-        streamUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-2-mara/stream'
-      },
-      {
-        id: 'segment-3-narrator',
-        speechSegmentId: 'speech-segment-3',
-        type: 'PREVIEW_MP3',
-        version: 1,
-        filename: 'segment-3-narrator.mp3',
-        contentType: 'audio/mpeg',
-        sizeBytes: 128000,
-        durationSeconds: 8,  // Second Narrator segment: 8 seconds
-        status: 'READY',
-        createdAt: '2026-05-09T22:50:00Z',
-        downloadUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-3-narrator/download',
-        streamUrl: '/api/audiobooks/project-multi-speaker/audio-assets/segment-3-narrator/stream'
-      }
-    ]
-  };
-
-  await page.route('**/api/audiobooks', async (route) => {
-    await route.fulfill({
-      status: 200,
-      contentType: 'application/json',
-      body: JSON.stringify({ items: [multiSegmentProject] })
-    });
-  });
+  await routeAudiobookList(page, 'audiobooks/list/multi-segment/response.json');
 
   await page.goto('/audiobook-library');
 
-  // Verify the audiobook card is rendered
   const card = page.locator('[data-testid="audiobook-card"]').first();
   await expect(card).toBeVisible();
 
-  // CRITICAL: Verify metadata is synced correctly
-  // These assertions catch the bug where metadata was stale/zero
-
-  // Speech segments should show 3 (number of audio parts/dialogue segments)
   const speechSegments = card.locator('dt:has-text("Speech segments")').locator('..').locator('dd');
   await expect(speechSegments).toContainText('3');
 
-  // Speakers should show 2 (Narrator and Mara, deduplicated)
   const speakers = card.locator('dt:has-text("Speakers")').locator('..').locator('dd');
   await expect(speakers).toContainText('2');
 
-  // Duration should show 0:19 (sum of 6 + 5 + 8 seconds = 19 seconds)
   const duration = card.locator('dt:has-text("Duration")').locator('..').locator('dd');
   await expect(duration).toContainText('0:19');
 
-  // Verify title is correct
   await expect(card.locator('h2')).toContainText('Generated audiobook 2026-05-09T20:50:36');
 
-  // Verify the card is interactive
   const continueReviewButton = card.locator('text=Continue review');
   await expect(continueReviewButton).toBeVisible();
   await expect(continueReviewButton).toHaveAttribute('href', '/audiobook-library/project-multi-speaker');
 });
 
 test('audiobook library integration with components is functional', async ({ context, page }) => {
-  // Verifies integration of complete-audiobook-player, speech-segment-list, and audiobook-part-card
-  // Complete audiobook player component added with WaveSurfer + download button
-  // Speech-segment-list component displays performance notes with emotion tags
-  // Audiobook-part-card components show character details and voice information
   await authenticate(context, page);
-  await page.route('**/api/audiobooks', async (route) => {
-    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify({ items: [project] }) });
-  });
+  await routeAudiobookList(page, 'audiobooks/list/amber-signal/response.json');
 
   await page.goto('/audiobook-library');
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();

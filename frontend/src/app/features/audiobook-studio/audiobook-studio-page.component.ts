@@ -3,13 +3,12 @@ import { AfterViewInit, Component, OnDestroy, ViewEncapsulation } from '@angular
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import {
-  FinalTtsRequestPreview,
+  AnnotatedSpeakerTurn,
+  FinalTtsRequestPreviewResponse,
   SpeakerVoiceAnalysisItem,
-} from '../audiobook-shared/service/audiobook-workflow.service';
-import {
-  SingleSpeakerRenderPlan,
+  SingleSpeakerRenderPlanResponse,
   SingleSpeakerRenderRequest,
-} from '../audiobook-shared/service/audiobook-api.service';
+} from '../audiobook-shared/service/audiobook-workflow.service';
 import { CastSectionComponent } from './components/cast-section/cast-section.component';
 import { JourneyGridComponent } from './components/journey-grid/journey-grid.component';
 import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
@@ -29,7 +28,6 @@ import {
 } from './data/studio-content';
 import {
   AnnotatedMarkup,
-  AnnotatedSpeakerTurn,
   CurrentTask,
   HeroCastMember,
   IndexedSpeakerSplitTurn,
@@ -112,11 +110,11 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   get annotatedTurns(): AnnotatedSpeakerTurn[] { return this.facade.annotatedTurns(); }
   set annotatedTurns(value: AnnotatedSpeakerTurn[]) { this.facade.setAnnotatedTurns(value); }
 
-  get finalRequest(): FinalTtsRequestPreview | null { return this.facade.finalRequest(); }
-  set finalRequest(value: FinalTtsRequestPreview | null) { this.facade.setFinalRequest(value); }
+  get finalRequest(): FinalTtsRequestPreviewResponse | null { return this.facade.finalRequest(); }
+  set finalRequest(value: FinalTtsRequestPreviewResponse | null) { this.facade.setFinalRequest(value); }
 
-  get audioProductionPlan(): SingleSpeakerRenderPlan | null { return this.facade.audioProductionPlan(); }
-  set audioProductionPlan(value: SingleSpeakerRenderPlan | null) { this.facade.setAudioProductionPlan(value); }
+  get audioProductionPlan(): SingleSpeakerRenderPlanResponse | null { return this.facade.audioProductionPlan(); }
+  set audioProductionPlan(value: SingleSpeakerRenderPlanResponse | null) { this.facade.setAudioProductionPlan(value); }
 
   get castReviewed(): boolean { return this.facade.castReviewed(); }
   set castReviewed(value: boolean) { this.facade.setCastReviewed(value); }

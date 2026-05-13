@@ -19,6 +19,8 @@ import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.annotation.DirtiesContext;
 
+import static com.example.ttslab.contract.OpenApiContractAssertions.assertResponseMatchesContract;
+import static com.example.ttslab.contract.TestContracts.readJson;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -399,9 +401,14 @@ class AudiobookLibraryIntegrationTest {
             .andExpect(status().isNotFound())
             .andReturn();
 
+        assertResponseMatchesContract("/api/audiobooks/" + projectC, com.atlassian.oai.validator.model.Request.Method.GET, result.getResponse());
+
         String responseBody = result.getResponse().getContentAsString();
         var errorResponse = objectMapper.readValue(responseBody, ApiErrorResponse.class);
-        assertThat(errorResponse.code()).isEqualTo("AUDIOBOOK_NOT_FOUND");
+        var expectedError = loadAudiobookNotFoundResponse();
+        assertThat(errorResponse.status()).isEqualTo(expectedError.status());
+        assertThat(errorResponse.code()).isEqualTo(expectedError.code());
+        assertThat(errorResponse.message()).isEqualTo(expectedError.message());
     }
 
     @Test
@@ -426,9 +433,14 @@ class AudiobookLibraryIntegrationTest {
             .andExpect(status().isNotFound())
             .andReturn();
 
+        assertResponseMatchesContract("/api/audiobooks/" + nonExistentId, com.atlassian.oai.validator.model.Request.Method.GET, result.getResponse());
+
         String responseBody = result.getResponse().getContentAsString();
         var errorResponse = objectMapper.readValue(responseBody, ApiErrorResponse.class);
-        assertThat(errorResponse.code()).isEqualTo("AUDIOBOOK_NOT_FOUND");
+        var expectedError = loadAudiobookNotFoundResponse();
+        assertThat(errorResponse.status()).isEqualTo(expectedError.status());
+        assertThat(errorResponse.code()).isEqualTo(expectedError.code());
+        assertThat(errorResponse.message()).isEqualTo(expectedError.message());
     }
 
     @Test
@@ -540,6 +552,10 @@ class AudiobookLibraryIntegrationTest {
 
         String responseBody = result.getResponse().getContentAsString();
         return objectMapper.readValue(responseBody, AudiobookDetailResponse.class);
+    }
+
+    private ApiErrorResponse loadAudiobookNotFoundResponse() throws Exception {
+        return readJson("audiobooks/detail/not-found/response.json", ApiErrorResponse.class);
     }
 
     private List<AudiobookProject> queryProjectsByUser(String userId) {

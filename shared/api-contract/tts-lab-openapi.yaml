@@ -1,0 +1,900 @@
+openapi: 3.0.3
+info:
+  title: TTS Lab API
+  version: 1.0.0
+servers:
+  - url: /
+tags:
+  - name: Auth
+  - name: Limits
+  - name: Audiobooks
+  - name: Chat
+  - name: Prompts
+  - name: TTS Workbench
+paths:
+  /api/me:
+    get:
+      tags: [Auth]
+      operationId: getCurrentUser
+      responses:
+        '200':
+          description: Authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CurrentUser'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /api/request-limits/me:
+    get:
+      tags: [Limits]
+      operationId: getRequestLimits
+      responses:
+        '200':
+          description: Current request usage summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RequestRateLimitSummary'
+
+  /api/prompts/history:
+    get:
+      tags: [Prompts]
+      operationId: getPromptHistory
+      parameters:
+        - name: modelType
+          in: query
+          required: false
+          schema:
+            $ref: '#/components/schemas/ModelType'
+      responses:
+        '200':
+          description: Prompt history for the authenticated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PromptHistoryResponse'
+
+  /api/audiobooks:
+    get:
+      tags: [Audiobooks]
+      operationId: listAudiobooks
+      responses:
+        '200':
+          description: Audiobooks owned by the current user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudiobookSummaryResponse'
+
+  /api/audiobooks/{id}:
+    get:
+      tags: [Audiobooks]
+      operationId: getAudiobookDetail
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Audiobook detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudiobookDetailResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/audiobooks/{id}/audio-assets/{assetId}/download:
+    get:
+      tags: [Audiobooks]
+      operationId: downloadAudioAsset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Downloadable audio asset
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+            Content-Type:
+              schema:
+                type: string
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+
+  /api/audiobooks/{id}/audio-assets/{assetId}/stream:
+    get:
+      tags: [Audiobooks]
+      operationId: streamAudioAsset
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: assetId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Streamable audio asset
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+            Content-Type:
+              schema:
+                type: string
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+
+  /api/chat:
+    post:
+      tags: [Chat]
+      operationId: sendChatMessage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChatRequest'
+      responses:
+        '200':
+          description: Chat completion response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChatResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '502':
+          $ref: '#/components/responses/ProviderUnavailableError'
+
+  /api/projects/tts-workbench/speaker-voice-analysis:
+    post:
+      tags: [TTS Workbench]
+      operationId: analyzeSpeakerVoices
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpeakerVoiceAnalysisRequest'
+      responses:
+        '200':
+          description: Speaker voice analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeakerVoiceAnalysisResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+        '502':
+          $ref: '#/components/responses/ProviderUnavailableError'
+
+  /api/projects/tts-workbench/speaker-split-analysis:
+    post:
+      tags: [TTS Workbench]
+      operationId: splitDialogue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SpeakerSplitAnalysisRequest'
+      responses:
+        '200':
+          description: Speaker split analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeakerSplitAnalysisResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/projects/tts-workbench/emotion-annotation-analysis:
+    post:
+      tags: [TTS Workbench]
+      operationId: annotateEmotions
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmotionAnnotationAnalysisRequest'
+      responses:
+        '200':
+          description: Emotion annotation analysis
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmotionAnnotationAnalysisResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/projects/tts-workbench/script-preview-save:
+    post:
+      tags: [TTS Workbench]
+      operationId: saveScriptPreview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScriptPreviewSaveRequest'
+      responses:
+        '200':
+          description: Persisted script preview turns
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpeakerSplitAnalysisResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/projects/tts-workbench/final-request-preview:
+    post:
+      tags: [TTS Workbench]
+      operationId: buildFinalRequestPreview
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FinalTtsRequestPreviewRequest'
+      responses:
+        '200':
+          description: Final TTS request preview
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FinalTtsRequestPreviewResponse'
+
+  /api/projects/tts-workbench/single-speaker-render-plan:
+    post:
+      tags: [TTS Workbench]
+      operationId: buildSingleSpeakerRenderPlan
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SingleSpeakerRenderPlanRequest'
+      responses:
+        '200':
+          description: Single-speaker render plan
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SingleSpeakerRenderPlanResponse'
+
+  /api/projects/tts-workbench/create-audio:
+    post:
+      tags: [TTS Workbench]
+      operationId: createAudio
+      parameters:
+        - name: projectId
+          in: query
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SingleSpeakerRenderPlanResponse'
+      responses:
+        '200':
+          description: Rendered audio download
+          headers:
+            Content-Disposition:
+              schema:
+                type: string
+            Content-Type:
+              schema:
+                type: string
+            X-Audiobook-Project-Id:
+              schema:
+                type: string
+          content:
+            audio/mpeg:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+components:
+  responses:
+    ValidationError:
+      description: Request validation failed
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    RateLimitedError:
+      description: Rate limited
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+        Retry-After:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    ProviderUnavailableError:
+      description: Provider unavailable
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    NotFoundError:
+      description: Resource not found
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    InternalError:
+      description: Unexpected internal failure
+      headers:
+        X-Request-Id:
+          schema:
+            type: string
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+    UnauthorizedError:
+      description: Authentication required
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApiErrorResponse'
+  schemas:
+    ApiErrorResponse:
+      type: object
+      required: [status, code, message, requestId]
+      properties:
+        status:
+          type: integer
+          format: int32
+        code:
+          type: string
+        message:
+          type: string
+        details:
+          type: string
+          nullable: true
+        requestId:
+          type: string
+      additionalProperties: false
+
+    CurrentUser:
+      type: object
+      required: [id, email, name, roles, authMode]
+      properties:
+        id:
+          type: string
+        email:
+          type: string
+        name:
+          type: string
+        roles:
+          type: array
+          items:
+            type: string
+        authMode:
+          $ref: '#/components/schemas/AuthMode'
+      additionalProperties: false
+
+    AuthMode:
+      type: string
+      enum: [google, mock]
+
+    ModelType:
+      type: string
+      enum: [TEXT_MODEL, SPEECH_MODEL]
+
+    PromptRequestStatus:
+      type: string
+      enum: [SUCCESS, FAILED, RATE_LIMITED]
+
+    RequestRateLimitUnit:
+      type: string
+      enum: [WORDS, TOKENS]
+
+    RequestRateLimitSummary:
+      type: object
+      required: [windowResetAt, windowSeconds, limits]
+      properties:
+        windowResetAt:
+          type: string
+          format: date-time
+        windowSeconds:
+          type: integer
+          format: int64
+        limits:
+          type: array
+          items:
+            $ref: '#/components/schemas/RequestRateLimitSummaryItem'
+      additionalProperties: false
+
+    RequestRateLimitSummaryItem:
+      type: object
+      required: [modelType, used, limit, remaining, unit]
+      properties:
+        modelType:
+          $ref: '#/components/schemas/ModelType'
+        used:
+          type: integer
+          format: int64
+        limit:
+          type: integer
+          format: int64
+        remaining:
+          type: integer
+          format: int64
+        unit:
+          $ref: '#/components/schemas/RequestRateLimitUnit'
+      additionalProperties: false
+
+    PromptHistoryResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PromptHistoryItem'
+      additionalProperties: false
+
+    PromptHistoryItem:
+      type: object
+      required: [id, userId, userEmail, modelType, providerModelName, promptText, requestStatus, createdAt]
+      properties:
+        id:
+          type: integer
+          format: int64
+        userId:
+          type: string
+        userEmail:
+          type: string
+          nullable: true
+        modelType:
+          $ref: '#/components/schemas/ModelType'
+        providerModelName:
+          type: string
+          nullable: true
+        promptText:
+          type: string
+        requestStatus:
+          $ref: '#/components/schemas/PromptRequestStatus'
+        createdAt:
+          type: string
+          format: date-time
+      additionalProperties: false
+
+    AudioAssetType:
+      type: string
+      enum: [SPEECH_SEGMENT_MP3, CHAPTER_MP3, FULL_AUDIOBOOK, PREVIEW_MP3, EXPORT_ZIP]
+
+    AudioAssetStatus:
+      type: string
+      enum: [GENERATING, READY, FAILED]
+
+    AudiobookProjectStatus:
+      type: string
+      enum: [DRAFT, GENERATING, NEEDS_REVIEW, APPROVED, EXPORTED, FAILED]
+
+    AudiobookSpeechSegmentReviewStatus:
+      type: string
+      enum: [PENDING, NEEDS_CHANGES, APPROVED]
+
+    AudioAssetResponse:
+      type: object
+      required: [id, speechSegmentId, type, version, filename, contentType, sizeBytes, durationSeconds, status, createdAt, downloadUrl, streamUrl]
+      properties:
+        id:
+          type: string
+        speechSegmentId:
+          type: string
+          nullable: true
+        type:
+          $ref: '#/components/schemas/AudioAssetType'
+        version:
+          type: integer
+          format: int32
+        filename:
+          type: string
+        contentType:
+          type: string
+        sizeBytes:
+          type: integer
+          format: int64
+        durationSeconds:
+          type: integer
+          format: int32
+          nullable: true
+        status:
+          $ref: '#/components/schemas/AudioAssetStatus'
+        createdAt:
+          type: string
+          format: date-time
+        downloadUrl:
+          type: string
+        streamUrl:
+          type: string
+      additionalProperties: false
+
+    AudiobookSummaryResponse:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AudiobookSummary'
+      additionalProperties: false
+
+    AudiobookSummary:
+      type: object
+      required: [id, title, status, speechSegmentCount, speakerCount, totalDurationSeconds, updatedAt, audioAssets]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          $ref: '#/components/schemas/AudiobookProjectStatus'
+        speechSegmentCount:
+          type: integer
+          format: int32
+        speakerCount:
+          type: integer
+          format: int32
+          nullable: true
+        totalDurationSeconds:
+          type: integer
+          format: int32
+          nullable: true
+        updatedAt:
+          type: string
+          format: date-time
+        audioAssets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AudioAssetResponse'
+      additionalProperties: false
+
+    AudiobookSpeechSegmentResponse:
+      type: object
+      required: [id, orderIndex, title, reviewStatus, durationSeconds, speakerName, speakerRoleDescription, voiceName, performanceDirections]
+      properties:
+        id:
+          type: string
+        orderIndex:
+          type: integer
+          format: int32
+        title:
+          type: string
+        reviewStatus:
+          $ref: '#/components/schemas/AudiobookSpeechSegmentReviewStatus'
+        durationSeconds:
+          type: integer
+          format: int32
+          nullable: true
+        speakerName:
+          type: string
+          nullable: true
+        speakerRoleDescription:
+          type: string
+          nullable: true
+        voiceName:
+          type: string
+          nullable: true
+        performanceDirections:
+          type: string
+          nullable: true
+      additionalProperties: false
+
+    AudiobookDetailResponse:
+      type: object
+      required: [id, title, status, speechSegmentCount, speakerCount, totalDurationSeconds, createdAt, updatedAt, speechSegments, audioAssets]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        status:
+          $ref: '#/components/schemas/AudiobookProjectStatus'
+        speechSegmentCount:
+          type: integer
+          format: int32
+        speakerCount:
+          type: integer
+          format: int32
+          nullable: true
+        totalDurationSeconds:
+          type: integer
+          format: int32
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+        speechSegments:
+          type: array
+          items:
+            $ref: '#/components/schemas/AudiobookSpeechSegmentResponse'
+        audioAssets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AudioAssetResponse'
+      additionalProperties: false
+
+    ChatRequest:
+      type: object
+      required: [message]
+      properties:
+        message:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        conversationId:
+          type: string
+          nullable: true
+      additionalProperties: false
+
+    ChatResponse:
+      type: object
+      required: [answer, conversationId]
+      properties:
+        answer:
+          type: string
+        conversationId:
+          type: string
+      additionalProperties: false
+
+    SpeakerVoiceAnalysisItem:
+      type: object
+      required: [speakerName, roleDescription, voiceSuggestion]
+      properties:
+        speakerName:
+          type: string
+        roleDescription:
+          type: string
+        voiceSuggestion:
+          type: string
+      additionalProperties: false
+
+    SpeakerVoiceAnalysisRequest:
+      type: object
+      required: [rawDialogue]
+      properties:
+        rawDialogue:
+          type: string
+      additionalProperties: false
+
+    SpeakerVoiceAnalysisResponse:
+      type: object
+      required: [speakers, projectId]
+      properties:
+        speakers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpeakerVoiceAnalysisItem'
+        projectId:
+          type: string
+          nullable: true
+      additionalProperties: false
+
+    SpeakerSplitTurn:
+      type: object
+      required: [speaker, text]
+      properties:
+        speaker:
+          type: string
+        text:
+          type: string
+      additionalProperties: false
+
+    SpeakerSplitAnalysisRequest:
+      type: object
+      required: [rawDialogue, speakers, projectId]
+      properties:
+        rawDialogue:
+          type: string
+        speakers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpeakerVoiceAnalysisItem'
+        projectId:
+          type: string
+      additionalProperties: false
+
+    SpeakerSplitAnalysisResponse:
+      type: object
+      required: [turns]
+      properties:
+        turns:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpeakerSplitTurn'
+      additionalProperties: false
+
+    AnnotatedSpeakerTurn:
+      type: object
+      required: [speaker, text]
+      properties:
+        speaker:
+          type: string
+        text:
+          type: string
+      additionalProperties: false
+
+    EmotionAnnotationAnalysisRequest:
+      type: object
+      required: [projectId]
+      properties:
+        projectId:
+          type: string
+      additionalProperties: false
+
+    EmotionAnnotationAnalysisResponse:
+      type: object
+      required: [turns]
+      properties:
+        turns:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnnotatedSpeakerTurn'
+      additionalProperties: false
+
+    ScriptPreviewSaveRequest:
+      type: object
+      required: [projectId, turns]
+      properties:
+        projectId:
+          type: string
+        turns:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpeakerSplitTurn'
+      additionalProperties: false
+
+    FinalTtsRequestPreviewRequest:
+      type: object
+      required: [prompt, speakers, annotatedTurns, languageCode, modelName, audioEncoding]
+      properties:
+        prompt:
+          type: string
+        speakers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpeakerVoiceAnalysisItem'
+        annotatedTurns:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnnotatedSpeakerTurn'
+        languageCode:
+          type: string
+        modelName:
+          type: string
+        audioEncoding:
+          type: string
+      additionalProperties: false
+
+    FinalTtsRequestPreviewResponse:
+      type: object
+      required: [input, voice, audioConfig]
+      properties:
+        input:
+          type: object
+          additionalProperties: true
+        voice:
+          type: object
+          additionalProperties: true
+        audioConfig:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
+
+    SingleSpeakerRenderPlanRequest:
+      type: object
+      required: [input, voice, audioConfig]
+      properties:
+        input:
+          type: object
+          additionalProperties: true
+        voice:
+          type: object
+          additionalProperties: true
+        audioConfig:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
+
+    SingleSpeakerRenderRequest:
+      type: object
+      required: [input, voice, audioConfig]
+      properties:
+        input:
+          type: object
+          additionalProperties: true
+        voice:
+          type: object
+          additionalProperties: true
+        audioConfig:
+          type: object
+          additionalProperties: true
+      additionalProperties: false
+
+    SingleSpeakerRenderPlanResponse:
+      type: object
+      required: [renderRequests]
+      properties:
+        renderRequests:
+          type: array
+          items:
+            $ref: '#/components/schemas/SingleSpeakerRenderRequest'
+      additionalProperties: false

@@ -1,0 +1,12 @@
+{
+  "turns": [
+    {
+      "speaker": "Narrator",
+      "text": "The opening line."
+    },
+    {
+      "speaker": "Mara",
+      "text": "We go now."
+    }
+  ]
+}

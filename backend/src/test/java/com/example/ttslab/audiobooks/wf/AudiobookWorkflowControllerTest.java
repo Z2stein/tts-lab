@@ -1,5 +1,9 @@
 package com.example.ttslab.audiobooks.wf;
 
+import static com.example.ttslab.contract.OpenApiContractAssertions.assertInteractionMatchesContract;
+import static com.example.ttslab.contract.OpenApiContractAssertions.assertResponseMatchesContract;
+import static com.example.ttslab.contract.TestContracts.readBytes;
+import static com.example.ttslab.contract.TestContracts.readText;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.config.ChatbotProperties;
@@ -37,6 +41,7 @@ import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -149,18 +154,18 @@ class AudiobookWorkflowControllerTest {
         ), "test-project-1"));
         when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
 
-        mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"rawDialogue\":\"Alice: Hello\"}"))
+                .content(readText("tts-workbench/speaker-voice-analysis/default/request.json")))
             .andExpect(status().isOk())
-            .andExpect(content().json("""
-                {"speakers":[{"speakerName":"Alice","roleDescription":"Detected dialogue speaker","voiceSuggestion":"ACHIRD"}],"projectId":"test-project-1"}
-                """));
+            .andExpect(content().json(readText("tts-workbench/speaker-voice-analysis/default/response.json")))
+            .andReturn();
 
         InOrder inOrder = org.mockito.Mockito.inOrder(audiobookProjectCreationService, speakerVoiceAnalysisService);
         inOrder.verify(audiobookProjectCreationService).createProject("u1");
         inOrder.verify(speakerVoiceAnalysisService).analyze("Alice: Hello", "test-project-1");
         verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq("mock"), eq("Alice: Hello"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
@@ -169,16 +174,16 @@ class AudiobookWorkflowControllerTest {
             new SpeakerSplitTurn("A", "Hello")
         )));
 
-        mockMvc.perform(post("/api/projects/tts-workbench/speaker-split-analysis")
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/speaker-split-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"rawDialogue\":\"A: Hello\",\"speakers\":[],\"projectId\":\"test-project-1\"}"))
+                .content(readText("tts-workbench/speaker-split-analysis/default/request.json")))
             .andExpect(status().isOk())
-            .andExpect(content().json("""
-                {"turns":[{"speaker":"A","text":"Hello"}]}
-                """));
+            .andExpect(content().json(readText("tts-workbench/speaker-split-analysis/default/response.json")))
+            .andReturn();
 
         verify(audiobookLibraryService).getProjectForUser(eq("test-project-1"), any(CurrentUser.class));
         verify(speakerSplitPersistenceService).splitAndPersist(eq(testProject), eq("A: Hello"), anyList());
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
@@ -190,28 +195,31 @@ class AudiobookWorkflowControllerTest {
             new AnnotatedSpeakerTurn("A", "[urgent] Hello!")
         )));
 
-        mockMvc.perform(post("/api/projects/tts-workbench/emotion-annotation-analysis")
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/emotion-annotation-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"projectId\":\"test-project-1\"}"))
+                .content(readText("tts-workbench/emotion-annotation-analysis/default/request.json")))
             .andExpect(status().isOk())
-            .andExpect(content().json("""
-                {"turns":[{"speaker":"A","text":"[urgent] Hello!"}]}
-                """));
+            .andExpect(content().json(readText("tts-workbench/emotion-annotation-analysis/default/response.json")))
+            .andReturn();
 
         verify(audiobookLibraryService).getProjectForUser(eq("test-project-1"), any(CurrentUser.class));
         verify(emotionAnnotationPersistenceService).loadScriptPreviewTurns(eq(testProject));
         verify(ttsWorkbenchService).annotate(List.of(new SpeakerSplitTurn("A", "Hello!")));
         verify(emotionAnnotationPersistenceService).persistStyledText(eq(testProject), anyList());
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
     void emotionAnnotationAnalysisRejectsMissingProjectId() throws Exception {
-        mockMvc.perform(post("/api/projects/tts-workbench/emotion-annotation-analysis")
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/emotion-annotation-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{}"))
+                .content(readText("tts-workbench/emotion-annotation-analysis/validation-failed/request.json")))
             .andExpect(status().isBadRequest())
             .andExpect(jsonPath("$.code").value("VALIDATION_FAILED"))
-            .andExpect(jsonPath("$.message").value("The request is invalid. Please check your input and try again."));
+            .andExpect(jsonPath("$.message").value("The request is invalid. Please check your input and try again."))
+            .andReturn();
+
+        assertResponseMatchesContract("/api/projects/tts-workbench/emotion-annotation-analysis", com.atlassian.oai.validator.model.Request.Method.POST, result.getResponse());
     }
 
     @Test
@@ -221,18 +229,16 @@ class AudiobookWorkflowControllerTest {
             new SpeakerSplitTurn("Mara", "We go now.")
         ));
 
-        mockMvc.perform(post("/api/projects/tts-workbench/script-preview-save")
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/script-preview-save")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {"projectId":"test-project-1","turns":[{"speaker":"Narrator","text":"The opening line."},{"speaker":"Mara","text":"We go now."}]}
-                    """))
+                .content(readText("tts-workbench/script-preview-save/default/request.json")))
             .andExpect(status().isOk())
-            .andExpect(content().json("""
-                {"turns":[{"speaker":"Narrator","text":"The opening line."},{"speaker":"Mara","text":"We go now."}]}
-                """));
+            .andExpect(content().json(readText("tts-workbench/script-preview-save/default/response.json")))
+            .andReturn();
 
         verify(audiobookLibraryService).getProjectForUser(eq("test-project-1"), any(CurrentUser.class));
         verify(emotionAnnotationPersistenceService).saveScriptPreviewTurns(eq(testProject), anyList());
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
@@ -243,13 +249,14 @@ class AudiobookWorkflowControllerTest {
             Map.of("audioEncoding", "MP3")
         ));
 
-        mockMvc.perform(post("/api/projects/tts-workbench/final-request-preview")
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/final-request-preview")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"prompt\":\"Prompt\",\"speakers\":[],\"annotatedTurns\":[],\"languageCode\":\"en-US\",\"modelName\":\"{{google-model}}\",\"audioEncoding\":\"MP3\"}"))
+                .content(readText("tts-workbench/final-request-preview/default/request.json")))
             .andExpect(status().isOk())
-            .andExpect(content().json("""
-                {"input":{"prompt":"Prompt","multiSpeakerMarkup":{"turns":[]}},"voice":{"languageCode":"en-US","modelName":"{{google-model}}","multiSpeakerVoiceConfig":{"speakerVoiceConfigs":[]}},"audioConfig":{"audioEncoding":"MP3"}}
-                """));
+            .andExpect(content().json(readText("tts-workbench/final-request-preview/default/response.json")))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
@@ -263,15 +270,14 @@ class AudiobookWorkflowControllerTest {
                 )
             )));
 
-        mockMvc.perform(post("/api/projects/tts-workbench/single-speaker-render-plan")
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/single-speaker-render-plan")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {"input":{"prompt":"Prompt","multiSpeakerMarkup":{"turns":[]}},"voice":{},"audioConfig":{}}
-                    """))
+                .content(readText("tts-workbench/single-speaker-render-plan/default/request.json")))
             .andExpect(status().isOk())
-            .andExpect(content().json("""
-                {"renderRequests":[{"input":{"text":"Hello"},"voice":{"languageCode":"en-US","name":"Kore","modelName":"{{google-model}}"},"audioConfig":{"audioEncoding":"MP3"}}]}
-                """));
+            .andExpect(content().json(readText("tts-workbench/single-speaker-render-plan/default/response.json")))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
@@ -279,16 +285,34 @@ class AudiobookWorkflowControllerTest {
         when(ttsWorkbenchService.createAudio(any(SingleSpeakerRenderPlanResponse.class)))
             .thenReturn(new TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "tts-render-request-1.mp3"));
 
-        mockMvc.perform(post("/api/projects/tts-workbench/create-audio")
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/create-audio")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("""
-                    {"renderRequests":[{"input":{"text":"Hello"},"voice":{"languageCode":"en-US","name":"Kore"},"audioConfig":{"audioEncoding":"MP3"}}]}
-                    """))
+                .content(readText("tts-workbench/create-audio/default/request.json")))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
-            .andExpect(content().bytes(new byte[] {'I', 'D', '3'}))
+            .andExpect(content().bytes(readBytes("tts-workbench/create-audio/default/response.body.bin")))
             .andExpect(header().exists("X-Audiobook-Project-Id"))
-            .andExpect(header().string("X-Audiobook-Project-Id", "test-project-1"));
+            .andExpect(header().string("X-Audiobook-Project-Id", "test-project-1"))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void speakerVoiceAnalysisRateLimitedReturns429WithRetryAfter() throws Exception {
+        when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.TEXT_MODEL), eq(1L)))
+            .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, false, 600, 600, 0, 1, 42, 1, RequestRateLimitUnit.WORDS));
+        when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
+
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"rawDialogue\":\"Alice: Hello\"}"))
+            .andExpect(status().isTooManyRequests())
+            .andExpect(header().string("Retry-After", "42"))
+            .andExpect(jsonPath("$.code").value("RATE_LIMIT_EXCEEDED"))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
@@ -302,7 +326,7 @@ class AudiobookWorkflowControllerTest {
         ));
         when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
 
-        mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
                 .header("X-Request-Id", "test-request-1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rawDialogue\":\"Alice: Hello\"}"))
@@ -310,7 +334,10 @@ class AudiobookWorkflowControllerTest {
             .andExpect(jsonPath("$.status").value(502))
             .andExpect(jsonPath("$.code").value("TTS_WORKBENCH_PROVIDER_FAILED"))
             .andExpect(jsonPath("$.message").value("The speaker voice analysis provider is currently unavailable. Please try again later."))
-            .andExpect(jsonPath("$.requestId").value("test-request-1"));
+            .andExpect(jsonPath("$.requestId").value("test-request-1"))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
@@ -318,14 +345,17 @@ class AudiobookWorkflowControllerTest {
         when(speakerVoiceAnalysisService.analyze("Alice: Hello", "test-project-1")).thenThrow(new IllegalStateException("database-password=secret"));
         when(audiobookProjectCreationService.createProject("u1")).thenReturn(testProject);
 
-        mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
+        MvcResult result = mockMvc.perform(post("/api/projects/tts-workbench/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"rawDialogue\":\"Alice: Hello\"}"))
             .andExpect(status().isInternalServerError())
             .andExpect(jsonPath("$.status").value(500))
             .andExpect(jsonPath("$.code").value("INTERNAL_ERROR"))
             .andExpect(jsonPath("$.message").value("An unexpected server error occurred. Please try again later."))
-            .andExpect(jsonPath("$.requestId").exists());
+            .andExpect(jsonPath("$.requestId").exists())
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
 }

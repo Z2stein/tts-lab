@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, ElementRef } from '@angular/core';
 import { WaveSurferService } from '../../audiobook-studio/services/wave-surfer.service';
-import { AudioAsset } from '../models/audiobook-library.types';
+import { AudioAssetResponse } from '../../../shared/api-contract.generated';
 
 @Component({
   selector: 'app-audio-player-modal',
@@ -47,7 +47,7 @@ import { AudioAsset } from '../models/audiobook-library.types';
   `]
 })
 export class AudioPlayerModalComponent implements OnInit, OnDestroy {
-  @Input({ required: true }) asset!: AudioAsset;
+  @Input({ required: true }) asset!: AudioAssetResponse;
   @Output() close = new EventEmitter<void>();
 
   @ViewChild('waveformContainer') waveformContainer!: ElementRef;

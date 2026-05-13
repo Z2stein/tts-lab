@@ -1,0 +1,17 @@
+{
+  "renderRequests": [
+    {
+      "input": {
+        "text": "Hello"
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "name": "Kore",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    }
+  ]
+}

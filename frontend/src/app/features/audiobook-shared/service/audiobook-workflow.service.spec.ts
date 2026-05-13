@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { AudiobookApiService } from './audiobook-api.service';
 import { AudiobookWorkflowService } from './audiobook-workflow.service';
+import { loadTestContractJson } from '../../../shared/test-contracts';
 
 describe('AudiobookWorkflowService', () => {
   let service: AudiobookWorkflowService;
@@ -21,7 +22,11 @@ describe('AudiobookWorkflowService', () => {
   });
 
   it('posts raw dialogue to the speaker voice analysis endpoint', async () => {
+    const baseResponse = await loadTestContractJson<{ speakers: Array<{ speakerName: string; roleDescription: string; voiceSuggestion: string }>; projectId: string }>(
+      'tts-workbench/speaker-voice-analysis/default/response.json'
+    );
     audiobookApiServiceSpy.post.and.resolveTo({
+      ...baseResponse,
       speakers: [{ speakerName: 'Alice', roleDescription: 'Detected dialogue speaker', voiceSuggestion: 'Warm voice' }],
       projectId: 'project-1'
     });
@@ -38,7 +43,11 @@ describe('AudiobookWorkflowService', () => {
   });
 
   it('posts dialogue and speakers to the speaker split endpoint', async () => {
+    const response = await loadTestContractJson<{ turns: Array<{ speaker: string; text: string }> }>(
+      'tts-workbench/speaker-split-analysis/default/response.json'
+    );
     audiobookApiServiceSpy.post.and.resolveTo({
+      ...response,
       turns: [{ speaker: 'Alice', text: 'Hello' }]
     });
 
@@ -69,7 +78,11 @@ describe('AudiobookWorkflowService', () => {
   });
 
   it('posts turns to the emotion annotation endpoint', async () => {
+    const response = await loadTestContractJson<{ turns: Array<{ speaker: string; text: string }> }>(
+      'tts-workbench/emotion-annotation-analysis/default/response.json'
+    );
     audiobookApiServiceSpy.post.and.resolveTo({
+      ...response,
       turns: [{ speaker: 'Alice', text: '[urgent] Hello!' }]
     });
 
@@ -84,11 +97,12 @@ describe('AudiobookWorkflowService', () => {
   });
 
   it('posts final preview data to the final request endpoint', async () => {
-    audiobookApiServiceSpy.post.and.resolveTo({
-      input: { prompt: 'Prompt' },
-      voice: { languageCode: 'en-US' },
-      audioConfig: { audioEncoding: 'MP3' }
-    });
+    const response = await loadTestContractJson<{
+      input: Record<string, unknown>;
+      voice: Record<string, unknown>;
+      audioConfig: Record<string, unknown>;
+    }>('tts-workbench/final-request-preview/default/response.json');
+    audiobookApiServiceSpy.post.and.resolveTo(response);
 
     const request = {
       prompt: 'Prompt',
@@ -109,13 +123,10 @@ describe('AudiobookWorkflowService', () => {
   });
 
   it('posts final request JSON to the single-speaker render plan endpoint', async () => {
-    audiobookApiServiceSpy.post.and.resolveTo({
-      renderRequests: [{
-        input: { text: 'Hello' },
-        voice: { languageCode: 'en-US', name: 'Kore', modelName: '{{google-model}}' },
-        audioConfig: { audioEncoding: 'MP3' }
-      }]
-    });
+    const response = await loadTestContractJson<{ renderRequests: Array<{ input: Record<string, unknown>; voice: Record<string, unknown>; audioConfig: Record<string, unknown> }> }>(
+      'tts-workbench/single-speaker-render-plan/default/response.json'
+    );
+    audiobookApiServiceSpy.post.and.resolveTo(response);
 
     const request = {
       input: { prompt: 'Prompt' },

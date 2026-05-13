@@ -1,0 +1,7 @@
+{
+  "status": 500,
+  "code": "INTERNAL_ERROR",
+  "message": "An unexpected server error occurred. Please try again later.",
+  "details": null,
+  "requestId": "request-1"
+}

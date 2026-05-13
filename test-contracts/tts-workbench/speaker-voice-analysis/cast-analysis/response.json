@@ -1,0 +1,15 @@
+{
+  "speakers": [
+    {
+      "speakerName": "Mara",
+      "roleDescription": "Determined lead",
+      "voiceSuggestion": "Warm alto voice"
+    },
+    {
+      "speakerName": "Jonas",
+      "roleDescription": "Careful friend",
+      "voiceSuggestion": "Gentle tenor voice"
+    }
+  ],
+  "projectId": "project-1"
+}

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
 import { WaveformPlayerComponent } from '../../../audiobook-studio/components/waveform-player/waveform-player.component';
-import { AudioAsset } from '../../models/audiobook-library.types';
+import { AudioAssetResponse } from '../../../../shared/api-contract.generated';
 
 @Component({
   selector: 'app-complete-audiobook-player',
@@ -12,7 +12,7 @@ import { AudioAsset } from '../../models/audiobook-library.types';
   styleUrl: './complete-audiobook-player.component.css',
 })
 export class CompleteAudiobookPlayerComponent {
-  @Input({ required: true }) asset!: AudioAsset;
+  @Input({ required: true }) asset!: AudioAssetResponse;
 
   formatFileSize(bytes: number): string {
     if (bytes === 0) return '0 B';

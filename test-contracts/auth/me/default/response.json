@@ -1,0 +1,7 @@
+{
+  "id": "1",
+  "email": "learner@example.dev",
+  "name": "Learner",
+  "roles": ["USER"],
+  "authMode": "mock"
+}

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { ChangeDetectionStrategy, Component, Input } from '@angular/core';
-import { AudiobookSpeechSegment, AudioAsset } from '../models/audiobook-library.types';
+import { AudioAssetResponse, AudiobookSpeechSegmentResponse } from '../../../shared/api-contract.generated';
 import { parsePerformanceDirections } from '../utils/performance-parser';
 
 @Component({
@@ -52,22 +52,22 @@ import { parsePerformanceDirections } from '../utils/performance-parser';
   `
 })
 export class AudiobookSpeechSegmentListComponent {
-  @Input() set speechSegments(value: AudiobookSpeechSegment[] | undefined | null) {
+  @Input() set speechSegments(value: AudiobookSpeechSegmentResponse[] | undefined | null) {
     this._speechSegments = value || [];
   }
-  get speechSegments(): AudiobookSpeechSegment[] {
+  get speechSegments(): AudiobookSpeechSegmentResponse[] {
     return this._speechSegments;
   }
-  private _speechSegments: AudiobookSpeechSegment[] = [];
+  private _speechSegments: AudiobookSpeechSegmentResponse[] = [];
 
-  @Input() audioAssets: AudioAsset[] = [];
+  @Input() audioAssets: AudioAssetResponse[] = [];
 
   private readonly speakerColors = [
     '#FF6B6B', '#4ECDC4', '#45B7D1',
     '#FFA07A', '#98D8C8', '#F7DC6F'
   ];
 
-  readyAssets(speechSegmentId: string): AudioAsset[] {
+  readyAssets(speechSegmentId: string): AudioAssetResponse[] {
     return this.audioAssets.filter((asset) => asset.speechSegmentId === speechSegmentId && asset.status === 'READY');
   }
 
@@ -78,23 +78,23 @@ export class AudiobookSpeechSegmentListComponent {
     return `${minutes}:${remaining.toString().padStart(2, '0')}`;
   }
 
-  getEmotionTags(speechSegment: AudiobookSpeechSegment): string[] {
+  getEmotionTags(speechSegment: AudiobookSpeechSegmentResponse): string[] {
     const parsed = parsePerformanceDirections(speechSegment.performanceDirections);
     return parsed.emotionTags;
   }
 
-  getOriginalText(speechSegment: AudiobookSpeechSegment): string | undefined {
+  getOriginalText(speechSegment: AudiobookSpeechSegmentResponse): string | undefined {
     const parsed = parsePerformanceDirections(speechSegment.performanceDirections);
     return parsed.originalText;
   }
 
-  getStyledText(speechSegment: AudiobookSpeechSegment): string | undefined {
-    return speechSegment.styledText || this.getOriginalText(speechSegment);
-  }
-
-  getSpeakerColor(speakerName?: string): string {
+  getSpeakerColor(speakerName?: string | null): string {
     if (!speakerName) return this.speakerColors[0];
     const hash = speakerName.charCodeAt(0);
     return this.speakerColors[hash % this.speakerColors.length];
+  }
+
+  getStyledText(speechSegment: AudiobookSpeechSegmentResponse): string | undefined {
+    return this.getOriginalText(speechSegment);
   }
 }

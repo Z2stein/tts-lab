@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { AudiobookSummary, AudioAsset } from '../models/audiobook-library.types';
+import { AudiobookSummary, AudioAssetResponse } from '../../../shared/api-contract.generated';
 
 @Component({
   selector: 'app-audiobook-card',
@@ -45,7 +45,7 @@ import { AudiobookSummary, AudioAsset } from '../models/audiobook-library.types'
 })
 export class AudiobookCardComponent {
   @Input({ required: true }) project!: AudiobookSummary;
-  @Output() playPreview = new EventEmitter<AudioAsset>();
+  @Output() playPreview = new EventEmitter<AudioAssetResponse>();
   readonly bars = [30, 65, 45, 86, 58, 72, 38, 90];
 
   get readyAsset() {

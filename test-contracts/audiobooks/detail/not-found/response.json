@@ -1,0 +1,7 @@
+{
+  "status": 404,
+  "code": "AUDIOBOOK_NOT_FOUND",
+  "message": "The requested audiobook was not found.",
+  "details": null,
+  "requestId": "request-1"
+}

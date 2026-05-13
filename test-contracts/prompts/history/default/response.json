@@ -1,0 +1,14 @@
+{
+  "items": [
+    {
+      "id": 1,
+      "userId": "user-1",
+      "userEmail": "user1@example.com",
+      "modelType": "TEXT_MODEL",
+      "providerModelName": "mock",
+      "promptText": "Hello",
+      "requestStatus": "SUCCESS",
+      "createdAt": "2026-05-07T12:00:00Z"
+    }
+  ]
+}

@@ -1,17 +1,13 @@
 import { computed, Injectable, signal } from '@angular/core';
 import {
   AudiobookWorkflowService,
-  FinalTtsRequestPreview,
   SpeakerVoiceAnalysisItem,
-} from '../audiobook-shared/service/audiobook-workflow.service';
-import {
-  SingleSpeakerRenderPlan,
-} from '../audiobook-shared/service/audiobook-api.service';
-import {
   AnnotatedSpeakerTurn,
-  ScriptGroup,
   SpeakerSplitTurn,
-} from './models/audiobook-studio.types';
+  FinalTtsRequestPreviewResponse,
+  SingleSpeakerRenderPlanResponse,
+} from '../audiobook-shared/service/audiobook-workflow.service';
+import { ScriptGroup } from './models/audiobook-studio.types';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
 import { RenderRequestAudioService } from '../audiobook-shared/service/render-request-audio.service';
 
@@ -20,8 +16,8 @@ export class AudiobookStudioFacade {
   private readonly _cast = signal<SpeakerVoiceAnalysisItem[]>([]);
   private readonly _scriptTurns = signal<SpeakerSplitTurn[]>([]);
   private readonly _annotatedTurns = signal<AnnotatedSpeakerTurn[]>([]);
-  private readonly _finalRequest = signal<FinalTtsRequestPreview | null>(null);
-  private readonly _audioProductionPlan = signal<SingleSpeakerRenderPlan | null>(null);
+  private readonly _finalRequest = signal<FinalTtsRequestPreviewResponse | null>(null);
+  private readonly _audioProductionPlan = signal<SingleSpeakerRenderPlanResponse | null>(null);
   private readonly _castReviewed = signal(false);
   private readonly _scriptApproved = signal(false);
   private readonly _performanceNotesStale = signal(false);
@@ -88,8 +84,8 @@ export class AudiobookStudioFacade {
   setCast(value: SpeakerVoiceAnalysisItem[]): void { this._cast.set(value); }
   setScriptTurns(value: SpeakerSplitTurn[]): void { this._scriptTurns.set(value); }
   setAnnotatedTurns(value: AnnotatedSpeakerTurn[]): void { this._annotatedTurns.set(value); }
-  setFinalRequest(value: FinalTtsRequestPreview | null): void { this._finalRequest.set(value); }
-  setAudioProductionPlan(value: SingleSpeakerRenderPlan | null): void { this._audioProductionPlan.set(value); }
+  setFinalRequest(value: FinalTtsRequestPreviewResponse | null): void { this._finalRequest.set(value); }
+  setAudioProductionPlan(value: SingleSpeakerRenderPlanResponse | null): void { this._audioProductionPlan.set(value); }
   setCastReviewed(value: boolean): void { this._castReviewed.set(value); }
   setScriptApproved(value: boolean): void { this._scriptApproved.set(value); }
   setPerformanceNotesStale(value: boolean): void { this._performanceNotesStale.set(value); }

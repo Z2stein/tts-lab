@@ -1,0 +1,50 @@
+{
+  "id": "project-amber",
+  "title": "The Amber Signal",
+  "status": "NEEDS_REVIEW",
+  "speechSegmentCount": 2,
+  "speakerCount": 3,
+  "totalDurationSeconds": 185,
+  "createdAt": "2026-05-08T08:30:00Z",
+  "updatedAt": "2026-05-09T10:30:00Z",
+  "speechSegments": [
+    {
+      "id": "speech-segment-1",
+      "orderIndex": 0,
+      "title": "Station clock",
+      "reviewStatus": "PENDING",
+      "durationSeconds": 82,
+      "speakerName": "Narrator",
+      "speakerRoleDescription": "Story narrator",
+      "voiceName": "aria",
+      "performanceDirections": "[calm] [curious] Narrator, [short pause] the clock strikes midnight."
+    },
+    {
+      "id": "speech-segment-2",
+      "orderIndex": 1,
+      "title": "The winter key",
+      "reviewStatus": "APPROVED",
+      "durationSeconds": 103,
+      "speakerName": "Alice",
+      "speakerRoleDescription": "Protagonist",
+      "voiceName": "nova",
+      "performanceDirections": "[serious] Alice, the key was hidden all along."
+    }
+  ],
+  "audioAssets": [
+    {
+      "id": "asset-preview",
+      "speechSegmentId": null,
+      "type": "PREVIEW_MP3",
+      "version": 1,
+      "filename": "amber-signal-preview.mp3",
+      "contentType": "audio/mpeg",
+      "sizeBytes": 1240000,
+      "durationSeconds": 185,
+      "status": "READY",
+      "createdAt": "2026-05-09T10:30:00Z",
+      "downloadUrl": "/api/audiobooks/project-amber/audio-assets/asset-preview/download",
+      "streamUrl": "/api/audiobooks/project-amber/audio-assets/asset-preview/stream"
+    }
+  ]
+}

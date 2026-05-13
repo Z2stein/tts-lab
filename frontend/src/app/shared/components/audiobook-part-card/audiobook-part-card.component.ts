@@ -7,15 +7,15 @@ import { LoggerService } from '../../../logger.service';
 export interface AudiobookPartCard {
   partNumber: number;
   totalParts: number;
-  speakerName?: string;
-  speakerRole?: string;
-  voiceName?: string;
+  speakerName?: string | null;
+  speakerRole?: string | null;
+  voiceName?: string | null;
   emotionTags?: string[];
-  originalText?: string;
-  durationSeconds?: number;
+  originalText?: string | null;
+  durationSeconds?: number | null;
   status: 'PENDING' | 'NEEDS_CHANGES' | 'APPROVED';
-  audioUrl?: string;
-  readyAssetId?: string;
+  audioUrl?: string | null;
+  readyAssetId?: string | null;
   error?: string;
 }
 

@@ -1,50 +1,17 @@
 import { Injectable } from '@angular/core';
+import { AudiobookApiService } from './audiobook-api.service';
 import {
-  AudiobookApiService,
-  CreatedAudioDownload,
-  RequestOptions,
-  SingleSpeakerRenderPlan,
-  SingleSpeakerRenderRequest
-} from './audiobook-api.service';
-
-export interface SpeakerVoiceAnalysisItem {
-  speakerName: string;
-  roleDescription: string;
-  voiceSuggestion: string;
-}
-
-export interface SpeakerVoiceAnalysisResponse {
-  speakers: SpeakerVoiceAnalysisItem[];
-  projectId: string | null;
-}
-
-export interface SpeakerSplitTurn {
-  speaker: string;
-  text: string;
-}
-
-export interface AnnotatedSpeakerTurn {
-  speaker: string;
-  text: string;
-}
-
-export interface FinalTtsRequestPreview {
-  input: unknown;
-  voice: unknown;
-  audioConfig: unknown;
-}
-
-interface SpeakerSplitAnalysisResponse {
-  turns: SpeakerSplitTurn[];
-}
-
-interface ScriptPreviewSaveResponse {
-  turns: SpeakerSplitTurn[];
-}
-
-interface EmotionAnnotationAnalysisResponse {
-  turns: AnnotatedSpeakerTurn[];
-}
+  AnnotatedSpeakerTurn,
+  EmotionAnnotationAnalysisResponse,
+  FinalTtsRequestPreviewResponse,
+  SingleSpeakerRenderPlanResponse,
+  SingleSpeakerRenderRequest,
+  SpeakerSplitAnalysisResponse,
+  SpeakerSplitTurn,
+  SpeakerVoiceAnalysisItem,
+  SpeakerVoiceAnalysisResponse
+} from '../../../shared/api-contract.generated';
+import { CreatedAudioDownload, RequestOptions } from '../../../shared/api-client-types';
 
 @Injectable({ providedIn: 'root' })
 export class AudiobookWorkflowService {
@@ -68,7 +35,7 @@ export class AudiobookWorkflowService {
   }
 
   async saveScriptPreview(projectId: string, turns: SpeakerSplitTurn[]): Promise<SpeakerSplitTurn[]> {
-    const data = await this.audiobookApiService.post<ScriptPreviewSaveResponse>(
+    const data = await this.audiobookApiService.post<SpeakerSplitAnalysisResponse>(
       '/api/projects/tts-workbench/script-preview-save',
       { projectId, turns },
       'Script preview save failed'
@@ -92,23 +59,23 @@ export class AudiobookWorkflowService {
     languageCode: string;
     modelName: string;
     audioEncoding: string;
-  }): Promise<FinalTtsRequestPreview> {
-    return this.audiobookApiService.post<FinalTtsRequestPreview>(
+  }): Promise<FinalTtsRequestPreviewResponse> {
+    return this.audiobookApiService.post<FinalTtsRequestPreviewResponse>(
       '/api/projects/tts-workbench/final-request-preview',
       request,
       'Final request preview failed'
     );
   }
 
-  async planSingleSpeakerRenderRequests(finalRequest: FinalTtsRequestPreview): Promise<SingleSpeakerRenderPlan> {
-    return this.audiobookApiService.post<SingleSpeakerRenderPlan>(
+  async planSingleSpeakerRenderRequests(finalRequest: FinalTtsRequestPreviewResponse): Promise<SingleSpeakerRenderPlanResponse> {
+    return this.audiobookApiService.post<SingleSpeakerRenderPlanResponse>(
       '/api/projects/tts-workbench/single-speaker-render-plan',
       finalRequest,
       'Single-speaker render plan preview failed'
     );
   }
 
-  async createAudio(renderPlan: SingleSpeakerRenderPlan, options: RequestOptions = {}, projectId?: string): Promise<CreatedAudioDownload> {
+  async createAudio(renderPlan: SingleSpeakerRenderPlanResponse, options: RequestOptions = {}, projectId?: string): Promise<CreatedAudioDownload> {
     return this.audiobookApiService.createAudio(renderPlan, options, projectId);
   }
 

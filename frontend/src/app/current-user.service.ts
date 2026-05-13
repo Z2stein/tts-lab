@@ -1,27 +1,8 @@
 import { Injectable } from '@angular/core';
 import { LoggerService } from './logger.service';
+import { CurrentUser, RequestRateLimitSummary } from './shared/api-contract.generated';
 
-export type CurrentUser = {
-  id: string;
-  email: string;
-  name: string;
-  roles: string[];
-  authMode: 'google' | 'mock';
-};
-
-export type RequestLimitItem = {
-  modelType: 'TEXT_MODEL' | 'SPEECH_MODEL';
-  used: number;
-  limit: number;
-  remaining: number;
-  unit: 'WORDS' | 'TOKENS';
-};
-
-export type RequestLimitSummary = {
-  windowResetAt: string;
-  windowSeconds: number;
-  limits: RequestLimitItem[];
-};
+export type { CurrentUser, RequestRateLimitSummary, RequestRateLimitSummaryItem } from './shared/api-contract.generated';
 
 @Injectable({ providedIn: 'root' })
 export class CurrentUserService {
@@ -65,14 +46,14 @@ export class CurrentUserService {
     }
   }
 
-  async refreshRequestLimits(): Promise<RequestLimitSummary | null> {
+  async refreshRequestLimits(): Promise<RequestRateLimitSummary | null> {
     try {
       const response = await fetch('/api/request-limits/me', { redirect: 'follow' });
       if (!response.ok || response.redirected) {
         return null;
       }
-      const summary = (await response.json()) as RequestLimitSummary;
-      window.dispatchEvent(new CustomEvent<RequestLimitSummary>('request-limits-updated', { detail: summary }));
+      const summary = (await response.json()) as RequestRateLimitSummary;
+      window.dispatchEvent(new CustomEvent<RequestRateLimitSummary>('request-limits-updated', { detail: summary }));
       return summary;
     } catch (error) {
       console.error('[auth] /api/request-limits/me request failed', error);

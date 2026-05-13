@@ -41,6 +41,7 @@ dependencies {
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
     testImplementation 'org.springframework.security:spring-security-test'
     testImplementation 'org.mockito:mockito-core'
+    testImplementation 'com.atlassian.oai:swagger-request-validator-core:2.46.1'
 }
 
 tasks.named('test') {

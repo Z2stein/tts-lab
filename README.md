@@ -133,6 +133,8 @@ Beispiel:
 
 Workflow: `.github/workflows/deploy.yml`
 
+The backend image build now runs the backend test suite, including OpenAPI contract validation against `shared/api-contract/tts-lab-openapi.yaml`, before producing the runtime jar.
+
 Ablauf bei Push:
 
 1. Branch-Typ erkennen (main/develop/feature)
@@ -151,7 +153,7 @@ Ablauf bei Push:
 
 Die Pipeline schlägt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn der separate `e2e-local`-Job fehlschlägt. Feste Sleep-Zeiten sind nicht der primäre Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend).
 
-Der lokale E2E-Job läuft mit `E2E_BASE_URL=http://127.0.0.1:4200` und `E2E_USE_LOCAL_SERVERS=true` (der Standard wäre ebenfalls lokal), startet also Backend und Frontend über die bestehende Playwright-`webServer`-Konfiguration. Er enthält weiterhin deterministische UI-Tests mit gemockten Backend-Routen und zusätzlich `real-backend-health.spec.ts`. Dieser reale Integrationscheck lädt das lokale Frontend und ruft aus dem Browser-Kontext `GET /api/health` auf. Die Route ist bewusst stabil, benötigt keine Anmeldung, keine CSRF-Token und keine externen Provider-Secrets. Der Test schlägt fehl, wenn der Browser das lokal gestartete Backend nicht erreicht, wenn die Antwort kein `200 {"status":"ok"}` ist, oder wenn das Frontend die Antwort nicht verarbeiten und anzeigen kann.
+Der lokale E2E-Job läuft mit `E2E_BASE_URL=http://127.0.0.1:4200` und `E2E_USE_LOCAL_SERVERS=true` (der Standard wäre ebenfalls lokal), startet also Backend und Frontend über die bestehende Playwright-`webServer`-Konfiguration. Vor den Playwright-Tests laufen dort zusätzlich die Frontend-Unit-Tests und der Frontend-Build. Er enthält weiterhin deterministische UI-Tests mit gemockten Backend-Routen und zusätzlich `real-backend-health.spec.ts`. Dieser reale Integrationscheck lädt das lokale Frontend und ruft aus dem Browser-Kontext `GET /api/health` auf. Die Route ist bewusst stabil, benötigt keine Anmeldung, keine CSRF-Token und keine externen Provider-Secrets. Der Test schlägt fehl, wenn der Browser das lokal gestartete Backend nicht erreicht, wenn die Antwort kein `200 {"status":"ok"}` ist, oder wenn das Frontend die Antwort nicht verarbeiten und anzeigen kann.
 
 Cleanup:
 
@@ -178,6 +180,15 @@ npm start
 ### Lokale Checks und E2E
 
 Empfohlene schnelle lokale/Codex-Checks sind Backend-Build/Unit-Tests, Frontend-Unit-Tests und Frontend-Builds. E2E-Tests sind lokal optional und sollen gezielt laufen, wenn eine Änderung End-to-End-Verhalten, Routing, Auth, Deployment-Verhalten oder mehrere App-Schichten betrifft.
+
+Contract testing ist Teil der regulären Validierung:
+
+- Backend-Controller-Tests prüfen Responses gegen `shared/api-contract/tts-lab-openapi.yaml`.
+- Frontend-Typen werden aus derselben OpenAPI-Datei generiert; `cd frontend && npm run verify:api-contract` prüft, dass die generierten Typen zur Spezifikation passen.
+- Shared fixtures liegen unter `test-contracts/` und werden von Frontend- und Backend-Tests gemeinsam verwendet.
+
+Die OpenAPI-Contract-Datei liegt unter `shared/api-contract/tts-lab-openapi.yaml`; die Backend-Tests validieren controller responses gegen genau diese Datei.
+Die Frontend-Contract-Typen werden aus dieser OpenAPI-Datei generiert; `frontend/src/app/shared/api-contract.generated.ts` ist die generierte Quelle, `frontend/src/app/shared/api-contract.ts` ist nur ein dünner Alias-Layer, und `cd frontend && npm run verify:api-contract` prüft die Generierung gegen dieselbe Quelle.
 
 ```bash
 cd backend
@@ -208,6 +219,8 @@ E2E_BASE_URL="https://<deployed-host>" E2E_USE_LOCAL_SERVERS=false npm run test:
 ```
 
 Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory und läuft dort lokal im GitHub-Actions-Runner mit `E2E_USE_LOCAL_SERVERS=true`.
+
+Wichtig: Contract testing ist ebenfalls mandatory für API-Änderungen. Wenn sich Request-/Response-Shapes, Statuscodes, Header oder Beispielpayloads ändern, müssen die OpenAPI-Spezifikation, die Shared Fixtures und die betroffenen Backend-/Frontend-Tests gemeinsam angepasst werden.
 
 ## Database and prompt history
 

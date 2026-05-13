@@ -1,0 +1,13 @@
+{
+  "projectId": "test-project-1",
+  "turns": [
+    {
+      "speaker": "Narrator",
+      "text": "The opening line."
+    },
+    {
+      "speaker": "Mara",
+      "text": "We go now."
+    }
+  ]
+}

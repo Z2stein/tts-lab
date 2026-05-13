@@ -1,39 +1,16 @@
 import { Injectable } from '@angular/core';
 import { CurrentUserService } from '../../../current-user.service';
+import { ApiErrorResponse, SingleSpeakerRenderPlanResponse, SingleSpeakerRenderRequest } from '../../../shared/api-contract.generated';
+import { CreatedAudioDownload, RequestOptions } from '../../../shared/api-client-types';
 
-export interface SingleSpeakerRenderRequest {
-  input: unknown;
-  voice: unknown;
-  audioConfig: unknown;
-}
-
-export interface SingleSpeakerRenderPlan {
-  renderRequests: SingleSpeakerRenderRequest[];
-}
-
-export interface CreatedAudioDownload {
-  blob: Blob;
-  filename: string;
-  projectId?: string;
-}
-
-interface ApiErrorResponse {
-  status?: number;
-  code?: string;
-  message?: string;
-  details?: string | null;
-  requestId?: string;
-}
-
-export interface RequestOptions {
-  signal?: AbortSignal;
-}
+export type { SingleSpeakerRenderPlanResponse, SingleSpeakerRenderRequest } from '../../../shared/api-contract.generated';
+export type { CreatedAudioDownload, RequestOptions } from '../../../shared/api-client-types';
 
 @Injectable({ providedIn: 'root' })
 export class AudiobookApiService {
   constructor(private readonly currentUserService: CurrentUserService) {}
 
-  async createAudio(renderPlan: SingleSpeakerRenderPlan, options: RequestOptions = {}, projectId?: string): Promise<CreatedAudioDownload> {
+  async createAudio(renderPlan: SingleSpeakerRenderPlanResponse, options: RequestOptions = {}, projectId?: string): Promise<CreatedAudioDownload> {
     const url = projectId ? `/api/projects/tts-workbench/create-audio?projectId=${encodeURIComponent(projectId)}` : '/api/projects/tts-workbench/create-audio';
     const response = await this.postResponse(
       url,

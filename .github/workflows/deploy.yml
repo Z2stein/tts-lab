@@ -111,7 +111,7 @@ jobs:
       - name: Build and push backend image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: .
           file: ./backend/Dockerfile
           push: true
           tags: |
@@ -362,17 +362,50 @@ jobs:
         with:
           gradle-version: 8.8
 
+      - name: Locate Chrome for frontend unit tests
+        id: chrome
+        run: |
+          set -euo pipefail
+          for candidate in /usr/bin/google-chrome /usr/bin/google-chrome-stable /usr/bin/chromium /usr/bin/chromium-browser; do
+            if [ -x "$candidate" ]; then
+              echo "chrome_bin=$candidate" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "::error title=Chrome binary not found::No Chrome-compatible binary is available on the runner."
+          exit 1
+
       - name: Install frontend dependencies
         run: |
           set -euo pipefail
           cd frontend
           npm ci
 
+      - name: Verify frontend contract types against OpenAPI
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm run verify:api-contract
+
       - name: Lint frontend code
         run: |
           set -euo pipefail
           cd frontend
           npm run lint
+
+      - name: Run frontend unit tests
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome_bin }}
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm test
+
+      - name: Build frontend bundle
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm run build
 
       - name: Install Playwright browser
         run: |

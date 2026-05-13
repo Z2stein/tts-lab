@@ -4,7 +4,7 @@ import { RouterLink } from '@angular/router';
 import { AudiobookCardComponent } from './components/audiobook-card.component';
 import { AudioPlayerModalComponent } from './components/audio-player-modal.component';
 import { EmptyLibraryStateComponent } from './components/empty-library-state.component';
-import { AudiobookSummary, AudioAsset } from './models/audiobook-library.types';
+import { AudiobookSummary, AudioAssetResponse } from '../../shared/api-contract.generated';
 import { AudiobookLibraryService } from './services/audiobook-library.service';
 
 @Component({
@@ -41,7 +41,7 @@ export class AudiobookLibraryPageComponent implements OnInit {
   projects: AudiobookSummary[] = [];
   loading = true;
   error: string | null = null;
-  selectedAsset: AudioAsset | null = null;
+  selectedAsset: AudioAssetResponse | null = null;
 
   constructor(private readonly audiobookLibraryService: AudiobookLibraryService) {}
 
@@ -59,7 +59,7 @@ export class AudiobookLibraryPageComponent implements OnInit {
     return project.id;
   }
 
-  onPlayPreview(asset: AudioAsset): void {
+  onPlayPreview(asset: AudioAssetResponse): void {
     this.selectedAsset = asset;
   }
 

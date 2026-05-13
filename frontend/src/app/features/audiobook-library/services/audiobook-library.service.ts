@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core';
-import { AudiobookDetail, AudiobookSummary, AudiobookSummaryResponse } from '../models/audiobook-library.types';
+import { AudiobookDetailResponse, AudiobookSummary, AudiobookSummaryResponse } from '../../../shared/api-contract.generated';
 
 @Injectable({ providedIn: 'root' })
 export class AudiobookLibraryService {
@@ -8,15 +8,17 @@ export class AudiobookLibraryService {
     if (!response.ok) {
       throw new Error(`Audiobook library failed (HTTP ${response.status}).`);
     }
-    const data = (await response.json()) as AudiobookSummaryResponse;
+    const raw: unknown = await response.json();
+    const data = raw as AudiobookSummaryResponse;
     return data.items;
   }
 
-  async detail(id: string): Promise<AudiobookDetail> {
+  async detail(id: string): Promise<AudiobookDetailResponse> {
     const response = await fetch(`/api/audiobooks/${encodeURIComponent(id)}`);
     if (!response.ok) {
       throw new Error(`Audiobook detail failed (HTTP ${response.status}).`);
     }
-    return (await response.json()) as AudiobookDetail;
+    const raw: unknown = await response.json();
+    return raw as AudiobookDetailResponse;
   }
 }

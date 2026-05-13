@@ -3,7 +3,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnInit } from '@
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { CompleteAudiobookPlayerComponent } from './components/complete-audiobook-player/complete-audiobook-player.component';
 import { AudiobookSpeechSegmentListComponent } from './components/audiobook-speech-segment-list.component';
-import { AudiobookDetail, AudioAsset, AudiobookSpeechSegment } from './models/audiobook-library.types';
+import { AudiobookDetailResponse, AudioAssetResponse, AudiobookSpeechSegmentResponse } from '../../shared/api-contract.generated';
 import { AudiobookLibraryService } from './services/audiobook-library.service';
 import { AudiobookPartCardComponent } from '../../shared/components/audiobook-part-card/audiobook-part-card.component';
 import { AudiobookPartCard } from '../../shared/components/audiobook-part-card/audiobook-part-card.component';
@@ -62,7 +62,7 @@ import { parsePerformanceDirections } from './utils/performance-parser';
   `
 })
 export class AudiobookReviewPageComponent implements OnInit {
-  detail: AudiobookDetail | null = null;
+  detail: AudiobookDetailResponse | null = null;
   audioPartCards: AudiobookPartCard[] = [];
   loading = true;
   error: string | null = null;
@@ -73,11 +73,11 @@ export class AudiobookReviewPageComponent implements OnInit {
     private readonly cdr: ChangeDetectorRef
   ) {}
 
-  get readyAssets(): AudioAsset[] {
+  get readyAssets(): AudioAssetResponse[] {
     return this.detail?.audioAssets.filter((asset) => asset.status === 'READY') ?? [];
   }
 
-  get primaryAsset(): AudioAsset | null {
+  get primaryAsset(): AudioAssetResponse | null {
     const fullAudiobookAssets = this.readyAssets.filter((asset) => !asset.speechSegmentId);
     return fullAudiobookAssets.find((asset) => asset.type === 'FULL_AUDIOBOOK' || asset.type === 'PREVIEW_MP3') ?? fullAudiobookAssets[0] ?? null;
   }
@@ -95,8 +95,8 @@ export class AudiobookReviewPageComponent implements OnInit {
         speakerRole: speechSegment.speakerRoleDescription,
         voiceName: speechSegment.voiceName,
         emotionTags: parsed.emotionTags,
-        originalText: speechSegment.styledText || parsed.originalText,
-        durationSeconds: speechSegment.durationSeconds || undefined,
+        originalText: parsed.originalText,
+        durationSeconds: speechSegment.durationSeconds,
         status: speechSegment.reviewStatus,
         audioUrl: this.getAudioStreamUrl(speechSegment),
         readyAssetId: this.getReadyAssetId(speechSegment),
@@ -104,7 +104,7 @@ export class AudiobookReviewPageComponent implements OnInit {
     });
   }
 
-  private extractSpeakerFromFilename(speechSegment: AudiobookSpeechSegment): string | undefined {
+  private extractSpeakerFromFilename(speechSegment: AudiobookSpeechSegmentResponse): string | undefined {
     const readyAsset = this.detail?.audioAssets.find((asset) => asset.speechSegmentId === speechSegment.id && asset.status === 'READY');
     if (!readyAsset) return undefined;
 
@@ -116,12 +116,12 @@ export class AudiobookReviewPageComponent implements OnInit {
     return undefined;
   }
 
-  private getAudioStreamUrl(speechSegment: AudiobookSpeechSegment): string | undefined {
+  private getAudioStreamUrl(speechSegment: AudiobookSpeechSegmentResponse): string | undefined {
     const readyAsset = this.detail?.audioAssets.find((asset) => asset.speechSegmentId === speechSegment.id && asset.status === 'READY');
     return readyAsset?.streamUrl;
   }
 
-  private getReadyAssetId(speechSegment: AudiobookSpeechSegment): string | undefined {
+  private getReadyAssetId(speechSegment: AudiobookSpeechSegmentResponse): string | undefined {
     const readyAsset = this.detail?.audioAssets.find((asset) => asset.speechSegmentId === speechSegment.id && asset.status === 'READY');
     return readyAsset?.id;
   }
@@ -144,7 +144,7 @@ export class AudiobookReviewPageComponent implements OnInit {
     }
   }
 
-  trackAsset(_: number, asset: AudioAsset): string {
+  trackAsset(_: number, asset: AudioAssetResponse): string {
     return asset.id;
   }
 

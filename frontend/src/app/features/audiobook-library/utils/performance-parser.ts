@@ -4,7 +4,7 @@ export interface ParsedPerformanceDirections {
   originalText?: string;
 }
 
-export function parsePerformanceDirections(performanceDirections?: string): ParsedPerformanceDirections {
+export function parsePerformanceDirections(performanceDirections?: string | null): ParsedPerformanceDirections {
   if (!performanceDirections) {
     return { emotionTags: [] };
   }

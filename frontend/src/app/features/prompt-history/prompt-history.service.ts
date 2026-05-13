@@ -1,25 +1,11 @@
 import { Injectable } from '@angular/core';
+import { ModelType, PromptHistoryItem, PromptHistoryResponse } from '../../shared/api-contract.generated';
 
-export type PromptModelType = 'TEXT_MODEL' | 'SPEECH_MODEL';
-
-export interface PromptHistoryItem {
-  id: number;
-  userId: string;
-  userEmail: string | null;
-  modelType: PromptModelType;
-  providerModelName: string | null;
-  promptText: string;
-  requestStatus: string;
-  createdAt: string;
-}
-
-interface PromptHistoryResponse {
-  items: PromptHistoryItem[];
-}
+export type { ModelType, PromptHistoryItem, PromptHistoryResponse } from '../../shared/api-contract.generated';
 
 @Injectable({ providedIn: 'root' })
 export class PromptHistoryService {
-  async getHistory(modelType?: PromptModelType): Promise<PromptHistoryItem[]> {
+  async getHistory(modelType?: ModelType): Promise<PromptHistoryItem[]> {
     const query = modelType ? `?modelType=${encodeURIComponent(modelType)}` : '';
     const response = await fetch(`/api/prompts/history${query}`);
 

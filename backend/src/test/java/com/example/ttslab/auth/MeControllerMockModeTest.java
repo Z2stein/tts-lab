@@ -1,11 +1,14 @@
 package com.example.ttslab.auth;
 
+import static com.example.ttslab.contract.OpenApiContractAssertions.assertResponseMatchesContract;
+import com.atlassian.oai.validator.model.Request.Method;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -19,11 +22,14 @@ class MeControllerMockModeTest {
     @Test
     @DisplayName("GIVEN mock auth WHEN requesting /api/me THEN stable response shape is returned")
     void meReturnsMockUser() throws Exception {
-        mockMvc.perform(get("/api/me"))
+        MvcResult result = mockMvc.perform(get("/api/me"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value("123"))
             .andExpect(jsonPath("$.email").value("test.user@example.com"))
             .andExpect(jsonPath("$.name").value("Test User"))
-            .andExpect(jsonPath("$.authMode").value("mock"));
+            .andExpect(jsonPath("$.authMode").value("mock"))
+            .andReturn();
+
+        assertResponseMatchesContract("/api/me", Method.GET, result.getResponse());
     }
 }

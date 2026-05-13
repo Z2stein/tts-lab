@@ -5,3 +5,4 @@ coverage/
 karma.conf.js
 webpack.config.js
 **/*.spec.ts
+src/app/shared/api-contract.generated.ts
