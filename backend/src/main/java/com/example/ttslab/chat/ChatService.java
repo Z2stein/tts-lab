@@ -58,6 +58,7 @@ public class ChatService {
         }
 
         try {
+            log.debug("is called withrequestMessage:\n"+request.message());
             String answer = chatModel.call(new Prompt(new UserMessage(request.message()))).getResult().getOutput().getText();
             log.debug("received answer"+answer);
             return new ChatResponse(answer == null ? "" : answer, conversationId);

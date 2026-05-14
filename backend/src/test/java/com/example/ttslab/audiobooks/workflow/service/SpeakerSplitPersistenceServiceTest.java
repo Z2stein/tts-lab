@@ -131,6 +131,56 @@ class SpeakerSplitPersistenceServiceTest {
         verify(speechSegmentRepository).deleteByProjectIdAndSegmentOrigin(eq("project-1"), eq(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW));
         verify(speechSegmentRepository, never()).saveAll(anyList());
     }
+
+    @Test
+    void splitAndPersistAllowsNarratorWhenIncludedInSpeakerList() {
+        SpeakerSplitAnalysisService splitAnalysisService = mock(SpeakerSplitAnalysisService.class);
+        SpeakerVoiceAnalysisService speakerVoiceAnalysisService = mock(SpeakerVoiceAnalysisService.class);
+        AudiobookSpeechSegmentRepository speechSegmentRepository = mock(AudiobookSpeechSegmentRepository.class);
+
+        SpeakerSplitPersistenceService service = new SpeakerSplitPersistenceService(
+            splitAnalysisService,
+            speakerVoiceAnalysisService,
+            speechSegmentRepository
+        );
+
+        AudiobookProject project = new AudiobookProject(
+            "project-1",
+            "user-1",
+            "Project",
+            AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
+        List<SpeakerVoiceAnalysisItem> speakers = List.of(
+            new SpeakerVoiceAnalysisItem("Narrator", "Narration", com.example.ttslab.audiobooks.workflow.SpeakerVoice.ACHIRD),
+            new SpeakerVoiceAnalysisItem("Alice", "Lead", com.example.ttslab.audiobooks.workflow.SpeakerVoice.ACHERNAR)
+        );
+        List<SpeakerCharacter> characters = List.of(
+            new SpeakerCharacter("character-1", "project-1", 0, "Narrator", "Narration", com.example.ttslab.audiobooks.workflow.SpeakerVoice.ACHIRD, Instant.parse("2026-05-12T10:00:00Z")),
+            new SpeakerCharacter("character-2", "project-1", 1, "Alice", "Lead", com.example.ttslab.audiobooks.workflow.SpeakerVoice.ACHERNAR, Instant.parse("2026-05-12T10:00:00Z"))
+        );
+
+        when(speakerVoiceAnalysisService.syncProjectCharacters(eq("project-1"), anyList())).thenReturn(characters);
+        when(splitAnalysisService.split(anyString(), eq(speakers))).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
+            new SpeakerSplitTurn("Narrator", "Once upon a time..."),
+            new SpeakerSplitTurn("Alice", "Hello!")
+        )));
+
+        service.splitAndPersist(project, "Once upon a time... Alice said Hello!", speakers);
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<AudiobookSpeechSegment>> segmentsCaptor = ArgumentCaptor.forClass((Class) List.class);
+        verify(speechSegmentRepository).saveAll(segmentsCaptor.capture());
+
+        List<AudiobookSpeechSegment> segments = segmentsCaptor.getValue();
+        assertThat(segments).hasSize(2);
+        assertThat(segments).extracting(AudiobookSpeechSegment::getCharacterId).containsExactly("character-1", "character-2");
+    }
 }
 
 

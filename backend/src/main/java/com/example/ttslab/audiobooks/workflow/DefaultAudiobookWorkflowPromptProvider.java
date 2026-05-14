@@ -108,6 +108,9 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
 
     @Override
     public String getSpeakerSplitPrompt(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers) {
+        if (speakers == null || speakers.isEmpty()) {
+            throw new IllegalArgumentException("speakers cannot be null or empty");
+        }
         return """
                 Split this prose/dialogue text into ordered audiobook workflow turns.
                 
@@ -124,8 +127,7 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                 - Dialogue attribution and action beats belong to "Narrator".
                   Example: Mara folded the letter twice, then unfolded it again.
                 - If one paragraph contains narration and speech, split it in reading order.
-                - Use the provided speakers when possible.
-                - If narration exists and "Narrator" is not in the provided speakers, still use "Narrator".
+                - Use ONLY the speakers in the provided list. Do not introduce speakers that are not in the list.
                 
                 speaker cannot contain whitespace or non-alphanumeric characters.
                 
