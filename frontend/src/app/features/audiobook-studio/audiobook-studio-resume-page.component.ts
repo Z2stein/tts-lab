@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, inject } from '@angular/core';
-import { ActivatedRoute } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { AudiobookStudioWorkspaceComponent } from './audiobook-studio-page.component';
 import { AudiobookWorkflowSnapshotResponse } from '../../shared/api-contract.generated';
@@ -18,6 +18,7 @@ import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-
         *ngIf="!loading && snapshot"
         [showHero]="false"
         [snapshot]="snapshot"
+        [scrollToSectionAfterLoad]="scrollToSection"
       ></app-audiobook-studio-workspace>
     </section>
   `
@@ -25,14 +26,19 @@ import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-
 export class AudiobookStudioResumePageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly audiobookWorkflowService = inject(AudiobookWorkflowService);
   private loadRequestId = 0;
 
   loading = true;
   error: string | null = null;
   snapshot: AudiobookWorkflowSnapshotResponse | null = null;
+  scrollToSection: string | null = null;
 
   ngOnInit(): void {
+    const navigationState = history.state as { scrollToSection?: string };
+    this.scrollToSection = navigationState.scrollToSection ?? null;
+
     this.route.paramMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
       const projectId = params.get('projectId');
       if (!projectId) {

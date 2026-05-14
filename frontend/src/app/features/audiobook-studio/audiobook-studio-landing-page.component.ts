@@ -18,6 +18,8 @@ export class AudiobookStudioLandingPageComponent {
   constructor(private readonly router: Router) {}
 
   onProjectCreated(projectId: string): void {
-    void this.router.navigate(['/audiobook-studio', projectId]);
+    void this.router.navigate(['/audiobook-studio', projectId], {
+      state: { scrollToSection: 'cast-section' }
+    });
   }
 }
