@@ -212,7 +212,7 @@ public class AudiobookLibraryService {
         Integer speakerCount,
         Integer totalDurationSeconds
     ) {
-        String storageKey = storageKeyBuilder.projectAsset(project.getUserId(), project.getId(), AudioAssetType.PREVIEW_MP3, version, "mp3");
+        String storageKey = storageKeyBuilder.speechSegmentMp3(project.getUserId(), project.getId(), speechSegment.getId(), version);
 
         try {
             fileStorageService.put(storageKey, audioFile.content(), audioFile.contentType());
@@ -315,6 +315,7 @@ public class AudiobookLibraryService {
         List<SingleSpeakerRenderRequest> renderRequests,
         boolean createMissingSegments
     ) {
+        List<SingleSpeakerRenderRequest> safeRenderRequests = renderRequests == null ? List.of() : renderRequests;
         List<AudiobookSpeechSegment> previewSegments = segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(
             project.getId(),
             AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW
@@ -328,8 +329,8 @@ public class AudiobookLibraryService {
                     "Script preview segments must be saved before audio can be generated."
                 );
             }
-            for (int i = 0; i < renderRequests.size(); i++) {
-                if (segmentOrderIndex(renderRequests.get(i)) != i) {
+            for (int i = 0; i < safeRenderRequests.size(); i++) {
+                if (segmentOrderIndex(safeRenderRequests.get(i)) != i) {
                     throw new ApiException(
                         HttpStatus.BAD_REQUEST,
                         "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
@@ -337,10 +338,10 @@ public class AudiobookLibraryService {
                     );
                 }
             }
-            return createPreviewSegments(project, renderRequests);
+            return createPreviewSegments(project, safeRenderRequests);
         }
 
-        if (previewSegments.size() != renderRequests.size()) {
+        if (previewSegments.size() != safeRenderRequests.size()) {
             throw new ApiException(
                 HttpStatus.BAD_REQUEST,
                 "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
@@ -348,14 +349,8 @@ public class AudiobookLibraryService {
             );
         }
 
-        for (int i = 0; i < renderRequests.size(); i++) {
-            if (segmentOrderIndex(renderRequests.get(i)) != i) {
-                throw new ApiException(
-                    HttpStatus.BAD_REQUEST,
-                    "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
-                    "The script preview no longer matches the saved script turns."
-                );
-            }
+        for (int i = 0; i < safeRenderRequests.size(); i++) {
+            validatePreviewSegmentMatchesRequest(previewSegments.get(i), safeRenderRequests.get(i));
         }
 
         return previewSegments;
@@ -454,7 +449,36 @@ public class AudiobookLibraryService {
                 "The script preview no longer matches the saved script turns."
             );
         }
-        return previewSegments.get(segmentOrderIndex);
+        AudiobookSpeechSegment previewSegment = previewSegments.get(segmentOrderIndex);
+        validatePreviewSegmentMatchesRequest(previewSegment, renderRequest);
+        return previewSegment;
+    }
+
+    private void validatePreviewSegmentMatchesRequest(AudiobookSpeechSegment previewSegment, SingleSpeakerRenderRequest renderRequest) {
+        int requestedOrderIndex = segmentOrderIndex(renderRequest);
+        if (previewSegment.getOrderIndex() != requestedOrderIndex) {
+            throw previewSegmentMismatch();
+        }
+
+        if (!normalizedValue(previewSegment.getOriginalText()).equals(normalizedValue(originalText(renderRequest)))) {
+            throw previewSegmentMismatch();
+        }
+
+        if (!normalizedValue(previewSegment.getSpeakerName()).equals(normalizedValue(speakerName(renderRequest)))) {
+            throw previewSegmentMismatch();
+        }
+
+        if (!normalizedValue(previewSegment.getVoiceName()).equals(normalizedValue(voiceName(renderRequest)))) {
+            throw previewSegmentMismatch();
+        }
+    }
+
+    private ApiException previewSegmentMismatch() {
+        return new ApiException(
+            HttpStatus.BAD_REQUEST,
+            "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
+            "The script preview no longer matches the saved script turns."
+        );
     }
 
     private int segmentOrderIndex(SingleSpeakerRenderRequest renderRequest) {
@@ -532,6 +556,10 @@ public class AudiobookLibraryService {
             }
         }
         return null;
+    }
+
+    private String normalizedValue(String value) {
+        return value == null ? "" : value.trim();
     }
 
     private AudioAssetResponse assetResponse(AudioAsset asset) {

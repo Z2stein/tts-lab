@@ -3,6 +3,7 @@ package com.example.ttslab.audiobooks.workflow;
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisRequest;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisItem;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisResponse;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.auth.CurrentUser;
@@ -40,9 +41,9 @@ import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import jakarta.validation.Valid;
 import java.io.ByteArrayOutputStream;
 import java.util.ArrayList;
-import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Set;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -221,24 +222,17 @@ public class AudiobookWorkflowController {
                     "At least one render request is required to create audio."
                 );
             }
-            Set<String> uniqueSpeakers = new HashSet<>();
-            int segmentCount = 0;
+            List<SpeakerVoiceAnalysisItem> generatedSpeakers = generatedSpeakerItems(renderRequests);
+            int segmentCount = renderRequests.size();
 
-            for (SingleSpeakerRenderRequest request : renderRequests) {
-                segmentCount++;
-                String speaker = stringValue(request.voice(), "speakerName", "speaker", "name");
-                if (speaker != null && !speaker.isBlank()) {
-                    uniqueSpeakers.add(speaker);
-                }
-            }
-
-            int speakerCount = uniqueSpeakers.size();
+            int speakerCount = generatedSpeakers.size();
             Integer estimatedDuration = DurationEstimator.estimateSpeakingDurationSeconds(promptText);
 
             AudiobookProject project;
             List<com.example.ttslab.audiobooks.model.AudiobookSpeechSegment> previewSegments;
             if (projectId == null || projectId.isBlank()) {
                 project = audiobookLibraryService.createProjectForGeneration(user);
+                speakerVoiceAnalysisService.syncProjectCharacters(project.getId(), generatedSpeakers);
                 previewSegments = audiobookLibraryService.preparePreviewSegments(project, renderRequests, true);
             } else {
                 project = audiobookLibraryService.getProjectForUser(projectId, user);
@@ -255,7 +249,8 @@ public class AudiobookWorkflowController {
             for (int i = 0; i < renderRequests.size(); i++) {
                 TtsAudioFile audioPart = audioParts.get(i);
                 audioBytes.add(audioPart.content());
-                audiobookLibraryService.persistAudioAsset(project, audioPart, previewSegments.get(i), segmentCount, 1, speakerCount, estimatedDuration);
+                Integer partDuration = DurationEstimator.estimateSpeakingDurationSeconds(stringValue(renderRequests.get(i).input(), "text"));
+                audiobookLibraryService.persistAudioAsset(project, audioPart, previewSegments.get(i), segmentCount, 1, speakerCount, partDuration);
             }
 
             byte[] mergedAudio = mergeMp3Parts(audioBytes);
@@ -311,6 +306,26 @@ public class AudiobookWorkflowController {
             .findFirst()
             .map(modelName -> "google-tts/" + modelName)
             .orElse("google-tts");
+    }
+
+    private List<SpeakerVoiceAnalysisItem> generatedSpeakerItems(List<SingleSpeakerRenderRequest> renderRequests) {
+        LinkedHashMap<String, SpeakerVoiceAnalysisItem> speakersByKey = new LinkedHashMap<>();
+        SpeakerVoice[] voices = SpeakerVoice.values();
+        for (SingleSpeakerRenderRequest renderRequest : renderRequests) {
+            String speakerName = stringValue(renderRequest.voice(), "speakerName", "speaker", "name");
+            if (speakerName.isBlank()) {
+                continue;
+            }
+            String normalizedSpeakerName = speakerName.trim().toLowerCase(Locale.ROOT);
+            if (!speakersByKey.containsKey(normalizedSpeakerName)) {
+                int voiceIndex = speakersByKey.size() % voices.length;
+                speakersByKey.put(
+                    normalizedSpeakerName,
+                    new SpeakerVoiceAnalysisItem(speakerName.trim(), "Generated from audio render plan.", voices[voiceIndex])
+                );
+            }
+        }
+        return new ArrayList<>(speakersByKey.values());
     }
 
     private String stringValue(java.util.Map<String, Object> values, String... keys) {

@@ -1,0 +1,34 @@
+{
+  "renderRequests": [
+    {
+      "input": {
+        "text": "First part.",
+        "segmentOrderIndex": 0
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "speakerName": "Narrator",
+        "name": "Kore",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    },
+    {
+      "input": {
+        "text": "one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen",
+        "segmentOrderIndex": 1
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "speakerName": "Mara",
+        "name": "Iapetus",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    }
+  ]
+}

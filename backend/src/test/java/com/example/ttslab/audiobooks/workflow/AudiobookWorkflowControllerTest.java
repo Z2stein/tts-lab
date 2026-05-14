@@ -368,6 +368,9 @@ class AudiobookWorkflowControllerTest {
             .andExpect(header().string("X-Audiobook-Project-Id", "project-1"))
             .andReturn();
 
+        verify(speakerVoiceAnalysisService).syncProjectCharacters(eq("project-1"), eq(List.of(
+            new SpeakerVoiceAnalysisItem("Narrator", "Generated from audio render plan.", SpeakerVoice.ZEPHYR)
+        )));
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 

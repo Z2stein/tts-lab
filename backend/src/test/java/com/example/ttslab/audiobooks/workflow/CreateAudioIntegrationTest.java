@@ -1,5 +1,7 @@
 package com.example.ttslab.audiobooks.workflow;
 
+import static com.example.ttslab.contract.OpenApiContractAssertions.assertInteractionMatchesContract;
+import static com.example.ttslab.contract.TestContracts.readBytes;
 import static com.example.ttslab.contract.TestContracts.readText;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -15,6 +17,7 @@ import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import com.example.ttslab.audiobooks.model.AudioAsset;
 import com.example.ttslab.audiobooks.model.AudioAssetStatus;
+import com.example.ttslab.audiobooks.model.SpeakerCharacter;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookSpeechSegmentRepository;
 import com.example.ttslab.audiobooks.repository.AudioAssetRepository;
@@ -27,8 +30,8 @@ import com.example.ttslab.ratelimit.RequestRateLimitResult;
 import com.example.ttslab.ratelimit.RequestRateLimitService;
 import com.example.ttslab.ratelimit.RequestRateLimitUnit;
 import com.example.ttslab.ratelimit.RequestUsageMeasurer;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
 import java.time.Instant;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
@@ -75,6 +78,9 @@ class CreateAudioIntegrationTest {
     private AudioAssetRepository audioAssetRepository;
 
     @Autowired
+    private SpeakerCharacterRepository speakerCharacterRepository;
+
+    @Autowired
     private AudiobookLibraryService audiobookLibraryService;
 
     @MockBean
@@ -109,11 +115,12 @@ class CreateAudioIntegrationTest {
     void createAudioPersistsGeneratedPreviewAndReturnsMp3() throws Exception {
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
                 .contentType("application/json")
-                .content(readText("audiobook-workflow/create-audio/default/request.json")))
+                .content(readText("audiobook-workflow/create-audio/generated-preview/request.json")))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
             .andExpect(header().exists("X-Audiobook-Project-Id"))
             .andExpect(header().string("Content-Disposition", "attachment; filename=\"tts-render-request-1.mp3\""))
+            .andExpect(content().bytes(readBytes("audiobook-workflow/create-audio/generated-preview/response.body.bin")))
             .andReturn();
 
         String projectId = result.getResponse().getHeader("X-Audiobook-Project-Id");
@@ -137,10 +144,21 @@ class CreateAudioIntegrationTest {
         assertThat(assets.getFirst().getSpeechSegmentId()).isEqualTo(segments.getFirst().getId());
         assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(projectId, AudiobookSpeechSegmentOrigin.GENERATED_AUDIO))
             .isEmpty();
+        assertThat(speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc(projectId))
+            .hasSize(1)
+            .extracting(SpeakerCharacter::getSpeakerName)
+            .containsExactly("Narrator");
 
-        byte[] body = result.getResponse().getContentAsByteArray();
-        assertThat(body).startsWith(new byte[] {'I', 'D', '3'});
-        assertThat(new String(body, StandardCharsets.UTF_8)).contains("TTS-LAB-MOCK-MP3", "Hello");
+        MvcResult snapshotResult = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/audiobooks/workflow/projects/{projectId}", projectId))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.projectId").value(projectId))
+            .andExpect(jsonPath("$.speakers").isArray())
+            .andExpect(jsonPath("$.speakers[0].speakerName").value("Narrator"))
+            .andReturn();
+        assertInteractionMatchesContract(snapshotResult.getRequest(), snapshotResult.getResponse());
+        assertThat(snapshotResult.getResponse().getContentAsString()).contains("\"speakers\"");
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
@@ -170,9 +188,9 @@ class CreateAudioIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
+            "Narrator",
             null,
-            null,
-            null,
+            "Kore",
             null,
             "Hello",
             null,
@@ -184,13 +202,15 @@ class CreateAudioIntegrationTest {
         MvcResult firstResult = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
                 .param("projectId", existingProject.getId())
                 .contentType("application/json")
-                .content(readText("audiobook-workflow/create-audio/default/request.json")))
+                .content(readText("audiobook-workflow/create-audio/generated-preview/request.json")))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
             .andExpect(header().exists("X-Audiobook-Project-Id"))
             .andExpect(header().string("X-Audiobook-Project-Id", existingProject.getId()))
             .andExpect(header().string("Content-Disposition", "attachment; filename=\"tts-render-request-1.mp3\""))
+            .andExpect(content().bytes(readBytes("audiobook-workflow/create-audio/generated-preview/response.body.bin")))
             .andReturn();
+        assertInteractionMatchesContract(firstResult.getRequest(), firstResult.getResponse());
 
         AudiobookProject project = audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow();
         assertThat(project.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.AUDIO_GENERATED);
@@ -210,11 +230,13 @@ class CreateAudioIntegrationTest {
         MvcResult secondResult = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
                 .param("projectId", existingProject.getId())
                 .contentType("application/json")
-                .content(readText("audiobook-workflow/create-audio/default/request.json")))
+                .content(readText("audiobook-workflow/create-audio/generated-preview/request.json")))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
             .andExpect(header().string("X-Audiobook-Project-Id", existingProject.getId()))
+            .andExpect(content().bytes(readBytes("audiobook-workflow/create-audio/generated-preview/response.body.bin")))
             .andReturn();
+        assertInteractionMatchesContract(secondResult.getRequest(), secondResult.getResponse());
 
         AudiobookProject projectAfterSecondCall = audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow();
         assertThat(projectAfterSecondCall.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.AUDIO_GENERATED);
@@ -225,11 +247,9 @@ class CreateAudioIntegrationTest {
 
         byte[] body = firstResult.getResponse().getContentAsByteArray();
         assertThat(body).startsWith(new byte[] {'I', 'D', '3'});
-        assertThat(new String(body, StandardCharsets.UTF_8)).contains("TTS-LAB-MOCK-MP3", "Hello");
 
         byte[] secondBody = secondResult.getResponse().getContentAsByteArray();
         assertThat(secondBody).startsWith(new byte[] {'I', 'D', '3'});
-        assertThat(new String(secondBody, StandardCharsets.UTF_8)).contains("TTS-LAB-MOCK-MP3", "Hello");
     }
 
     @Test
@@ -248,6 +268,287 @@ class CreateAudioIntegrationTest {
         ));
         existingProject.setWorkflowStage(AudiobookWorkflowStage.AUDIO_GENERATED);
         existingProject.setAudioAssetsCurrent(true);
+        audiobookProjectRepository.save(existingProject);
+
+        String firstPartText = "First part.";
+        String secondPartText = String.join(" ", List.of(
+            "one", "two", "three", "four", "five",
+            "six", "seven", "eight", "nine", "ten",
+            "eleven", "twelve", "thirteen", "fourteen", "fifteen"
+        ));
+
+        AudiobookSpeechSegment firstSegment = new AudiobookSpeechSegment(
+            UUID.randomUUID().toString(),
+            existingProject,
+            0,
+            "Speech segment 1",
+            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z"),
+            "Narrator",
+            null,
+            "Kore",
+            null,
+            firstPartText,
+            null,
+            null
+        );
+        firstSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        firstSegment = audiobookSpeechSegmentRepository.save(firstSegment);
+
+        AudiobookSpeechSegment secondSegment = new AudiobookSpeechSegment(
+            UUID.randomUUID().toString(),
+            existingProject,
+            1,
+            "Speech segment 2",
+            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z"),
+            "Mara",
+            null,
+            "Iapetus",
+            null,
+            secondPartText,
+            null,
+            null
+        );
+        secondSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        secondSegment = audiobookSpeechSegmentRepository.save(secondSegment);
+
+        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
+                .param("projectId", existingProject.getId())
+                .contentType("application/json")
+                .content(readText("audiobook-workflow/create-audio/generated-plan/request.json")))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType("audio/mpeg"))
+            .andExpect(header().string("X-Audiobook-Project-Id", existingProject.getId()))
+            .andExpect(header().string("Content-Disposition", "attachment; filename=\"tts-render-plan.mp3\""))
+            .andExpect(content().bytes(readBytes("audiobook-workflow/create-audio/generated-plan/response.body.bin")))
+            .andReturn();
+
+        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).hasSize(2);
+        assertThat(audioAssetRepository.findBySegmentIdOrderByCreatedAtDesc(firstSegment.getId())).hasSize(1);
+        assertThat(audioAssetRepository.findBySegmentIdOrderByCreatedAtDesc(firstSegment.getId()).getFirst().getDurationSeconds()).isEqualTo(1);
+        assertThat(audioAssetRepository.findBySegmentIdOrderByCreatedAtDesc(secondSegment.getId())).hasSize(1);
+        assertThat(audioAssetRepository.findBySegmentIdOrderByCreatedAtDesc(secondSegment.getId()).getFirst().getDurationSeconds()).isEqualTo(6);
+        assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(existingProject.getId(), AudiobookSpeechSegmentOrigin.GENERATED_AUDIO))
+            .isEmpty();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void createAudioRejectsStalePreviewSpeakerMismatch() throws Exception {
+        AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
+            UUID.randomUUID().toString(),
+            user.id(),
+            "Speaker Mismatch Audiobook",
+            com.example.ttslab.audiobooks.model.AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        ));
+        existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
+        existingProject.setAudioAssetsCurrent(false);
+        audiobookProjectRepository.save(existingProject);
+
+        AudiobookSpeechSegment firstSegment = new AudiobookSpeechSegment(
+            UUID.randomUUID().toString(),
+            existingProject,
+            0,
+            "Speech segment 1",
+            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z"),
+            "Narrator",
+            null,
+            "Kore",
+            null,
+            "First part.",
+            null,
+            null
+        );
+        firstSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        audiobookSpeechSegmentRepository.save(firstSegment);
+
+        AudiobookSpeechSegment secondSegment = new AudiobookSpeechSegment(
+            UUID.randomUUID().toString(),
+            existingProject,
+            1,
+            "Speech segment 2",
+            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z"),
+            "Mara",
+            null,
+            "Iapetus",
+            null,
+            "Second part.",
+            null,
+            null
+        );
+        secondSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        audiobookSpeechSegmentRepository.save(secondSegment);
+
+        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
+                .param("projectId", existingProject.getId())
+                .contentType("application/json")
+                .content(readText("audiobook-workflow/create-audio/stale-speaker-mismatch/request.json")))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("SCRIPT_PREVIEW_SEGMENT_MISMATCH"))
+            .andExpect(jsonPath("$.message").value("The script preview no longer matches the saved script turns."))
+            .andReturn();
+
+        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void createAudioRejectsPreviewCountMismatch() throws Exception {
+        AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
+            UUID.randomUUID().toString(),
+            user.id(),
+            "Mismatch Audiobook",
+            com.example.ttslab.audiobooks.model.AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        ));
+        existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
+        existingProject.setAudioAssetsCurrent(false);
+        audiobookProjectRepository.save(existingProject);
+
+        AudiobookSpeechSegment onlySegment = new AudiobookSpeechSegment(
+            UUID.randomUUID().toString(),
+            existingProject,
+            0,
+            "Speech segment 1",
+            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z"),
+            "Narrator",
+            null,
+            "Kore",
+            null,
+            "First part.",
+            null,
+            null
+        );
+        onlySegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        audiobookSpeechSegmentRepository.save(onlySegment);
+
+        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
+                .param("projectId", existingProject.getId())
+                .contentType("application/json")
+                .content(readText("audiobook-workflow/create-audio/generated-plan/request.json")))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("SCRIPT_PREVIEW_SEGMENT_MISMATCH"))
+            .andExpect(jsonPath("$.message").value("The script preview no longer matches the saved script turns."))
+            .andReturn();
+
+        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
+        assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(existingProject.getId(), AudiobookSpeechSegmentOrigin.GENERATED_AUDIO))
+            .isEmpty();
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void createAudioRejectsExistingProjectWhenPerformanceIsNotReady() throws Exception {
+        AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
+            UUID.randomUUID().toString(),
+            user.id(),
+            "Blocked Audiobook",
+            com.example.ttslab.audiobooks.model.AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        ));
+        existingProject.setWorkflowStage(AudiobookWorkflowStage.CAST_APPROVED);
+        audiobookProjectRepository.save(existingProject);
+
+        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
+                .param("projectId", existingProject.getId())
+                .contentType("application/json")
+                .content(readText("audiobook-workflow/create-audio/generated-preview/request.json")))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.code").value("AUDIOBOOK_WORKFLOW_PERFORMANCE_NOT_READY"))
+            .andExpect(jsonPath("$.message").value("Emotion and pacing must be saved before audio can be generated."))
+            .andExpect(jsonPath("$.requestId").exists())
+            .andReturn();
+
+        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
+        assertThat(audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow().getWorkflowStage())
+            .isEqualTo(AudiobookWorkflowStage.CAST_APPROVED);
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void createAudioRejectsExistingProjectWithoutPreviewSegments() throws Exception {
+        AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
+            UUID.randomUUID().toString(),
+            user.id(),
+            "Missing Preview Audiobook",
+            com.example.ttslab.audiobooks.model.AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        ));
+        existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
+        existingProject.setAudioAssetsCurrent(false);
+        audiobookProjectRepository.save(existingProject);
+
+        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
+                .param("projectId", existingProject.getId())
+                .contentType("application/json")
+                .content(readText("audiobook-workflow/create-audio/generated-preview/request.json")))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.status").value(400))
+            .andExpect(jsonPath("$.code").value("SCRIPT_PREVIEW_SEGMENTS_REQUIRED"))
+            .andExpect(jsonPath("$.message").value("Script preview segments must be saved before audio can be generated."))
+            .andReturn();
+
+        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
+        assertThat(audiobookSpeechSegmentRepository.findByProjectId(existingProject.getId())).isEmpty();
+        assertThat(audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow().getWorkflowStage())
+            .isEqualTo(AudiobookWorkflowStage.PERFORMANCE_READY);
+        assertThat(result.getResponse().getContentAsString()).contains("SCRIPT_PREVIEW_SEGMENTS_REQUIRED");
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void finalizeAudioGenerationMarksTheProjectCurrentAfterAllPartsAreSaved() throws Exception {
+        AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
+            UUID.randomUUID().toString(),
+            user.id(),
+            "Finalize Audiobook",
+            com.example.ttslab.audiobooks.model.AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        ));
+        existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
+        existingProject.setAudioAssetsCurrent(false);
         audiobookProjectRepository.save(existingProject);
 
         AudiobookSpeechSegment firstSegment = new AudiobookSpeechSegment(
@@ -290,278 +591,6 @@ class CreateAudioIntegrationTest {
         secondSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         secondSegment = audiobookSpeechSegmentRepository.save(secondSegment);
 
-        String requestJson = """
-            {
-              "renderRequests": [
-                {
-                  "input": {
-                    "text": "First part.",
-                    "segmentOrderIndex": 0
-                  },
-                  "voice": {
-                    "languageCode": "en-US",
-                    "speakerName": "Narrator",
-                    "name": "Kore",
-                    "modelName": "{{google-model}}"
-                  },
-                  "audioConfig": {
-                    "audioEncoding": "MP3"
-                  }
-                },
-                {
-                  "input": {
-                    "text": "Second part.",
-                    "segmentOrderIndex": 1
-                  },
-                  "voice": {
-                    "languageCode": "en-US",
-                    "speakerName": "Mara",
-                    "name": "Iapetus",
-                    "modelName": "{{google-model}}"
-                  },
-                  "audioConfig": {
-                    "audioEncoding": "MP3"
-                  }
-                }
-              ]
-            }
-            """;
-
-        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
-                .param("projectId", existingProject.getId())
-                .contentType("application/json")
-                .content(requestJson))
-            .andExpect(status().isOk())
-            .andExpect(content().contentType("audio/mpeg"))
-            .andExpect(header().string("X-Audiobook-Project-Id", existingProject.getId()))
-            .andExpect(header().string("Content-Disposition", "attachment; filename=\"tts-render-plan.mp3\""))
-            .andReturn();
-
-        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).hasSize(2);
-        assertThat(audioAssetRepository.findBySegmentIdOrderByCreatedAtDesc(firstSegment.getId())).hasSize(1);
-        assertThat(audioAssetRepository.findBySegmentIdOrderByCreatedAtDesc(secondSegment.getId())).hasSize(1);
-        assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(existingProject.getId(), AudiobookSpeechSegmentOrigin.GENERATED_AUDIO))
-            .isEmpty();
-
-        byte[] body = result.getResponse().getContentAsByteArray();
-        assertThat(body).startsWith(new byte[] {'I', 'D', '3'});
-        assertThat(new String(body, StandardCharsets.UTF_8)).contains("TTS-LAB-MOCK-MP3", "First part.", "Second part.");
-    }
-
-    @Test
-    void createAudioRejectsPreviewCountMismatch() throws Exception {
-        AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
-            UUID.randomUUID().toString(),
-            user.id(),
-            "Mismatch Audiobook",
-            com.example.ttslab.audiobooks.model.AudiobookProjectStatus.NEEDS_REVIEW,
-            "AUDIOBOOK_WORKFLOW",
-            0,
-            null,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z")
-        ));
-        existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
-        existingProject.setAudioAssetsCurrent(false);
-        audiobookProjectRepository.save(existingProject);
-
-        AudiobookSpeechSegment onlySegment = new AudiobookSpeechSegment(
-            UUID.randomUUID().toString(),
-            existingProject,
-            0,
-            "Speech segment 1",
-            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            "Kore",
-            null,
-            "First part.",
-            null,
-            null
-        );
-        onlySegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
-        audiobookSpeechSegmentRepository.save(onlySegment);
-
-        String requestJson = """
-            {
-              "renderRequests": [
-                {
-                  "input": {
-                    "text": "First part.",
-                    "segmentOrderIndex": 0
-                  },
-                  "voice": {
-                    "languageCode": "en-US",
-                    "speakerName": "Narrator",
-                    "name": "Kore",
-                    "modelName": "{{google-model}}"
-                  },
-                  "audioConfig": {
-                    "audioEncoding": "MP3"
-                  }
-                },
-                {
-                  "input": {
-                    "text": "Second part.",
-                    "segmentOrderIndex": 1
-                  },
-                  "voice": {
-                    "languageCode": "en-US",
-                    "speakerName": "Mara",
-                    "name": "Iapetus",
-                    "modelName": "{{google-model}}"
-                  },
-                  "audioConfig": {
-                    "audioEncoding": "MP3"
-                  }
-                }
-              ]
-            }
-            """;
-
-        mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
-                .param("projectId", existingProject.getId())
-                .contentType("application/json")
-                .content(requestJson))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value("SCRIPT_PREVIEW_SEGMENT_MISMATCH"))
-            .andExpect(jsonPath("$.message").value("The script preview no longer matches the saved script turns."));
-
-        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
-        assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(existingProject.getId(), AudiobookSpeechSegmentOrigin.GENERATED_AUDIO))
-            .isEmpty();
-    }
-
-    @Test
-    void createAudioRejectsExistingProjectWhenPerformanceIsNotReady() throws Exception {
-        AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
-            UUID.randomUUID().toString(),
-            user.id(),
-            "Blocked Audiobook",
-            com.example.ttslab.audiobooks.model.AudiobookProjectStatus.NEEDS_REVIEW,
-            "AUDIOBOOK_WORKFLOW",
-            0,
-            null,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z")
-        ));
-        existingProject.setWorkflowStage(AudiobookWorkflowStage.CAST_APPROVED);
-        audiobookProjectRepository.save(existingProject);
-
-        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
-                .param("projectId", existingProject.getId())
-                .contentType("application/json")
-                .content(readText("audiobook-workflow/create-audio/default/request.json")))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(400))
-            .andExpect(jsonPath("$.code").value("AUDIOBOOK_WORKFLOW_PERFORMANCE_NOT_READY"))
-            .andExpect(jsonPath("$.message").value("Emotion and pacing must be saved before audio can be generated."))
-            .andExpect(jsonPath("$.requestId").exists())
-            .andReturn();
-
-        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
-        assertThat(audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow().getWorkflowStage())
-            .isEqualTo(AudiobookWorkflowStage.CAST_APPROVED);
-    }
-
-    @Test
-    void createAudioRejectsExistingProjectWithoutPreviewSegments() throws Exception {
-        AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
-            UUID.randomUUID().toString(),
-            user.id(),
-            "Missing Preview Audiobook",
-            com.example.ttslab.audiobooks.model.AudiobookProjectStatus.NEEDS_REVIEW,
-            "AUDIOBOOK_WORKFLOW",
-            0,
-            null,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z")
-        ));
-        existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
-        existingProject.setAudioAssetsCurrent(false);
-        audiobookProjectRepository.save(existingProject);
-
-        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
-                .param("projectId", existingProject.getId())
-                .contentType("application/json")
-                .content(readText("audiobook-workflow/create-audio/default/request.json")))
-            .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(400))
-            .andExpect(jsonPath("$.code").value("SCRIPT_PREVIEW_SEGMENTS_REQUIRED"))
-            .andExpect(jsonPath("$.message").value("Script preview segments must be saved before audio can be generated."))
-            .andReturn();
-
-        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
-        assertThat(audiobookSpeechSegmentRepository.findByProjectId(existingProject.getId())).isEmpty();
-        assertThat(audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow().getWorkflowStage())
-            .isEqualTo(AudiobookWorkflowStage.PERFORMANCE_READY);
-        assertThat(result.getResponse().getContentAsString()).contains("SCRIPT_PREVIEW_SEGMENTS_REQUIRED");
-    }
-
-    @Test
-    void finalizeAudioGenerationMarksTheProjectCurrentAfterAllPartsAreSaved() throws Exception {
-        AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
-            UUID.randomUUID().toString(),
-            user.id(),
-            "Finalize Audiobook",
-            com.example.ttslab.audiobooks.model.AudiobookProjectStatus.NEEDS_REVIEW,
-            "AUDIOBOOK_WORKFLOW",
-            0,
-            null,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z")
-        ));
-        existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
-        existingProject.setAudioAssetsCurrent(false);
-        audiobookProjectRepository.save(existingProject);
-
-        AudiobookSpeechSegment firstSegment = new AudiobookSpeechSegment(
-            UUID.randomUUID().toString(),
-            existingProject,
-            0,
-            "Speech segment 1",
-            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            null,
-            null,
-            "First part.",
-            null,
-            null
-        );
-        firstSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
-        firstSegment = audiobookSpeechSegmentRepository.save(firstSegment);
-
-        AudiobookSpeechSegment secondSegment = new AudiobookSpeechSegment(
-            UUID.randomUUID().toString(),
-            existingProject,
-            1,
-            "Speech segment 2",
-            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z"),
-            "Mara",
-            null,
-            null,
-            null,
-            "Second part.",
-            null,
-            null
-        );
-        secondSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
-        secondSegment = audiobookSpeechSegmentRepository.save(secondSegment);
-
         audiobookLibraryService.persistAudioAsset(
             existingProject,
             new com.example.ttslab.audiobooks.workflow.TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "part-1.mp3"),
@@ -595,12 +624,13 @@ class CreateAudioIntegrationTest {
             .extracting(AudiobookSpeechSegment::getOriginalText)
             .containsExactly("First part.", "Second part.");
 
-        mockMvc.perform(post("/api/audiobooks/workflow/projects/{projectId}/audio-generated", existingProject.getId()))
+        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/projects/{projectId}/audio-generated", existingProject.getId()))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.projectId").value(existingProject.getId()))
             .andExpect(jsonPath("$.workflowStage").value("AUDIO_GENERATED"))
             .andExpect(jsonPath("$.audioAssetsCurrent").value(true))
             .andReturn();
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
 
         AudiobookProject afterFinalize = audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow();
         assertThat(afterFinalize.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.AUDIO_GENERATED);
