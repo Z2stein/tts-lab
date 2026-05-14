@@ -574,6 +574,10 @@ export type components = {
                 [key: string]: unknown;
             };
         };
+        CreateAudioRequest: {
+            /** @description ID of the project containing segments to render */
+            projectId: string;
+        };
         SingleSpeakerRenderPlanResponse: {
             renderRequests: components["schemas"]["SingleSpeakerRenderRequest"][];
         };
@@ -685,6 +689,7 @@ export type FinalTtsRequestPreviewRequest = components['schemas']['FinalTtsReque
 export type FinalTtsRequestPreviewResponse = components['schemas']['FinalTtsRequestPreviewResponse'];
 export type SingleSpeakerRenderPlanRequest = components['schemas']['SingleSpeakerRenderPlanRequest'];
 export type SingleSpeakerRenderRequest = components['schemas']['SingleSpeakerRenderRequest'];
+export type CreateAudioRequest = components['schemas']['CreateAudioRequest'];
 export type SingleSpeakerRenderPlanResponse = components['schemas']['SingleSpeakerRenderPlanResponse'];
 export type ResponseValidationError = components['responses']['ValidationError'];
 export type ResponseRateLimitedError = components['responses']['RateLimitedError'];
@@ -1063,16 +1068,14 @@ export interface operations {
     };
     createAudio: {
         parameters: {
-            query?: {
-                projectId?: string;
-            };
+            query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["SingleSpeakerRenderPlanResponse"];
+                "application/json": components["schemas"]["CreateAudioRequest"];
             };
         };
         responses: {

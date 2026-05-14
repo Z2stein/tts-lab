@@ -54,6 +54,9 @@ public class AudiobookWorkflowService {
     public TtsAudioFile createAudio(SingleSpeakerRenderPlanResponse requestPlan) {
         return ttsAudioCreationService.createAudio(requestPlan);
     }
+    public TtsAudioFile createAudio(SingleSpeakerRenderRequest requestPlan) {
+        return ttsAudioCreationService.createAudio(requestPlan);
+    }
 }
 
 

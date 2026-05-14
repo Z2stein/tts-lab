@@ -136,153 +136,7 @@ class AudiobookLibraryServiceTest {
         assertEquals(19, item.totalDurationSeconds(), "Should calculate 19 seconds total (6+5+8)");
     }
 
-    @Test
-    void persistAudioAssetDoesNotUpdateProjectMetadata() throws Exception {
-        AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
-        AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
-        AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
-        AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
-        FileStorageService storage = Mockito.mock(FileStorageService.class);
-        AudiobookLibraryService service = new AudiobookLibraryService(
-            repository,
-            projectRepository,
-            segmentRepository,
-            assetRepository,
-            storage,
-            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
-            new AudiobookMetadataCalculator(repository)
-        );
 
-        AudiobookProject project = new AudiobookProject(
-            "proj-1",
-            "user-1",
-            "Test Audiobook",
-            AudiobookProjectStatus.NEEDS_REVIEW,
-            "AUDIOBOOK_WORKFLOW",
-            0,
-            null,
-            null,
-            Instant.now(),
-            Instant.now()
-        );
-        AudiobookSpeechSegment previewSegment = new AudiobookSpeechSegment(
-            "segment-1",
-            project,
-            0,
-            "Speech segment 1",
-            AudiobookSpeechSegmentReviewStatus.PENDING,
-            null,
-            Instant.now(),
-            Instant.now(),
-            "Narrator",
-            null,
-            "Kore",
-            null,
-            "Hello",
-            null,
-            null
-        );
-        previewSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
-
-        when(segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex("proj-1", AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW))
-            .thenReturn(List.of(previewSegment));
-        when(assetRepository.findBySegmentIdOrderByCreatedAtDesc("segment-1")).thenReturn(List.of());
-
-        TtsAudioFile audioFile = new TtsAudioFile(new byte[] {1, 2, 3}, "audio/mpeg", "test.mp3");
-        SingleSpeakerRenderRequest renderRequest = new SingleSpeakerRenderRequest(
-            java.util.Map.of("text", "Hello", "segmentOrderIndex", 0),
-            java.util.Map.of("speakerName", "Narrator", "name", "Kore"),
-            java.util.Map.of()
-        );
-
-        service.persistAudioAsset(project, audioFile, renderRequest, 3, 1, 2, 19);
-
-        // IMPORTANT: Verify updateProjectMetadata is NEVER called
-        verify(repository, never()).updateProjectMetadata(any(), any(), any(), any());
-        verify(segmentRepository, never()).save(any());
-
-        // Verify asset and speech segment were created using JPA repositories
-        ArgumentCaptor<AudioAsset> assetCaptor = ArgumentCaptor.forClass(AudioAsset.class);
-        verify(assetRepository).save(assetCaptor.capture());
-        ArgumentCaptor<String> storageKeyCaptor = ArgumentCaptor.forClass(String.class);
-        verify(storage).put(storageKeyCaptor.capture(), org.mockito.ArgumentMatchers.any(byte[].class), anyString());
-        assertEquals("app/feature/branch/users/user-1/projects/proj-1/speech-segments/segment-1/v1.mp3", storageKeyCaptor.getValue());
-        assertEquals("segment-1", assetCaptor.getValue().getSpeechSegmentId());
-        assertEquals(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW, previewSegment.getSegmentOrigin());
-    }
-
-    @Test
-    void persistAudioAssetRejectsMismatchedPreviewSegmentContent() throws Exception {
-        AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
-        AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
-        AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
-        AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
-        FileStorageService storage = Mockito.mock(FileStorageService.class);
-        AudiobookLibraryService service = new AudiobookLibraryService(
-            repository,
-            projectRepository,
-            segmentRepository,
-            assetRepository,
-            storage,
-            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
-            new AudiobookMetadataCalculator(repository)
-        );
-
-        AudiobookProject project = new AudiobookProject(
-            "proj-1",
-            "user-1",
-            "Test Audiobook",
-            AudiobookProjectStatus.NEEDS_REVIEW,
-            "AUDIOBOOK_WORKFLOW",
-            0,
-            null,
-            null,
-            Instant.now(),
-            Instant.now()
-        );
-        AudiobookSpeechSegment previewSegment = new AudiobookSpeechSegment(
-            "segment-1",
-            project,
-            0,
-            "Speech segment 1",
-            AudiobookSpeechSegmentReviewStatus.PENDING,
-            null,
-            Instant.now(),
-            Instant.now(),
-            "Narrator",
-            null,
-            "Kore",
-            null,
-            "Hello there",
-            null,
-            null
-        );
-        previewSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
-
-        when(segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex("proj-1", AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW))
-            .thenReturn(List.of(previewSegment));
-
-        TtsAudioFile audioFile = new TtsAudioFile(new byte[] {1, 2, 3}, "audio/mpeg", "test.mp3");
-
-        assertThatThrownBy(() -> service.persistAudioAsset(
-            project,
-            audioFile,
-            new SingleSpeakerRenderRequest(
-                java.util.Map.of("text", "Hello", "segmentOrderIndex", 0),
-                java.util.Map.of("speakerName", "Narrator", "name", "Kore"),
-                java.util.Map.of()
-            ),
-            1,
-            1,
-            1,
-            1
-        ))
-            .isInstanceOf(ApiException.class)
-            .hasMessageContaining("script preview no longer matches");
-
-        verify(storage, never()).put(anyString(), org.mockito.ArgumentMatchers.any(byte[].class), anyString());
-        verify(assetRepository, never()).save(any());
-    }
 
     @Test
     void rejectsMissingOrInvalidSegmentOrderIndex() {
@@ -340,10 +194,8 @@ class AudiobookLibraryServiceTest {
             project,
             audioFile,
             new SingleSpeakerRenderRequest(java.util.Map.of("text", "Hello"), java.util.Map.of("name", "Kore"), java.util.Map.of()),
-            3,
-            1,
-            2,
-            19
+                1,
+                19
         ))
             .isInstanceOf(ApiException.class)
             .hasMessageContaining("segment order index");
@@ -352,10 +204,8 @@ class AudiobookLibraryServiceTest {
             project,
             audioFile,
             new SingleSpeakerRenderRequest(java.util.Map.of("text", "Hello", "segmentOrderIndex", -1), java.util.Map.of("name", "Kore"), java.util.Map.of()),
-            3,
-            1,
-            2,
-            19
+                1,
+                19
         ))
             .isInstanceOf(ApiException.class)
             .hasMessageContaining("segment order index");

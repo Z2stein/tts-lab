@@ -27,4 +27,7 @@ public interface AudiobookSpeechSegmentRepository extends JpaRepository<Audioboo
     @Modifying
     @Query("DELETE FROM AudiobookSpeechSegment s WHERE s.project.id = ?1 AND s.segmentOrigin = ?2")
     void deleteByProjectIdAndSegmentOrigin(String projectId, AudiobookSpeechSegmentOrigin segmentOrigin);
+
+    @Query("SELECT s FROM AudiobookSpeechSegment s WHERE s.project.id = ?1 AND s.orderIndex = ?2")
+    AudiobookSpeechSegment findByProjectIdAndOrderIndex(String id, int i);
 }

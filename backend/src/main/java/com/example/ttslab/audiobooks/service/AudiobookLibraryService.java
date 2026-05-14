@@ -184,22 +184,16 @@ public class AudiobookLibraryService {
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIOBOOK_NOT_FOUND", "The audiobook project was not found."));
     }
 
-    public AudioAsset persistAudioAsset(AudiobookProject project, TtsAudioFile audioFile, int speechSegmentCount, int version, Integer speakerCount, Integer totalDurationSeconds) {
-        return persistAudioAsset(project, audioFile, (SingleSpeakerRenderRequest) null, speechSegmentCount, version, speakerCount, totalDurationSeconds);
-    }
-
     @Transactional
     public AudioAsset persistAudioAsset(
         AudiobookProject project,
         TtsAudioFile audioFile,
         SingleSpeakerRenderRequest renderRequest,
-        int speechSegmentCount,
         int version,
-        Integer speakerCount,
         Integer totalDurationSeconds
     ) {
         AudiobookSpeechSegment speechSegment = resolveSpeechSegment(project, renderRequest);
-        return persistAudioAsset(project, audioFile, speechSegment, speechSegmentCount, version, speakerCount, totalDurationSeconds);
+        return persistAudioAsset(project, audioFile, speechSegment, version, totalDurationSeconds);
     }
 
     @Transactional
@@ -207,9 +201,7 @@ public class AudiobookLibraryService {
         AudiobookProject project,
         TtsAudioFile audioFile,
         AudiobookSpeechSegment speechSegment,
-        int speechSegmentCount,
         int version,
-        Integer speakerCount,
         Integer totalDurationSeconds
     ) {
         String storageKey = storageKeyBuilder.speechSegmentMp3(project.getUserId(), project.getId(), speechSegment.getId(), version);
@@ -268,7 +260,6 @@ public class AudiobookLibraryService {
     public AudioAsset persistAudioAsset(
         AudiobookProject project,
         TtsAudioFile audioFile,
-        int speechSegmentCount,
         int version,
         Integer speakerCount,
         Integer totalDurationSeconds,
@@ -277,7 +268,7 @@ public class AudiobookLibraryService {
         String voiceName,
         String performanceDirections
     ) {
-        return persistAudioAsset(project, audioFile, (SingleSpeakerRenderRequest) null, speechSegmentCount, version, speakerCount, totalDurationSeconds);
+        return persistAudioAsset(project, audioFile, (SingleSpeakerRenderRequest) null, version, totalDurationSeconds);
     }
 
     @Transactional
@@ -347,10 +338,6 @@ public class AudiobookLibraryService {
                 "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
                 "The script preview no longer matches the saved script turns."
             );
-        }
-
-        for (int i = 0; i < safeRenderRequests.size(); i++) {
-            validatePreviewSegmentMatchesRequest(previewSegments.get(i), safeRenderRequests.get(i));
         }
 
         return previewSegments;
@@ -428,57 +415,8 @@ public class AudiobookLibraryService {
         AudiobookProject project,
         SingleSpeakerRenderRequest renderRequest
     ) {
-        int segmentOrderIndex = segmentOrderIndex(renderRequest);
-        List<AudiobookSpeechSegment> previewSegments = segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(
-            project.getId(),
-            AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW
-        );
-
-        if (previewSegments.isEmpty()) {
-            throw new ApiException(
-                HttpStatus.BAD_REQUEST,
-                "SCRIPT_PREVIEW_SEGMENTS_REQUIRED",
-                "Script preview segments must be saved before audio can be generated."
-            );
-        }
-
-        if (segmentOrderIndex < 0 || segmentOrderIndex >= previewSegments.size()) {
-            throw new ApiException(
-                HttpStatus.BAD_REQUEST,
-                "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
-                "The script preview no longer matches the saved script turns."
-            );
-        }
-        AudiobookSpeechSegment previewSegment = previewSegments.get(segmentOrderIndex);
-        validatePreviewSegmentMatchesRequest(previewSegment, renderRequest);
+        AudiobookSpeechSegment previewSegment = segmentRepository.findByProjectIdAndOrderIndex(project.getId(), segmentOrderIndex(renderRequest));
         return previewSegment;
-    }
-
-    private void validatePreviewSegmentMatchesRequest(AudiobookSpeechSegment previewSegment, SingleSpeakerRenderRequest renderRequest) {
-        int requestedOrderIndex = segmentOrderIndex(renderRequest);
-        if (previewSegment.getOrderIndex() != requestedOrderIndex) {
-            throw previewSegmentMismatch();
-        }
-
-        if (!normalizedValue(previewSegment.getOriginalText()).equals(normalizedValue(originalText(renderRequest)))) {
-            throw previewSegmentMismatch();
-        }
-
-        if (!normalizedValue(previewSegment.getSpeakerName()).equals(normalizedValue(speakerName(renderRequest)))) {
-            throw previewSegmentMismatch();
-        }
-
-        if (!normalizedValue(previewSegment.getVoiceName()).equals(normalizedValue(voiceName(renderRequest)))) {
-            throw previewSegmentMismatch();
-        }
-    }
-
-    private ApiException previewSegmentMismatch() {
-        return new ApiException(
-            HttpStatus.BAD_REQUEST,
-            "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
-            "The script preview no longer matches the saved script turns."
-        );
     }
 
     private int segmentOrderIndex(SingleSpeakerRenderRequest renderRequest) {
@@ -556,10 +494,6 @@ public class AudiobookLibraryService {
             }
         }
         return null;
-    }
-
-    private String normalizedValue(String value) {
-        return value == null ? "" : value.trim();
     }
 
     private AudioAssetResponse assetResponse(AudioAsset asset) {

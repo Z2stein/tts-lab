@@ -4,6 +4,8 @@ import com.example.ttslab.error.ApiException;
 import com.example.ttslab.config.ChatbotProperties;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import com.example.ttslab.audiobooks.workflow.*;
@@ -37,6 +39,22 @@ public class TtsAudioCreationService {
         this.chatbotProvider = chatbotProvider == null ? PROVIDER_MOCK : chatbotProvider.trim().toLowerCase();
     }
 
+    public TtsAudioFile createAudio(SingleSpeakerRenderRequest renderRequest) {
+        if (renderRequest == null || renderRequest.input().isEmpty()) {
+            throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "TTS_AUDIO_RENDER_REQUESTS_REQUIRED",
+                    "At least one render request is required to create audio.",
+                    null,
+                    null
+            );
+        }
+
+        byte[] audioPart = createAudioPart(renderRequest);
+
+        return new TtsAudioFile(concatenateMp3(audioPart), "audio/mpeg", "tts-render-plan.mp3");
+    }
+
     public TtsAudioFile createAudio(SingleSpeakerRenderPlanResponse requestPlan) {
         List<SingleSpeakerRenderRequest> renderRequests = requestPlan == null ? List.of() : requestPlan.renderRequests();
         if (renderRequests == null || renderRequests.isEmpty()) {
@@ -49,11 +67,11 @@ public class TtsAudioCreationService {
             );
         }
 
-        List<byte[]> audioParts = createAudioParts(renderRequests);
-        if (audioParts.size() == 1) {
-            return new TtsAudioFile(audioParts.getFirst(), "audio/mpeg", "tts-render-request-1.mp3");
+        byte[][] audioParts = createAudioParts(renderRequests).toArray(new byte[0][]);
+        if (audioParts.length == 1) {
+            return new TtsAudioFile(audioParts[0], "audio/mpeg", "tts-render-request-1.mp3");
         }
-        return new TtsAudioFile(concatenateMp3(audioParts), "audio/mpeg", "tts-render-plan.mp3");
+        return new TtsAudioFile(concatenateMp3( audioParts), "audio/mpeg", "tts-render-plan.mp3");
     }
 
     public List<byte[]> createAudioParts(List<SingleSpeakerRenderRequest> renderRequests) {
@@ -118,7 +136,7 @@ public class TtsAudioCreationService {
         return output.toByteArray();
     }
 
-    private byte[] concatenateMp3(List<byte[]> audioParts) {
+    private byte[] concatenateMp3(byte[] ... audioParts) {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         for (byte[] audioPart : audioParts) {
             bytes.writeBytes(audioPart);

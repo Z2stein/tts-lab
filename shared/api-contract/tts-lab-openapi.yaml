@@ -336,18 +336,12 @@ paths:
     post:
       tags: [Audiobook Workflow]
       operationId: createAudio
-      parameters:
-        - name: projectId
-          in: query
-          required: false
-          schema:
-            type: string
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SingleSpeakerRenderPlanResponse'
+              $ref: '#/components/schemas/CreateAudioRequest'
       responses:
         '200':
           description: Rendered audio download
@@ -1110,6 +1104,15 @@ components:
         audioConfig:
           type: object
           additionalProperties: true
+      additionalProperties: false
+
+    CreateAudioRequest:
+      type: object
+      required: [projectId]
+      properties:
+        projectId:
+          type: string
+          description: ID of the project containing segments to render
       additionalProperties: false
 
     SingleSpeakerRenderPlanResponse:
