@@ -36,8 +36,7 @@ import { AudiobookSummary, AudioAssetResponse } from '../../../shared/api-contra
       </dl>
 
       <div class="flex flex-wrap gap-2">
-        <a *ngIf="project.status === 'DRAFT'" class="primary-button" [routerLink]="['/audiobook-studio', project.id]" data-testid="continue-studio">Continue studio</a>
-        <a *ngIf="project.status !== 'DRAFT'" class="primary-button" [routerLink]="['/audiobook-library', project.id]" data-testid="continue-review">Continue review</a>
+        <a class="primary-button" [routerLink]="['/audiobook-studio', project.id]" data-testid="continue-studio">Continue</a>
         <button *ngIf="readyAsset" class="secondary-button" (click)="onPlayPreview()" data-testid="play-preview">Play preview</button>
         <a *ngIf="readyAsset" class="secondary-button" [href]="readyAsset.downloadUrl" [download]="readyAsset.filename" data-testid="download-asset">Download</a>
       </div>
