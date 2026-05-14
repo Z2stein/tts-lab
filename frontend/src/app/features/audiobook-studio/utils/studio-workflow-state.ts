@@ -11,8 +11,6 @@ export interface StudioWorkflowState {
   performanceReady: boolean;
   audioProductionPlanReady: boolean;
   audioGenerated: boolean;
-  audioAssetsCurrent: boolean;
-  savedAudioAssetCount: number;
 }
 
 export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
@@ -20,7 +18,7 @@ export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
   const castDetected = state.castCount > 0;
   const scriptReady = state.scriptTurnCount > 0;
   const performanceReady = state.performanceReady && !state.performanceNotesStale;
-  const audioReady = state.audioAssetsCurrent || state.audioGenerated;
+  const audioReady = state.audioGenerated;
 
   return [
     {
@@ -56,7 +54,7 @@ export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
       label: 'Audio',
       sectionId: 'audio-section',
       status: !performanceReady ? 'locked' : audioReady ? 'completed' : 'current',
-      statusLabel: !performanceReady ? 'Locked' : audioReady ? 'Preview ready' : state.savedAudioAssetCount > 0 ? 'Preview stale' : state.audioProductionPlanReady ? 'Generate preview' : 'Prepare audio'
+      statusLabel: !performanceReady ? 'Locked' : audioReady ? 'Preview ready' : state.audioProductionPlanReady ? 'Generate preview' : 'Prepare audio'
     }
   ];
 }
@@ -119,22 +117,6 @@ export function buildCurrentTask(state: StudioWorkflowState): CurrentTask {
   }
 
   if (!state.audioProductionPlanReady) {
-    if (state.audioAssetsCurrent) {
-      return {
-        title: 'Current task: Review your generated audiobook',
-        body: 'Your audiobook preview has already been generated. You can stream or download the saved outputs below, or regenerate after making changes.',
-        nextAction: 'Listen to the saved audio preview or regenerate it after edits.',
-        sectionId: 'audio-section'
-      };
-    }
-    if (state.savedAudioAssetCount > 0) {
-      return {
-        title: 'Current task: Regenerate your audiobook preview',
-        body: 'You have saved audio from an earlier script. Regenerate the preview so it matches the current workflow.',
-        nextAction: 'Prepare audio again to make the preview current.',
-        sectionId: 'audio-section'
-      };
-    }
     return {
       title: 'Current task: Preparing audiobook',
       body: 'TTS Lab is converting your script and performance notes into an audiobook, ready to preview.',

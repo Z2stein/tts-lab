@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
-import { AudioAssetResponse, AudiobookWorkflowSnapshotResponse } from '../../shared/api-contract.generated';
+import { AudiobookWorkflowSnapshotResponse } from '../../shared/api-contract.generated';
 import {
   AnnotatedSpeakerTurn,
   FinalTtsRequestPreviewResponse,
@@ -138,9 +138,6 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   set performanceNotesStale(value: boolean) { this.facade.setPerformanceNotesStale(value); }
 
   get performanceReady(): boolean { return this.facade.performanceReady(); }
-
-  get audioAssets(): AudioAssetResponse[] { return this.facade.audioAssets(); }
-  get audioAssetsCurrent(): boolean { return this.facade.audioAssetsCurrent(); }
 
   get loadingAction(): string | null { return this.facade.loadingAction(); }
   get error(): string | null { return this.facade.error(); }
@@ -343,7 +340,6 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
     const state = this.renderRequestAudioService.audioStates[requestIndex];
     if (state?.status === 'generated' && this.fullAudioGenerationService.audioUrl) {
-      this.facade.setAudioAssetsCurrent(false);
       this.fullAudioGenerationService.markStale(
         'Audiobook preview needs regeneration because one or more parts changed.'
       );
@@ -374,8 +370,6 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
       performanceReady: this.facade.performanceReady(),
       audioProductionPlanReady: this.facade.audioProductionPlan() !== null,
       audioGenerated: this.fullPlanAudioUrl !== null && !this.fullPlanAudioStale,
-      audioAssetsCurrent: this.audioAssetsCurrent,
-      savedAudioAssetCount: this.audioAssets.length,
     };
   }
 

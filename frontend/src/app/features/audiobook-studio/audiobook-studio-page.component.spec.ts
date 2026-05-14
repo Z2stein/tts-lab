@@ -57,8 +57,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         modelName: 'gemini-3.1-flash-tts-preview',
         audioEncoding: 'MP3'
       },
-      audioAssets: [],
-      audioAssetsCurrent: true,
       performanceNotesStale: false
     } as never);
     audiobookLibraryService.updateTitle.and.resolveTo({
@@ -207,8 +205,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         modelName: 'gemini-3.1-flash-tts-preview',
         audioEncoding: 'MP3'
       },
-      audioAssets: [],
-      audioAssetsCurrent: false,
       performanceNotesStale: false
     } as never);
 
@@ -266,8 +262,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         modelName: 'gemini-3.1-flash-tts-preview',
         audioEncoding: 'MP3'
       },
-      audioAssets: [],
-      audioAssetsCurrent: false,
       performanceNotesStale: false
     } as never);
     audiobookWorkflowService.splitDialogue.and.resolveTo([
@@ -399,8 +393,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         modelName: 'gemini-3.1-flash-tts-preview',
         audioEncoding: 'MP3'
       },
-      audioAssets: [],
-      audioAssetsCurrent: false,
       performanceNotesStale: false
     } as never);
     await component.createPerformanceNotes();
@@ -430,8 +422,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         modelName: 'gemini-3.1-flash-tts-preview',
         audioEncoding: 'MP3'
       },
-      audioAssets: [],
-      audioAssetsCurrent: false,
       performanceNotesStale: false
     } as never);
     audiobookWorkflowService.annotateEmotions.and.resolveTo({
@@ -448,8 +438,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         modelName: 'gemini-3.1-flash-tts-preview',
         audioEncoding: 'MP3'
       },
-      audioAssets: [],
-      audioAssetsCurrent: false,
       performanceNotesStale: false
     } as never);
     fixture.detectChanges();
@@ -479,7 +467,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     await component.generateAudioForRenderRequest(component.renderRequests[0], 0);
     fixture.detectChanges();
 
-    expect(component.audioAssetsCurrent).toBeFalse();
     expect(component.fullPlanAudioStale).toBeTrue();
   });
 
@@ -641,7 +628,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     fixture.detectChanges();
 
     expect(audiobookWorkflowService.markAudioGenerated).toHaveBeenCalledWith('project-1');
-    expect(component.audioAssetsCurrent).toBeTrue();
     expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
     expect(fixture.nativeElement.textContent).toContain('Ready to listen');
   });

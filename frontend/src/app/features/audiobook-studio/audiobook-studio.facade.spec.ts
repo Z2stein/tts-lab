@@ -142,8 +142,6 @@ describe('AudiobookStudioFacade', () => {
           modelName: 'gemini-3.1-flash-tts-preview',
           audioEncoding: 'MP3'
         },
-        audioAssets: [],
-        audioAssetsCurrent: false,
         performanceNotesStale: false
       } as never);
 
@@ -151,7 +149,6 @@ describe('AudiobookStudioFacade', () => {
 
       expect(workflow.approveCast).toHaveBeenCalledWith('project-1');
       expect(facade.castReviewed()).toBeTrue();
-      expect(facade.audioAssetsCurrent()).toBeFalse();
     });
   });
 
@@ -171,8 +168,6 @@ describe('AudiobookStudioFacade', () => {
           modelName: 'gemini-3.1-flash-tts-preview',
           audioEncoding: 'MP3'
         },
-        audioAssets: [],
-        audioAssetsCurrent: false,
         performanceNotesStale: true
       } as never);
 
@@ -201,8 +196,6 @@ describe('AudiobookStudioFacade', () => {
           modelName: 'gemini-3.1-flash-tts-preview',
           audioEncoding: 'MP3'
         },
-        audioAssets: [],
-        audioAssetsCurrent: false,
         performanceNotesStale: false
       } as never);
       facade.setPerformanceNotesStale(true);
@@ -261,8 +254,6 @@ describe('AudiobookStudioFacade', () => {
         scriptTurns: [],
         annotatedTurns: [],
         productionSettings: requestParams,
-        audioAssets: [],
-        audioAssetsCurrent: false,
         performanceNotesStale: false
       } as never);
       workflow.generateFinalJson.and.resolveTo(finalReq);
@@ -300,8 +291,6 @@ describe('AudiobookStudioFacade', () => {
           modelName: 'gemini-3.1-flash-tts-preview',
           audioEncoding: 'MP3'
         },
-        audioAssets: [],
-        audioAssetsCurrent: true,
         performanceNotesStale: false
       } as never);
 
@@ -309,7 +298,6 @@ describe('AudiobookStudioFacade', () => {
 
       expect(workflow.markAudioGenerated).toHaveBeenCalledWith('project-1');
       expect(facade.workflowStage()).toBe('AUDIO_GENERATED');
-      expect(facade.audioAssetsCurrent()).toBeTrue();
       expect(facade.loadingAction()).toBeNull();
       expect(facade.error()).toBeNull();
     });
@@ -355,8 +343,6 @@ describe('AudiobookStudioFacade', () => {
           modelName: 'gemini-3.1-flash-tts-preview',
           audioEncoding: 'MP3'
         },
-        audioAssets: [],
-        audioAssetsCurrent: false,
         performanceNotesStale: false
       } as never);
 
@@ -430,7 +416,6 @@ describe('AudiobookStudioFacade', () => {
         { speaker: 'Mara', text: 'Hello' },
         { speaker: 'Jonas', text: 'Greetings' }
       ]);
-      facade.setAudioAssetsCurrent(true);
 
       const promise = facade.saveScriptTurnEdit(1);
       expect(facade.loadingAction()).toBe('script-edit');
@@ -446,7 +431,6 @@ describe('AudiobookStudioFacade', () => {
 
       expect(facade.scriptApproved()).toBeFalse();
       expect(facade.performanceNotesStale()).toBeTrue();
-      expect(facade.audioAssetsCurrent()).toBeFalse();
       expect(renderSvc.abortAll).toHaveBeenCalled();
     });
   });
