@@ -2,10 +2,12 @@
   "renderRequests": [
     {
       "input": {
-        "text": "Hello"
+        "text": "Hello",
+        "segmentOrderIndex": 0
       },
       "voice": {
         "languageCode": "en-US",
+        "speakerName": "Narrator",
         "name": "Kore",
         "modelName": "{{google-model}}"
       },

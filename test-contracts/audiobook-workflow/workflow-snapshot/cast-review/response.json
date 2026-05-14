@@ -1,5 +1,5 @@
 {
-  "projectId": "test-project-1",
+  "projectId": "project-1",
   "title": "The Hidden Signal",
   "storyText": "Mara: We go now.\nJonas: Together.",
   "workflowStage": "CAST_REVIEW",
@@ -7,7 +7,7 @@
     {
       "speakerName": "Mara",
       "roleDescription": "Bold traveler",
-      "voiceSuggestion": "ACHIRD"
+      "voiceSuggestion": "KORE"
     },
     {
       "speakerName": "Jonas",

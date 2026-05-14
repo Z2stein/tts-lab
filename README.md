@@ -360,15 +360,17 @@ Audiobook Studio calls the workflow endpoints under `/api/audiobooks/workflow/*`
 - `POST /api/audiobooks/workflow/create-audio` with `renderRequests` returns a downloadable MP3 for one render request or one concatenated MP3 for multiple requests. It stores the generated preview parts on the project, but it does not mark the workflow as current by itself.
 - `POST /api/audiobooks/workflow/projects/{projectId}/audio-generated` marks the generated preview as current after the merged audiobook preview is complete and returns the refreshed workflow snapshot.
 
-Single-speaker render requests intentionally do not return internal planning metadata such as turn indexes or speaker aliases. The preview JSON matches the provider request shape, for example:
+Single-speaker render requests now include backend-only persistence metadata such as `input.segmentOrderIndex` and `voice.speakerName` so generated audio can be attached back to the saved script-preview rows. Provider request builders still ignore those extra fields, so the preview JSON remains compatible with the external TTS request shape, for example:
 
 ```json
 {
   "input": {
-    "text": "[calm]The rain had turned the windows silver by the time they reached the old station café.\n[serious]Mara folded the letter twice, then unfolded it again."
+    "text": "[calm]The rain had turned the windows silver by the time they reached the old station café.\n[serious]Mara folded the letter twice, then unfolded it again.",
+    "segmentOrderIndex": 0
   },
   "voice": {
     "languageCode": "en-US",
+    "speakerName": "Narrator",
     "name": "Schedar",
     "modelName": "{{google-model}}"
   },

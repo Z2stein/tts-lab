@@ -2,7 +2,7 @@ import { test, expect, BrowserContext, Page } from '@playwright/test';
 import { loadTestContractJson } from '../src/app/shared/test-contracts';
 
 const e2eBaseUrl = process.env['E2E_BASE_URL'] || 'http://127.0.0.1:4200';
-const testProjectId = 'test-project-1';
+const testProjectId = 'project-1';
 
 type WorkflowSnapshotName =
   | 'cast-review'
@@ -89,7 +89,7 @@ test('audiobook studio shows cast cards after story analysis succeeds', async ({
   await expect(page.getByTestId('studio-hero')).toHaveCount(0);
   await expect(page.getByText('Detected character')).toHaveCount(2);
   await expect(page.getByRole('heading', { name: 'Mara' })).toBeVisible();
-  await expect(page.getByText('Warm alto voice')).toBeVisible();
+  await expect(page.getByText('KORE')).toBeVisible();
   await expect(page.getByText('The Hidden Signal')).toBeVisible();
 });
 
@@ -288,7 +288,7 @@ test('audiobook studio generates the final preview after the workflow reaches au
   await expect(page.locator('.generated-audio-player')).toBeVisible();
   await expect(page.getByText('audiobook-preview-merged.mp3')).toBeVisible();
   await expect(page.getByRole('button', { name: 'All parts ready' })).toBeVisible();
-  expect(createAudioCalls).toBe(3);
+  expect(createAudioCalls).toBe(5);
   expect(finalizeAudioCalls).toBe(1);
   await expect(page.getByRole('alert')).toHaveCount(0);
 });

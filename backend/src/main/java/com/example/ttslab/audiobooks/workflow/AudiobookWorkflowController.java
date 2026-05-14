@@ -8,6 +8,7 @@ import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalys
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.common.DurationEstimator;
 import com.example.ttslab.config.ChatbotProperties;
+import com.example.ttslab.error.ApiException;
 import com.example.ttslab.audiobooks.workflow.EmotionAnnotationAnalysisRequest;
 import com.example.ttslab.audiobooks.workflow.EmotionAnnotationAnalysisResponse;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowProductionSettings;
@@ -18,6 +19,7 @@ import com.example.ttslab.audiobooks.workflow.FinalTtsRequestPreviewResponse;
 import com.example.ttslab.audiobooks.workflow.ScriptPreviewSaveRequest;
 import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderPlanRequest;
 import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderPlanResponse;
+import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderRequest;
 import com.example.ttslab.audiobooks.workflow.SpeakerSplitAnalysisRequest;
 import com.example.ttslab.audiobooks.workflow.SpeakerSplitAnalysisResponse;
 import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
@@ -36,7 +38,10 @@ import com.example.ttslab.ratelimit.RequestRateLimitResult;
 import com.example.ttslab.ratelimit.RequestRateLimitService;
 import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import jakarta.validation.Valid;
+import java.io.ByteArrayOutputStream;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -208,39 +213,54 @@ public class AudiobookWorkflowController {
         String providerModelName = renderProviderModelName(requestPlan);
         enforceLimit(user, ModelType.SPEECH_MODEL, promptText, providerModelName);
         try {
+            List<SingleSpeakerRenderRequest> renderRequests = requestPlan.renderRequests() == null ? List.of() : requestPlan.renderRequests();
+            if (renderRequests.isEmpty()) {
+                throw new ApiException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "TTS_AUDIO_RENDER_REQUESTS_REQUIRED",
+                    "At least one render request is required to create audio."
+                );
+            }
             Set<String> uniqueSpeakers = new HashSet<>();
             int segmentCount = 0;
-            String firstSpeakerName = null;
-            String firstVoiceName = null;
 
-            if (requestPlan.renderRequests() != null && !requestPlan.renderRequests().isEmpty()) {
-                var firstRequest = requestPlan.renderRequests().get(0);
-                firstSpeakerName = stringValue(firstRequest.voice(), "speakerName");
-                firstVoiceName = stringValue(firstRequest.voice(), "speakerId");
-
-                for (var request : requestPlan.renderRequests()) {
-                    segmentCount++;
-                    String speaker = stringValue(request.voice(), "speakerName");
-                    if (speaker != null && !speaker.isBlank()) {
-                        uniqueSpeakers.add(speaker);
-                    }
+            for (SingleSpeakerRenderRequest request : renderRequests) {
+                segmentCount++;
+                String speaker = stringValue(request.voice(), "speakerName", "speaker", "name");
+                if (speaker != null && !speaker.isBlank()) {
+                    uniqueSpeakers.add(speaker);
                 }
             }
 
             int speakerCount = uniqueSpeakers.size();
             Integer estimatedDuration = DurationEstimator.estimateSpeakingDurationSeconds(promptText);
 
-            TtsAudioFile audioFile = audiobookWorkflowService.createAudio(requestPlan);
-
             AudiobookProject project;
+            List<com.example.ttslab.audiobooks.model.AudiobookSpeechSegment> previewSegments;
             if (projectId == null || projectId.isBlank()) {
                 project = audiobookLibraryService.createProjectForGeneration(user);
+                previewSegments = audiobookLibraryService.preparePreviewSegments(project, renderRequests, true);
             } else {
                 project = audiobookLibraryService.getProjectForUser(projectId, user);
                 audiobookWorkflowStateService.ensureAudioGenerationReady(project);
+                previewSegments = audiobookLibraryService.preparePreviewSegments(project, renderRequests, false);
             }
 
-            audiobookLibraryService.persistAudioAsset(project, audioFile, segmentCount, 1, speakerCount, estimatedDuration, firstSpeakerName, null, firstVoiceName, null);
+            List<TtsAudioFile> audioParts = new ArrayList<>();
+            for (SingleSpeakerRenderRequest renderRequest : renderRequests) {
+                audioParts.add(audiobookWorkflowService.createAudio(new SingleSpeakerRenderPlanResponse(List.of(renderRequest))));
+            }
+
+            List<byte[]> audioBytes = new ArrayList<>();
+            for (int i = 0; i < renderRequests.size(); i++) {
+                TtsAudioFile audioPart = audioParts.get(i);
+                audioBytes.add(audioPart.content());
+                audiobookLibraryService.persistAudioAsset(project, audioPart, previewSegments.get(i), segmentCount, 1, speakerCount, estimatedDuration);
+            }
+
+            byte[] mergedAudio = mergeMp3Parts(audioBytes);
+            String filename = renderRequests.size() == 1 ? audioParts.getFirst().filename() : "tts-render-plan.mp3";
+            TtsAudioFile audioFile = new TtsAudioFile(mergedAudio, audioParts.getFirst().contentType(), filename);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
@@ -293,12 +313,28 @@ public class AudiobookWorkflowController {
             .orElse("google-tts");
     }
 
-    private String stringValue(java.util.Map<String, Object> values, String key) {
+    private String stringValue(java.util.Map<String, Object> values, String... keys) {
         if (values == null) {
             return "";
         }
-        Object value = values.get(key);
-        return value == null ? "" : value.toString();
+        for (String key : keys) {
+            Object value = values.get(key);
+            if (value != null) {
+                String text = value.toString();
+                if (!text.isBlank()) {
+                    return text;
+                }
+            }
+        }
+        return "";
+    }
+
+    private byte[] mergeMp3Parts(List<byte[]> audioParts) {
+        ByteArrayOutputStream output = new ByteArrayOutputStream();
+        for (byte[] audioPart : audioParts) {
+            output.writeBytes(audioPart);
+        }
+        return output.toByteArray();
     }
 
     private String providerModelName(String provider, String modelName) {

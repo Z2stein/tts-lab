@@ -15,6 +15,9 @@ public interface AudioAssetRepository extends JpaRepository<AudioAsset, String> 
     @Query("SELECT a FROM AudioAsset a WHERE a.segment.id = ?1")
     List<AudioAsset> findBySegmentId(String segmentId);
 
+    @Query("SELECT a FROM AudioAsset a WHERE a.segment.id = ?1 ORDER BY a.createdAt DESC")
+    List<AudioAsset> findBySegmentIdOrderByCreatedAtDesc(String segmentId);
+
     @Query("SELECT a FROM AudioAsset a WHERE a.project.id = ?1 ORDER BY a.createdAt DESC")
     List<AudioAsset> findByProjectIdOrderByCreatedAtDesc(String projectId);
 

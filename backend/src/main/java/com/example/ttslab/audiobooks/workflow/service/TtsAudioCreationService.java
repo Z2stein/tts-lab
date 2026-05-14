@@ -49,11 +49,24 @@ public class TtsAudioCreationService {
             );
         }
 
-        List<byte[]> audioParts = renderRequests.stream().map(this::createAudioPart).toList();
+        List<byte[]> audioParts = createAudioParts(renderRequests);
         if (audioParts.size() == 1) {
             return new TtsAudioFile(audioParts.getFirst(), "audio/mpeg", "tts-render-request-1.mp3");
         }
         return new TtsAudioFile(concatenateMp3(audioParts), "audio/mpeg", "tts-render-plan.mp3");
+    }
+
+    public List<byte[]> createAudioParts(List<SingleSpeakerRenderRequest> renderRequests) {
+        if (renderRequests == null || renderRequests.isEmpty()) {
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "TTS_AUDIO_RENDER_REQUESTS_REQUIRED",
+                "At least one render request is required to create audio.",
+                null,
+                null
+            );
+        }
+        return renderRequests.stream().map(this::createAudioPart).toList();
     }
 
     private byte[] createAudioPart(SingleSpeakerRenderRequest renderRequest) {

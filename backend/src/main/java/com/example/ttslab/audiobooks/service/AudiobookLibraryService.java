@@ -10,12 +10,15 @@ import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStage;
+import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderRequest;
 import com.example.ttslab.storage.FileStorageService;
 import com.example.ttslab.storage.StorageKeyBuilder;
 import com.example.ttslab.storage.StoredFile;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -182,24 +185,33 @@ public class AudiobookLibraryService {
     }
 
     public AudioAsset persistAudioAsset(AudiobookProject project, TtsAudioFile audioFile, int speechSegmentCount, int version, Integer speakerCount, Integer totalDurationSeconds) {
-        return persistAudioAsset(project, audioFile, speechSegmentCount, version, speakerCount, totalDurationSeconds, null, null, null, null);
+        return persistAudioAsset(project, audioFile, (SingleSpeakerRenderRequest) null, speechSegmentCount, version, speakerCount, totalDurationSeconds);
     }
 
     @Transactional
     public AudioAsset persistAudioAsset(
         AudiobookProject project,
         TtsAudioFile audioFile,
+        SingleSpeakerRenderRequest renderRequest,
         int speechSegmentCount,
         int version,
         Integer speakerCount,
-        Integer totalDurationSeconds,
-        String speakerName,
-        String speakerRoleDescription,
-        String voiceName,
-        String performanceDirections
+        Integer totalDurationSeconds
     ) {
-        String assetId = UUID.randomUUID().toString();
-        String speechSegmentId = UUID.randomUUID().toString();
+        AudiobookSpeechSegment speechSegment = resolveSpeechSegment(project, renderRequest);
+        return persistAudioAsset(project, audioFile, speechSegment, speechSegmentCount, version, speakerCount, totalDurationSeconds);
+    }
+
+    @Transactional
+    public AudioAsset persistAudioAsset(
+        AudiobookProject project,
+        TtsAudioFile audioFile,
+        AudiobookSpeechSegment speechSegment,
+        int speechSegmentCount,
+        int version,
+        Integer speakerCount,
+        Integer totalDurationSeconds
+    ) {
         String storageKey = storageKeyBuilder.projectAsset(project.getUserId(), project.getId(), AudioAssetType.PREVIEW_MP3, version, "mp3");
 
         try {
@@ -218,43 +230,135 @@ public class AudiobookLibraryService {
         project.setAudioAssetsCurrent(false);
         projectRepository.save(project);
 
-        String speechSegmentTitle = speakerName != null && !speakerName.isBlank() ? speakerName : "Generated speech segment";
         Instant now = Instant.now();
-        AudiobookSpeechSegment speechSegment = new AudiobookSpeechSegment(
-            speechSegmentId,
-            project,
-            0,
-            speechSegmentTitle,
-            AudiobookSpeechSegmentReviewStatus.PENDING,
-            null,
-            now,
-            now,
-            speakerName,
-            speakerRoleDescription,
-            voiceName,
-            performanceDirections,
-            null,
-            null,
-            null
-        );
-        speechSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.GENERATED_AUDIO);
-        AudioAsset asset = new AudioAsset(
-            assetId,
-            project,
-            speechSegment,
-            AudioAssetType.PREVIEW_MP3,
-            version,
-            storageKey,
-            audioFile.filename(),
-            audioFile.contentType(),
-            audioFile.content().length,
-            totalDurationSeconds,
-            AudioAssetStatus.READY,
-            now
-        );
-        segmentRepository.save(speechSegment);
+        List<AudioAsset> existingAssets = assetRepository.findBySegmentIdOrderByCreatedAtDesc(speechSegment.getId());
+        AudioAsset asset = existingAssets.isEmpty()
+            ? new AudioAsset(
+                UUID.randomUUID().toString(),
+                project,
+                speechSegment,
+                AudioAssetType.PREVIEW_MP3,
+                version,
+                storageKey,
+                audioFile.filename(),
+                audioFile.contentType(),
+                audioFile.content().length,
+                totalDurationSeconds,
+                AudioAssetStatus.READY,
+                now
+            )
+            : existingAssets.getFirst();
+
+        asset.setProject(project);
+        asset.setSegment(speechSegment);
+        asset.setType(AudioAssetType.PREVIEW_MP3);
+        asset.setVersion(version);
+        asset.setStorageKey(storageKey);
+        asset.setFilename(audioFile.filename());
+        asset.setContentType(audioFile.contentType());
+        asset.setSizeBytes(audioFile.content().length);
+        asset.setDurationSeconds(totalDurationSeconds);
+        asset.setStatus(AudioAssetStatus.READY);
+        asset.setCreatedAt(now);
         assetRepository.save(asset);
         return asset;
+    }
+
+    @Transactional
+    public AudioAsset persistAudioAsset(
+        AudiobookProject project,
+        TtsAudioFile audioFile,
+        int speechSegmentCount,
+        int version,
+        Integer speakerCount,
+        Integer totalDurationSeconds,
+        String speakerName,
+        String speakerRoleDescription,
+        String voiceName,
+        String performanceDirections
+    ) {
+        return persistAudioAsset(project, audioFile, (SingleSpeakerRenderRequest) null, speechSegmentCount, version, speakerCount, totalDurationSeconds);
+    }
+
+    @Transactional
+    public List<AudiobookSpeechSegment> createPreviewSegments(AudiobookProject project, List<SingleSpeakerRenderRequest> renderRequests) {
+        List<AudiobookSpeechSegment> previewSegments = new ArrayList<>();
+        Instant now = Instant.now();
+        for (int i = 0; i < renderRequests.size(); i++) {
+            SingleSpeakerRenderRequest renderRequest = renderRequests.get(i);
+            AudiobookSpeechSegment speechSegment = new AudiobookSpeechSegment(
+                UUID.randomUUID().toString(),
+                project,
+                i,
+                segmentTitle(renderRequest, i),
+                AudiobookSpeechSegmentReviewStatus.PENDING,
+                null,
+                now,
+                now,
+                speakerName(renderRequest),
+                null,
+                voiceName(renderRequest),
+                null,
+                originalText(renderRequest),
+                null,
+                null
+            );
+            speechSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+            previewSegments.add(segmentRepository.save(speechSegment));
+        }
+        return previewSegments;
+    }
+
+    @Transactional
+    public List<AudiobookSpeechSegment> preparePreviewSegments(
+        AudiobookProject project,
+        List<SingleSpeakerRenderRequest> renderRequests,
+        boolean createMissingSegments
+    ) {
+        List<AudiobookSpeechSegment> previewSegments = segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(
+            project.getId(),
+            AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW
+        );
+
+        if (previewSegments.isEmpty()) {
+            if (!createMissingSegments) {
+                throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "SCRIPT_PREVIEW_SEGMENTS_REQUIRED",
+                    "Script preview segments must be saved before audio can be generated."
+                );
+            }
+            for (int i = 0; i < renderRequests.size(); i++) {
+                if (segmentOrderIndex(renderRequests.get(i)) != i) {
+                    throw new ApiException(
+                        HttpStatus.BAD_REQUEST,
+                        "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
+                        "The script preview no longer matches the saved script turns."
+                    );
+                }
+            }
+            return createPreviewSegments(project, renderRequests);
+        }
+
+        if (previewSegments.size() != renderRequests.size()) {
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
+                "The script preview no longer matches the saved script turns."
+            );
+        }
+
+        for (int i = 0; i < renderRequests.size(); i++) {
+            if (segmentOrderIndex(renderRequests.get(i)) != i) {
+                throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
+                    "The script preview no longer matches the saved script turns."
+                );
+            }
+        }
+
+        return previewSegments;
     }
 
     @Transactional
@@ -323,6 +427,111 @@ public class AudiobookLibraryService {
             now
         );
         assetRepository.save(asset);
+    }
+
+    private AudiobookSpeechSegment resolveSpeechSegment(
+        AudiobookProject project,
+        SingleSpeakerRenderRequest renderRequest
+    ) {
+        int segmentOrderIndex = segmentOrderIndex(renderRequest);
+        List<AudiobookSpeechSegment> previewSegments = segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(
+            project.getId(),
+            AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW
+        );
+
+        if (previewSegments.isEmpty()) {
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "SCRIPT_PREVIEW_SEGMENTS_REQUIRED",
+                "Script preview segments must be saved before audio can be generated."
+            );
+        }
+
+        if (segmentOrderIndex < 0 || segmentOrderIndex >= previewSegments.size()) {
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "SCRIPT_PREVIEW_SEGMENT_MISMATCH",
+                "The script preview no longer matches the saved script turns."
+            );
+        }
+        return previewSegments.get(segmentOrderIndex);
+    }
+
+    private int segmentOrderIndex(SingleSpeakerRenderRequest renderRequest) {
+        if (renderRequest == null || renderRequest.input() == null || !renderRequest.input().containsKey("segmentOrderIndex")) {
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "SCRIPT_PREVIEW_SEGMENT_INDEX_REQUIRED",
+                "Each render request must include a segment order index."
+            );
+        }
+
+        Object value = renderRequest.input().get("segmentOrderIndex");
+        if (value instanceof Number number) {
+            int index = number.intValue();
+            if (index < 0) {
+                throw invalidSegmentOrderIndex(value);
+            }
+            return index;
+        }
+        if (value != null) {
+            try {
+                int index = Integer.parseInt(value.toString());
+                if (index < 0) {
+                    throw invalidSegmentOrderIndex(value);
+                }
+                return index;
+            } catch (NumberFormatException ignored) {
+                throw invalidSegmentOrderIndex(value);
+            }
+        }
+        throw invalidSegmentOrderIndex(null);
+    }
+
+    private String segmentTitle(SingleSpeakerRenderRequest renderRequest, int segmentOrderIndex) {
+        String speakerName = speakerName(renderRequest);
+        if (speakerName != null && !speakerName.isBlank()) {
+            return speakerName.trim();
+        }
+        return "Speech segment " + (Math.max(0, segmentOrderIndex) + 1);
+    }
+
+    private String speakerName(SingleSpeakerRenderRequest renderRequest) {
+        return stringValue(renderRequest == null ? null : renderRequest.voice(), "speakerName", "speaker", "name");
+    }
+
+    private String voiceName(SingleSpeakerRenderRequest renderRequest) {
+        return stringValue(renderRequest == null ? null : renderRequest.voice(), "name");
+    }
+
+    private String originalText(SingleSpeakerRenderRequest renderRequest) {
+        return stringValue(renderRequest == null ? null : renderRequest.input(), "text");
+    }
+
+    private ApiException invalidSegmentOrderIndex(Object value) {
+        return new ApiException(
+            HttpStatus.BAD_REQUEST,
+            "SCRIPT_PREVIEW_SEGMENT_INDEX_INVALID",
+            value == null
+                ? "Each render request must include a valid segment order index."
+                : "Each render request must include a valid, non-negative segment order index."
+        );
+    }
+
+    private String stringValue(Map<String, Object> values, String... keys) {
+        if (values == null || keys == null) {
+            return null;
+        }
+        for (String key : keys) {
+            Object value = values.get(key);
+            if (value != null) {
+                String text = value.toString();
+                if (!text.isBlank()) {
+                    return text;
+                }
+            }
+        }
+        return null;
     }
 
     private AudioAssetResponse assetResponse(AudioAsset asset) {

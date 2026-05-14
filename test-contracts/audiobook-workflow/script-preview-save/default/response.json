@@ -1,12 +1,12 @@
 {
   "turns": [
     {
-      "speaker": "Narrator",
-      "text": "The opening line."
+      "speaker": "Mara",
+      "text": "The last train had already left, and the station clock was wrong."
     },
     {
-      "speaker": "Mara",
-      "text": "We go now."
+      "speaker": "Jonas",
+      "text": "Together."
     }
   ]
 }
