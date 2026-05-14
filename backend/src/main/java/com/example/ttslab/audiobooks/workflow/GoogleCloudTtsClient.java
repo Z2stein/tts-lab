@@ -36,9 +36,9 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
     public byte[] synthesize(SingleSpeakerRenderRequest request) {
         try (TextToSpeechClient client = TextToSpeechClient.create(settings())) {
             SynthesizeSpeechRequest synthesizeSpeechRequest = SynthesizeSpeechRequest.newBuilder()
-                    .setInput(input(request.input()))
-                    .setVoice(voice(request.voice()))
-                    .setAudioConfig(audioConfig(request.audioConfig()))
+                    .setInput(parseToGoogleInput(request.input()))
+                    .setVoice(parseToGoogleVoice(request.voice()))
+                    .setAudioConfig(parseToGoogleAudioConfig(request.audioConfig()))
                     .build();
 
             log.debug("sending Request to Google:" +synthesizeSpeechRequest.toString());
@@ -76,13 +76,15 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
         }
     }
 
-    private SynthesisInput input(Map<String, Object> input) {
+    private SynthesisInput parseToGoogleInput(Map<String, Object> input) {
+        log.debug("input:" + input.toString());
         return SynthesisInput.newBuilder()
             .setText(stringValue(input, "text"))
             .build();
     }
 
-    private VoiceSelectionParams voice(Map<String, Object> voice) {
+    private VoiceSelectionParams parseToGoogleVoice(Map<String, Object> voice) {
+        log.debug("voice:" + voice.toString());
         VoiceSelectionParams.Builder builder = VoiceSelectionParams.newBuilder()
             .setLanguageCode(stringValue(voice, "languageCode"))
             .setModelName(stringValue(voice,"modelName"));
@@ -93,7 +95,8 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
         return builder.build();
     }
 
-    private AudioConfig audioConfig(Map<String, Object> audioConfig) {
+    private AudioConfig parseToGoogleAudioConfig(Map<String, Object> audioConfig) {
+        log.debug("audioConfig:" + audioConfig.toString());
         String encoding = stringValue(audioConfig, "audioEncoding");
         return AudioConfig.newBuilder()
             .setAudioEncoding(encoding.isBlank() ? AudioEncoding.MP3 : AudioEncoding.valueOf(encoding))
