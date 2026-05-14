@@ -263,6 +263,7 @@ test('audiobook studio generates the final preview after the workflow reaches au
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
   await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
+  // Approve script and create performance notes (happens automatically via approveScriptAndContinueWorkflow)
   await Promise.all([
     page.waitForResponse((response) =>
       response.url().includes(`/api/audiobooks/workflow/projects/${testProjectId}/script-approval`) &&
@@ -270,14 +271,11 @@ test('audiobook studio generates the final preview after the workflow reaches au
     ),
     page.locator('#script-section').getByRole('button', { name: 'Approve script & continue' }).click()
   ]);
-  await expect(page.locator('#script-section').getByRole('button', { name: 'Add emotion & pacing' })).toBeEnabled();
-  await Promise.all([
-    page.waitForResponse((response) =>
-      response.url().includes('/api/audiobooks/workflow/emotion-annotation-analysis') &&
-      response.request().method() === 'POST'
-    ),
-    page.locator('#script-section').getByRole('button', { name: 'Add emotion & pacing' }).click()
-  ]);
+  // Wait for emotion annotation to complete (triggered automatically by approveScriptAndContinueWorkflow)
+  await page.waitForResponse((response) =>
+    response.url().includes('/api/audiobooks/workflow/emotion-annotation-analysis') &&
+    response.request().method() === 'POST'
+  );
   await expect(page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' })).toBeEnabled();
   await page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' }).click();
 
