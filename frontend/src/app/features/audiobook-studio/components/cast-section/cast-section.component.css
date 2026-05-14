@@ -1,1 +1,5 @@
-/* Styles live in the page component CSS via ::ng-deep — Phase 5 will migrate to Tailwind */
+.cast-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}

@@ -79,7 +79,7 @@ export { formatSpeakerDisplayName };
     ScrollService,
   ],
   templateUrl: './audiobook-studio-page.component.html',
-  styleUrl: './audiobook-studio-page.component.css',
+  styleUrls: ['./audiobook-studio-page.component.css', './components/audiobook-studio-section-shared.css'],
   encapsulation: ViewEncapsulation.None,
 })
 export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChanges, OnDestroy {

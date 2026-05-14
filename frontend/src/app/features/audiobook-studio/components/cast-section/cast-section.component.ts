@@ -9,7 +9,7 @@ import { CastCardComponent } from './cast-card/cast-card.component';
   standalone: true,
   imports: [CommonModule, CastCardComponent],
   templateUrl: './cast-section.component.html',
-  styleUrl: './cast-section.component.css'
+  styleUrls: ['../audiobook-studio-section-shared.css', './cast-section.component.css']
 })
 export class CastSectionComponent {
   @Input() cast: SpeakerVoiceAnalysisItem[] = [];

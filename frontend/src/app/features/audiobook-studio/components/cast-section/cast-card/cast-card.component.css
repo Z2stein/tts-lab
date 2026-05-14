@@ -1,1 +1,98 @@
-/* Styles live in the page component CSS via ::ng-deep — Phase 5 will migrate to Tailwind */
+.cast-card {
+  position: relative;
+  display: grid;
+  gap: 0.8rem;
+  overflow: hidden;
+  min-height: 18rem;
+  border: 1px solid rgba(195, 204, 255, 0.18);
+  border-radius: 1rem;
+  background:
+    radial-gradient(circle at 25% 0%, rgba(240, 173, 93, 0.12), transparent 12rem),
+    rgba(255, 255, 255, 0.045);
+  padding: 1rem;
+}
+
+.cast-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 4px;
+  background: var(--speaker-accent, #f0ad5d);
+  box-shadow: 0 0 28px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.34));
+}
+
+.cast-accent-0 { --speaker-accent: #f0ad5d; --speaker-accent-shadow: rgba(240, 173, 93, 0.34); }
+.cast-accent-1 { --speaker-accent: #c965ff; --speaker-accent-shadow: rgba(201, 101, 255, 0.34); }
+.cast-accent-2 { --speaker-accent: #48b5ff; --speaker-accent-shadow: rgba(72, 181, 255, 0.32); }
+.cast-accent-3 { --speaker-accent: #8fe77a; --speaker-accent-shadow: rgba(143, 231, 122, 0.3); }
+.cast-accent-4 { --speaker-accent: #ff7da8; --speaker-accent-shadow: rgba(255, 125, 168, 0.3); }
+.cast-accent-5 { --speaker-accent: #7de7d4; --speaker-accent-shadow: rgba(125, 231, 212, 0.3); }
+
+.card-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.voice-card-media {
+  display: grid;
+  min-height: 8.25rem;
+  align-items: end;
+  border: 1px solid color-mix(in srgb, var(--speaker-accent, #f0ad5d) 34%, transparent);
+  border-radius: 0.9rem;
+  background:
+    radial-gradient(circle at 50% 18%, color-mix(in srgb, var(--speaker-accent, #f0ad5d) 42%, transparent), transparent 5.5rem),
+    linear-gradient(160deg, rgba(255, 255, 255, 0.08), rgba(5, 9, 20, 0.36));
+  padding: 0.85rem;
+}
+
+.voice-card-media .cast-avatar {
+  width: 4.8rem;
+  height: 4.8rem;
+  align-self: center;
+  justify-self: center;
+  font-size: 1.15rem;
+  box-shadow: 0 0 42px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.34));
+}
+
+.preview-voice-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  width: 100%;
+  border: 1px solid color-mix(in srgb, var(--speaker-accent, #f0ad5d) 44%, transparent);
+  border-radius: 999px;
+  background: rgba(5, 9, 20, 0.56);
+  color: #fff1d7;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 900;
+  padding: 0.55rem 0.8rem;
+}
+
+.preview-voice-button:hover {
+  background: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 16%, rgba(5, 9, 20, 0.72));
+}
+
+.cast-content {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.cast-card h3 {
+  margin: 0;
+  color: #fff8ec;
+  font-size: 1.35rem;
+}
+
+.cast-avatar {
+  background: radial-gradient(circle at 35% 20%, var(--speaker-accent, #f0ad5d), rgba(255, 255, 255, 0.1) 42%, rgba(12, 14, 25, 0.96) 100%);
+}
+
+.voice-badge {
+  justify-self: start;
+  border-color: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 48%, transparent);
+  color: #fff1d7;
+}

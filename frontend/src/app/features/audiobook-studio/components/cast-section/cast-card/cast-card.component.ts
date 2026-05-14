@@ -9,7 +9,7 @@ import { formatSpeakerDisplayName, speakerInitials } from '../../../utils/speake
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './cast-card.component.html',
-  styleUrl: './cast-card.component.css'
+  styleUrls: ['../../audiobook-studio-section-shared.css', './cast-card.component.css']
 })
 export class CastCardComponent {
   @Input() speaker!: SpeakerVoiceAnalysisItem;

@@ -7,7 +7,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './story-input.component.html',
-  styleUrl: './story-input.component.css'
+  styleUrls: ['../audiobook-studio-section-shared.css', './story-input.component.css']
 })
 export class StoryInputComponent {
   @Input() storyControl!: FormControl<string>;

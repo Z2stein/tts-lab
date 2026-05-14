@@ -1,1 +1,12 @@
-/* Styles live in the page component CSS via ::ng-deep — Phase 5 will migrate to Tailwind */
+.script-turn {
+  display: grid;
+  gap: 0.65rem;
+  border: 1px solid transparent;
+  border-radius: 0.8rem;
+  padding: 0.75rem;
+}
+
+.script-turn:focus-within {
+  border-color: rgba(240, 173, 93, 0.3);
+  background: rgba(255, 255, 255, 0.04);
+}

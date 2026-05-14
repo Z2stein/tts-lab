@@ -32,6 +32,7 @@
 
     <app-story-input
       id="story-section"
+      data-testid="story-section"
       class="step-card story-card anchor-section"
       [storyControl]="storyTextControl"
       [loadingAction]="loadingAction"
@@ -41,6 +42,7 @@
 
     <app-cast-section
       id="cast-section"
+      data-testid="cast-section"
       class="step-card anchor-section"
       [cast]="cast"
       [castReviewed]="castReviewed"
@@ -58,6 +60,7 @@
 
     <app-script-review
       id="script-section"
+      data-testid="script-section"
       class="step-card anchor-section"
       [scriptTurns]="scriptTurns"
       [scriptGroups]="scriptGroups"
@@ -76,6 +79,7 @@
 
     <app-performance-notes
       id="performance-section"
+      data-testid="performance-section"
       class="step-card anchor-section"
       [annotatedTurns]="annotatedTurns"
       [performanceNotesStale]="performanceNotesStale"
@@ -90,7 +94,7 @@
       (createAudioProductionPlan)="createAudioProductionPlanAndScroll()"
     ></app-performance-notes>
 
-    <section id="audio-section" class="step-card anchor-section" aria-labelledby="generate-audio-title">
+    <section id="audio-section" class="step-card anchor-section" data-testid="audio-section" aria-labelledby="generate-audio-title">
       <div class="step-heading">
         <span class="step-number">5</span>
         <div>

@@ -11,7 +11,7 @@ import { HighlightTagsPipe } from '../../pipes/highlight-tags.pipe';
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, HighlightTagsPipe],
   templateUrl: './performance-notes.component.html',
-  styleUrl: './performance-notes.component.css'
+  styleUrls: ['../audiobook-studio-section-shared.css', './performance-notes.component.css']
 })
 export class PerformanceNotesComponent {
   @Input() annotatedTurns: AnnotatedSpeakerTurn[] = [];
