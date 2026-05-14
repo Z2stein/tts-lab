@@ -38,25 +38,37 @@ async function mockWorkflowSnapshot(page: Page, overrides: Partial<Record<string
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({
-        projectId: testProjectId,
-        title: 'The Hidden Signal',
-        storyText: 'Mara: We go now.\nJonas: Together.',
+      body: JSON.stringify(buildWorkflowSnapshot({
         workflowStage: 'CAST_REVIEW',
-        speakers: [
-          { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' },
-          { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
-        ],
         scriptTurns: [],
         annotatedTurns: [],
-        productionSettings: defaultProductionSettings,
         audioAssets: [],
         audioAssetsCurrent: false,
         performanceNotesStale: false,
         ...overrides
-      })
+      }))
     });
   });
+}
+
+function buildWorkflowSnapshot(overrides: Partial<Record<string, unknown>> = {}): Record<string, unknown> {
+  return {
+    projectId: testProjectId,
+    title: 'The Hidden Signal',
+    storyText: 'Mara: We go now.\nJonas: Together.',
+    workflowStage: 'CAST_REVIEW',
+    speakers: [
+      { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' },
+      { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
+    ],
+    scriptTurns: [],
+    annotatedTurns: [],
+    productionSettings: defaultProductionSettings,
+    audioAssets: [],
+    audioAssetsCurrent: false,
+    performanceNotesStale: false,
+    ...overrides
+  };
 }
 
 test('audiobook studio fills the story textarea with sample content', async ({ context, page }) => {
@@ -188,6 +200,145 @@ test('audiobook studio shows script preview turns after cast analysis continues'
   await expect(page.locator('h2', { hasText: 'Review script' })).toBeVisible();
   await expect(page.getByText('We go now.')).toBeVisible();
   await expect(page.getByText('Together.')).toBeVisible();
+});
+
+test('audiobook studio generates the final preview after the workflow reaches audio production', async ({ context, page }) => {
+  await authenticate(context, page);
+  const scriptPreviewResponse = await loadTestContractJson<{ turns: Array<{ speaker: string; text: string }> }>(
+    'audiobook-workflow/speaker-split-analysis/script-preview/response.json'
+  );
+  const annotatedTurnsResponse = await loadTestContractJson<{ turns: Array<{ speaker: string; text: string }> }>(
+    'audiobook-workflow/emotion-annotation-analysis/script-preview/response.json'
+  );
+  let createAudioCalls = 0;
+  await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-voice-analysis/cast-analysis/response.json'))
+    });
+  });
+  await mockWorkflowSnapshot(page);
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/cast-approval`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(buildWorkflowSnapshot({ workflowStage: 'CAST_APPROVED' }))
+    });
+  });
+  await page.route('**/api/audiobooks/workflow/speaker-split-analysis', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-split-analysis/script-preview/response.json'))
+    });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/script-approval`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(buildWorkflowSnapshot({
+        workflowStage: 'SCRIPT_APPROVED',
+        scriptTurns: scriptPreviewResponse.turns,
+        annotatedTurns: []
+      }))
+    });
+  });
+  await page.route('**/api/audiobooks/workflow/emotion-annotation-analysis', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(annotatedTurnsResponse)
+    });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/production-settings`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(buildWorkflowSnapshot({
+        workflowStage: 'PERFORMANCE_READY',
+        scriptTurns: scriptPreviewResponse.turns,
+        annotatedTurns: annotatedTurnsResponse.turns
+      }))
+    });
+  });
+  await page.route('**/api/audiobooks/workflow/final-request-preview', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/final-request-preview/default/response.json'))
+    });
+  });
+  await page.route('**/api/audiobooks/workflow/single-speaker-render-plan', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({
+        renderRequests: [
+          {
+            input: { text: 'The rain hit the windows.\nThe café was nearly empty.' },
+            voice: { languageCode: 'en-US', name: 'Kore', modelName: '{{google-model}}' },
+            audioConfig: { audioEncoding: 'MP3' }
+          },
+          {
+            input: { text: 'So this is your surprise?' },
+            voice: { languageCode: 'en-US', name: 'Iapetus', modelName: '{{google-model}}' },
+            audioConfig: { audioEncoding: 'MP3' }
+          },
+          {
+            input: { text: 'I thought you would be pleased.' },
+            voice: { languageCode: 'en-US', name: 'Rasalgethi', modelName: '{{google-model}}' },
+            audioConfig: { audioEncoding: 'MP3' }
+          }
+        ]
+      })
+    });
+  });
+  await page.route(/\/api\/audiobooks\/workflow\/create-audio(\?.*)?$/, async (route) => {
+    createAudioCalls += 1;
+    await route.fulfill({
+      status: 200,
+      contentType: 'audio/mpeg',
+      headers: {
+        'Content-Disposition': 'attachment; filename="audiobook-preview-merged.mp3"',
+        'X-Audiobook-Project-Id': testProjectId
+      },
+      body: 'ID3MOCKMP3'
+    });
+  });
+
+  await page.goto('/audiobook-studio');
+  await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
+  await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
+  await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
+  await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
+  await Promise.all([
+    page.waitForResponse((response) =>
+      response.url().includes(`/api/audiobooks/workflow/projects/${testProjectId}/script-approval`) &&
+      response.request().method() === 'POST'
+    ),
+    page.locator('#script-section').getByRole('button', { name: 'Approve script & continue' }).click()
+  ]);
+  await expect(page.locator('#script-section').getByRole('button', { name: 'Add emotion & pacing' })).toBeEnabled();
+  await Promise.all([
+    page.waitForResponse((response) =>
+      response.url().includes('/api/audiobooks/workflow/emotion-annotation-analysis') &&
+      response.request().method() === 'POST'
+    ),
+    page.locator('#script-section').getByRole('button', { name: 'Add emotion & pacing' }).click()
+  ]);
+  await expect(page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' })).toBeEnabled();
+  await page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' }).click();
+
+  await expect(page.getByRole('button', { name: 'Generate pending parts' })).toBeVisible();
+  await page.getByRole('button', { name: 'Generate pending parts' }).click();
+
+  await expect(page.getByText('Audiobook preview ready.')).toBeVisible();
+  await expect(page.locator('.generated-audio-player')).toBeVisible();
+  await expect(page.getByText('audiobook-preview-merged.mp3')).toBeVisible();
+  await expect(page.getByRole('button', { name: 'All parts ready' })).toBeVisible();
+  expect(createAudioCalls).toBe(3);
+  await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
 test('audiobook studio keeps performance notes stale after reloading an edited script', async ({ context, page }) => {

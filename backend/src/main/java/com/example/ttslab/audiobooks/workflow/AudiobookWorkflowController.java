@@ -241,7 +241,6 @@ public class AudiobookWorkflowController {
             }
 
             audiobookLibraryService.persistAudioAsset(project, audioFile, segmentCount, 1, speakerCount, estimatedDuration, firstSpeakerName, null, firstVoiceName, null);
-            audiobookWorkflowStateService.markAudioGenerated(project);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
