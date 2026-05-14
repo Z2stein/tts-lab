@@ -106,7 +106,10 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   projectTitleEditing = false;
   @Input() showHero = true;
   @Input() snapshot: AudiobookWorkflowSnapshotResponse | null = null;
+  @Input() scrollToSectionAfterLoad: string | null = null;
   @Output() projectCreated = new EventEmitter<string>();
+
+  private pendingScrollToSection: string | null = null;
 
   // ── Facade state proxies (spec reads/writes these directly) ───────────────
 
@@ -223,7 +226,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     }
   }
 
-  async approveScriptAndContinueWorkflow(): Promise<void> {
+    async approveScriptAndContinueWorkflow(): Promise<void> {
     await this.approveScript();
     if (this.scriptApproved) {
       await this.createPerformanceNotes();
@@ -625,16 +628,27 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     this.fullAudioGenerationService.clearAudio();
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['snapshot']?.currentValue) {
+      this.hydrateFromSnapshot(changes['snapshot'].currentValue as AudiobookWorkflowSnapshotResponse);
+      if (this.scrollToSectionAfterLoad) {
+        this.pendingScrollToSection = this.scrollToSectionAfterLoad;
+      }
+    }
+  }
+
   ngAfterViewInit(): void {
     this.facade.onAudioReset = () => {
       this.fullPlanAudioPlaying = false;
       this.renderRequestAudioPlayingStates = {};
     };
-  }
 
-  ngOnChanges(changes: SimpleChanges): void {
-    if (changes['snapshot']?.currentValue) {
-      this.hydrateFromSnapshot(changes['snapshot'].currentValue as AudiobookWorkflowSnapshotResponse);
+    if (this.pendingScrollToSection) {
+      setTimeout(() => {
+        this.scrollService.scrollTo(this.pendingScrollToSection!);
+        this.pendingScrollToSection = null;
+        this.scrollToSectionAfterLoad = null;
+      }, 50);
     }
   }
 
