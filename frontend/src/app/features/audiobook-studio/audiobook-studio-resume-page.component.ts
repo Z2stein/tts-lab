@@ -11,7 +11,7 @@ import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-
   standalone: true,
   imports: [CommonModule, AudiobookStudioWorkspaceComponent],
   template: `
-    <section class="studio">
+    <section class="studio-resume-page">
       <p *ngIf="error" class="error" role="alert">{{ error }}</p>
       <section *ngIf="loading" class="app-panel" role="status">Loading audiobook project...</section>
       <app-audiobook-studio-workspace

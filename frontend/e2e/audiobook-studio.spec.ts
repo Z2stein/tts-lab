@@ -210,6 +210,22 @@ test('audiobook studio keeps performance notes stale after reloading an edited s
   await expect(page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' })).toBeDisabled();
 });
 
+test('audiobook studio resume route keeps a single studio shell and renders styled journey and workflow sections', async ({ context, page }) => {
+  await authenticate(context, page);
+  await mockWorkflowSnapshot(page);
+
+  await page.goto(`/audiobook-studio/${testProjectId}`);
+
+  await expect(page.locator('.studio')).toHaveCount(1);
+  await expect(page.getByTestId('studio-hero')).toHaveCount(0);
+  await expect(page.getByTestId('journey-grid')).toBeVisible();
+  await expect(page.getByTestId('journey-card')).toHaveCount(5);
+  await expect(page.getByTestId('workflow-progress')).toBeVisible();
+  await expect(page.getByTestId('workflow-step')).toHaveCount(5);
+  await expect(page.getByTestId('current-task')).toBeVisible();
+  await expect(page.getByTestId('current-task')).toContainText('Choose your voices');
+});
+
 test('audiobook studio edits a script preview turn without freezing the app', async ({ context, page }) => {
   await authenticate(context, page);
   await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {
