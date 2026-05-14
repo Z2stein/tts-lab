@@ -223,9 +223,10 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     }
   }
 
-  async approveScriptAndScroll(): Promise<void> {
+  async approveScriptAndContinueWorkflow(): Promise<void> {
     await this.approveScript();
     if (this.scriptApproved) {
+      await this.createPerformanceNotes();
       this.scrollService.scrollTo('performance-section');
     }
   }

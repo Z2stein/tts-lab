@@ -24,7 +24,6 @@ export class ScriptReviewComponent {
   @Output() saveTurnEdit = new EventEmitter<number>();
   @Output() cancelTurnEdit = new EventEmitter<void>();
   @Output() approveScript = new EventEmitter<void>();
-  @Output() addEmotionAndPacing = new EventEmitter<void>();
 
   displayName(name: string): string {
     return formatSpeakerDisplayName(name);

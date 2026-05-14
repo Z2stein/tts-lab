@@ -28,6 +28,3 @@
 <button type="button" class="primary-button next-action" (click)="approveScript.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || scriptApproved">
   Approve script & continue
 </button>
-<button type="button" class="secondary-button" (click)="addEmotionAndPacing.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || !scriptApproved || hasOpenEdit()">
-  {{ isLoading('notes') ? 'Adding emotion & pacing...' : 'Add emotion & pacing' }}
-</button>
