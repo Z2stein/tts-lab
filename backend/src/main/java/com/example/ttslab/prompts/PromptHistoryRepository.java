@@ -6,19 +6,15 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.time.Instant;
 import java.util.List;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Repository;
 import org.springframework.transaction.annotation.Transactional;
 
 @Repository
 public class PromptHistoryRepository {
-    private static final Logger log = LoggerFactory.getLogger(PromptHistoryRepository.class);
     private final JdbcTemplate jdbcTemplate;
 
     public PromptHistoryRepository(JdbcTemplate jdbcTemplate) {
@@ -73,20 +69,12 @@ public class PromptHistoryRepository {
             SET request_count = request_count + 1, updated_at = CURRENT_TIMESTAMP
             WHERE user_id = ? AND model_type = ?
             """, userId, modelType.name());
+
         if (updated == 0) {
-            try {
-                jdbcTemplate.update("""
-                    INSERT INTO prompt_usage (user_id, model_type, request_count, updated_at)
-                    VALUES (?, ?, 1, CURRENT_TIMESTAMP)
-                    """, userId, modelType.name());
-            } catch (DuplicateKeyException ex) {
-                log.debug("Prompt usage row was created concurrently; retrying increment for user={} modelType={}", userId, modelType, ex);
-                jdbcTemplate.update("""
-                    UPDATE prompt_usage
-                    SET request_count = request_count + 1, updated_at = CURRENT_TIMESTAMP
-                    WHERE user_id = ? AND model_type = ?
-                    """, userId, modelType.name());
-            }
+            jdbcTemplate.update("""
+                INSERT INTO prompt_usage (user_id, model_type, request_count, updated_at)
+                VALUES (?, ?, 1, CURRENT_TIMESTAMP)
+                """, userId, modelType.name());
         }
     }
 
