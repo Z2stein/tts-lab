@@ -8,6 +8,7 @@ export interface StudioWorkflowState {
   scriptApproved: boolean;
   annotatedTurnCount: number;
   performanceNotesStale: boolean;
+  performanceReady: boolean;
   audioProductionPlanReady: boolean;
   audioGenerated: boolean;
   audioAssetsCurrent: boolean;
@@ -18,7 +19,7 @@ export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
   const storyAdded = state.storyText.trim().length > 0;
   const castDetected = state.castCount > 0;
   const scriptReady = state.scriptTurnCount > 0;
-  const performanceReady = state.annotatedTurnCount > 0 && !state.performanceNotesStale;
+  const performanceReady = state.performanceReady && !state.performanceNotesStale;
   const audioReady = state.audioAssetsCurrent || state.audioGenerated;
 
   return [
@@ -108,7 +109,7 @@ export function buildCurrentTask(state: StudioWorkflowState): CurrentTask {
     };
   }
 
-  if (state.annotatedTurnCount === 0 || state.performanceNotesStale) {
+  if (!state.performanceReady || state.performanceNotesStale) {
     return {
       title: 'Current task: Add emotion & pacing',
       body: 'Fine-tune how each line should sound. Add notes like calm, urgent, or whispered to guide the voice generation.',

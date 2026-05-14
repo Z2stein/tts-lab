@@ -244,6 +244,22 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/audiobooks/workflow/projects/{projectId}/audio-generated": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["finalizeAudiobookAudioGeneration"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audiobooks/workflow/projects/{projectId}": {
         parameters: {
             query?: never;
@@ -964,7 +980,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["EmotionAnnotationAnalysisResponse"];
+                    "application/json": components["schemas"]["AudiobookWorkflowSnapshotResponse"];
                 };
             };
             400: components["responses"]["ValidationError"];
@@ -1074,6 +1090,31 @@ export interface operations {
             };
             400: components["responses"]["ValidationError"];
             429: components["responses"]["RateLimitedError"];
+            500: components["responses"]["InternalError"];
+        };
+    };
+    finalizeAudiobookAudioGeneration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current audiobook workflow snapshot after the preview is finalized */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudiobookWorkflowSnapshotResponse"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            404: components["responses"]["NotFoundError"];
             500: components["responses"]["InternalError"];
         };
     };

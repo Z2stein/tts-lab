@@ -19,7 +19,8 @@ describe('AudiobookStudioFacade', () => {
     workflow = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
       'analyzeSpeakers', 'approveCast', 'splitDialogue', 'annotateEmotions',
       'saveScriptPreview', 'saveProductionSettings', 'approveScript',
-      'getProjectSnapshot', 'generateFinalJson', 'planSingleSpeakerRenderRequests',
+      'generateFinalJson', 'planSingleSpeakerRenderRequests',
+      'markAudioGenerated',
     ]);
     library = jasmine.createSpyObj<AudiobookLibraryService>('AudiobookLibraryService', ['updateTitle']);
     renderSvc = jasmine.createSpyObj<RenderRequestAudioService>('RenderRequestAudioService', ['abortAll', 'revokeUrls']);
@@ -186,7 +187,24 @@ describe('AudiobookStudioFacade', () => {
     it('updates annotatedTurns and clears stale flag on success', async () => {
       facade.setScriptTurns([{ speaker: 'Mara', text: 'Hello' }]);
       facade.setCurrentProjectId('project-1');
-      workflow.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
+      workflow.annotateEmotions.and.resolveTo({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'PERFORMANCE_READY',
+        speakers: [maraItem],
+        scriptTurns: [{ speaker: 'Mara', text: 'Hello' }],
+        annotatedTurns: [{ speaker: 'Mara', text: '<speak>Hello</speak>' }],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        audioAssets: [],
+        audioAssetsCurrent: false,
+        performanceNotesStale: false
+      } as never);
       facade.setPerformanceNotesStale(true);
 
       await facade.createPerformanceNotes();
@@ -194,6 +212,7 @@ describe('AudiobookStudioFacade', () => {
       expect(workflow.annotateEmotions).toHaveBeenCalledWith('project-1');
       expect(facade.annotatedTurns()).toEqual([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
       expect(facade.performanceNotesStale()).toBeFalse();
+      expect(facade.performanceReady()).toBeTrue();
     });
 
     it('blocks annotation while a script edit is still open', async () => {
@@ -261,6 +280,38 @@ describe('AudiobookStudioFacade', () => {
 
       expect(facade.finalRequest()).toBe(finalReq);
       expect(facade.audioProductionPlan()).toBe(plan);
+    });
+  });
+
+  describe('finalizeAudioGeneration', () => {
+    it('marks the preview current and refreshes the workflow snapshot', async () => {
+      facade.setCurrentProjectId('project-1');
+      workflow.markAudioGenerated.and.resolveTo({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'AUDIO_GENERATED',
+        speakers: [maraItem],
+        scriptTurns: [{ speaker: 'Mara', text: 'Hello' }],
+        annotatedTurns: [{ speaker: 'Mara', text: '<speak>Hello</speak>' }],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        audioAssets: [],
+        audioAssetsCurrent: true,
+        performanceNotesStale: false
+      } as never);
+
+      await facade.finalizeAudioGeneration('project-1');
+
+      expect(workflow.markAudioGenerated).toHaveBeenCalledWith('project-1');
+      expect(facade.workflowStage()).toBe('AUDIO_GENERATED');
+      expect(facade.audioAssetsCurrent()).toBeTrue();
+      expect(facade.loadingAction()).toBeNull();
+      expect(facade.error()).toBeNull();
     });
   });
 

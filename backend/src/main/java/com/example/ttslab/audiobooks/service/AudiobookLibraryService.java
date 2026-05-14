@@ -166,7 +166,8 @@ public class AudiobookLibraryService {
             now,
             now
         );
-        project.setWorkflowStage(AudiobookWorkflowStage.AUDIO_GENERATED);
+        project.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
+        project.setAudioAssetsCurrent(false);
         project.setProductionPrompt("An immersive audiobook performance with a clear narrator and distinct character voices.");
         project.setProductionLanguageCode("en-US");
         project.setProductionModelName("gemini-3.1-flash-tts-preview");
@@ -214,7 +215,7 @@ public class AudiobookLibraryService {
         // Update project timestamp
         project.setUpdatedAt(Instant.now());
         project.setStatus(AudiobookProjectStatus.NEEDS_REVIEW);
-        project.setWorkflowStage(AudiobookWorkflowStage.AUDIO_GENERATED);
+        project.setAudioAssetsCurrent(false);
         projectRepository.save(project);
 
         String speechSegmentTitle = speakerName != null && !speakerName.isBlank() ? speakerName : "Generated speech segment";
@@ -283,6 +284,7 @@ public class AudiobookLibraryService {
             now
         );
         project.setWorkflowStage(AudiobookWorkflowStage.AUDIO_GENERATED);
+        project.setAudioAssetsCurrent(true);
         project.setProductionPrompt("An immersive audiobook performance with a clear narrator and distinct character voices.");
         project.setProductionLanguageCode("en-US");
         project.setProductionModelName("gemini-3.1-flash-tts-preview");

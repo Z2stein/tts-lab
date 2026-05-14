@@ -31,6 +31,9 @@ public class AudiobookProject {
     @Column(name = "workflow_stage")
     private com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStage workflowStage;
 
+    @Column(name = "audio_assets_current", nullable = false)
+    private boolean audioAssetsCurrent;
+
     @Column(name = "production_prompt")
     private String productionPrompt;
 
@@ -145,6 +148,14 @@ public class AudiobookProject {
 
     public void setWorkflowStage(com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStage workflowStage) {
         this.workflowStage = workflowStage;
+    }
+
+    public boolean isAudioAssetsCurrent() {
+        return audioAssetsCurrent;
+    }
+
+    public void setAudioAssetsCurrent(boolean audioAssetsCurrent) {
+        this.audioAssetsCurrent = audioAssetsCurrent;
     }
 
     public String getProductionPrompt() {

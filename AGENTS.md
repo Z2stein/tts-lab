@@ -87,6 +87,8 @@ Contract testing applies alongside E2E for API-surface changes:
 
 - Keep `shared/api-contract/tts-lab-openapi.yaml` as the schema source of truth.
 - Keep `test-contracts/` as the shared request/response fixture source of truth for frontend and backend tests.
+- For any mocked API, AI, or provider payload that represents a real request/response shape, load the payload from `test-contracts/` instead of hard-coding a duplicate object inline.
+- Inline literals are only acceptable for very small, test-local control values that do not represent the contract itself, such as counters, booleans, or route-state toggles.
 - Do not reintroduce handwritten schema mirrors in the frontend; use generated types and `npm run verify:api-contract` instead.
 
 To run Playwright against an already deployed environment instead of local web servers:

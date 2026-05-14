@@ -43,6 +43,7 @@ public class AudiobookProjectCreationService {
         );
         project.setStoryText(storyText);
         project.setWorkflowStage(AudiobookWorkflowStage.CAST_REVIEW);
+        project.setAudioAssetsCurrent(false);
         project.setProductionPrompt("An immersive audiobook performance with a clear narrator and distinct character voices.");
         project.setProductionLanguageCode("en-US");
         project.setProductionModelName("gemini-3.1-flash-tts-preview");

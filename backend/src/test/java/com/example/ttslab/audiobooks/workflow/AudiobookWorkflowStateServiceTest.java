@@ -35,6 +35,7 @@ class AudiobookWorkflowStateServiceTest {
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
         AudiobookProject project = project("project-1", AudiobookWorkflowStage.AUDIO_GENERATED);
+        project.setAudioAssetsCurrent(true);
         AudiobookSpeechSegment segment = previewSegment(project, "Mara", "We go now.");
         AudioAsset audioAsset = new AudioAsset(
             "asset-1",
@@ -169,6 +170,44 @@ class AudiobookWorkflowStateServiceTest {
     }
 
     @Test
+    void finalizeAudioGenerationMarksAnAlreadyGeneratedProjectCurrent() {
+        AudiobookRepository repository = mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
+        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository);
+        CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
+
+        AudiobookProject project = project("project-8", AudiobookWorkflowStage.AUDIO_GENERATED);
+        project.setAudioAssetsCurrent(false);
+        AudiobookSpeechSegment segment = previewSegment(project, "Mara", "We go now.");
+        AudioAsset audioAsset = new AudioAsset(
+            "asset-1",
+            "project-8",
+            "segment-1",
+            AudioAssetType.PREVIEW_MP3,
+            1,
+            "storage-key",
+            "preview.mp3",
+            "audio/mpeg",
+            42L,
+            12,
+            AudioAssetStatus.READY,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
+
+        when(repository.findProjectForUser("project-8", "user-1")).thenReturn(Optional.of(project));
+        when(repository.findPreviewSpeechSegments("project-8")).thenReturn(List.of(segment));
+        when(repository.findAssets("project-8")).thenReturn(List.of(audioAsset));
+        when(speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc("project-8")).thenReturn(List.of());
+
+        AudiobookWorkflowSnapshotResponse snapshot = service.finalizeAudioGeneration(user, "project-8");
+
+        assertThat(snapshot.workflowStage()).isEqualTo(AudiobookWorkflowStage.AUDIO_GENERATED);
+        assertThat(snapshot.audioAssetsCurrent()).isTrue();
+        verify(projectRepository).save(project);
+    }
+
+    @Test
     void approveCastReturnsUpdatedSnapshot() {
         AudiobookRepository repository = mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
@@ -206,6 +245,7 @@ class AudiobookWorkflowStateServiceTest {
             Instant.parse("2026-05-12T10:00:00Z")
         );
         project.setWorkflowStage(workflowStage);
+        project.setAudioAssetsCurrent(false);
         return project;
     }
 

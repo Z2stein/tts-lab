@@ -268,7 +268,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EmotionAnnotationAnalysisResponse'
+                $ref: '#/components/schemas/AudiobookWorkflowSnapshotResponse'
         '400':
           $ref: '#/components/responses/ValidationError'
         '500':
@@ -370,6 +370,30 @@ paths:
           $ref: '#/components/responses/ValidationError'
         '429':
           $ref: '#/components/responses/RateLimitedError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/audiobooks/workflow/projects/{projectId}/audio-generated:
+    post:
+      tags: [Audiobook Workflow]
+      operationId: finalizeAudiobookAudioGeneration
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current audiobook workflow snapshot after the preview is finalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudiobookWorkflowSnapshotResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
         '500':
           $ref: '#/components/responses/InternalError'
 

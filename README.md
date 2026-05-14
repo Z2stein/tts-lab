@@ -186,6 +186,7 @@ Contract testing ist Teil der regulären Validierung:
 - Backend-Controller-Tests prüfen Responses gegen `shared/api-contract/tts-lab-openapi.yaml`.
 - Frontend-Typen werden aus derselben OpenAPI-Datei generiert; `cd frontend && npm run verify:api-contract` prüft, dass die generierten Typen zur Spezifikation passen.
 - Shared fixtures liegen unter `test-contracts/` und werden von Frontend- und Backend-Tests gemeinsam verwendet.
+- Wenn ein Mock eine echte API-/AI-Request- oder Response-Struktur beschreibt, soll er aus `test-contracts/` geladen werden und nicht als hart codiertes Inline-Objekt dupliziert werden.
 
 Die OpenAPI-Contract-Datei liegt unter `shared/api-contract/tts-lab-openapi.yaml`; die Backend-Tests validieren controller responses gegen genau diese Datei.
 Die Frontend-Contract-Typen werden aus dieser OpenAPI-Datei generiert; `frontend/src/app/shared/api-contract.generated.ts` ist die generierte Quelle, `frontend/src/app/shared/api-contract.ts` ist nur ein dünner Alias-Layer, und `cd frontend && npm run verify:api-contract` prüft die Generierung gegen dieselbe Quelle.
@@ -356,7 +357,8 @@ Audiobook Studio calls the workflow endpoints under `/api/audiobooks/workflow/*`
 - `POST /api/audiobooks/workflow/emotion-annotation-analysis` with `projectId` returns annotated `turns` containing `speaker` and marked-up `text`. The server reloads the persisted `SCRIPT_PREVIEW` rows for that project, uses those turns as the annotation input, and persists the styled text to `audiobook_speech_segment.styled_text` on the matching preview rows.
 - `POST /api/audiobooks/workflow/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
 - `POST /api/audiobooks/workflow/single-speaker-render-plan` with the final request JSON returns `renderRequests`, where each item is provider-shaped JSON containing `input.text`, `voice.languageCode`, `voice.name`, `voice.modelName`, and `audioConfig.audioEncoding`.
-- `POST /api/audiobooks/workflow/create-audio` with `renderRequests` returns a downloadable MP3 for one render request or one concatenated MP3 for multiple requests.
+- `POST /api/audiobooks/workflow/create-audio` with `renderRequests` returns a downloadable MP3 for one render request or one concatenated MP3 for multiple requests. It stores the generated preview parts on the project, but it does not mark the workflow as current by itself.
+- `POST /api/audiobooks/workflow/projects/{projectId}/audio-generated` marks the generated preview as current after the merged audiobook preview is complete and returns the refreshed workflow snapshot.
 
 Single-speaker render requests intentionally do not return internal planning metadata such as turn indexes or speaker aliases. The preview JSON matches the provider request shape, for example:
 

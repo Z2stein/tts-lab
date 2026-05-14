@@ -15,6 +15,7 @@ import com.example.ttslab.audiobooks.model.AudioAsset;
 import com.example.ttslab.audiobooks.model.AudioAssetStatus;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.repository.AudioAssetRepository;
+import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
@@ -67,6 +68,9 @@ class CreateAudioIntegrationTest {
     @Autowired
     private AudioAssetRepository audioAssetRepository;
 
+    @Autowired
+    private AudiobookLibraryService audiobookLibraryService;
+
     @MockBean
     private CurrentUserResolver currentUserResolver;
 
@@ -110,7 +114,8 @@ class CreateAudioIntegrationTest {
         assertThat(projectId).isNotBlank();
 
         AudiobookProject project = audiobookProjectRepository.findByIdAndUserId(projectId, user.id()).orElseThrow();
-        assertThat(project.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.AUDIO_GENERATED);
+        assertThat(project.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.PERFORMANCE_READY);
+        assertThat(project.isAudioAssetsCurrent()).isFalse();
 
         List<AudioAsset> assets = audioAssetRepository.findByProjectId(projectId);
         assertThat(assets).hasSize(1);
@@ -124,7 +129,7 @@ class CreateAudioIntegrationTest {
     }
 
     @Test
-    void createAudioUsesExistingProjectWhenProjectIdIsProvided() throws Exception {
+    void createAudioUsesExistingAudioGeneratedProjectWhenProjectIdIsProvided() throws Exception {
         AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
             UUID.randomUUID().toString(),
             user.id(),
@@ -137,10 +142,11 @@ class CreateAudioIntegrationTest {
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z")
         ));
-        existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
+        existingProject.setWorkflowStage(AudiobookWorkflowStage.AUDIO_GENERATED);
+        existingProject.setAudioAssetsCurrent(true);
         audiobookProjectRepository.save(existingProject);
 
-        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
+        MvcResult firstResult = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
                 .param("projectId", existingProject.getId())
                 .contentType("application/json")
                 .content(readText("audiobook-workflow/create-audio/default/request.json")))
@@ -153,15 +159,34 @@ class CreateAudioIntegrationTest {
 
         AudiobookProject project = audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow();
         assertThat(project.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.AUDIO_GENERATED);
+        assertThat(project.isAudioAssetsCurrent()).isFalse();
 
         List<AudioAsset> assets = audioAssetRepository.findByProjectId(existingProject.getId());
         assertThat(assets).hasSize(1);
         assertThat(assets.getFirst().getStatus()).isEqualTo(AudioAssetStatus.READY);
         assertThat(assets.getFirst().getFilename()).isEqualTo("tts-render-request-1.mp3");
 
-        byte[] body = result.getResponse().getContentAsByteArray();
+        MvcResult secondResult = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
+                .param("projectId", existingProject.getId())
+                .contentType("application/json")
+                .content(readText("audiobook-workflow/create-audio/default/request.json")))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType("audio/mpeg"))
+            .andExpect(header().string("X-Audiobook-Project-Id", existingProject.getId()))
+            .andReturn();
+
+        AudiobookProject projectAfterSecondCall = audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow();
+        assertThat(projectAfterSecondCall.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.AUDIO_GENERATED);
+        assertThat(projectAfterSecondCall.isAudioAssetsCurrent()).isFalse();
+        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).hasSize(2);
+
+        byte[] body = firstResult.getResponse().getContentAsByteArray();
         assertThat(body).startsWith(new byte[] {'I', 'D', '3'});
         assertThat(new String(body, StandardCharsets.UTF_8)).contains("TTS-LAB-MOCK-MP3", "Hello");
+
+        byte[] secondBody = secondResult.getResponse().getContentAsByteArray();
+        assertThat(secondBody).startsWith(new byte[] {'I', 'D', '3'});
+        assertThat(new String(secondBody, StandardCharsets.UTF_8)).contains("TTS-LAB-MOCK-MP3", "Hello");
     }
 
     @Test
@@ -195,6 +220,42 @@ class CreateAudioIntegrationTest {
         assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
         assertThat(audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow().getWorkflowStage())
             .isEqualTo(AudiobookWorkflowStage.CAST_APPROVED);
+    }
+
+    @Test
+    void finalizeAudioGenerationMarksTheProjectCurrentAfterAllPartsAreSaved() throws Exception {
+        AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
+            UUID.randomUUID().toString(),
+            user.id(),
+            "Finalize Audiobook",
+            com.example.ttslab.audiobooks.model.AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        ));
+        existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
+        existingProject.setAudioAssetsCurrent(false);
+        audiobookProjectRepository.save(existingProject);
+
+        audiobookLibraryService.persistAudioAsset(existingProject, new com.example.ttslab.audiobooks.workflow.TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "part-1.mp3"), 1, 1, 1, 5);
+        audiobookLibraryService.persistAudioAsset(existingProject, new com.example.ttslab.audiobooks.workflow.TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "part-2.mp3"), 1, 1, 1, 5);
+
+        AudiobookProject beforeFinalize = audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow();
+        assertThat(beforeFinalize.isAudioAssetsCurrent()).isFalse();
+
+        mockMvc.perform(post("/api/audiobooks/workflow/projects/{projectId}/audio-generated", existingProject.getId()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.projectId").value(existingProject.getId()))
+            .andExpect(jsonPath("$.workflowStage").value("AUDIO_GENERATED"))
+            .andExpect(jsonPath("$.audioAssetsCurrent").value(true))
+            .andReturn();
+
+        AudiobookProject afterFinalize = audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow();
+        assertThat(afterFinalize.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.AUDIO_GENERATED);
+        assertThat(afterFinalize.isAudioAssetsCurrent()).isTrue();
     }
 
     private static Path createStorageRoot() {

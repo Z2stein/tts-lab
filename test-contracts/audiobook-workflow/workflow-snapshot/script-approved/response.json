@@ -1,0 +1,42 @@
+{
+  "projectId": "test-project-1",
+  "title": "The Hidden Signal",
+  "storyText": "Mara: We go now.\nJonas: Together.",
+  "workflowStage": "SCRIPT_APPROVED",
+  "speakers": [
+    {
+      "speakerName": "Mara",
+      "roleDescription": "Bold traveler",
+      "voiceSuggestion": "ACHIRD"
+    },
+    {
+      "speakerName": "Jonas",
+      "roleDescription": "Careful friend",
+      "voiceSuggestion": "IAPETUS"
+    }
+  ],
+  "scriptTurns": [
+    {
+      "speaker": "Mara",
+      "text": "The rain hit the windows.\nThe café was nearly empty."
+    },
+    {
+      "speaker": "Jonas",
+      "text": "So this is your surprise?"
+    },
+    {
+      "speaker": "Mara",
+      "text": "I thought you would be pleased."
+    }
+  ],
+  "annotatedTurns": [],
+  "productionSettings": {
+    "prompt": "An immersive audiobook performance with a clear narrator and distinct character voices.",
+    "languageCode": "en-US",
+    "modelName": "gemini-3.1-flash-tts-preview",
+    "audioEncoding": "MP3"
+  },
+  "audioAssets": [],
+  "audioAssetsCurrent": false,
+  "performanceNotesStale": false
+}

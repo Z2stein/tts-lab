@@ -41,6 +41,6 @@
   </div>
 </details>
 
-<button type="button" class="primary-button next-action" (click)="createAudioProductionPlan.emit()" [disabled]="loadingAction !== null || annotatedTurns.length === 0 || performanceNotesStale">
+<button type="button" class="primary-button next-action" (click)="createAudioProductionPlan.emit()" [disabled]="loadingAction !== null || !performanceReady || performanceNotesStale">
   {{ isLoading('plan') ? 'Preparing audiobook...' : 'Next: Prepare audiobook' }}
 </button>

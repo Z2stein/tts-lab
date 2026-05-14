@@ -3,6 +3,7 @@ package com.example.ttslab.audiobooks.workflow;
 import static com.example.ttslab.contract.OpenApiContractAssertions.assertInteractionMatchesContract;
 import static com.example.ttslab.contract.OpenApiContractAssertions.assertResponseMatchesContract;
 import static com.example.ttslab.contract.TestContracts.readBytes;
+import static com.example.ttslab.contract.TestContracts.readJson;
 import static com.example.ttslab.contract.TestContracts.readText;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
@@ -44,6 +45,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
+import java.io.IOException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
@@ -195,7 +197,7 @@ class AudiobookWorkflowControllerTest {
     }
 
     @Test
-    void emotionAnnotationAnalysisReturnsAnnotatedTurns() throws Exception {
+    void emotionAnnotationAnalysisReturnsWorkflowSnapshot() throws Exception {
         testProject.setWorkflowStage(AudiobookWorkflowStage.SCRIPT_APPROVED);
         when(emotionAnnotationPersistenceService.loadScriptPreviewTurns(testProject)).thenReturn(List.of(
             new SpeakerSplitTurn("A", "Hello!")
@@ -203,6 +205,8 @@ class AudiobookWorkflowControllerTest {
         when(audiobookWorkflowService.annotate(any())).thenReturn(new EmotionAnnotationAnalysisResponse(List.of(
             new AnnotatedSpeakerTurn("A", "[urgent] Hello!")
         )));
+        when(audiobookWorkflowStateService.snapshot(any(CurrentUser.class), eq("test-project-1")))
+            .thenReturn(readWorkflowSnapshot("audiobook-workflow/emotion-annotation-analysis/default/response.json"));
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/emotion-annotation-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -215,6 +219,8 @@ class AudiobookWorkflowControllerTest {
         verify(emotionAnnotationPersistenceService).loadScriptPreviewTurns(eq(testProject));
         verify(audiobookWorkflowService).annotate(List.of(new SpeakerSplitTurn("A", "Hello!")));
         verify(emotionAnnotationPersistenceService).persistStyledText(eq(testProject), anyList());
+        verify(audiobookWorkflowStateService).markPerformanceReady(eq(testProject));
+        verify(audiobookWorkflowStateService).snapshot(any(CurrentUser.class), eq("test-project-1"));
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
@@ -254,19 +260,8 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void getProjectSnapshotReturnsWorkflowSnapshot() throws Exception {
-        when(audiobookWorkflowStateService.snapshot(any(CurrentUser.class), eq("test-project-1"))).thenReturn(new AudiobookWorkflowSnapshotResponse(
-            "test-project-1",
-            "Test Audiobook",
-            "Mara: We go now.",
-            AudiobookWorkflowStage.CAST_REVIEW,
-            List.of(new SpeakerVoiceAnalysisItem("Mara", "Bold traveler", SpeakerVoice.ACHIRD)),
-            List.of(new SpeakerSplitTurn("Mara", "We go now.")),
-            List.of(),
-            new AudiobookWorkflowProductionSettings("Prompt", "en-US", "gemini-3.1-flash-tts-preview", "MP3"),
-            List.of(),
-            false,
-            false
-        ));
+        when(audiobookWorkflowStateService.snapshot(any(CurrentUser.class), eq("test-project-1")))
+            .thenReturn(readWorkflowSnapshot("audiobook-workflow/workflow-snapshot/cast-review/response.json"));
 
         MvcResult result = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/audiobooks/workflow/projects/test-project-1"))
             .andExpect(status().isOk())
@@ -281,19 +276,8 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void approveCastAdvancesWorkflowStageAndReturnsSnapshot() throws Exception {
-        when(audiobookWorkflowStateService.approveCast(any(CurrentUser.class), eq("test-project-1"))).thenReturn(new AudiobookWorkflowSnapshotResponse(
-            "test-project-1",
-            "Test Audiobook",
-            "Mara: We go now.",
-            AudiobookWorkflowStage.CAST_APPROVED,
-            List.of(new SpeakerVoiceAnalysisItem("Mara", "Bold traveler", SpeakerVoice.ACHIRD)),
-            List.of(),
-            List.of(),
-            new AudiobookWorkflowProductionSettings("Prompt", "en-US", "gemini-3.1-flash-tts-preview", "MP3"),
-            List.of(),
-            false,
-            false
-        ));
+        when(audiobookWorkflowStateService.approveCast(any(CurrentUser.class), eq("test-project-1")))
+            .thenReturn(readWorkflowSnapshot("audiobook-workflow/workflow-snapshot/cast-approved/response.json"));
 
         MvcResult result = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post("/api/audiobooks/workflow/projects/test-project-1/cast-approval"))
             .andExpect(status().isOk())
@@ -363,6 +347,22 @@ class AudiobookWorkflowControllerTest {
     }
 
     @Test
+    void finalizeAudioGenerationReturnsSnapshot() throws Exception {
+        when(audiobookWorkflowStateService.finalizeAudioGeneration(any(CurrentUser.class), eq("test-project-1")))
+            .thenReturn(readWorkflowSnapshot("audiobook-workflow/workflow-snapshot/audio-generated/response.json"));
+
+        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/projects/test-project-1/audio-generated"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.projectId").value("test-project-1"))
+            .andExpect(jsonPath("$.workflowStage").value("AUDIO_GENERATED"))
+            .andExpect(jsonPath("$.audioAssetsCurrent").value(true))
+            .andReturn();
+
+        verify(audiobookWorkflowStateService).finalizeAudioGeneration(any(CurrentUser.class), eq("test-project-1"));
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
     void speakerVoiceAnalysisRateLimitedReturns429WithRetryAfter() throws Exception {
         when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.TEXT_MODEL), eq(1L)))
             .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, false, 600, 600, 0, 1, 42, 1, RequestRateLimitUnit.WORDS));
@@ -417,6 +417,10 @@ class AudiobookWorkflowControllerTest {
             .andReturn();
 
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    private static AudiobookWorkflowSnapshotResponse readWorkflowSnapshot(String relativePath) throws IOException {
+        return readJson(relativePath, AudiobookWorkflowSnapshotResponse.class);
     }
 
 }

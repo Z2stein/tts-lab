@@ -1,0 +1,43 @@
+{
+  "renderRequests": [
+    {
+      "input": {
+        "text": "The rain hit the windows.\nThe café was nearly empty."
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "name": "Kore",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    },
+    {
+      "input": {
+        "text": "So this is your surprise?"
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "name": "Iapetus",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    },
+    {
+      "input": {
+        "text": "I thought you would be pleased."
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "name": "Rasalgethi",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    }
+  ]
+}

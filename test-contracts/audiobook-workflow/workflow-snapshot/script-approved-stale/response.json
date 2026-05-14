@@ -1,25 +1,30 @@
 {
   "projectId": "test-project-1",
   "title": "The Hidden Signal",
-  "storyText": "The lamps dimmed.",
-  "workflowStage": "PERFORMANCE_READY",
+  "storyText": "Mara: We go now.\nJonas: Together.",
+  "workflowStage": "SCRIPT_APPROVED",
   "speakers": [
     {
-      "speakerName": "Narrator",
-      "roleDescription": "Story voice",
+      "speakerName": "Mara",
+      "roleDescription": "Bold traveler",
+      "voiceSuggestion": "ACHIRD"
+    },
+    {
+      "speakerName": "Jonas",
+      "roleDescription": "Careful friend",
       "voiceSuggestion": "IAPETUS"
     }
   ],
   "scriptTurns": [
     {
-      "speaker": "Narrator",
-      "text": "The lamps dimmed."
+      "speaker": "Mara",
+      "text": "We go now."
     }
   ],
   "annotatedTurns": [
     {
-      "speaker": "Narrator",
-      "text": "[quiet] The lamps dimmed."
+      "speaker": "Mara",
+      "text": "[urgent] We go now."
     }
   ],
   "productionSettings": {
@@ -30,5 +35,5 @@
   },
   "audioAssets": [],
   "audioAssetsCurrent": false,
-  "performanceNotesStale": false
+  "performanceNotesStale": true
 }

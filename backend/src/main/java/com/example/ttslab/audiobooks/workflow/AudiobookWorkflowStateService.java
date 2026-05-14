@@ -52,7 +52,7 @@ public class AudiobookWorkflowStateService {
         if (snapshot.speakers().isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "AUDIOBOOK_WORKFLOW_CAST_NOT_READY", "The cast must be created before it can be approved.");
         }
-        updateWorkflowStage(project, AudiobookWorkflowStage.CAST_APPROVED);
+        updateWorkflowState(project, AudiobookWorkflowStage.CAST_APPROVED, false);
         return snapshot(user, projectId);
     }
 
@@ -63,7 +63,7 @@ public class AudiobookWorkflowStateService {
         if (snapshot.scriptTurns().isEmpty()) {
             throw new ApiException(HttpStatus.BAD_REQUEST, "AUDIOBOOK_WORKFLOW_SCRIPT_NOT_READY", "The script must be created before it can be approved.");
         }
-        updateWorkflowStage(project, AudiobookWorkflowStage.SCRIPT_APPROVED);
+        updateWorkflowState(project, AudiobookWorkflowStage.SCRIPT_APPROVED, false);
         return snapshot(user, projectId);
     }
 
@@ -81,19 +81,32 @@ public class AudiobookWorkflowStateService {
     @Transactional
     public void markScriptReview(AudiobookProject project) {
         ensureWorkflowProgressAtOrBeyond(project, AudiobookWorkflowStage.CAST_APPROVED, "AUDIOBOOK_WORKFLOW_CAST_NOT_READY", "The cast must be created before the script can be reviewed.");
-        updateWorkflowStage(project, AudiobookWorkflowStage.SCRIPT_REVIEW);
+        updateWorkflowState(project, AudiobookWorkflowStage.SCRIPT_REVIEW, false);
     }
 
     @Transactional
     public void markPerformanceReady(AudiobookProject project) {
         ensureStageEquals(project, AudiobookWorkflowStage.SCRIPT_APPROVED, "AUDIOBOOK_WORKFLOW_SCRIPT_NOT_READY", "The script must be approved before emotion and pacing can be saved.");
-        updateWorkflowStage(project, AudiobookWorkflowStage.PERFORMANCE_READY);
+        updateWorkflowState(project, AudiobookWorkflowStage.PERFORMANCE_READY, false);
     }
 
     @Transactional
     public void markAudioGenerated(AudiobookProject project) {
-        ensureStageEquals(project, AudiobookWorkflowStage.PERFORMANCE_READY, "AUDIOBOOK_WORKFLOW_PERFORMANCE_NOT_READY", "Emotion and pacing must be saved before audio can be marked as generated.");
-        updateWorkflowStage(project, AudiobookWorkflowStage.AUDIO_GENERATED);
+        ensureWorkflowProgressAtOrBeyond(project, AudiobookWorkflowStage.PERFORMANCE_READY, "AUDIOBOOK_WORKFLOW_PERFORMANCE_NOT_READY", "Emotion and pacing must be saved before audio can be marked as generated.");
+        updateWorkflowState(project, AudiobookWorkflowStage.AUDIO_GENERATED, true);
+    }
+
+    @Transactional
+    public AudiobookWorkflowSnapshotResponse finalizeAudioGeneration(CurrentUser user, String projectId) {
+        AudiobookProject project = getProjectForUser(user, projectId);
+        AudiobookWorkflowStage currentStage = resolveCurrentWorkflowStage(project);
+        if (currentStage.ordinal() < AudiobookWorkflowStage.PERFORMANCE_READY.ordinal()) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "AUDIOBOOK_WORKFLOW_PERFORMANCE_NOT_READY", "Emotion and pacing must be saved before audio can be marked as generated.");
+        }
+        if (currentStage != AudiobookWorkflowStage.AUDIO_GENERATED || !project.isAudioAssetsCurrent()) {
+            updateWorkflowState(project, AudiobookWorkflowStage.AUDIO_GENERATED, true);
+        }
+        return snapshot(user, projectId);
     }
 
     private AudiobookWorkflowSnapshotResponse buildSnapshot(
@@ -103,6 +116,7 @@ public class AudiobookWorkflowStateService {
     ) {
         List<AudioAssetResponse> audioAssets = repository.findAssets(project.getId()).stream().map(this::assetResponse).toList();
         AudiobookWorkflowStage workflowStage = resolveWorkflowStage(project, previewSegments, speakers);
+        boolean audioAssetsCurrent = project.isAudioAssetsCurrent() && !audioAssets.isEmpty();
         boolean performanceNotesStale = previewSegments.stream()
             .anyMatch(segment -> segment.getReviewStatus() == AudiobookSpeechSegmentReviewStatus.NEEDS_CHANGES);
         List<SpeakerSplitTurn> scriptTurns = previewSegments.stream()
@@ -128,7 +142,7 @@ public class AudiobookWorkflowStateService {
                 defaultString(project.getProductionAudioEncoding(), "MP3")
             ),
             audioAssets,
-            workflowStage == AudiobookWorkflowStage.AUDIO_GENERATED && !audioAssets.isEmpty(),
+            audioAssetsCurrent,
             performanceNotesStale
         );
     }
@@ -144,8 +158,9 @@ public class AudiobookWorkflowStateService {
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIOBOOK_NOT_FOUND", "The requested audiobook was not found."));
     }
 
-    private void updateWorkflowStage(AudiobookProject project, AudiobookWorkflowStage workflowStage) {
+    private void updateWorkflowState(AudiobookProject project, AudiobookWorkflowStage workflowStage, boolean audioAssetsCurrent) {
         project.setWorkflowStage(workflowStage);
+        project.setAudioAssetsCurrent(audioAssetsCurrent);
         project.setUpdatedAt(Instant.now());
         projectRepository.save(project);
     }
@@ -166,7 +181,7 @@ public class AudiobookWorkflowStateService {
     }
 
     public void ensureAudioGenerationReady(AudiobookProject project) {
-        ensureStageEquals(project, AudiobookWorkflowStage.PERFORMANCE_READY, "AUDIOBOOK_WORKFLOW_PERFORMANCE_NOT_READY", "Emotion and pacing must be saved before audio can be generated.");
+        ensureWorkflowProgressAtOrBeyond(project, AudiobookWorkflowStage.PERFORMANCE_READY, "AUDIOBOOK_WORKFLOW_PERFORMANCE_NOT_READY", "Emotion and pacing must be saved before audio can be generated.");
     }
 
     private void ensureWorkflowProgressAtOrBeyond(AudiobookProject project, AudiobookWorkflowStage minimumStage, String code, String message) {
@@ -210,7 +225,7 @@ public class AudiobookWorkflowStateService {
         if (project.getWorkflowStage() != null) {
             return project.getWorkflowStage();
         }
-        if (!repository.findAssets(project.getId()).isEmpty()) {
+        if (project.isAudioAssetsCurrent() && !repository.findAssets(project.getId()).isEmpty()) {
             return AudiobookWorkflowStage.AUDIO_GENERATED;
         }
         boolean hasStyledText = previewSegments.stream().anyMatch(segment -> segment.getStyledText() != null && !segment.getStyledText().isBlank());

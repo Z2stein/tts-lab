@@ -1,12 +1,34 @@
 {
-  "turns": [
+  "projectId": "test-project-1",
+  "title": "The Hidden Signal",
+  "storyText": "The lamps dimmed.",
+  "workflowStage": "PERFORMANCE_READY",
+  "speakers": [
+    {
+      "speakerName": "Narrator",
+      "roleDescription": "Story voice",
+      "voiceSuggestion": "IAPETUS"
+    }
+  ],
+  "scriptTurns": [
     {
       "speaker": "Narrator",
-      "text": "[hushed] The last train had already left."
-    },
-    {
-      "speaker": "Mara",
-      "text": "[worried] Jonas, answer me."
+      "text": "The lamps dimmed."
     }
-  ]
+  ],
+  "annotatedTurns": [
+    {
+      "speaker": "Narrator",
+      "text": "[quiet] The lamps dimmed."
+    }
+  ],
+  "productionSettings": {
+    "prompt": "An immersive audiobook performance with a clear narrator and distinct character voices.",
+    "languageCode": "en-US",
+    "modelName": "gemini-3.1-flash-tts-preview",
+    "audioEncoding": "MP3"
+  },
+  "audioAssets": [],
+  "audioAssetsCurrent": false,
+  "performanceNotesStale": false
 }

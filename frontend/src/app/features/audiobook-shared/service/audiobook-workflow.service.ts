@@ -2,7 +2,6 @@ import { Injectable } from '@angular/core';
 import { AudiobookApiService } from './audiobook-api.service';
 import {
   AnnotatedSpeakerTurn,
-  EmotionAnnotationAnalysisResponse,
   AudiobookWorkflowProductionSettingsRequest,
   AudiobookWorkflowSnapshotResponse,
   FinalTtsRequestPreviewResponse,
@@ -17,7 +16,6 @@ import { CreatedAudioDownload, RequestOptions } from '../../../shared/api-client
 
 export type {
   AnnotatedSpeakerTurn,
-  EmotionAnnotationAnalysisResponse,
   AudiobookWorkflowProductionSettings,
   AudiobookWorkflowProductionSettingsRequest,
   AudiobookWorkflowSnapshotResponse,
@@ -103,13 +101,12 @@ export class AudiobookWorkflowService {
     return data.turns;
   }
 
-  async annotateEmotions(projectId: string): Promise<AnnotatedSpeakerTurn[]> {
-    const data = await this.audiobookApiService.post<EmotionAnnotationAnalysisResponse>(
+  async annotateEmotions(projectId: string): Promise<AudiobookWorkflowSnapshotResponse> {
+    return this.audiobookApiService.post<AudiobookWorkflowSnapshotResponse>(
       '/api/audiobooks/workflow/emotion-annotation-analysis',
       { projectId },
       'Emotion annotation analysis failed'
     );
-    return data.turns;
   }
 
   async generateFinalJson(request: {
@@ -145,6 +142,14 @@ export class AudiobookWorkflowService {
     projectId?: string
   ): Promise<CreatedAudioDownload> {
     return this.audiobookApiService.createAudioForRenderRequest(renderRequest, options, projectId);
+  }
+
+  async markAudioGenerated(projectId: string): Promise<AudiobookWorkflowSnapshotResponse> {
+    return this.audiobookApiService.post<AudiobookWorkflowSnapshotResponse>(
+      `/api/audiobooks/workflow/projects/${encodeURIComponent(projectId)}/audio-generated`,
+      undefined,
+      'Audio finalization failed'
+    );
   }
 }
 

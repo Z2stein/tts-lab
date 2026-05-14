@@ -16,6 +16,7 @@ import { HighlightTagsPipe } from '../../pipes/highlight-tags.pipe';
 export class PerformanceNotesComponent {
   @Input() annotatedTurns: AnnotatedSpeakerTurn[] = [];
   @Input() performanceNotesStale = false;
+  @Input() performanceReady = false;
   @Input() promptControl!: FormControl<string>;
   @Input() languageCodeControl!: FormControl<string>;
   @Input() modelNameControl!: FormControl<string>;

@@ -134,6 +134,8 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   get performanceNotesStale(): boolean { return this.facade.performanceNotesStale(); }
   set performanceNotesStale(value: boolean) { this.facade.setPerformanceNotesStale(value); }
 
+  get performanceReady(): boolean { return this.facade.performanceReady(); }
+
   get audioAssets(): AudioAssetResponse[] { return this.facade.audioAssets(); }
   get audioAssetsCurrent(): boolean { return this.facade.audioAssetsCurrent(); }
 
@@ -314,9 +316,13 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     if (projectId) {
       this.facade.setCurrentProjectId(projectId);
       this.lastKnownProjectId = projectId;
+      await this.facade.finalizeAudioGeneration(projectId);
+      if (this.facade.error()) {
+        void this.liveAnnouncer.announce(this.facade.error()!, 'assertive');
+        return;
+      }
     }
-    if (this.fullAudioGenerationService.audioUrl) {
-      this.facade.setAudioAssetsCurrent(true);
+    if (this.fullAudioGenerationService.audioUrl && !this.facade.error()) {
       void this.liveAnnouncer.announce('Audiobook preview is ready', 'polite');
     }
   }
@@ -333,6 +339,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
     const state = this.renderRequestAudioService.audioStates[requestIndex];
     if (state?.status === 'generated' && this.fullAudioGenerationService.audioUrl) {
+      this.facade.setAudioAssetsCurrent(false);
       this.fullAudioGenerationService.markStale(
         'Audiobook preview needs regeneration because one or more parts changed.'
       );
@@ -360,6 +367,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
       scriptApproved: this.facade.scriptApproved(),
       annotatedTurnCount: this.facade.annotatedTurns().length,
       performanceNotesStale: this.facade.performanceNotesStale(),
+      performanceReady: this.facade.performanceReady(),
       audioProductionPlanReady: this.facade.audioProductionPlan() !== null,
       audioGenerated: this.fullPlanAudioUrl !== null && !this.fullPlanAudioStale,
       audioAssetsCurrent: this.audioAssetsCurrent,

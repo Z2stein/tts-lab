@@ -156,7 +156,7 @@ public class AudiobookWorkflowController {
     }
 
     @PostMapping("/emotion-annotation-analysis")
-    public EmotionAnnotationAnalysisResponse annotateEmotions(@Valid @RequestBody EmotionAnnotationAnalysisRequest request, Authentication authentication) {
+    public AudiobookWorkflowSnapshotResponse annotateEmotions(@Valid @RequestBody EmotionAnnotationAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
         AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
         audiobookWorkflowStateService.ensurePerformanceNotesReady(project);
@@ -164,7 +164,7 @@ public class AudiobookWorkflowController {
         EmotionAnnotationAnalysisResponse response = audiobookWorkflowService.annotate(turns);
         emotionAnnotationPersistenceService.persistStyledText(project, response.turns());
         audiobookWorkflowStateService.markPerformanceReady(project);
-        return response;
+        return audiobookWorkflowStateService.snapshot(user, request.projectId());
     }
 
     @PostMapping("/script-preview-save")
@@ -251,6 +251,12 @@ public class AudiobookWorkflowController {
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.FAILED);
             throw ex;
         }
+    }
+
+    @PostMapping("/projects/{projectId}/audio-generated")
+    public AudiobookWorkflowSnapshotResponse finalizeAudioGeneration(@PathVariable String projectId, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.finalizeAudioGeneration(user, projectId);
     }
 
     private void enforceLimit(CurrentUser user, ModelType modelType, String promptText, String providerModelName) {
