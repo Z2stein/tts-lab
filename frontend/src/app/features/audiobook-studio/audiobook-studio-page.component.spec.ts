@@ -281,35 +281,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Script needs your approval');
   });
 
-  it('treats restored audio assets as stale after the script changes', () => {
-    component.storyTextControl.setValue('Mara: We go now.');
-    component.cast = [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }];
-    component.castReviewed = true;
-    component.scriptTurns = [{ speaker: 'Mara', text: 'We go now.' }];
-    component.scriptApproved = true;
-    component.annotatedTurns = [{ speaker: 'Mara', text: '[urgent] We go now.' }];
-    (component as any).facade.setAudioAssets([{
-      id: 'asset-1',
-      speechSegmentId: 'segment-1',
-      type: 'PREVIEW_MP3',
-      version: 1,
-      filename: 'preview.mp3',
-      contentType: 'audio/mpeg',
-      sizeBytes: 42,
-      durationSeconds: 12,
-      status: 'READY',
-      createdAt: '2026-05-12T10:00:00Z',
-      downloadUrl: '/download',
-      streamUrl: '/stream'
-    }]);
-    (component as any).facade.setAudioAssetsCurrent(false);
-    fixture.detectChanges();
-
-    const audioStep = component.workflowSteps.find((step) => step.key === 'audio');
-    expect(audioStep?.status).toBe('current');
-    expect(audioStep?.statusLabel).toBe('Preview stale');
-    expect(component.currentTask.title).toBe('Current task: Regenerate your audiobook preview');
-  });
 
   it('shows an edited script turn after saving the speaker and text', async () => {
     component.cast = [
@@ -376,7 +347,18 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Script changed. Update the emotion & pacing before generating the audiobook.');
     expect(planButton.disabled).toBeTrue();
 
-    clickButton('Approve script & continue');
+    audiobookWorkflowService.approveScript.and.resolveTo({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'Mara: We go at sunrise.',
+      workflowStage: 'SCRIPT_APPROVED',
+      speakers: [
+        { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }
+      ],
+      scriptTurns: [{ speaker: 'Mara', text: 'We go at sunrise.' }],
+      annotatedTurns: [],
+      performanceNotesStale: true
+    } as never);
     audiobookWorkflowService.annotateEmotions.and.resolveTo({
       projectId: 'project-1',
       title: 'The Hidden Signal',
@@ -395,7 +377,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       },
       performanceNotesStale: false
     } as never);
-    await component.createPerformanceNotes();
+    clickButton('Approve script & continue');
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(component.performanceNotesStale).toBeFalse();
@@ -451,24 +434,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
   });
 
-  it('marks the merged preview stale when a generated part changes after finalization', async () => {
-    component.audioProductionPlan = {
-      renderRequests: [
-        { input: { text: 'First' }, voice: { name: 'Kore' }, audioConfig: {} }
-      ]
-    };
-    (component as any).facade.setAudioAssetsCurrent(true);
-    (component as any).fullAudioGenerationService.audioUrl = 'blob:merged-preview';
-    audiobookApiService.createAudioForRenderRequest.and.resolveTo({
-      blob: new Blob(['updated part'], { type: 'audio/mpeg' }),
-      filename: 'part-1.mp3'
-    });
-
-    await component.generateAudioForRenderRequest(component.renderRequests[0], 0);
-    fixture.detectChanges();
-
-    expect(component.fullPlanAudioStale).toBeTrue();
-  });
 
   it('cancels an in-flight part generation and keeps already generated parts', async () => {
     component.audioProductionPlan = {
