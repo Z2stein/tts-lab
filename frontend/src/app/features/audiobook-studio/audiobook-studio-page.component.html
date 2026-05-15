@@ -56,7 +56,16 @@
       (cancelCastEdit)="cancelCastEdit()"
       (playVoiceSample)="playVoiceSample($event)"
       (createScriptPreview)="createScriptPreviewAndScroll()"
+      (changeVoice)="openVoicePicker($event)"
     ></app-cast-section>
+
+    <app-voice-picker-modal
+      [open]="voicePickerOpenForIndex !== null"
+      [speakerName]="voicePickerSpeakerName()"
+      [currentVoiceId]="voicePickerCurrentVoiceId()"
+      (voiceSelected)="applyVoiceSelection($event)"
+      (closed)="closeVoicePicker()"
+    ></app-voice-picker-modal>
 
     <app-script-review
       id="script-section"

@@ -132,6 +132,22 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/audiobooks/workflow/voices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["getVoiceCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audiobooks/workflow/speaker-voice-analysis": {
         parameters: {
             query?: never;
@@ -408,6 +424,7 @@ export type components = {
             createdAt: string;
             downloadUrl: string;
             streamUrl: string;
+            speakerName?: string | null;
         };
         AudiobookSummaryResponse: {
             items: components["schemas"]["AudiobookSummary"][];
@@ -482,6 +499,7 @@ export type components = {
             audioAssets: components["schemas"]["AudioAssetResponse"][];
             audioAssetsCurrent: boolean;
             performanceNotesStale: boolean;
+            mergedAudioUrl?: string | null;
         };
         ChatRequest: {
             message: string;
@@ -582,6 +600,14 @@ export type components = {
         };
         SingleSpeakerRenderPlanResponse: {
             renderRequests: components["schemas"]["SingleSpeakerRenderRequest"][];
+        };
+        SpeakerVoiceCatalogItem: {
+            id: string;
+            providerVoiceName: string;
+            displayName: string;
+            description: string;
+            imageUrl: string;
+            demoMp3Url: string;
         };
     };
     responses: {
@@ -693,6 +719,7 @@ export type SingleSpeakerRenderPlanRequest = components['schemas']['SingleSpeake
 export type SingleSpeakerRenderRequest = components['schemas']['SingleSpeakerRenderRequest'];
 export type CreateAudioRequest = components['schemas']['CreateAudioRequest'];
 export type SingleSpeakerRenderPlanResponse = components['schemas']['SingleSpeakerRenderPlanResponse'];
+export type SpeakerVoiceCatalogItem = components['schemas']['SpeakerVoiceCatalogItem'];
 export type ResponseValidationError = components['responses']['ValidationError'];
 export type ResponseRateLimitedError = components['responses']['RateLimitedError'];
 export type ResponseProviderUnavailableError = components['responses']['ProviderUnavailableError'];
@@ -911,6 +938,26 @@ export interface operations {
             429: components["responses"]["RateLimitedError"];
             500: components["responses"]["InternalError"];
             502: components["responses"]["ProviderUnavailableError"];
+        };
+    };
+    getVoiceCatalog: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All available speaker voices */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SpeakerVoiceCatalogItem"][];
+                };
+            };
         };
     };
     analyzeSpeakerVoices: {

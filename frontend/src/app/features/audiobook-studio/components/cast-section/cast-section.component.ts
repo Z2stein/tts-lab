@@ -24,6 +24,7 @@ export class CastSectionComponent {
   @Output() cancelCastEdit = new EventEmitter<void>();
   @Output() playVoiceSample = new EventEmitter<string>();
   @Output() createScriptPreview = new EventEmitter<void>();
+  @Output() changeVoice = new EventEmitter<number>();
 
   accentClass(index: number): string {
     return `cast-accent-${index % 6}`;

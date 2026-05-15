@@ -1,0 +1,57 @@
+<article
+  class="relative flex flex-col rounded-xl border transition-all cursor-pointer"
+  [class.border-studio-accent]="selected"
+  [class.border-studio-line]="!selected"
+  [class.bg-studio-panelSoft]="selected"
+  [class.bg-studio-panel]="!selected"
+  data-testid="voice-option-card"
+  [attr.data-voice-id]="voice.id"
+>
+  <span
+    *ngIf="selected"
+    class="absolute top-2 right-2 rounded-full bg-studio-accent text-studio-field text-xs font-bold px-2 py-0.5"
+    data-testid="voice-selected-badge"
+  >Selected</span>
+
+  <img
+    [src]="voice.imageUrl"
+    [alt]="voice.displayName"
+    class="w-full aspect-square object-cover rounded-t-xl bg-studio-field"
+    (error)="onImageError($event)"
+    loading="lazy"
+  />
+
+  <div class="flex flex-col gap-1 p-3 flex-1">
+    <p class="font-semibold text-studio-text text-sm">{{ voice.displayName }}</p>
+    <p class="text-studio-muted text-xs">{{ voice.providerVoiceName }}</p>
+    <p class="text-studio-muted text-xs leading-relaxed line-clamp-3">{{ voice.description }}</p>
+  </div>
+
+  <div class="flex gap-2 px-3 pb-3">
+    <button
+      type="button"
+      class="flex-1 rounded-md border border-studio-line text-studio-muted text-xs py-1.5 hover:border-studio-lineStrong hover:text-studio-text transition-colors"
+      [class.text-studio-accent]="demoPlaying"
+      [class.border-studio-accent]="demoPlaying"
+      (click)="toggleDemo.emit(voice)"
+      data-testid="voice-demo-button"
+    >
+      {{ demoPlaying ? '■ Stop' : '▶ Demo' }}
+    </button>
+    <button
+      type="button"
+      class="flex-1 rounded-md text-xs py-1.5 font-medium transition-colors"
+      [class.bg-studio-accent]="!selected"
+      [class.text-studio-field]="!selected"
+      [class.hover:bg-studio-accentSoft]="!selected"
+      [class.bg-studio-panelSoft]="selected"
+      [class.text-studio-muted]="selected"
+      [class.border]="selected"
+      [class.border-studio-line]="selected"
+      (click)="selectVoice.emit(voice)"
+      data-testid="voice-use-button"
+    >
+      {{ selected ? 'Current voice' : 'Use voice' }}
+    </button>
+  </div>
+</article>

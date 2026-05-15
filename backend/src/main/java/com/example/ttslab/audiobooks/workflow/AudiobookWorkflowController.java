@@ -27,6 +27,7 @@ import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import jakarta.validation.Valid;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -86,6 +87,13 @@ public class AudiobookWorkflowController {
         this.requestUsageMeasurer = requestUsageMeasurer;
         this.audiobookLibraryService = audiobookLibraryService;
         this.analysisProviderModelName = providerModelName(chatbotProperties == null ? "mock" : chatbotProperties.provider(), chatModelName);
+    }
+
+    @GetMapping("/voices")
+    public List<SpeakerVoiceCatalogItemResponse> getVoiceCatalog() {
+        return Stream.of(SpeakerVoice.values())
+                .map(SpeakerVoiceCatalogItemResponse::from)
+                .toList();
     }
 
     @GetMapping("/projects/{projectId}")

@@ -12,6 +12,7 @@ import com.example.ttslab.audiobooks.model.SpeakerCharacter;
 import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookRepository;
+import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
 import com.example.ttslab.auth.CurrentUser;
 import java.time.Instant;
@@ -32,7 +33,7 @@ class AudiobookWorkflowStateServiceTest {
         AudiobookRepository repository = mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
         SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
-        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository);
+        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository, mock(AudiobookLibraryService.class));
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
         AudiobookProject project = project("project-1", AudiobookWorkflowStage.AUDIO_GENERATED);
@@ -81,7 +82,7 @@ class AudiobookWorkflowStateServiceTest {
         AudiobookRepository repository = mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
         SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
-        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository);
+        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository, mock(AudiobookLibraryService.class));
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
         AudiobookProject project = project("project-3", AudiobookWorkflowStage.SCRIPT_REVIEW);
@@ -103,7 +104,7 @@ class AudiobookWorkflowStateServiceTest {
         AudiobookRepository repository = mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
         SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
-        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository);
+        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository, mock(AudiobookLibraryService.class));
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
         AudiobookProject project = project("project-4", AudiobookWorkflowStage.CAST_APPROVED);
@@ -123,7 +124,7 @@ class AudiobookWorkflowStateServiceTest {
         AudiobookRepository repository = mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
         SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
-        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository);
+        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository, mock(AudiobookLibraryService.class));
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
         AudiobookProject project = project("project-5", AudiobookWorkflowStage.CAST_APPROVED);
@@ -145,7 +146,7 @@ class AudiobookWorkflowStateServiceTest {
         AudiobookRepository repository = mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
         SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
-        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository);
+        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository, mock(AudiobookLibraryService.class));
 
         AudiobookProject project = project("project-6", AudiobookWorkflowStage.CAST_APPROVED);
 
@@ -160,7 +161,7 @@ class AudiobookWorkflowStateServiceTest {
         AudiobookRepository repository = mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
         SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
-        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository);
+        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository, mock(AudiobookLibraryService.class));
 
         AudiobookProject project = project("project-7", AudiobookWorkflowStage.SCRIPT_APPROVED);
 
@@ -175,7 +176,7 @@ class AudiobookWorkflowStateServiceTest {
         AudiobookRepository repository = mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
         SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
-        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository);
+        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository, mock(AudiobookLibraryService.class));
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
         AudiobookProject project = project("project-8", AudiobookWorkflowStage.AUDIO_GENERATED);
@@ -213,7 +214,7 @@ class AudiobookWorkflowStateServiceTest {
         AudiobookRepository repository = mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
         SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
-        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository);
+        AudiobookWorkflowStateService service = new AudiobookWorkflowStateService(repository, projectRepository, speakerCharacterRepository, mock(AudiobookLibraryService.class));
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
         AudiobookProject project = project("project-1", AudiobookWorkflowStage.CAST_REVIEW);

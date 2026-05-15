@@ -23,6 +23,7 @@ export class CastCardComponent {
   @Output() saveEdit = new EventEmitter<void>();
   @Output() cancelEdit = new EventEmitter<void>();
   @Output() playVoiceSample = new EventEmitter<void>();
+  @Output() changeVoice = new EventEmitter<void>();
 
   displayName(name: string): string {
     return formatSpeakerDisplayName(name);

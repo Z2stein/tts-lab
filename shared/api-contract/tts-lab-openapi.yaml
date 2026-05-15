@@ -202,6 +202,20 @@ paths:
         '502':
           $ref: '#/components/responses/ProviderUnavailableError'
 
+  /api/audiobooks/workflow/voices:
+    get:
+      tags: [Audiobook Workflow]
+      operationId: getVoiceCatalog
+      responses:
+        '200':
+          description: All available speaker voices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SpeakerVoiceCatalogItem'
+
   /api/audiobooks/workflow/speaker-voice-analysis:
     post:
       tags: [Audiobook Workflow]
@@ -724,6 +738,9 @@ components:
           type: string
         streamUrl:
           type: string
+        speakerName:
+          type: string
+          nullable: true
       additionalProperties: false
 
     AudiobookSummaryResponse:
@@ -901,6 +918,9 @@ components:
           type: boolean
         performanceNotesStale:
           type: boolean
+        mergedAudioUrl:
+          type: string
+          nullable: true
       additionalProperties: false
 
     ChatRequest:
@@ -1132,6 +1152,24 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SingleSpeakerRenderRequest'
+      additionalProperties: false
+
+    SpeakerVoiceCatalogItem:
+      type: object
+      required: [id, providerVoiceName, displayName, description, imageUrl, demoMp3Url]
+      properties:
+        id:
+          type: string
+        providerVoiceName:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        demoMp3Url:
+          type: string
       additionalProperties: false
 
 

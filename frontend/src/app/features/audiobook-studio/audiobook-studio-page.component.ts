@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
-import { AudiobookWorkflowSnapshotResponse } from '../../shared/api-contract.generated';
+import { AudiobookWorkflowSnapshotResponse, SpeakerVoiceCatalogItem } from '../../shared/api-contract.generated';
 import {
   AnnotatedSpeakerTurn,
   FinalTtsRequestPreviewResponse,
@@ -11,6 +11,7 @@ import {
   SingleSpeakerRenderRequest,
 } from '../audiobook-shared/service/audiobook-workflow.service';
 import { CastSectionComponent } from './components/cast-section/cast-section.component';
+import { VoicePickerModalComponent } from './components/voice-picker/voice-picker-modal.component';
 import { JourneyGridComponent } from './components/journey-grid/journey-grid.component';
 import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
 import { ScriptReviewComponent } from './components/script-review/script-review.component';
@@ -69,6 +70,7 @@ export { formatSpeakerDisplayName };
     CastSectionComponent,
     ScriptReviewComponent,
     PerformanceNotesComponent,
+    VoicePickerModalComponent,
   ],
   providers: [
     AudiobookStudioFacade,
@@ -155,7 +157,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   get fullPlanAudioError(): string | null { return this.fullAudioGenerationService.error; }
   get fullPlanAudioStale(): boolean { return this.fullAudioGenerationService.stale; }
   get fullPlanAudioStatusMessage(): string | null { return this.fullAudioGenerationService.statusMessage; }
-  get fullPlanAudioUrl(): string | null { return this.fullAudioGenerationService.audioUrl; }
+  get fullPlanAudioUrl(): string | null { return this.fullAudioGenerationService.audioUrl ?? this.facade.mergedAudioUrl(); }
   get fullPlanAudioFilename(): string | null { return this.fullAudioGenerationService.filename; }
 
   // ── Voice-sample delegated state ──────────────────────────────────────────
@@ -163,6 +165,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
+  voicePickerOpenForIndex: number | null = null;
   private lastKnownProjectId: string | null = null;
 
   constructor(
@@ -397,6 +400,30 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   startCastEdit(index: number): void { this.facade.startCastEdit(index); }
   saveCastEdit(index: number): void { this.facade.saveCastEdit(index); }
   cancelCastEdit(): void { this.facade.cancelCastEdit(); }
+
+  openVoicePicker(index: number): void { this.voicePickerOpenForIndex = index; }
+  closeVoicePicker(): void { this.voicePickerOpenForIndex = null; }
+
+  voicePickerSpeakerName(): string {
+    if (this.voicePickerOpenForIndex === null) return '';
+    return formatSpeakerDisplayName(this.facade.cast()[this.voicePickerOpenForIndex]?.speakerName ?? '');
+  }
+
+  voicePickerCurrentVoiceId(): string {
+    if (this.voicePickerOpenForIndex === null) return '';
+    return (this.facade.cast()[this.voicePickerOpenForIndex]?.voiceSuggestion ?? '').toLowerCase();
+  }
+
+  applyVoiceSelection(voice: SpeakerVoiceCatalogItem): void {
+    if (this.voicePickerOpenForIndex === null) return;
+    const cast = this.facade.cast();
+    const speaker = cast[this.voicePickerOpenForIndex];
+    if (!speaker) return;
+    const updated: SpeakerVoiceAnalysisItem = { ...speaker, voiceSuggestion: voice.id.toUpperCase() };
+    const newCast = cast.map((s, i) => (i === this.voicePickerOpenForIndex ? updated : s));
+    this.facade.setCast(newCast);
+    this.facade.setPerformanceNotesStale(true);
+  }
 
   startScriptTurnEdit(index: number): void { this.facade.startScriptTurnEdit(index); }
   async saveScriptTurnEdit(index: number): Promise<void> { await this.facade.saveScriptTurnEdit(index); }

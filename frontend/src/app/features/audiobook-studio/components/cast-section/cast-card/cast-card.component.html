@@ -26,7 +26,16 @@
     <div class="cast-content">
       <h3>{{ displayName(speaker.speakerName) }}</h3>
       <p>{{ speaker.roleDescription }}</p>
-      <strong class="voice-badge">{{ speaker.voiceSuggestion }}</strong>
+      <div class="flex items-center gap-2 mt-1">
+        <strong class="voice-badge">{{ speaker.voiceSuggestion }}</strong>
+        <button
+          type="button"
+          class="text-button text-xs"
+          (click)="changeVoice.emit()"
+          [attr.data-testid]="'cast-change-voice-' + index"
+          [attr.aria-label]="'Change voice for ' + displayName(speaker.speakerName)"
+        >Change voice</button>
+      </div>
     </div>
   </ng-container>
 

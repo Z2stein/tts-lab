@@ -51,18 +51,37 @@
   },
   "audioAssets": [
     {
-      "speakerName": "Mara",
+      "id": "asset-mara-1",
+      "speechSegmentId": "segment-mara-1",
+      "type": "PREVIEW_MP3",
+      "version": 1,
       "filename": "mara-part-1.mp3",
+      "contentType": "audio/mpeg",
+      "sizeBytes": 42000,
+      "durationSeconds": null,
+      "status": "READY",
+      "createdAt": "2026-05-12T10:00:00Z",
       "streamUrl": "https://example.com/audio/mara-part-1.mp3",
-      "downloadUrl": "https://example.com/audio/download/mara-part-1.mp3"
+      "downloadUrl": "https://example.com/audio/download/mara-part-1.mp3",
+      "speakerName": "Mara"
     },
     {
-      "speakerName": "Jonas",
+      "id": "asset-jonas-1",
+      "speechSegmentId": "segment-jonas-1",
+      "type": "PREVIEW_MP3",
+      "version": 1,
       "filename": "jonas-part-1.mp3",
+      "contentType": "audio/mpeg",
+      "sizeBytes": 38000,
+      "durationSeconds": null,
+      "status": "READY",
+      "createdAt": "2026-05-12T10:00:00Z",
       "streamUrl": "https://example.com/audio/jonas-part-1.mp3",
-      "downloadUrl": "https://example.com/audio/download/jonas-part-1.mp3"
+      "downloadUrl": "https://example.com/audio/download/jonas-part-1.mp3",
+      "speakerName": "Jonas"
     }
   ],
   "audioAssetsCurrent": true,
-  "performanceNotesStale": false
+  "performanceNotesStale": false,
+  "mergedAudioUrl": "/api/audiobooks/project-1/audio-assets/asset-merged-1/stream"
 }

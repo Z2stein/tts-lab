@@ -3,6 +3,7 @@ import { AudiobookStudioWorkspaceComponent, formatSpeakerDisplayName } from './a
 import { AudiobookApiService } from '../audiobook-shared/service/audiobook-api.service';
 import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
 import { AudiobookLibraryService } from '../audiobook-library/services/audiobook-library.service';
+import { VoicePickerService } from './services/voice-picker.service';
 
 describe('AudiobookStudioWorkspaceComponent', () => {
   let fixture: ComponentFixture<AudiobookStudioWorkspaceComponent>;
@@ -10,6 +11,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
   let audiobookWorkflowService: jasmine.SpyObj<AudiobookWorkflowService>;
   let audiobookApiService: jasmine.SpyObj<AudiobookApiService>;
   let audiobookLibraryService: jasmine.SpyObj<AudiobookLibraryService>;
+  let voicePickerService: jasmine.SpyObj<VoicePickerService>;
 
   beforeEach(async () => {
     audiobookWorkflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
@@ -33,6 +35,11 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       'postBlobResponse'
     ]);
     audiobookLibraryService = jasmine.createSpyObj<AudiobookLibraryService>('AudiobookLibraryService', ['updateTitle']);
+    voicePickerService = jasmine.createSpyObj<VoicePickerService>('VoicePickerService', ['getVoiceCatalog']);
+    voicePickerService.getVoiceCatalog.and.resolveTo([
+      { id: 'zephyr', providerVoiceName: 'Zephyr', displayName: 'Zephyr', description: 'Bright.', imageUrl: '/assets/voices/zephyr/avatar.png', demoMp3Url: '/assets/voices/zephyr/demo.mp3' },
+      { id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '/assets/voices/puck/avatar.png', demoMp3Url: '/assets/voices/puck/demo.mp3' },
+    ]);
     audiobookApiService.createAudioForRenderRequest.and.callFake(async () => ({
       blob: new Blob(['generated'], { type: 'audio/mpeg' }),
       filename: 'tts-render-request-1.mp3'
@@ -51,6 +58,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
       scriptTurns: [{ speaker: 'Mara', text: 'We go now.' }],
       annotatedTurns: [{ speaker: 'Mara', text: '[urgent] We go now.' }],
+      audioAssets: [],
       productionSettings: {
         prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
         languageCode: 'en-US',
@@ -77,7 +85,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       providers: [
         { provide: AudiobookWorkflowService, useValue: audiobookWorkflowService },
         { provide: AudiobookApiService, useValue: audiobookApiService },
-        { provide: AudiobookLibraryService, useValue: audiobookLibraryService }
+        { provide: AudiobookLibraryService, useValue: audiobookLibraryService },
+        { provide: VoicePickerService, useValue: voicePickerService },
       ]
     }).compileComponents();
 
@@ -199,6 +208,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       ],
       scriptTurns: [],
       annotatedTurns: [],
+      audioAssets: [],
       productionSettings: {
         prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
         languageCode: 'en-US',
@@ -256,6 +266,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       ],
       scriptTurns: [],
       annotatedTurns: [],
+      audioAssets: [],
       productionSettings: {
         prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
         languageCode: 'en-US',
@@ -357,6 +368,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       ],
       scriptTurns: [{ speaker: 'Mara', text: 'We go at sunrise.' }],
       annotatedTurns: [],
+      audioAssets: [],
       performanceNotesStale: true
     } as never);
     audiobookWorkflowService.annotateEmotions.and.resolveTo({
@@ -369,6 +381,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       ],
       scriptTurns: [{ speaker: 'Mara', text: 'We go at sunrise.' }],
       annotatedTurns: [{ speaker: 'Mara', text: '[hopeful] We go at sunrise.' }],
+      audioAssets: [],
       productionSettings: {
         prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
         languageCode: 'en-US',
@@ -399,6 +412,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       speakers: [{ speakerName: 'Narrator', roleDescription: 'Story voice', voiceSuggestion: 'Clear narrator' }],
       scriptTurns: [{ speaker: 'Narrator', text: 'The lamps dimmed.' }],
       annotatedTurns: [],
+      audioAssets: [],
       productionSettings: {
         prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
         languageCode: 'en-US',
@@ -415,6 +429,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       speakers: [{ speakerName: 'Narrator', roleDescription: 'Story voice', voiceSuggestion: 'Clear narrator' }],
       scriptTurns: [{ speaker: 'Narrator', text: 'The lamps dimmed.' }],
       annotatedTurns: [{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }],
+      audioAssets: [],
       productionSettings: {
         prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
         languageCode: 'en-US',
@@ -546,7 +561,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[2],
       jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
-      undefined
+      undefined,
+      2
     );
     expect(component.renderRequestAudioState(2).status).toBe('generated');
     expect(component.fullPlanAudioUrl).not.toBeNull();
@@ -569,7 +585,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[0],
       jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
-      undefined
+      undefined,
+      0
     );
     expect(player).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
@@ -644,7 +661,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[2],
       jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
-      undefined
+      undefined,
+      2
     );
     expect(component.fullPlanAudioUrl).not.toBeNull();
   });
@@ -736,6 +754,59 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(markup.text).toBe('Jonas, [short pause] tell me you did not hide this.');
   });
 
+  it('exposes the persisted merged audio URL from the workflow snapshot via facade signal', () => {
+    component.hydrateFromSnapshot({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'Mara: We go now.',
+      workflowStage: 'AUDIO_GENERATED',
+      speakers: [],
+      scriptTurns: [],
+      annotatedTurns: [],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      audioAssetsCurrent: true,
+      performanceNotesStale: false,
+      mergedAudioUrl: '/api/audiobooks/project-1/audio-assets/merged-1/stream'
+    });
+
+    expect((component as any).facade.mergedAudioUrl()).toBe('/api/audiobooks/project-1/audio-assets/merged-1/stream');
+  });
+
+  it('shows the generated preview player after page reload using the persisted merged audio URL', () => {
+    component.hydrateFromSnapshot({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'Mara: We go now.',
+      workflowStage: 'AUDIO_GENERATED',
+      speakers: [],
+      scriptTurns: [],
+      annotatedTurns: [],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      audioAssetsCurrent: true,
+      performanceNotesStale: false,
+      mergedAudioUrl: '/api/audiobooks/project-1/audio-assets/merged-1/stream'
+    });
+    fixture.detectChanges();
+
+    expect(component.fullPlanAudioUrl).toBe('/api/audiobooks/project-1/audio-assets/merged-1/stream');
+    const player = fixture.nativeElement.querySelector('.generated-audio-player') as HTMLElement | null;
+    expect(player).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
+    expect(fixture.nativeElement.textContent).toContain('Download MP3');
+  });
+
   function buttonByText(text: string, occurrence = 0): HTMLButtonElement {
     const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
     const button = buttons.filter((candidate) => candidate.textContent?.trim() === text)[occurrence];
@@ -776,6 +847,73 @@ describe('AudiobookStudioWorkspaceComponent', () => {
   function abortError(): DOMException {
     return new DOMException('Aborted', 'AbortError');
   }
+
+  // ── Voice picker ────────────────────────────────────────────────────────────
+
+  describe('voice picker', () => {
+    beforeEach(() => {
+      component.cast = [
+        { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'ZEPHYR' },
+        { speakerName: 'Jonas', roleDescription: 'The guide', voiceSuggestion: 'PUCK' },
+      ];
+      fixture.detectChanges();
+    });
+
+    it('opens the voice picker modal when Change voice is clicked', () => {
+      const changeBtn = fixture.nativeElement.querySelector('[data-testid="cast-change-voice-0"]');
+      expect(changeBtn).not.toBeNull();
+      changeBtn.click();
+      fixture.detectChanges();
+
+      expect(component.voicePickerOpenForIndex).toBe(0);
+      const modal = fixture.nativeElement.querySelector('[data-testid="voice-picker-modal"]');
+      expect(modal).not.toBeNull();
+    });
+
+    it('passes the correct speaker name to the modal', () => {
+      component.openVoicePicker(0);
+      fixture.detectChanges();
+
+      expect(component.voicePickerSpeakerName()).toBe('Mara');
+    });
+
+    it('passes the current voice id (lowercase) to the modal', () => {
+      component.openVoicePicker(0);
+      expect(component.voicePickerCurrentVoiceId()).toBe('zephyr');
+    });
+
+    it('updates voiceSuggestion when a voice is selected', fakeAsync(() => {
+      component.openVoicePicker(0);
+      fixture.detectChanges();
+
+      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
+      fixture.detectChanges();
+
+      expect(component.cast[0].voiceSuggestion).toBe('PUCK');
+    }));
+
+    it('shows the updated voice on the cast card immediately after selection', fakeAsync(() => {
+      component.openVoicePicker(0);
+      fixture.detectChanges();
+
+      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
+      fixture.detectChanges();
+
+      const voiceBadge = fixture.nativeElement.querySelector('.voice-badge');
+      expect(voiceBadge.textContent.trim()).toBe('PUCK');
+    }));
+
+    it('closes the voice picker when closeVoicePicker is called', () => {
+      component.openVoicePicker(0);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-testid="voice-picker-modal"]')).not.toBeNull();
+
+      component.closeVoicePicker();
+      fixture.detectChanges();
+      expect(component.voicePickerOpenForIndex).toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-testid="voice-picker-modal"]')).toBeNull();
+    });
+  });
 
   function prepareGeneratedPart(index: number, filename: string, body: string): void {
     const state = component.renderRequestAudioState(index);

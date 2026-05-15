@@ -63,6 +63,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -492,6 +493,29 @@ class AudiobookWorkflowControllerTest {
             .andReturn();
 
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void voiceCatalogReturnsAllEnumValues() throws Exception {
+        MvcResult result = mockMvc.perform(get("/api/audiobooks/workflow/voices"))
+            .andExpect(status().isOk())
+            .andExpect(content().json(readText("audiobook-workflow/voices/default/response.json")))
+            .andExpect(jsonPath("$.length()").value(SpeakerVoice.values().length))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void voiceCatalogItemHasCorrectAssetUrlConvention() throws Exception {
+        mockMvc.perform(get("/api/audiobooks/workflow/voices"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].id").value("zephyr"))
+            .andExpect(jsonPath("$[0].imageUrl").value("/assets/voices/zephyr/avatar.png"))
+            .andExpect(jsonPath("$[0].demoMp3Url").value("/assets/voices/zephyr/demo.mp3"))
+            .andExpect(jsonPath("$[0].providerVoiceName").value("Zephyr"))
+            .andExpect(jsonPath("$[0].displayName").value("Zephyr"))
+            .andExpect(jsonPath("$[0].description").isNotEmpty());
     }
 
     private static AudiobookWorkflowSnapshotResponse readWorkflowSnapshot(String relativePath) throws IOException {
