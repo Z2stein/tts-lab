@@ -1,9 +1,12 @@
 package com.example.ttslab.audiobooks.workflow;
 
 import com.example.ttslab.audiobooks.model.AudioAsset;
+import com.example.ttslab.audiobooks.model.AudioAssetStatus;
+import com.example.ttslab.audiobooks.model.AudioAssetType;
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.model.SpeakerCharacter;
+import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowProductionSettings;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowSnapshotResponse;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStage;
@@ -28,15 +31,18 @@ public class AudiobookWorkflowStateService {
     private final AudiobookRepository repository;
     private final AudiobookProjectRepository projectRepository;
     private final SpeakerCharacterRepository speakerCharacterRepository;
+    private final AudiobookLibraryService audiobookLibraryService;
 
     public AudiobookWorkflowStateService(
         AudiobookRepository repository,
         AudiobookProjectRepository projectRepository,
-        SpeakerCharacterRepository speakerCharacterRepository
+        SpeakerCharacterRepository speakerCharacterRepository,
+        AudiobookLibraryService audiobookLibraryService
     ) {
         this.repository = repository;
         this.projectRepository = projectRepository;
         this.speakerCharacterRepository = speakerCharacterRepository;
+        this.audiobookLibraryService = audiobookLibraryService;
     }
 
     public AudiobookWorkflowSnapshotResponse snapshot(CurrentUser user, String projectId) {
@@ -107,6 +113,7 @@ public class AudiobookWorkflowStateService {
         if (currentStage != AudiobookWorkflowStage.AUDIO_GENERATED || !project.isAudioAssetsCurrent()) {
             updateWorkflowState(project, AudiobookWorkflowStage.AUDIO_GENERATED, true);
         }
+        audiobookLibraryService.mergeAndPersistFullAudio(project);
         return snapshot(user, projectId);
     }
 
@@ -115,7 +122,15 @@ public class AudiobookWorkflowStateService {
         List<AudiobookSpeechSegment> previewSegments,
         List<SpeakerVoiceAnalysisItem> speakers
     ) {
-        List<AudioAssetResponse> audioAssets = repository.findAssets(project.getId()).stream().map(this::assetResponse).toList();
+        List<AudioAsset> allAssets = repository.findAssets(project.getId());
+        List<AudioAssetResponse> audioAssets = allAssets.stream()
+            .filter(a -> a.getType() != AudioAssetType.FULL_AUDIOBOOK)
+            .map(this::assetResponse).toList();
+        String mergedAudioUrl = allAssets.stream()
+            .filter(a -> a.getType() == AudioAssetType.FULL_AUDIOBOOK && a.getStatus() == AudioAssetStatus.READY)
+            .findFirst()
+            .map(a -> "/api/audiobooks/" + a.getProjectId() + "/audio-assets/" + a.getId() + "/stream")
+            .orElse(null);
         AudiobookWorkflowStage workflowStage = resolveWorkflowStage(project, previewSegments, speakers);
         boolean audioAssetsCurrent = project.isAudioAssetsCurrent() && !audioAssets.isEmpty();
         boolean performanceNotesStale = previewSegments.stream()
@@ -144,7 +159,8 @@ public class AudiobookWorkflowStateService {
             ),
             audioAssets,
             audioAssetsCurrent,
-            performanceNotesStale
+            performanceNotesStale,
+            mergedAudioUrl
         );
     }
 
@@ -249,6 +265,10 @@ public class AudiobookWorkflowStateService {
     }
 
     private AudioAssetResponse assetResponse(AudioAsset asset) {
+        String speakerName = null;
+        if (asset.getSegment() != null && asset.getSegment().getCharacter() != null) {
+            speakerName = asset.getSegment().getCharacter().getSpeakerName();
+        }
         return new AudioAssetResponse(
             asset.getId(),
             asset.getSpeechSegmentId(),
@@ -261,7 +281,8 @@ public class AudiobookWorkflowStateService {
             asset.getStatus(),
             asset.getCreatedAt(),
             "/api/audiobooks/" + asset.getProjectId() + "/audio-assets/" + asset.getId() + "/download",
-            "/api/audiobooks/" + asset.getProjectId() + "/audio-assets/" + asset.getId() + "/stream"
+            "/api/audiobooks/" + asset.getProjectId() + "/audio-assets/" + asset.getId() + "/stream",
+            speakerName
         );
     }
 }

@@ -36,6 +36,7 @@ export class AudiobookStudioFacade {
   private readonly _editingScriptTurnIndex = signal<number | null>(null);
   private readonly _scriptTurnEditDraft = signal<SpeakerSplitTurn | null>(null);
   private readonly _currentProjectId = signal<string | null>(null);
+  private readonly _mergedAudioUrl = signal<string | null>(null);
 
   readonly cast = this._cast.asReadonly();
   readonly scriptTurns = this._scriptTurns.asReadonly();
@@ -49,6 +50,7 @@ export class AudiobookStudioFacade {
   readonly castReviewed = this._castReviewed.asReadonly();
   readonly scriptApproved = this._scriptApproved.asReadonly();
   readonly performanceNotesStale = this._performanceNotesStale.asReadonly();
+  readonly mergedAudioUrl = this._mergedAudioUrl.asReadonly();
   readonly performanceReady = computed(() => {
     const workflowStage = this._workflowStage();
     if (workflowStage !== null) {
@@ -315,6 +317,7 @@ export class AudiobookStudioFacade {
     this._castReviewed.set(false);
     this._scriptApproved.set(false);
     this._performanceNotesStale.set(false);
+    this._mergedAudioUrl.set(null);
     this._error.set(null);
     this._currentProjectId.set(null);
     this.cancelCastEdit();
@@ -351,6 +354,7 @@ export class AudiobookStudioFacade {
     this._castReviewed.set(stage !== 'CAST_REVIEW');
     this._scriptApproved.set(stage === 'SCRIPT_APPROVED' || stage === 'PERFORMANCE_READY' || stage === 'AUDIO_GENERATED');
     this._performanceNotesStale.set(snapshot.performanceNotesStale);
+    this._mergedAudioUrl.set(snapshot.mergedAudioUrl ?? null);
     this._error.set(null);
     this._loadingAction.set(null);
   }

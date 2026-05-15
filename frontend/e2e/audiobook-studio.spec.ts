@@ -465,5 +465,25 @@ test('audiobook studio shows saved audio setup and previously generated audio af
   await expect(audioSection.locator('details.audio-parts-details summary')).toContainText('Previously generated audio');
 });
 
+test('audiobook studio shows the waveform player after page reload when mergedAudioUrl is present in the snapshot', async ({ context, page }) => {
+  await authenticate(context, page);
+
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}`, async (route) => {
+    const snapshot = await loadWorkflowSnapshotFixture('audio-generated');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(snapshot)
+    });
+  });
+
+  await page.goto(`/audiobook-studio/${testProjectId}`);
+
+  const audioSection = page.getByTestId('audio-section');
+  await expect(audioSection.locator('.generated-audio-player')).toBeVisible();
+  await expect(audioSection.getByText('Audiobook preview')).toBeVisible();
+  await expect(audioSection.getByRole('button', { name: 'Download MP3' })).toBeVisible();
+});
+
 
 

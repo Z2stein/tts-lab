@@ -14,11 +14,13 @@ import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderRequest;
 import com.example.ttslab.storage.FileStorageService;
 import com.example.ttslab.storage.StorageKeyBuilder;
 import com.example.ttslab.storage.StoredFile;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -185,6 +187,70 @@ public class AudiobookLibraryService {
     public AudiobookProject getProjectForUser(String projectId, CurrentUser user) {
         return repository.findProjectForUser(projectId, user.id())
             .orElseThrow(() -> new ApiException(HttpStatus.NOT_FOUND, "AUDIOBOOK_NOT_FOUND", "The audiobook project was not found."));
+    }
+
+    @Transactional
+    public AudioAsset mergeAndPersistFullAudio(AudiobookProject project) {
+        List<AudioAsset> segmentAssets = assetRepository.findByProjectIdAndTypeAndStatusOrderBySegment(
+            project.getId(), AudioAssetType.PREVIEW_MP3, AudioAssetStatus.READY
+        );
+        if (segmentAssets.isEmpty()) {
+            return null;
+        }
+
+        // Deduplicate: keep the first (most recent) asset per segment when multiple exist
+        List<AudioAsset> uniqueSegmentAssets = new ArrayList<>();
+        String lastSegmentId = null;
+        for (AudioAsset asset : segmentAssets) {
+            String segmentId = asset.getSpeechSegmentId();
+            if (!Objects.equals(segmentId, lastSegmentId)) {
+                uniqueSegmentAssets.add(asset);
+                lastSegmentId = segmentId;
+            }
+        }
+
+        ByteArrayOutputStream merged = new ByteArrayOutputStream();
+        for (AudioAsset asset : uniqueSegmentAssets) {
+            try {
+                StoredFile stored = fileStorageService.get(asset.getStorageKey(), asset.getContentType(), asset.getSizeBytes());
+                merged.writeBytes(stored.content().readAllBytes());
+                stored.content().close();
+            } catch (IOException ex) {
+                throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_MERGE_FAILED", "Failed to read audio segment for merging.", null, ex);
+            }
+        }
+
+        byte[] mergedBytes = merged.toByteArray();
+        String storageKey = storageKeyBuilder.projectAsset(project.getUserId(), project.getId(), AudioAssetType.FULL_AUDIOBOOK, 1, "mp3");
+
+        try {
+            fileStorageService.put(storageKey, mergedBytes, "audio/mpeg");
+        } catch (IOException ex) {
+            throw new ApiException(HttpStatus.INTERNAL_SERVER_ERROR, "AUDIO_MERGE_WRITE_FAILED", "Failed to save merged audio.", null, ex);
+        }
+
+        List<AudioAsset> existingFullAudio = assetRepository.findByProjectId(project.getId()).stream()
+            .filter(a -> a.getType() == AudioAssetType.FULL_AUDIOBOOK)
+            .toList();
+
+        Instant now = Instant.now();
+        AudioAsset fullAudioAsset = existingFullAudio.isEmpty()
+            ? new AudioAsset(UUID.randomUUID().toString(), project, null, AudioAssetType.FULL_AUDIOBOOK, 1, storageKey, "audiobook-preview-merged.mp3", "audio/mpeg", mergedBytes.length, null, AudioAssetStatus.READY, now)
+            : existingFullAudio.getFirst();
+
+        fullAudioAsset.setProject(project);
+        fullAudioAsset.setSegment(null);
+        fullAudioAsset.setType(AudioAssetType.FULL_AUDIOBOOK);
+        fullAudioAsset.setVersion(1);
+        fullAudioAsset.setStorageKey(storageKey);
+        fullAudioAsset.setFilename("audiobook-preview-merged.mp3");
+        fullAudioAsset.setContentType("audio/mpeg");
+        fullAudioAsset.setSizeBytes(mergedBytes.length);
+        fullAudioAsset.setDurationSeconds(null);
+        fullAudioAsset.setStatus(AudioAssetStatus.READY);
+        fullAudioAsset.setCreatedAt(now);
+
+        return assetRepository.save(fullAudioAsset);
     }
 
     @Transactional
@@ -517,6 +583,10 @@ public class AudiobookLibraryService {
     }
 
     private AudioAssetResponse assetResponse(AudioAsset asset) {
+        String speakerName = null;
+        if (asset.getSegment() != null && asset.getSegment().getCharacter() != null) {
+            speakerName = asset.getSegment().getCharacter().getSpeakerName();
+        }
         return new AudioAssetResponse(
             asset.getId(),
             asset.getSpeechSegmentId(),
@@ -529,7 +599,8 @@ public class AudiobookLibraryService {
             asset.getStatus(),
             asset.getCreatedAt(),
             "/api/audiobooks/" + asset.getProjectId() + "/audio-assets/" + asset.getId() + "/download",
-            "/api/audiobooks/" + asset.getProjectId() + "/audio-assets/" + asset.getId() + "/stream"
+            "/api/audiobooks/" + asset.getProjectId() + "/audio-assets/" + asset.getId() + "/stream",
+            speakerName
         );
     }
 }

@@ -17,6 +17,7 @@ public record AudioAssetResponse(
     AudioAssetStatus status,
     Instant createdAt,
     String downloadUrl,
-    String streamUrl
+    String streamUrl,
+    String speakerName
 ) {
 }

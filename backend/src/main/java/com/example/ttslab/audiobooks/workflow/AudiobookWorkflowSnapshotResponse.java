@@ -15,6 +15,7 @@ public record AudiobookWorkflowSnapshotResponse(
     AudiobookWorkflowProductionSettings productionSettings,
     List<AudioAssetResponse> audioAssets,
     boolean audioAssetsCurrent,
-    boolean performanceNotesStale
+    boolean performanceNotesStale,
+    String mergedAudioUrl
 ) {
 }
