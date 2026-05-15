@@ -26,6 +26,7 @@ export interface JourneyStep {
   title: string;
   description: string;
   sectionId: string;
+  stepIcon: string;
 }
 
 export type WorkflowStepKey = 'story' | 'cast' | 'script' | 'performance' | 'audio';

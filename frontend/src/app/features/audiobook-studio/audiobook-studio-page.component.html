@@ -240,12 +240,11 @@
         <summary>Previously generated audio ({{ audioAssets.length }})</summary>
         <p class="saved-audio-hint">Generate a new production plan to re-generate or download individual parts.</p>
         <div class="render-list">
-          <article *ngFor="let asset of audioAssets; let i = index" class="render-request" [ngStyle]="speakerStyle(asset.speakerName ?? undefined)">
+          <article *ngFor="let asset of audioAssets; let i = index" class="render-request">
             <div class="render-identity">
-              <span class="cast-avatar part-avatar" aria-hidden="true">{{ speakerInitials(asset.speakerName ?? 'Unknown') }}</span>
               <div>
                 <span class="badge">Part {{ i + 1 }} of {{ audioAssets.length }}</span>
-                <h3>{{ asset.speakerName ?? 'Unknown speaker' }}</h3>
+                <h3>{{ asset.filename }}</h3>
               </div>
             </div>
             <app-waveform-player
