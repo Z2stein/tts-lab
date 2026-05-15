@@ -17,10 +17,12 @@ import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import com.example.ttslab.audiobooks.model.AudioAsset;
 import com.example.ttslab.audiobooks.model.AudioAssetStatus;
+import com.example.ttslab.audiobooks.model.SpeakerCharacter;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookSpeechSegmentRepository;
 import com.example.ttslab.audiobooks.repository.AudioAssetRepository;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
@@ -131,6 +133,15 @@ class CreateAudioIntegrationTest {
         project.setProductionModelName("google.generativeai-1.5-flash");
         project = audiobookProjectRepository.save(project);
 
+        SpeakerCharacter narratorCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            project.getId(),
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
         AudiobookSpeechSegment segment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             project,
@@ -140,13 +151,9 @@ class CreateAudioIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            null,
-            null,
             "Hello",
-            "Hello",
-            null
+            null,
+            narratorCharacter
         );
         segment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         segment = audiobookSpeechSegmentRepository.save(segment);
@@ -177,7 +184,7 @@ class CreateAudioIntegrationTest {
         List<AudiobookSpeechSegment> segments = audiobookSpeechSegmentRepository.findByProjectId(project.getId());
         assertThat(segments).hasSize(1);
         assertThat(segments.getFirst().getSegmentOrigin()).isEqualTo(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
-        assertThat(segments.getFirst().getSpeakerName()).isEqualTo("Narrator");
+        assertThat(segments.getFirst().getCharacter().getSpeakerName()).isEqualTo("Narrator");
         assertThat(segments.getFirst().getOriginalText()).isEqualTo("Hello");
         assertThat(assets.getFirst().getSpeechSegmentId()).isEqualTo(segments.getFirst().getId());
         assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(project.getId(), AudiobookSpeechSegmentOrigin.GENERATED_AUDIO))
@@ -214,6 +221,15 @@ class CreateAudioIntegrationTest {
         existingProject.setAudioAssetsCurrent(true);
         audiobookProjectRepository.save(existingProject);
 
+        SpeakerCharacter existingNarratorCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            existingProject.getId(),
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
         AudiobookSpeechSegment existingSegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -223,13 +239,9 @@ class CreateAudioIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            "Kore",
-            null,
             "Hello",
-            "Hello",
-            null
+            null,
+            existingNarratorCharacter
         );
         existingSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         existingSegment = audiobookSpeechSegmentRepository.save(existingSegment);
@@ -317,6 +329,15 @@ class CreateAudioIntegrationTest {
             "eleven", "twelve", "thirteen", "fourteen", "fifteen"
         ));
 
+        SpeakerCharacter firstPartCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            existingProject.getId(),
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
         AudiobookSpeechSegment firstSegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -326,17 +347,22 @@ class CreateAudioIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            "Kore",
-            null,
             firstPartText,
             null,
-            null
+            firstPartCharacter
         );
         firstSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         firstSegment = audiobookSpeechSegmentRepository.save(firstSegment);
 
+        SpeakerCharacter secondPartCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            existingProject.getId(),
+            1,
+            "Mara",
+            null,
+            SpeakerVoice.IAPETUS,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
         AudiobookSpeechSegment secondSegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -346,13 +372,9 @@ class CreateAudioIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Mara",
-            null,
-            "Iapetus",
-            null,
             secondPartText,
             null,
-            null
+            secondPartCharacter
         );
         secondSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         secondSegment = audiobookSpeechSegmentRepository.save(secondSegment);
@@ -398,6 +420,15 @@ class CreateAudioIntegrationTest {
         existingProject.setAudioAssetsCurrent(false);
         audiobookProjectRepository.save(existingProject);
 
+        SpeakerCharacter mismatchFirstCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            existingProject.getId(),
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
         AudiobookSpeechSegment firstSegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -407,17 +438,22 @@ class CreateAudioIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            "Kore",
-            null,
             "First part.",
             null,
-            null
+            mismatchFirstCharacter
         );
         firstSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         audiobookSpeechSegmentRepository.save(firstSegment);
 
+        SpeakerCharacter mismatchSecondCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            existingProject.getId(),
+            1,
+            "Mara",
+            null,
+            SpeakerVoice.IAPETUS,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
         AudiobookSpeechSegment secondSegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -427,13 +463,9 @@ class CreateAudioIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Mara",
-            null,
-            "Iapetus",
-            null,
             "Second part.",
             null,
-            null
+            mismatchSecondCharacter
         );
         secondSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         audiobookSpeechSegmentRepository.save(secondSegment);
@@ -470,6 +502,15 @@ class CreateAudioIntegrationTest {
         existingProject.setAudioAssetsCurrent(false);
         audiobookProjectRepository.save(existingProject);
 
+        SpeakerCharacter onlySegmentCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            existingProject.getId(),
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
         AudiobookSpeechSegment onlySegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -479,13 +520,9 @@ class CreateAudioIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            "Kore",
-            null,
             "First part.",
             null,
-            null
+            onlySegmentCharacter
         );
         onlySegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         audiobookSpeechSegmentRepository.save(onlySegment);
@@ -595,6 +632,16 @@ class CreateAudioIntegrationTest {
         existingProject.setAudioAssetsCurrent(false);
         audiobookProjectRepository.save(existingProject);
 
+        SpeakerCharacter finalizeFirstCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            existingProject.getId(),
+            0,
+            "Narrator",
+            "The primary voice guiding the listener through the story",
+            SpeakerVoice.KORE,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
+        speakerCharacterRepository.save(finalizeFirstCharacter);
         AudiobookSpeechSegment firstSegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -604,17 +651,23 @@ class CreateAudioIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            "Kore",
-            null,
             "First part.",
             null,
-            null
+            finalizeFirstCharacter
         );
         firstSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         firstSegment = audiobookSpeechSegmentRepository.save(firstSegment);
 
+        SpeakerCharacter finalizeSecondCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            existingProject.getId(),
+            1,
+            "Mara",
+            "A secondary character with distinct personality and voice",
+            SpeakerVoice.IAPETUS,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
+        speakerCharacterRepository.save(finalizeSecondCharacter);
         AudiobookSpeechSegment secondSegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -624,13 +677,9 @@ class CreateAudioIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Mara",
-            null,
-            "Iapetus",
-            null,
             "Second part.",
             null,
-            null
+            finalizeSecondCharacter
         );
         secondSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         secondSegment = audiobookSpeechSegmentRepository.save(secondSegment);
@@ -670,6 +719,7 @@ class CreateAudioIntegrationTest {
             .andExpect(jsonPath("$.workflowStage").value("AUDIO_GENERATED"))
             .andExpect(jsonPath("$.audioAssetsCurrent").value(true))
             .andReturn();
+
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
 
         AudiobookProject afterFinalize = audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow();
