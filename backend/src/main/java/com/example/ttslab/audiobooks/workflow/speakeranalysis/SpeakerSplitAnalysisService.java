@@ -63,10 +63,12 @@ public class SpeakerSplitAnalysisService {
 
         try {
             String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerSplitPrompt(rawDialogue, speakers == null ? List.of() : speakers), null)).answer();
-            return new SpeakerSplitAnalysisResponse(parseProviderAnswer(answer));
-        } catch (ApiException ex) {
-            throw ex;
+            List<SpeakerSplitTurn> turns = parseProviderAnswer(answer);
+            return new SpeakerSplitAnalysisResponse(turns);
         } catch (Exception ex) {
+            if (ex instanceof ApiException) {
+                throw (ApiException) ex;
+            }
             throw new ApiException(
                 HttpStatus.BAD_GATEWAY,
                 "AUDIOBOOK_WORKFLOW_PROVIDER_FAILED",

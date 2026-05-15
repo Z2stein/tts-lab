@@ -128,7 +128,9 @@ class AudiobookWorkflowServiceTest {
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("not-json", "c-1"));
         AudiobookWorkflowService service = createService(chatService, "gemini");
 
-        ApiException exception = assertThrows(ApiException.class, () -> service.split("A: Hello", List.of()));
+        ApiException exception = assertThrows(ApiException.class, () -> service.split("A: Hello", List.of(
+            new SpeakerVoiceAnalysisItem("A", "Speaker A", SpeakerVoice.FENRIR)
+        )));
 
         assertEquals("AUDIOBOOK_WORKFLOW_PROVIDER_RESPONSE_INVALID", exception.code());
         assertEquals(502, exception.status().value());

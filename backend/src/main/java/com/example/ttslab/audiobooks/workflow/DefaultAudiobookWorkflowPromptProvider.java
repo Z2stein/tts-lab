@@ -113,10 +113,10 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
         }
         return """
                 Split this prose/dialogue text into ordered audiobook workflow turns.
-                
+
                 Return only JSON with this shape:
                 {"turns":[{"speaker":"...","text":"..."}]}
-                
+
                 Critical preservation rules:
                 - Preserve ALL original wording.
                 - Do not summarize.
@@ -128,12 +128,12 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                   Example: Mara folded the letter twice, then unfolded it again.
                 - If one paragraph contains narration and speech, split it in reading order.
                 - Use ONLY the speakers in the provided list. Do not introduce speakers that are not in the list.
-                
+
                 speaker cannot contain whitespace or non-alphanumeric characters.
-                
+
                 Speakers:
                 %s
-                
+
                 Text:
                 %s
                 """.formatted(toJson(speakers), rawDialogue);
