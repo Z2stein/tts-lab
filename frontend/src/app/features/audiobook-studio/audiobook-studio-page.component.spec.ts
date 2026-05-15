@@ -1,4 +1,4 @@
-import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks } from '@angular/core/testing';
+import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks, discardPeriodicTasks, flush } from '@angular/core/testing';
 import { AudiobookStudioWorkspaceComponent, formatSpeakerDisplayName } from './audiobook-studio-page.component';
 import { AudiobookApiService } from '../audiobook-shared/service/audiobook-api.service';
 import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
@@ -118,8 +118,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
 
     expect(audiobookWorkflowService.analyzeSpeakers).toHaveBeenCalledWith('Mara: We go now.');
     expect(fixture.nativeElement.textContent).toContain('Mara');
-    expect(fixture.nativeElement.textContent).toContain('Detected character');
-    expect(fixture.nativeElement.textContent).toContain('Warm alto voice');
+    expect(fixture.nativeElement.textContent).toContain('Dialogue speaker');
+    expect(fixture.nativeElement.textContent).toContain('WARM ALTO VOICE');
     expect(fixture.nativeElement.textContent).toContain('Cast needs review');
     expect(fixture.nativeElement.textContent).toContain('The Hidden Signal');
   });
@@ -170,7 +170,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     ];
     fixture.detectChanges();
 
-    clickButton('Edit');
+    getByTestId('cast-edit-0').click();
     fixture.detectChanges();
 
     setInputValue('#cast-speaker-name-0', 'Captain Mara');
@@ -218,7 +218,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       performanceNotesStale: false
     } as never);
 
-    clickButton('Edit');
+    getByTestId('cast-edit-0').click();
     fixture.detectChanges();
     setInputValue('#cast-speaker-name-0', 'Station Keeper');
     setInputValue('#cast-role-description-0', 'Caretaker of the midnight platform');
@@ -346,7 +346,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     (component as any).facade.setCurrentProjectId('project-1');
     fixture.detectChanges();
 
-    clickButton('Edit', 1);
+    getByTestId('script-turn-edit-0').click();
     fixture.detectChanges();
     setInputValue('#script-text-0', 'We go at sunrise.');
     clickButton('Save');
@@ -890,6 +890,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       fixture.detectChanges();
 
       expect(component.cast[0].voiceSuggestion).toBe('PUCK');
+      flush();
     }));
 
     it('shows the updated voice on the cast card immediately after selection', fakeAsync(() => {
@@ -899,8 +900,9 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
       fixture.detectChanges();
 
-      const voiceBadge = fixture.nativeElement.querySelector('.voice-badge');
+      const voiceBadge = fixture.nativeElement.querySelector('.voice-name-display');
       expect(voiceBadge.textContent.trim()).toBe('PUCK');
+      flush();
     }));
 
     it('closes the voice picker when closeVoicePicker is called', () => {

@@ -20,3 +20,7 @@ export function speakerInitials(speakerName: string): string {
 export function normalizedSpeakerKey(value: string): string {
   return formatSpeakerDisplayName(value).toLowerCase();
 }
+
+export function normalizeVoiceAssetName(voiceName: string): string {
+  return (voiceName ?? '').trim().toLowerCase();
+}

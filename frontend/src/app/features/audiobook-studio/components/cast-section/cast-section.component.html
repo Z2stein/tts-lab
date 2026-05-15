@@ -16,12 +16,10 @@
     [accentClass]="accentClass(i)"
     [editing]="editingCastIndex === i"
     [editDraft]="editingCastIndex === i ? castEditDraft : null"
-    [isVoiceSamplePlaying]="isVoiceSamplePlaying(speaker.speakerName)"
     [speakerStyleFn]="speakerStyleFn"
     (startEdit)="startCastEdit.emit(i)"
     (saveEdit)="saveCastEdit.emit(i)"
     (cancelEdit)="cancelCastEdit.emit()"
-    (playVoiceSample)="playVoiceSample.emit(speaker.speakerName)"
     (changeVoice)="changeVoice.emit(i)"
   ></app-cast-card>
 </div>

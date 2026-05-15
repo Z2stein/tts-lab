@@ -18,9 +18,14 @@ export const WAVEFORM_VISUAL_OPTIONS = {
 export class WaveSurferService {
   private instances = new Map<string, WaveSurfer>();
 
-  create(key: string, container: HTMLElement, url: string): WaveSurfer {
+  create(
+    key: string,
+    container: HTMLElement,
+    url: string,
+    colorOverrides?: { progressColor?: string; cursorColor?: string; height?: number },
+  ): WaveSurfer {
     container.innerHTML = '';
-    const ws = WaveSurfer.create({ ...WAVEFORM_VISUAL_OPTIONS, container, url });
+    const ws = WaveSurfer.create({ ...WAVEFORM_VISUAL_OPTIONS, ...colorOverrides, container, url });
     this.instances.set(key, ws);
     return ws;
   }

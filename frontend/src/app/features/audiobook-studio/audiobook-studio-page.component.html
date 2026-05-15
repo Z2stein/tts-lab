@@ -49,12 +49,10 @@
       [editingCastIndex]="editingCastIndex"
       [castEditDraft]="castEditDraft"
       [loadingAction]="loadingAction"
-      [activeSampleKey]="activeSampleKey"
       [speakerStyleFn]="speakerStyleFn"
       (startCastEdit)="startCastEdit($event)"
       (saveCastEdit)="saveCastEdit($event)"
       (cancelCastEdit)="cancelCastEdit()"
-      (playVoiceSample)="playVoiceSample($event)"
       (createScriptPreview)="createScriptPreviewAndScroll()"
       (changeVoice)="openVoicePicker($event)"
     ></app-cast-section>

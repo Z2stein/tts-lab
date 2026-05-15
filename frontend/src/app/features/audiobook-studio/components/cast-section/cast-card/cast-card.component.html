@@ -4,39 +4,90 @@
   [ngStyle]="speakerStyleFn(speaker.speakerName)"
 >
   <ng-container *ngIf="!editing; else castEditForm">
-    <div class="voice-card-media">
-      <span class="cast-avatar" aria-hidden="true">{{ initials(speaker.speakerName) }}</span>
-      <button type="button" class="preview-voice-button" [class.is-playing]="isVoiceSamplePlaying" (click)="playVoiceSample.emit()">
-        <span class="play-icon" aria-hidden="true"></span>
-        {{ isVoiceSamplePlaying ? 'Pause voice' : 'Preview voice' }}
-      </button>
+
+    <!-- Voice avatar -->
+    <div class="cast-card-avatar">
+      <img
+        [src]="voiceAvatarPath || ''"
+        [alt]="'Avatar for voice ' + (speaker.voiceSuggestion | uppercase)"
+        class="voice-avatar-img"
+        [hidden]="!voiceAvatarPath || avatarError"
+        (error)="onAvatarError()"
+      />
+      <span
+        class="cast-avatar"
+        aria-hidden="true"
+        [hidden]="voiceAvatarPath && !avatarError"
+      >{{ initials(speaker.speakerName) }}</span>
     </div>
-    <div class="card-topline">
-      <span class="badge">Detected character</span>
+
+    <!-- Character info -->
+    <div class="cast-card-info">
+      <div class="cast-card-nameline">
+        <h3>{{ displayName(speaker.speakerName) }}</h3>
+        <span class="badge">{{ roleBadgeLabel }}</span>
+      </div>
+      <p class="cast-role-subtitle">Detected {{ roleBadgeLabel | lowercase }}</p>
+      <p class="cast-role-description">{{ speaker.roleDescription }}</p>
+    </div>
+
+    <!-- Voice section -->
+    <div class="cast-card-voice">
       <button
         type="button"
-        class="text-button"
+        class="cast-menu-btn"
         (click)="startEdit.emit()"
         [attr.data-testid]="'cast-edit-' + index"
         [attr.aria-label]="'Edit cast card for ' + displayName(speaker.speakerName)"
+        title="Edit"
       >
-        Edit
+        <span class="menu-dots" aria-hidden="true">⋮</span>
       </button>
-    </div>
-    <div class="cast-content">
-      <h3>{{ displayName(speaker.speakerName) }}</h3>
-      <p>{{ speaker.roleDescription }}</p>
-      <div class="flex items-center gap-2 mt-1">
-        <strong class="voice-badge">{{ speaker.voiceSuggestion }}</strong>
+
+      <span class="voice-section-label">Voice</span>
+      <strong
+        class="voice-name-display"
+        [class.no-voice]="!hasVoice"
+      >
+        {{ hasVoice ? (speaker.voiceSuggestion | uppercase) : 'No voice selected yet' }}
+      </strong>
+
+      <app-waveform-player
+        *ngIf="hasVoice"
+        class="cast-waveform-player"
+        [key]="voiceDemoKey"
+        [src]="voiceDemoPath"
+        [playing]="isPlaying"
+        [progressColor]="accentColor"
+        [waveHeight]="40"
+        [showPlayButton]="false"
+        [showTime]="false"
+        [ariaLabel]="'voice demo for ' + displayName(speaker.speakerName)"
+        (playingChange)="onPlayingChange($event)"
+      ></app-waveform-player>
+
+      <div class="voice-actions">
         <button
           type="button"
-          class="text-button text-xs"
+          class="preview-voice-button"
+          [class.is-playing]="isPlaying"
+          [disabled]="!hasVoice"
+          (click)="togglePreview()"
+          [attr.aria-label]="'Preview voice ' + (speaker.voiceSuggestion | uppercase) + ' for ' + displayName(speaker.speakerName)"
+        >
+          <span class="play-icon" aria-hidden="true"></span>
+          {{ isPlaying ? 'Pause' : 'Preview' }}
+        </button>
+        <button
+          type="button"
+          class="change-voice-button"
           (click)="changeVoice.emit()"
           [attr.data-testid]="'cast-change-voice-' + index"
           [attr.aria-label]="'Change voice for ' + displayName(speaker.speakerName)"
         >Change voice</button>
       </div>
     </div>
+
   </ng-container>
 
   <ng-template #castEditForm>
