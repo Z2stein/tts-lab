@@ -278,11 +278,11 @@ h1 span {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
-  gap: 0.7rem;
+  gap: 0.9rem;
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 0.8rem;
   background: rgba(255, 255, 255, 0.045);
-  padding: 0.55rem;
+  padding: 0.65rem 0.8rem;
 }
 
 .hero-cast-row {
@@ -307,6 +307,29 @@ h1 span {
 .hero-avatar {
   background: radial-gradient(circle at 35% 20%, var(--speaker-accent, #f0ad5d), rgba(255, 255, 255, 0.1) 42%, rgba(12, 14, 25, 0.96) 100%);
   box-shadow: 0 0 24px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.34));
+}
+
+.hero-avatar-container {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 0 24px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.34));
+}
+
+.hero-avatar-image {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.cast-info {
+  display: grid;
+  gap: 0.15rem;
 }
 
 .hero-cast-row strong,

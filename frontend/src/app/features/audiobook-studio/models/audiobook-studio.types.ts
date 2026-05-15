@@ -19,6 +19,7 @@ export interface HeroCastMember {
   name: string;
   tone: string;
   initials: string;
+  imageUrl?: string;
 }
 
 export interface JourneyStep {

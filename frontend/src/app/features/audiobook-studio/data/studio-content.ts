@@ -3,10 +3,10 @@ import { HeroCastMember, JourneyStep, SpeakerAccent } from '../models/audiobook-
 export const BENEFIT_CHIPS: readonly string[] = ['Multi-speaker', 'Speech segment detection', 'Voice previews', 'Export MP3'];
 
 export const HERO_CAST: readonly HeroCastMember[] = [
-  { name: 'Narrator', tone: 'warm calm', initials: 'N' },
-  { name: 'Mara', tone: 'young tense', initials: 'M' },
-  { name: 'Jonas', tone: 'soft nervous', initials: 'J' },
-  { name: 'Station Keeper', tone: 'old gravelly', initials: 'SK' }
+  { name: 'Narrator', tone: 'warm calm', initials: 'N', imageUrl: '/assets/voices/zephyr/avatar.png' },
+  { name: 'Mara', tone: 'young tense', initials: 'M', imageUrl: '/assets/voices/puck/avatar.png' },
+  { name: 'Jonas', tone: 'soft nervous', initials: 'J', imageUrl: '/assets/voices/charon/avatar.png' },
+  { name: 'Station Keeper', tone: 'old gravelly', initials: 'SK', imageUrl: '/assets/voices/kore/avatar.png' }
 ];
 
 export const JOURNEY_STEPS: readonly JourneyStep[] = [
