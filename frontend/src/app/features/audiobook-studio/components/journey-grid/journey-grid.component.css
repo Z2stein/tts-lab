@@ -8,7 +8,7 @@
 }
 
 .journey-grid {
-  @apply grid grid-cols-4 gap-4;
+  @apply grid grid-cols-5 gap-4;
 }
 
 .journey-card {
@@ -17,6 +17,15 @@
   background: linear-gradient(145deg, rgba(24, 28, 46, 0.76), rgba(12, 14, 25, 0.76));
   box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.06);
   backdrop-filter: blur(18px);
+}
+
+.journey-icon-container {
+  @apply flex items-center justify-center;
+  background: rgba(12, 14, 25, 0.8);
+  border-radius: 0.85rem;
+  margin: -1.1rem -1.1rem 0.5rem -1.1rem;
+  padding: 0.5rem 1.1rem;
+  min-height: 4rem;
 }
 
 .helper-jump {
@@ -30,10 +39,28 @@
   box-shadow: 0 20px 70px rgba(240, 173, 93, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
-.journey-icon {
-  @apply inline-flex h-[2.7rem] w-[2.7rem] items-center justify-center rounded-[0.7rem] font-black text-[#ffd591];
-  border: 1px solid rgba(240, 173, 93, 0.34);
-  background: rgba(240, 173, 93, 0.1);
+.journey-step-icon {
+  @apply inline-flex items-center justify-center w-[2.2rem] h-[2.2rem];
+  color: #ffd591;
+  filter: drop-shadow(0 0 8px rgba(255, 213, 145, 0.6)) drop-shadow(0 0 12px rgba(240, 173, 93, 0.4));
+  animation: icon-shimmer 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+.journey-step-icon svg {
+  @apply w-[1.2rem] h-[1.2rem];
+  vertical-align: middle;
+  margin: 0;
+  padding: 0;
+}
+
+@keyframes icon-shimmer {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(255, 213, 145, 0.6)) drop-shadow(0 0 12px rgba(240, 173, 93, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 12px rgba(255, 213, 145, 0.8)) drop-shadow(0 0 18px rgba(240, 173, 93, 0.6));
+  }
 }
 
 .journey-card h3 {

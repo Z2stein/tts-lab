@@ -14,31 +14,36 @@ export const JOURNEY_STEPS: readonly JourneyStep[] = [
     icon: '01',
     title: 'Add story',
     description: 'Paste your text. We\'ll keep the original wording and structure it for audio.',
-    sectionId: 'story-section'
+    sectionId: 'story-section',
+    stepIcon: '📝'
   },
   {
     icon: '02',
     title: 'Choose voices',
     description: 'We found the speakers in your story. Preview each voice or change it.',
-    sectionId: 'cast-section'
+    sectionId: 'cast-section',
+    stepIcon: '🎤'
   },
   {
     icon: '03',
     title: 'Review script',
     description: 'Check that each line is assigned to the correct speaker.',
-    sectionId: 'script-section'
+    sectionId: 'script-section',
+    stepIcon: '✓'
   },
   {
     icon: '04',
     title: 'Add emotion & pacing',
     description: 'Fine-tune how each line should be spoken, for example calm, urgent, or whispered.',
-    sectionId: 'performance-section'
+    sectionId: 'performance-section',
+    stepIcon: '🎵'
   },
   {
     icon: '05',
     title: 'Generate audiobook',
     description: 'Create a preview. You can still go back and edit before downloading.',
-    sectionId: 'audio-section'
+    sectionId: 'audio-section',
+    stepIcon: '▶'
   }
 ];
 
