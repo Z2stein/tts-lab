@@ -305,8 +305,8 @@ jobs:
               --set-string postgresql.auth.password="$POSTGRES_PASSWORD" \
               --set chat.geminiSecretName="gemini-api" \
               --set chat.provider="$CHAT_PROVIDER" \
-              --set ttsWorkbench.googleCredentialsSecretName="$TTS_GOOGLE_CREDENTIALS_SECRET_NAME" \
-              --set ttsWorkbench.googleCredentialsChecksum="$TTS_GOOGLE_CREDENTIALS_CHECKSUM" \
+              --set audiobookWorkflow.googleCredentialsSecretName="$TTS_GOOGLE_CREDENTIALS_SECRET_NAME" \
+              --set audiobookWorkflow.googleCredentialsChecksum="$TTS_GOOGLE_CREDENTIALS_CHECKSUM" \
               --set chat.realProviderOnFeatureBranches="$([ "$CHAT_PROVIDER" = "gemini" ] && echo true || echo false)"
 
             BACKEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-backend"

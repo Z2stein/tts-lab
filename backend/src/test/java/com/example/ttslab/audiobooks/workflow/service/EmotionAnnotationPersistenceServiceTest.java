@@ -42,6 +42,7 @@ class EmotionAnnotationPersistenceServiceTest {
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z")
         );
+        SpeakerCharacter character1 = new SpeakerCharacter("character-1", "project-1", 0, "Narrator", null, null, Instant.parse("2026-05-12T10:00:00Z"));
         AudiobookSpeechSegment first = new AudiobookSpeechSegment(
             "segment-1",
             project,
@@ -51,15 +52,12 @@ class EmotionAnnotationPersistenceServiceTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            null,
-            null,
             "Hello",
             null,
-            null
+            character1
         );
         first.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        SpeakerCharacter character2 = new SpeakerCharacter("character-2", "project-1", 1, "Mara", "Lead", SpeakerVoice.ACHIRD, Instant.parse("2026-05-12T10:00:00Z"));
         AudiobookSpeechSegment second = new AudiobookSpeechSegment(
             "segment-2",
             project,
@@ -69,13 +67,9 @@ class EmotionAnnotationPersistenceServiceTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            null,
-            null,
-            null,
-            null,
             "Hi",
             null,
-            "character-2"
+            character2
         );
         second.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
 
@@ -111,6 +105,7 @@ class EmotionAnnotationPersistenceServiceTest {
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z")
         );
+        SpeakerCharacter firstChar = new SpeakerCharacter("character-1", "project-1", 0, "Segment1Speaker", null, null, Instant.parse("2026-05-12T10:00:00Z"));
         AudiobookSpeechSegment first = new AudiobookSpeechSegment(
             "segment-1",
             project,
@@ -120,15 +115,12 @@ class EmotionAnnotationPersistenceServiceTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            null,
-            null,
-            null,
-            null,
             "Hello",
             null,
-            null
+            firstChar
         );
         first.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        SpeakerCharacter secondChar = new SpeakerCharacter("character-2", "project-1", 1, "Segment2Speaker", null, null, Instant.parse("2026-05-12T10:00:00Z"));
         AudiobookSpeechSegment second = new AudiobookSpeechSegment(
             "segment-2",
             project,
@@ -138,13 +130,9 @@ class EmotionAnnotationPersistenceServiceTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            null,
-            null,
-            null,
-            null,
             "Hi",
             null,
-            null
+            secondChar
         );
         second.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
 
@@ -159,6 +147,8 @@ class EmotionAnnotationPersistenceServiceTest {
         verify(repository).saveAll(anyList());
         org.assertj.core.api.Assertions.assertThat(first.getStyledText()).isEqualTo("[calm] Hello");
         org.assertj.core.api.Assertions.assertThat(second.getStyledText()).isEqualTo("[warm] Hi");
+        org.assertj.core.api.Assertions.assertThat(first.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.APPROVED);
+        org.assertj.core.api.Assertions.assertThat(second.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.APPROVED);
     }
 
     @Test
@@ -179,6 +169,7 @@ class EmotionAnnotationPersistenceServiceTest {
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z")
         );
+        SpeakerCharacter character1 = new SpeakerCharacter("character-1", "project-1", 0, "Narrator", "Story voice", SpeakerVoice.ZEPHYR, Instant.parse("2026-05-12T10:00:00Z"));
         AudiobookSpeechSegment first = new AudiobookSpeechSegment(
             "segment-1",
             project,
@@ -188,15 +179,12 @@ class EmotionAnnotationPersistenceServiceTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            null,
-            null,
             "Hello",
             "[calm] Hello",
-            "character-1"
+            character1
         );
         first.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        SpeakerCharacter character2 = new SpeakerCharacter("character-2", "project-1", 1, "Mara", null, null, Instant.parse("2026-05-12T10:00:00Z"));
         AudiobookSpeechSegment second = new AudiobookSpeechSegment(
             "segment-2",
             project,
@@ -206,13 +194,9 @@ class EmotionAnnotationPersistenceServiceTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Mara",
-            null,
-            null,
-            null,
             "Hi",
             null,
-            null
+            character2
         );
         second.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
 
@@ -233,12 +217,57 @@ class EmotionAnnotationPersistenceServiceTest {
             new SpeakerSplitTurn("Narrator", "The opening line."),
             new SpeakerSplitTurn("Mara", "We go now.")
         );
-        org.assertj.core.api.Assertions.assertThat(first.getSpeakerName()).isEqualTo("Narrator");
+        org.assertj.core.api.Assertions.assertThat(first.getCharacter().getSpeakerName()).isEqualTo("Narrator");
         org.assertj.core.api.Assertions.assertThat(first.getCharacterId()).isEqualTo("character-1");
         org.assertj.core.api.Assertions.assertThat(first.getOriginalText()).isEqualTo("The opening line.");
         org.assertj.core.api.Assertions.assertThat(first.getStyledText()).isNull();
         org.assertj.core.api.Assertions.assertThat(first.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.NEEDS_CHANGES);
         org.assertj.core.api.Assertions.assertThat(second.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.PENDING);
+    }
+
+    @Test
+    void saveScriptPreviewTurnsMarksPreviouslyAnnotatedRowsForReviewAgain() {
+        AudiobookSpeechSegmentRepository repository = mock(AudiobookSpeechSegmentRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
+        EmotionAnnotationPersistenceService service = new EmotionAnnotationPersistenceService(repository, speakerCharacterRepository);
+
+        AudiobookProject project = new AudiobookProject(
+            "project-1",
+            "user-1",
+            "Project",
+            AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
+        SpeakerCharacter character1 = new SpeakerCharacter("character-1", "project-1", 0, "Narrator", "Story voice", SpeakerVoice.ZEPHYR, Instant.parse("2026-05-12T10:00:00Z"));
+        AudiobookSpeechSegment first = new AudiobookSpeechSegment(
+            "segment-1",
+            project,
+            0,
+            "Speech segment 1",
+            AudiobookSpeechSegmentReviewStatus.APPROVED,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z"),
+            "Hello",
+            "[calm] Hello",
+            character1
+        );
+        first.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+
+        when(repository.findByProjectIdAndSegmentOriginOrderByOrderIndex(eq("project-1"), eq(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW)))
+            .thenReturn(List.of(first));
+        when(speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc(eq("project-1"))).thenReturn(List.of(
+            new SpeakerCharacter("character-1", "project-1", 0, "Narrator", "Story voice", SpeakerVoice.ZEPHYR, Instant.parse("2026-05-12T10:00:00Z"))
+        ));
+
+        service.saveScriptPreviewTurns(project, List.of(new SpeakerSplitTurn("Narrator", "The opening line.")));
+
+        org.assertj.core.api.Assertions.assertThat(first.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.NEEDS_CHANGES);
     }
 
     @Test

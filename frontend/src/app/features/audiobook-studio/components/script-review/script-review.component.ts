@@ -9,7 +9,7 @@ import { ScriptTurnComponent } from './script-turn/script-turn.component';
   standalone: true,
   imports: [CommonModule, ScriptTurnComponent],
   templateUrl: './script-review.component.html',
-  styleUrl: './script-review.component.css'
+  styleUrls: ['../audiobook-studio-section-shared.css', './script-review.component.css']
 })
 export class ScriptReviewComponent {
   @Input() scriptTurns: SpeakerSplitTurn[] = [];
@@ -24,7 +24,6 @@ export class ScriptReviewComponent {
   @Output() saveTurnEdit = new EventEmitter<number>();
   @Output() cancelTurnEdit = new EventEmitter<void>();
   @Output() approveScript = new EventEmitter<void>();
-  @Output() addEmotionAndPacing = new EventEmitter<void>();
 
   displayName(name: string): string {
     return formatSpeakerDisplayName(name);

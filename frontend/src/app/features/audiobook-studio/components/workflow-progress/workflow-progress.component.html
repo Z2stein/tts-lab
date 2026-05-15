@@ -1,8 +1,9 @@
-<nav class="workflow-progress" aria-label="Audiobook workflow progress">
+<nav class="workflow-progress" aria-label="Audiobook workflow progress" data-testid="workflow-progress">
   <button
     *ngFor="let step of steps"
     type="button"
     class="workflow-step"
+    data-testid="workflow-step"
     [class.completed]="step.status === 'completed'"
     [class.current]="step.status === 'current'"
     [class.warning-state]="step.status === 'warning'"
@@ -19,7 +20,7 @@
 </nav>
 
 <aside aria-live="polite">
-  <button type="button" class="current-task helper-jump" (click)="onStepClick(currentTask.sectionId, $event)">
+  <button type="button" class="current-task helper-jump" data-testid="current-task" (click)="onStepClick(currentTask.sectionId, $event)">
     <span class="task-label">You are here</span>
     <h2>{{ currentTask.title }}</h2>
     <p>{{ currentTask.body }}</p>

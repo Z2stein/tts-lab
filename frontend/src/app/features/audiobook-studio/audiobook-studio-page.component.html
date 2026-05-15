@@ -1,5 +1,6 @@
-<section class="studio" aria-labelledby="audiobook-studio-title">
+<section class="studio">
   <app-studio-hero
+    *ngIf="showHero"
     [heroCast]="heroCast"
     [benefitChips]="benefitChips"
     [activeSampleKey]="activeSampleKey"
@@ -31,6 +32,7 @@
 
     <app-story-input
       id="story-section"
+      data-testid="story-section"
       class="step-card story-card anchor-section"
       [storyControl]="storyTextControl"
       [loadingAction]="loadingAction"
@@ -40,23 +42,32 @@
 
     <app-cast-section
       id="cast-section"
+      data-testid="cast-section"
       class="step-card anchor-section"
       [cast]="cast"
       [castReviewed]="castReviewed"
       [editingCastIndex]="editingCastIndex"
       [castEditDraft]="castEditDraft"
       [loadingAction]="loadingAction"
-      [activeSampleKey]="activeSampleKey"
       [speakerStyleFn]="speakerStyleFn"
       (startCastEdit)="startCastEdit($event)"
       (saveCastEdit)="saveCastEdit($event)"
       (cancelCastEdit)="cancelCastEdit()"
-      (playVoiceSample)="playVoiceSample($event)"
       (createScriptPreview)="createScriptPreviewAndScroll()"
+      (changeVoice)="openVoicePicker($event)"
     ></app-cast-section>
+
+    <app-voice-picker-modal
+      [open]="voicePickerOpenForIndex !== null"
+      [speakerName]="voicePickerSpeakerName()"
+      [currentVoiceId]="voicePickerCurrentVoiceId()"
+      (voiceSelected)="applyVoiceSelection($event)"
+      (closed)="closeVoicePicker()"
+    ></app-voice-picker-modal>
 
     <app-script-review
       id="script-section"
+      data-testid="script-section"
       class="step-card anchor-section"
       [scriptTurns]="scriptTurns"
       [scriptGroups]="scriptGroups"
@@ -69,15 +80,16 @@
       (startTurnEdit)="startScriptTurnEdit($event)"
       (saveTurnEdit)="saveScriptTurnEdit($event)"
       (cancelTurnEdit)="cancelScriptTurnEdit()"
-      (approveScript)="approveScriptAndScroll()"
-      (addEmotionAndPacing)="createPerformanceNotesAndScroll()"
+      (approveScript)="approveScriptAndContinueWorkflow()"
     ></app-script-review>
 
     <app-performance-notes
       id="performance-section"
+      data-testid="performance-section"
       class="step-card anchor-section"
       [annotatedTurns]="annotatedTurns"
       [performanceNotesStale]="performanceNotesStale"
+      [performanceReady]="performanceReady"
       [promptControl]="promptControl"
       [languageCodeControl]="languageCodeControl"
       [modelNameControl]="modelNameControl"
@@ -89,7 +101,7 @@
       (createAudioProductionPlan)="createAudioProductionPlanAndScroll()"
     ></app-performance-notes>
 
-    <section id="audio-section" class="step-card anchor-section" aria-labelledby="generate-audio-title">
+    <section id="audio-section" class="step-card anchor-section" data-testid="audio-section" aria-labelledby="generate-audio-title">
       <div class="step-heading">
         <span class="step-number">5</span>
         <div>
@@ -114,7 +126,7 @@
         </div>
       </div>
 
-      <p *ngIf="!audioProductionPlan" class="empty-state">The audiobook setup will appear after performance notes.</p>
+      <p *ngIf="!audioProductionPlan && audioAssets.length === 0" class="empty-state">The audiobook setup will appear after performance notes.</p>
       <div *ngIf="audioProductionPlan" class="plan-summary" aria-label="Audiobook setup">
         <div class="plan-summary-status">
           <span>Generation state</span>
@@ -143,6 +155,38 @@
         <div>
           <span>Audio encoding</span>
           <strong>{{ audioEncodingControl.value }}</strong>
+        </div>
+      </div>
+
+      <!-- Fallback: show readonly summary when audio is saved but production plan was not regenerated after reload -->
+      <div *ngIf="!audioProductionPlan && audioAssets.length > 0" class="plan-summary" aria-label="Saved audiobook setup">
+        <div class="plan-summary-status">
+          <span>Generation state</span>
+          <strong>Ready to listen</strong>
+        </div>
+        <div>
+          <span>Audio parts</span>
+          <strong>{{ audioAssets.length }}</strong>
+        </div>
+        <div>
+          <span>Ready parts</span>
+          <strong>{{ audioAssets.length }} / {{ audioAssets.length }}</strong>
+        </div>
+        <div>
+          <span>Needs generation</span>
+          <strong>0</strong>
+        </div>
+        <div>
+          <span>Failed parts</span>
+          <strong>0</strong>
+        </div>
+        <div *ngIf="productionSettings?.languageCode">
+          <span>Language code</span>
+          <strong>{{ productionSettings?.languageCode }}</strong>
+        </div>
+        <div *ngIf="productionSettings?.audioEncoding">
+          <span>Audio encoding</span>
+          <strong>{{ productionSettings?.audioEncoding }}</strong>
         </div>
       </div>
 
@@ -190,6 +234,32 @@
           Download MP3
         </button>
       </app-waveform-player>
+
+      <!-- Show previously generated audio when production plan was not yet loaded after reload -->
+      <details *ngIf="audioAssets.length > 0 && !audioProductionPlan" class="audio-parts-details">
+        <summary>Previously generated audio ({{ audioAssets.length }})</summary>
+        <p class="saved-audio-hint">Generate a new production plan to re-generate or download individual parts.</p>
+        <div class="render-list">
+          <article *ngFor="let asset of audioAssets; let i = index" class="render-request">
+            <div class="render-identity">
+              <div>
+                <span class="badge">Part {{ i + 1 }} of {{ audioAssets.length }}</span>
+                <h3>{{ asset.filename }}</h3>
+              </div>
+            </div>
+            <app-waveform-player
+              class="render-player framework-player"
+              [key]="'saved-part:' + i"
+              [src]="asset.streamUrl"
+              [ariaLabel]="'previously generated voice part ' + (i + 1)"
+            >
+              <a class="secondary-button download-button" [href]="asset.downloadUrl" [download]="asset.filename">
+                Download part
+              </a>
+            </app-waveform-player>
+          </article>
+        </div>
+      </details>
 
       <details *ngIf="renderRequests.length > 0" class="audio-parts-details">
         <summary>Audio parts and individual previews</summary>

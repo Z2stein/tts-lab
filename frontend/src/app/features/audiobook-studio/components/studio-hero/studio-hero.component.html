@@ -1,4 +1,4 @@
-<section class="studio-hero" aria-labelledby="audiobook-studio-title">
+<section class="studio-hero" aria-labelledby="audiobook-studio-title" data-testid="studio-hero">
   <div class="hero-copy">
     <p class="hero-badge">AI Audiobook Studio</p>
     <h1 id="audiobook-studio-title">Give every character in your story <span>a voice.</span></h1>
@@ -53,8 +53,14 @@
         </div>
         <div class="hero-cast-list">
           <div *ngFor="let member of heroCast" class="hero-cast-row" [ngStyle]="speakerStyleFn(member.name)">
-            <span class="hero-avatar">{{ member.initials }}</span>
-            <span>
+            <div class="hero-avatar-container">
+              <img *ngIf="member.imageUrl"
+                   [src]="member.imageUrl"
+                   [alt]="member.name"
+                   class="hero-avatar-image" />
+              <span *ngIf="!member.imageUrl" class="hero-avatar">{{ member.initials }}</span>
+            </div>
+            <span class="cast-info">
               <strong>{{ member.name }}</strong>
               <small>{{ member.tone }}</small>
             </span>

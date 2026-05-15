@@ -1,9 +1,17 @@
-<section class="journey-section" aria-labelledby="journey-title">
+<section class="journey-section" aria-labelledby="journey-title" data-testid="journey-grid">
   <h2 id="journey-title">From plain text to performed story</h2>
   <div class="journey-grid">
-    <button *ngFor="let step of steps" type="button" class="journey-card helper-jump" (click)="onStepClick(step.sectionId, $event)">
-      <span class="journey-icon">{{ step.icon }}</span>
-      <h3>{{ step.title }}</h3>
+    <button
+      *ngFor="let step of steps"
+      type="button"
+      class="journey-card helper-jump"
+      data-testid="journey-card"
+      (click)="onStepClick(step.sectionId, $event)"
+    >
+      <div class="journey-icon-container">
+        <span class="journey-step-icon" aria-hidden="true" [innerHTML]="getStepIcon(step.stepIcon)"></span>
+      </div>
+      <h3>{{ step.icon }}. {{ step.title }}</h3>
       <p>{{ step.description }}</p>
     </button>
   </div>

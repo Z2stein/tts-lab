@@ -80,22 +80,34 @@ describe('AudiobookWorkflowService', () => {
   });
 
   it('posts turns to the emotion annotation endpoint', async () => {
-    const response = await loadTestContractJson<{ turns: Array<{ speaker: string; text: string }> }>(
+    const response = await loadTestContractJson<{
+      projectId: string;
+      title: string;
+      storyText: string | null;
+      workflowStage: 'CAST_REVIEW' | 'CAST_APPROVED' | 'SCRIPT_REVIEW' | 'SCRIPT_APPROVED' | 'PERFORMANCE_READY' | 'AUDIO_GENERATED';
+      speakers: Array<{ speakerName: string; roleDescription: string; voiceSuggestion: string }>;
+      scriptTurns: Array<{ speaker: string; text: string }>;
+      annotatedTurns: Array<{ speaker: string; text: string }>;
+      productionSettings: Record<string, unknown>;
+      audioAssets: Array<Record<string, unknown>>;
+      audioAssetsCurrent: boolean;
+      performanceNotesStale: boolean;
+    }>(
       'audiobook-workflow/emotion-annotation-analysis/default/response.json'
     );
     audiobookApiServiceSpy.post.and.resolveTo({
       ...response,
-      turns: [{ speaker: 'Alice', text: '[urgent] Hello!' }]
+      annotatedTurns: [{ speaker: 'Alice', text: '[urgent] Hello!' }]
     });
 
-    const turns = await service.annotateEmotions('project-1');
+    const snapshot = await service.annotateEmotions('project-1');
 
     expect(audiobookApiServiceSpy.post).toHaveBeenCalledWith(
       '/api/audiobooks/workflow/emotion-annotation-analysis',
       { projectId: 'project-1' },
       'Emotion annotation analysis failed'
     );
-    expect(turns[0].text).toBe('[urgent] Hello!');
+    expect(snapshot.annotatedTurns[0].text).toBe('[urgent] Hello!');
   });
 
   it('posts final preview data to the final request endpoint', async () => {

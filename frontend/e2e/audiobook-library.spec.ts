@@ -49,7 +49,7 @@ test('library cards render with ready preview actions', async ({ context, page }
 
   await expect(page.getByTestId('audiobook-card')).toHaveCount(1);
   await expect(page.getByRole('heading', { name: 'The Amber Signal' })).toBeVisible();
-  await expect(page.getByTestId('continue-review')).toBeVisible();
+  await expect(page.getByTestId('continue-studio')).toBeVisible();
   await expect(page.getByTestId('play-preview')).toBeVisible();
   await expect(page.getByTestId('download-asset')).toBeVisible();
 });
@@ -124,9 +124,9 @@ test('library card displays correct metadata for multi-segment audiobook with re
 
   await expect(card.locator('h2')).toContainText('Generated audiobook 2026-05-09T20:50:36');
 
-  const continueReviewButton = card.locator('text=Continue review');
-  await expect(continueReviewButton).toBeVisible();
-  await expect(continueReviewButton).toHaveAttribute('href', '/audiobook-library/project-multi-speaker');
+  const continueButton = card.locator('text=Continue');
+  await expect(continueButton).toBeVisible();
+  await expect(continueButton).toHaveAttribute('href', '/audiobook-studio/project-multi-speaker');
 });
 
 test('audiobook library integration with components is functional', async ({ context, page }) => {

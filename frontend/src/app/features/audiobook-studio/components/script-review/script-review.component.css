@@ -1,1 +1,14 @@
-/* Styles live in the page component CSS via ::ng-deep — Phase 5 will migrate to Tailwind */
+.script-panel {
+  display: grid;
+  gap: 0.85rem;
+}
+
+.script-group {
+  border-left: 4px solid var(--speaker-accent, #f0ad5d);
+  padding-left: 0.9rem;
+}
+
+.script-group h3 {
+  margin: 0 0 0.35rem;
+  color: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 74%, #fff8ec);
+}

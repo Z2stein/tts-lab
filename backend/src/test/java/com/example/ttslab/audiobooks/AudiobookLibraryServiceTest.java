@@ -3,6 +3,7 @@ package com.example.ttslab.audiobooks;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,6 +19,8 @@ import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
+import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderRequest;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.storage.FileStorageService;
 import com.example.ttslab.storage.StorageKeyBuilder;
 import com.example.ttslab.storage.StorageProperties;
@@ -25,8 +28,8 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
 class AudiobookLibraryServiceTest {
     @Test
@@ -134,8 +137,10 @@ class AudiobookLibraryServiceTest {
         assertEquals(19, item.totalDurationSeconds(), "Should calculate 19 seconds total (6+5+8)");
     }
 
+
+
     @Test
-    void persistAudioAssetDoesNotUpdateProjectMetadata() throws Exception {
+    void rejectsMissingOrInvalidSegmentOrderIndex() {
         AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
         AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
@@ -150,7 +155,6 @@ class AudiobookLibraryServiceTest {
             new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
             new AudiobookMetadataCalculator(repository)
         );
-
         AudiobookProject project = new AudiobookProject(
             "proj-1",
             "user-1",
@@ -163,19 +167,54 @@ class AudiobookLibraryServiceTest {
             Instant.now(),
             Instant.now()
         );
+        SpeakerCharacter character = new SpeakerCharacter(
+            "character-1",
+            "Test Audiobook",
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
+        AudiobookSpeechSegment previewSegment = new AudiobookSpeechSegment(
+            "segment-1",
+            project,
+            0,
+            "Speech segment 1",
+            AudiobookSpeechSegmentReviewStatus.PENDING,
+            null,
+            Instant.now(),
+            Instant.now(),
+            "Hello",
+            null,
+            character
+        );
+        previewSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+
+        when(segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex("proj-1", AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW))
+            .thenReturn(List.of(previewSegment));
 
         TtsAudioFile audioFile = new TtsAudioFile(new byte[] {1, 2, 3}, "audio/mpeg", "test.mp3");
 
-        service.persistAudioAsset(project, audioFile, 3, 1, 2, 19);
+        assertThatThrownBy(() -> service.persistAudioAsset(
+            project,
+            audioFile,
+            new SingleSpeakerRenderRequest(java.util.Map.of("text", "Hello"), java.util.Map.of("name", "Kore"), java.util.Map.of()),
+                1,
+                19
+        ))
+            .isInstanceOf(ApiException.class)
+            .hasMessageContaining("segment order index");
 
-        // IMPORTANT: Verify updateProjectMetadata is NEVER called
-        verify(repository, never()).updateProjectMetadata(any(), any(), any(), any());
-
-        // Verify asset and speech segment were created using JPA repositories
-        ArgumentCaptor<AudiobookSpeechSegment> segmentCaptor = ArgumentCaptor.forClass(AudiobookSpeechSegment.class);
-        verify(segmentRepository).save(segmentCaptor.capture());
-        assertEquals(AudiobookSpeechSegmentOrigin.GENERATED_AUDIO, segmentCaptor.getValue().getSegmentOrigin());
-        verify(assetRepository).save(any());
+        assertThatThrownBy(() -> service.persistAudioAsset(
+            project,
+            audioFile,
+            new SingleSpeakerRenderRequest(java.util.Map.of("text", "Hello", "segmentOrderIndex", -1), java.util.Map.of("name", "Kore"), java.util.Map.of()),
+                1,
+                19
+        ))
+            .isInstanceOf(ApiException.class)
+            .hasMessageContaining("segment order index");
     }
 }
 

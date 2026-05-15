@@ -166,7 +166,7 @@ export class RenderRequestAudioService {
     try {
       const download = await this.audiobookApiService.createAudioForRenderRequest(renderRequest, {
         signal: controller.signal,
-      }, projectId);
+      }, projectId, requestIndex);
       if (!this.isCurrent(requestIndex, requestId)) return;
 
       // Capture projectId from first generation if not already set

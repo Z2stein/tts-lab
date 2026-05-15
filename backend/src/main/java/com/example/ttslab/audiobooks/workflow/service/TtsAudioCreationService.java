@@ -1,10 +1,10 @@
 package com.example.ttslab.audiobooks.workflow.service;
 
+import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.config.ChatbotProperties;
 import java.io.ByteArrayOutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 
 import com.example.ttslab.audiobooks.workflow.*;
 import org.springframework.beans.factory.ObjectProvider;
@@ -37,28 +37,15 @@ public class TtsAudioCreationService {
         this.chatbotProvider = chatbotProvider == null ? PROVIDER_MOCK : chatbotProvider.trim().toLowerCase();
     }
 
-    public TtsAudioFile createAudio(SingleSpeakerRenderPlanResponse requestPlan) {
-        List<SingleSpeakerRenderRequest> renderRequests = requestPlan == null ? List.of() : requestPlan.renderRequests();
-        if (renderRequests == null || renderRequests.isEmpty()) {
-            throw new ApiException(
-                HttpStatus.BAD_REQUEST,
-                "TTS_AUDIO_RENDER_REQUESTS_REQUIRED",
-                "At least one render request is required to create audio.",
-                null,
-                null
-            );
-        }
+    public TtsAudioFile createAudio(AudiobookProject project, int targetSegmentIndex) {
 
-        List<byte[]> audioParts = renderRequests.stream().map(this::createAudioPart).toList();
-        if (audioParts.size() == 1) {
-            return new TtsAudioFile(audioParts.getFirst(), "audio/mpeg", "tts-render-request-1.mp3");
-        }
-        return new TtsAudioFile(concatenateMp3(audioParts), "audio/mpeg", "tts-render-plan.mp3");
+        byte[] audioPart = createAudioPart(project,targetSegmentIndex);
+
+        return new TtsAudioFile(concatenateMp3(audioPart), "audio/mpeg", "tts-render-plan.mp3");
     }
-
-    private byte[] createAudioPart(SingleSpeakerRenderRequest renderRequest) {
+    private byte[] createAudioPart(AudiobookProject project, int targetSegmentIndex) {
         if (PROVIDER_MOCK.equals(chatbotProvider)) {
-            return mockMp3(renderRequest);
+            return mockMp3(project, targetSegmentIndex);
         }
 
         if (!PROVIDER_GEMINI.equals(chatbotProvider)) {
@@ -83,7 +70,7 @@ public class TtsAudioCreationService {
         }
 
         try {
-            return googleTtsClient.synthesize(renderRequest);
+            return googleTtsClient.synthesize(project,targetSegmentIndex);
         } catch (TtsAudioCreationException ex) {
             throw new ApiException(
                 HttpStatus.BAD_GATEWAY,
@@ -95,17 +82,15 @@ public class TtsAudioCreationService {
         }
     }
 
-    private byte[] mockMp3(SingleSpeakerRenderRequest request) {
-        String text = request == null || request.input() == null || request.input().get("text") == null
-            ? ""
-            : request.input().get("text").toString();
+    private byte[] mockMp3(AudiobookProject project, int targetSegmentIndex) {
+        String text = project.getSpeechSegments().get(targetSegmentIndex).getStyledText();
         ByteArrayOutputStream output = new ByteArrayOutputStream();
         output.writeBytes(MOCK_MP3_PREFIX);
         output.writeBytes(("TTS-LAB-MOCK-MP3\n" + text).getBytes(StandardCharsets.UTF_8));
         return output.toByteArray();
     }
 
-    private byte[] concatenateMp3(List<byte[]> audioParts) {
+    private byte[] concatenateMp3(byte[] ... audioParts) {
         ByteArrayOutputStream bytes = new ByteArrayOutputStream();
         for (byte[] audioPart : audioParts) {
             bytes.writeBytes(audioPart);

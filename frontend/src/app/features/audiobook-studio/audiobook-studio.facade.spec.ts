@@ -17,8 +17,10 @@ describe('AudiobookStudioFacade', () => {
 
   beforeEach(() => {
     workflow = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
-      'analyzeSpeakers', 'splitDialogue', 'annotateEmotions',
-      'saveScriptPreview', 'generateFinalJson', 'planSingleSpeakerRenderRequests',
+      'analyzeSpeakers', 'approveCast', 'splitDialogue', 'annotateEmotions',
+      'saveScriptPreview', 'saveProductionSettings', 'approveScript',
+      'generateFinalJson', 'planSingleSpeakerRenderRequests',
+      'markAudioGenerated',
     ]);
     library = jasmine.createSpyObj<AudiobookLibraryService>('AudiobookLibraryService', ['updateTitle']);
     renderSvc = jasmine.createSpyObj<RenderRequestAudioService>('RenderRequestAudioService', ['abortAll', 'revokeUrls']);
@@ -97,6 +99,7 @@ describe('AudiobookStudioFacade', () => {
     it('sets loadingAction, calls AudiobookWorkflowService, updates scriptTurns on success', async () => {
       facade.setCast([maraItem]);
       facade.setCurrentProjectId('project-1');
+      facade.setCastReviewed(true);
       workflow.splitDialogue.and.resolveTo([{ speaker: 'Mara', text: 'Hello' }]);
 
       const promise = facade.createScriptPreview('story text');
@@ -113,6 +116,7 @@ describe('AudiobookStudioFacade', () => {
     it('sets error and clears loadingAction on failure', async () => {
       facade.setCast([maraItem]);
       facade.setCurrentProjectId('project-1');
+      facade.setCastReviewed(true);
       workflow.splitDialogue.and.rejectWith(new Error('API Failure'));
       await facade.createScriptPreview('story text');
 
@@ -121,11 +125,79 @@ describe('AudiobookStudioFacade', () => {
     });
   });
 
+  describe('approveCast', () => {
+    it('persists the cast approval snapshot and marks the cast as reviewed', async () => {
+      facade.setCurrentProjectId('project-1');
+      workflow.approveCast.and.resolveTo({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'CAST_APPROVED',
+        speakers: [maraItem],
+        scriptTurns: [],
+        annotatedTurns: [],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        performanceNotesStale: false
+      } as never);
+
+      await facade.approveCast();
+
+      expect(workflow.approveCast).toHaveBeenCalledWith('project-1');
+      expect(facade.castReviewed()).toBeTrue();
+    });
+  });
+
+  describe('hydrateFromSnapshot', () => {
+    it('hydrates stale performance notes from the backend snapshot', () => {
+      facade.hydrateFromSnapshot({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'SCRIPT_APPROVED',
+        speakers: [maraItem],
+        scriptTurns: [{ speaker: 'Mara', text: 'Hello' }],
+        annotatedTurns: [{ speaker: 'Mara', text: '[calm] Hello' }],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        performanceNotesStale: true
+      } as never);
+
+      expect(facade.currentProjectId()).toBe('project-1');
+      expect(facade.performanceNotesStale()).toBeTrue();
+      expect(facade.scriptApproved()).toBeTrue();
+      expect(facade.castReviewed()).toBeTrue();
+    });
+  });
+
   describe('createPerformanceNotes', () => {
     it('updates annotatedTurns and clears stale flag on success', async () => {
       facade.setScriptTurns([{ speaker: 'Mara', text: 'Hello' }]);
       facade.setCurrentProjectId('project-1');
-      workflow.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
+      workflow.annotateEmotions.and.resolveTo({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'PERFORMANCE_READY',
+        speakers: [maraItem],
+        scriptTurns: [{ speaker: 'Mara', text: 'Hello' }],
+        annotatedTurns: [{ speaker: 'Mara', text: '<speak>Hello</speak>' }],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        performanceNotesStale: false
+      } as never);
       facade.setPerformanceNotesStale(true);
 
       await facade.createPerformanceNotes();
@@ -133,6 +205,7 @@ describe('AudiobookStudioFacade', () => {
       expect(workflow.annotateEmotions).toHaveBeenCalledWith('project-1');
       expect(facade.annotatedTurns()).toEqual([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
       expect(facade.performanceNotesStale()).toBeFalse();
+      expect(facade.performanceReady()).toBeTrue();
     });
 
     it('blocks annotation while a script edit is still open', async () => {
@@ -167,15 +240,28 @@ describe('AudiobookStudioFacade', () => {
 
       facade.setCast([maraItem]);
       facade.setAnnotatedTurns([{ speaker: 'Mara', text: '<speak>Hi</speak>' }]);
+      facade.setCurrentProjectId('project-1');
 
       const finalReq = { input: { text: 'test' }, voice: {}, audioConfig: {} };
       const plan = { renderRequests: [] };
 
+      workflow.saveProductionSettings.and.resolveTo({
+        projectId: 'project-1',
+        title: 'Generated audiobook',
+        storyText: null,
+        workflowStage: 'CAST_REVIEW',
+        speakers: [maraItem],
+        scriptTurns: [],
+        annotatedTurns: [],
+        productionSettings: requestParams,
+        performanceNotesStale: false
+      } as never);
       workflow.generateFinalJson.and.resolveTo(finalReq);
       workflow.planSingleSpeakerRenderRequests.and.resolveTo(plan);
 
       await facade.createAudioProductionPlan(requestParams);
 
+      expect(workflow.saveProductionSettings).toHaveBeenCalledWith('project-1', requestParams);
       expect(workflow.generateFinalJson).toHaveBeenCalledWith({
         ...requestParams,
         speakers: [maraItem],
@@ -185,6 +271,35 @@ describe('AudiobookStudioFacade', () => {
 
       expect(facade.finalRequest()).toBe(finalReq);
       expect(facade.audioProductionPlan()).toBe(plan);
+    });
+  });
+
+  describe('finalizeAudioGeneration', () => {
+    it('marks the preview current and refreshes the workflow snapshot', async () => {
+      facade.setCurrentProjectId('project-1');
+      workflow.markAudioGenerated.and.resolveTo({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'AUDIO_GENERATED',
+        speakers: [maraItem],
+        scriptTurns: [{ speaker: 'Mara', text: 'Hello' }],
+        annotatedTurns: [{ speaker: 'Mara', text: '<speak>Hello</speak>' }],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        performanceNotesStale: false
+      } as never);
+
+      await facade.finalizeAudioGeneration('project-1');
+
+      expect(workflow.markAudioGenerated).toHaveBeenCalledWith('project-1');
+      expect(facade.workflowStage()).toBe('AUDIO_GENERATED');
+      expect(facade.loadingAction()).toBeNull();
+      expect(facade.error()).toBeNull();
     });
   });
 
@@ -212,10 +327,28 @@ describe('AudiobookStudioFacade', () => {
   });
 
   describe('approveScript', () => {
-    it('sets scriptApproved true and performanceNotesStale true', () => {
-      facade.approveScript();
+    it('sets scriptApproved true and performanceNotesStale false', async () => {
+      facade.setCurrentProjectId('project-1');
+      workflow.approveScript.and.resolveTo({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'SCRIPT_APPROVED',
+        speakers: [maraItem],
+        scriptTurns: [{ speaker: 'Mara', text: 'Hello' }],
+        annotatedTurns: [],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        performanceNotesStale: false
+      } as never);
+
+      await facade.approveScript();
       expect(facade.scriptApproved()).toBeTrue();
-      expect(facade.performanceNotesStale()).toBeTrue();
+      expect(facade.performanceNotesStale()).toBeFalse();
     });
   });
 

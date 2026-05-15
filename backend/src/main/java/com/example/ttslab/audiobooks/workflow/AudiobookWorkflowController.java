@@ -1,27 +1,21 @@
 package com.example.ttslab.audiobooks.workflow;
 
 import com.example.ttslab.audiobooks.model.AudiobookProject;
+import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisRequest;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisItem;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisResponse;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisService;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.common.DurationEstimator;
 import com.example.ttslab.config.ChatbotProperties;
-import com.example.ttslab.audiobooks.workflow.EmotionAnnotationAnalysisRequest;
-import com.example.ttslab.audiobooks.workflow.EmotionAnnotationAnalysisResponse;
-import com.example.ttslab.audiobooks.workflow.FinalTtsRequestPreviewRequest;
-import com.example.ttslab.audiobooks.workflow.FinalTtsRequestPreviewResponse;
-import com.example.ttslab.audiobooks.workflow.ScriptPreviewSaveRequest;
-import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderPlanRequest;
-import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderPlanResponse;
-import com.example.ttslab.audiobooks.workflow.SpeakerSplitAnalysisRequest;
-import com.example.ttslab.audiobooks.workflow.SpeakerSplitAnalysisResponse;
-import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
+import com.example.ttslab.error.ApiException;
 import com.example.ttslab.audiobooks.workflow.service.EmotionAnnotationPersistenceService;
+import com.example.ttslab.audiobooks.workflow.service.RenderPlanPersistenceService;
+import com.example.ttslab.audiobooks.workflow.service.ScriptPreviewWorkflowService;
 import com.example.ttslab.audiobooks.workflow.service.SpeakerSplitPersistenceService;
 import com.example.ttslab.audiobooks.workflow.service.AudiobookWorkflowService;
-import com.example.ttslab.audiobooks.workflow.AudiobookProjectCreationService;
 import com.example.ttslab.prompts.CurrentUserResolver;
 import com.example.ttslab.prompts.ModelType;
 import com.example.ttslab.prompts.PromptHistoryService;
@@ -31,19 +25,16 @@ import com.example.ttslab.ratelimit.RequestRateLimitResult;
 import com.example.ttslab.ratelimit.RequestRateLimitService;
 import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import jakarta.validation.Valid;
-import java.util.HashSet;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/audiobooks/workflow")
@@ -54,7 +45,10 @@ public class AudiobookWorkflowController {
     private final SpeakerVoiceAnalysisService speakerVoiceAnalysisService;
     private final SpeakerSplitPersistenceService speakerSplitPersistenceService;
     private final EmotionAnnotationPersistenceService emotionAnnotationPersistenceService;
+    private final RenderPlanPersistenceService renderPlanPersistenceService;
+    private final ScriptPreviewWorkflowService scriptPreviewWorkflowService;
     private final AudiobookProjectCreationService audiobookProjectCreationService;
+    private final AudiobookWorkflowStateService audiobookWorkflowStateService;
     private final CurrentUserResolver currentUserResolver;
     private final PromptHistoryService promptHistoryService;
     private final RequestRateLimitService requestRateLimitService;
@@ -67,7 +61,10 @@ public class AudiobookWorkflowController {
         SpeakerVoiceAnalysisService speakerVoiceAnalysisService,
         SpeakerSplitPersistenceService speakerSplitPersistenceService,
         EmotionAnnotationPersistenceService emotionAnnotationPersistenceService,
+        RenderPlanPersistenceService renderPlanPersistenceService,
+        ScriptPreviewWorkflowService scriptPreviewWorkflowService,
         AudiobookProjectCreationService audiobookProjectCreationService,
+        AudiobookWorkflowStateService audiobookWorkflowStateService,
         CurrentUserResolver currentUserResolver,
         PromptHistoryService promptHistoryService,
         RequestRateLimitService requestRateLimitService,
@@ -80,13 +77,29 @@ public class AudiobookWorkflowController {
         this.speakerVoiceAnalysisService = speakerVoiceAnalysisService;
         this.speakerSplitPersistenceService = speakerSplitPersistenceService;
         this.emotionAnnotationPersistenceService = emotionAnnotationPersistenceService;
+        this.renderPlanPersistenceService = renderPlanPersistenceService;
+        this.scriptPreviewWorkflowService = scriptPreviewWorkflowService;
         this.audiobookProjectCreationService = audiobookProjectCreationService;
+        this.audiobookWorkflowStateService = audiobookWorkflowStateService;
         this.currentUserResolver = currentUserResolver;
         this.promptHistoryService = promptHistoryService;
         this.requestRateLimitService = requestRateLimitService;
         this.requestUsageMeasurer = requestUsageMeasurer;
         this.audiobookLibraryService = audiobookLibraryService;
         this.analysisProviderModelName = providerModelName(chatbotProperties == null ? "mock" : chatbotProperties.provider(), chatModelName);
+    }
+
+    @GetMapping("/voices")
+    public List<SpeakerVoiceCatalogItemResponse> getVoiceCatalog() {
+        return Stream.of(SpeakerVoice.values())
+                .map(SpeakerVoiceCatalogItemResponse::from)
+                .toList();
+    }
+
+    @GetMapping("/projects/{projectId}")
+    public AudiobookWorkflowSnapshotResponse getProjectSnapshot(@PathVariable String projectId, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.snapshot(user, projectId);
     }
 
     @PostMapping("/speaker-voice-analysis")
@@ -96,7 +109,7 @@ public class AudiobookWorkflowController {
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
             SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue());
-            var project = audiobookProjectCreationService.createProject(user.id(), analysisResponse.projectTitle());
+            var project = audiobookProjectCreationService.createProject(user.id(), analysisResponse.projectTitle(), request.rawDialogue());
             speakerVoiceAnalysisService.syncProjectCharacters(project.getId(), analysisResponse.speakers());
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return new SpeakerVoiceAnalysisResponse(analysisResponse.speakers(), project.getId(), analysisResponse.projectTitle());
@@ -106,13 +119,21 @@ public class AudiobookWorkflowController {
         }
     }
 
+    @PostMapping("/projects/{projectId}/cast-approval")
+    public AudiobookWorkflowSnapshotResponse approveCast(@PathVariable String projectId, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.approveCast(user, projectId);
+    }
+
     @PostMapping("/speaker-split-analysis")
     public SpeakerSplitAnalysisResponse splitDialogue(@Valid @RequestBody SpeakerSplitAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
             AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
+            audiobookWorkflowStateService.ensureScriptReviewReady(project);
             SpeakerSplitAnalysisResponse response = speakerSplitPersistenceService.splitAndPersist(project, request.rawDialogue(), request.speakers());
+            audiobookWorkflowStateService.markScriptReview(project);
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return response;
         } catch (RuntimeException ex) {
@@ -121,21 +142,42 @@ public class AudiobookWorkflowController {
         }
     }
 
+    @PostMapping("/projects/{projectId}/script-approval")
+    public AudiobookWorkflowSnapshotResponse approveScript(@PathVariable String projectId, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.approveScript(user, projectId);
+    }
+
     @PostMapping("/emotion-annotation-analysis")
-    public EmotionAnnotationAnalysisResponse annotateEmotions(@Valid @RequestBody EmotionAnnotationAnalysisRequest request, Authentication authentication) {
+    public AudiobookWorkflowSnapshotResponse annotateEmotions(@Valid @RequestBody EmotionAnnotationAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
         AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
+        audiobookWorkflowStateService.ensurePerformanceNotesReady(project);
         var turns = emotionAnnotationPersistenceService.loadScriptPreviewTurns(project);
         EmotionAnnotationAnalysisResponse response = audiobookWorkflowService.annotate(turns);
         emotionAnnotationPersistenceService.persistStyledText(project, response.turns());
-        return response;
+        audiobookWorkflowStateService.markPerformanceReady(project);
+        return audiobookWorkflowStateService.snapshot(user, request.projectId());
     }
 
     @PostMapping("/script-preview-save")
     public SpeakerSplitAnalysisResponse saveScriptPreview(@Valid @RequestBody ScriptPreviewSaveRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);
-        AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
-        return new SpeakerSplitAnalysisResponse(emotionAnnotationPersistenceService.saveScriptPreviewTurns(project, request.turns()));
+        return scriptPreviewWorkflowService.saveScriptPreview(user, request);
+    }
+
+    @PatchMapping("/projects/{projectId}/production-settings")
+    public AudiobookWorkflowSnapshotResponse updateProductionSettings(
+        @PathVariable String projectId,
+        @Valid @RequestBody AudiobookWorkflowProductionSettingsRequest request,
+        Authentication authentication
+    ) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.updateProductionSettings(
+            user,
+            projectId,
+            new AudiobookWorkflowProductionSettings(request.prompt(), request.languageCode(), request.modelName(), request.audioEncoding())
+        );
     }
 
     @PostMapping("/final-request-preview")
@@ -150,59 +192,52 @@ public class AudiobookWorkflowController {
 
     @PostMapping("/create-audio")
     public ResponseEntity<byte[]> createAudio(
-        @RequestBody SingleSpeakerRenderPlanResponse requestPlan,
-        @org.springframework.web.bind.annotation.RequestParam(required = false) String projectId,
-        Authentication authentication
+            @RequestParam String projectId,
+            @RequestParam int targetSegmentIndex,
+            Authentication authentication
     ) {
         CurrentUser user = currentUserResolver.resolve(authentication);
-        String promptText = renderPromptText(requestPlan);
-        String providerModelName = renderProviderModelName(requestPlan);
-        enforceLimit(user, ModelType.SPEECH_MODEL, promptText, providerModelName);
+
+        AudiobookProject project = renderPlanPersistenceService.loadProjectFromDatabase(projectId);
+        enforceLimit(user, ModelType.SPEECH_MODEL, project,targetSegmentIndex);
         try {
-            Set<String> uniqueSpeakers = new HashSet<>();
-            int segmentCount = 0;
-            String firstSpeakerName = null;
-            String firstVoiceName = null;
-
-            if (requestPlan.renderRequests() != null && !requestPlan.renderRequests().isEmpty()) {
-                var firstRequest = requestPlan.renderRequests().get(0);
-                firstSpeakerName = stringValue(firstRequest.voice(), "speakerName");
-                firstVoiceName = stringValue(firstRequest.voice(), "speakerId");
-
-                for (var request : requestPlan.renderRequests()) {
-                    segmentCount++;
-                    String speaker = stringValue(request.voice(), "speakerName");
-                    if (speaker != null && !speaker.isBlank()) {
-                        uniqueSpeakers.add(speaker);
-                    }
-                }
-            }
-
-            int speakerCount = uniqueSpeakers.size();
-            Integer estimatedDuration = DurationEstimator.estimateSpeakingDurationSeconds(promptText);
-
-            TtsAudioFile audioFile = audiobookWorkflowService.createAudio(requestPlan);
-
-            AudiobookProject project;
-            if (projectId == null || projectId.isBlank()) {
-                project = audiobookLibraryService.createProjectForGeneration(user);
-            } else {
-                project = audiobookLibraryService.getProjectForUser(projectId, user);
-            }
-
-            audiobookLibraryService.persistAudioAsset(project, audioFile, segmentCount, 1, speakerCount, estimatedDuration, firstSpeakerName, null, firstVoiceName, null);
-            promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
+            audiobookWorkflowStateService.ensureAudioGenerationReady(project);
+            TtsAudioFile audioPart = audiobookWorkflowService.createAudio(project, targetSegmentIndex);
+            AudiobookSpeechSegment segment = project.getSpeechSegments().get(targetSegmentIndex);
+            Integer partDuration = DurationEstimator.estimateSpeakingDurationSeconds(segment.getStyledText());
+            audiobookLibraryService.persistAudioAsset(project, audioPart, segment, 1, partDuration);
+            promptHistoryService.record(user, ModelType.SPEECH_MODEL, project.getProductionModelName(), project.getStoryText(), PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
-                .header(HttpHeaders.CONTENT_TYPE, audioFile.contentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioPart.filename() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, audioPart.contentType())
                 .header("X-Audiobook-Project-Id", project.getId())
-                .body(audioFile.content());
+                .body(audioPart.content());
         } catch (RuntimeException ex) {
-            promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.FAILED);
+            promptHistoryService.record(user, ModelType.SPEECH_MODEL, project.getProductionModelName(), project.getStoryText(), PromptRequestStatus.FAILED);
             throw ex;
         }
     }
 
+    @PostMapping("/projects/{projectId}/audio-generated")
+    public AudiobookWorkflowSnapshotResponse finalizeAudioGeneration(@PathVariable String projectId, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.finalizeAudioGeneration(user, projectId);
+    }
+
+    private void enforceLimit(CurrentUser user, ModelType modelType, AudiobookProject project,int targetSegmentIndex) {
+        String promptText = project.getSpeechSegments().get(targetSegmentIndex).getStyledText();
+        RequestRateLimitResult result = requestRateLimitService.checkAndConsume(
+                user,
+                modelType,
+                requestUsageMeasurer.measure(promptText, requestRateLimitService.unit())
+        );
+        if (!result.allowed()) {
+            promptHistoryService.record(user, modelType, project.getProductionModelName(), promptText, PromptRequestStatus.RATE_LIMITED);
+            throw new RequestRateLimitExceededException(result);
+        }
+    }
+
+    @Deprecated //use AudiobookProject based
     private void enforceLimit(CurrentUser user, ModelType modelType, String promptText, String providerModelName) {
         RequestRateLimitResult result = requestRateLimitService.checkAndConsume(
             user,
@@ -237,12 +272,40 @@ public class AudiobookWorkflowController {
             .orElse("google-tts");
     }
 
-    private String stringValue(java.util.Map<String, Object> values, String key) {
+    private List<SpeakerVoiceAnalysisItem> generatedSpeakerItems(List<SingleSpeakerRenderRequest> renderRequests) {
+        LinkedHashMap<String, SpeakerVoiceAnalysisItem> speakersByKey = new LinkedHashMap<>();
+        SpeakerVoice[] voices = SpeakerVoice.values();
+        for (SingleSpeakerRenderRequest renderRequest : renderRequests) {
+            String speakerName = stringValue(renderRequest.voice(), "speakerName", "speaker", "name");
+            if (speakerName.isBlank()) {
+                continue;
+            }
+            String normalizedSpeakerName = speakerName.trim().toLowerCase(Locale.ROOT);
+            if (!speakersByKey.containsKey(normalizedSpeakerName)) {
+                int voiceIndex = speakersByKey.size() % voices.length;
+                speakersByKey.put(
+                    normalizedSpeakerName,
+                    new SpeakerVoiceAnalysisItem(speakerName.trim(), "Generated from audio render plan.", voices[voiceIndex])
+                );
+            }
+        }
+        return new ArrayList<>(speakersByKey.values());
+    }
+
+    private String stringValue(java.util.Map<String, Object> values, String... keys) {
         if (values == null) {
             return "";
         }
-        Object value = values.get(key);
-        return value == null ? "" : value.toString();
+        for (String key : keys) {
+            Object value = values.get(key);
+            if (value != null) {
+                String text = value.toString();
+                if (!text.isBlank()) {
+                    return text;
+                }
+            }
+        }
+        return "";
     }
 
     private String providerModelName(String provider, String modelName) {
@@ -256,5 +319,3 @@ public class AudiobookWorkflowController {
         return safeProvider + "/" + modelName.trim();
     }
 }
-
-

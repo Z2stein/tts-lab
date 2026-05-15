@@ -17,10 +17,14 @@ public class AudiobookProjectCreationService {
     }
 
     public AudiobookProject createProject(String userId) {
-        return createProject(userId, "Untitled audiobook");
+        return createProject(userId, "Untitled audiobook", null);
     }
 
     public AudiobookProject createProject(String userId, String title) {
+        return createProject(userId, title, null);
+    }
+
+    public AudiobookProject createProject(String userId, String title, String storyText) {
         String projectId = UUID.randomUUID().toString();
         Instant now = Instant.now();
         String safeTitle = title == null || title.isBlank() ? "Untitled audiobook" : title.trim();
@@ -37,6 +41,13 @@ public class AudiobookProjectCreationService {
                 now,
                 now
         );
+        project.setStoryText(storyText);
+        project.setWorkflowStage(AudiobookWorkflowStage.CAST_REVIEW);
+        project.setAudioAssetsCurrent(false);
+        project.setProductionPrompt("An immersive audiobook performance with a clear narrator and distinct character voices.");
+        project.setProductionLanguageCode("en-US");
+        project.setProductionModelName("gemini-3.1-flash-tts-preview");
+        project.setProductionAudioEncoding("MP3");
 
         audiobookProjectRepository.save(project);
         return project;

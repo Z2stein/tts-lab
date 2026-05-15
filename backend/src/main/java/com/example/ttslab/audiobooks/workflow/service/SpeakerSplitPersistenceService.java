@@ -94,13 +94,9 @@ public class SpeakerSplitPersistenceService {
             null,
             now,
             now,
-            null,
-            null,
-            null,
-            null,
             turn.text(),
             null,
-            character.getId()
+            character
         );
         segment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         return segment;

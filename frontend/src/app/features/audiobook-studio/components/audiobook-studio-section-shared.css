@@ -1,0 +1,225 @@
+.step-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+
+.step-heading h2 {
+  margin: 0 0 0.2rem;
+  color: #fff8ec;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.4rem, 3vw, 2rem);
+  line-height: 1.1;
+}
+
+.step-heading p,
+.cast-card p,
+.script-group p {
+  margin-bottom: 0;
+  color: #c9d1e8;
+  line-height: 1.6;
+}
+
+.step-number {
+  display: inline-flex;
+  width: 2.35rem;
+  height: 2.35rem;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #ffe2a7, #f0ad5d);
+  box-shadow: 0 0 28px rgba(240, 173, 93, 0.25);
+  color: #140f14;
+  font-weight: 950;
+}
+
+.empty-state {
+  margin: 0;
+  color: #c9d1e8;
+  line-height: 1.6;
+}
+
+label,
+.speaker-name {
+  font-weight: 900;
+}
+
+input,
+select,
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  border: 1px solid rgba(195, 204, 255, 0.18);
+  border-radius: 0.8rem;
+  background: rgba(5, 9, 20, 0.74);
+  color: #f8efe5;
+  font: inherit;
+  outline: none;
+  padding: 0.85rem 1rem;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: #f0ad5d;
+  box-shadow: 0 0 0 3px rgba(240, 173, 93, 0.22);
+}
+
+textarea {
+  line-height: 1.6;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.compact-actions {
+  justify-content: flex-start;
+}
+
+.small-button {
+  padding: 0.65rem 0.9rem;
+}
+
+.text-button {
+  justify-self: start;
+  border: 1px solid rgba(240, 173, 93, 0.28);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.04);
+  color: #ffd591;
+  cursor: pointer;
+  font-weight: 900;
+  padding: 0.45rem 0.85rem;
+}
+
+.text-button:hover:not(:disabled) {
+  border-color: rgba(240, 173, 93, 0.65);
+  color: #fff1d7;
+}
+
+.badge,
+.emotion-badge,
+.cast-avatar {
+  border: 1px solid rgba(240, 173, 93, 0.24);
+  border-radius: 999px;
+  background: rgba(240, 173, 93, 0.1);
+  color: #ffd591;
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+}
+
+.cast-avatar {
+  display: inline-flex;
+  width: 2.5rem;
+  height: 2.5rem;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  background: radial-gradient(circle at 35% 20%, #ffd591, #4a3325 45%, #111827 100%);
+  color: #fff7ea;
+}
+
+.emotion-badge {
+  box-shadow: 0 0 12px rgba(240, 173, 93, 0.2);
+  padding: 0.35rem 0.7rem;
+}
+
+.story-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.85rem;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  color: #c9d1e8;
+}
+
+.stats span {
+  border: 1px solid rgba(240, 173, 93, 0.4);
+  border-radius: 999px;
+  background: rgba(240, 173, 93, 0.18);
+  box-shadow: 0 0 12px rgba(240, 173, 93, 0.2);
+  color: #ffd591;
+  font-size: 0.88rem;
+  font-weight: 900;
+  padding: 0.35rem 0.7rem;
+}
+
+.review-status,
+.warning {
+  border-radius: 0.8rem;
+  border: 1px solid;
+  font-size: 0.92rem;
+  font-weight: 900;
+  padding: 0.7rem 0.85rem;
+}
+
+.review-status {
+  border-color: rgba(240, 173, 93, 0.5);
+  background: rgba(240, 173, 93, 0.1);
+  color: #ffd591;
+}
+
+.warning {
+  border-color: rgba(247, 178, 103, 0.6);
+  background: #3a2411;
+  color: #ffd8a8;
+}
+
+.notes-list {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.notes-list li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  border: 1px solid rgba(195, 204, 255, 0.14);
+  border-left: 4px solid var(--speaker-accent, #f0ad5d);
+  border-radius: 0.8rem;
+  background: rgba(5, 9, 20, 0.58);
+  line-height: 1.6;
+  padding: 0.8rem;
+}
+
+.settings-grid {
+  display: grid;
+  gap: 0.65rem 0.9rem;
+  grid-template-columns: minmax(8rem, auto) 1fr;
+  align-items: center;
+}
+
+.advanced-settings,
+.advanced-details,
+.audio-parts-details {
+  border: 1px solid rgba(195, 204, 255, 0.16);
+  border-radius: 1rem;
+  background: rgba(5, 9, 20, 0.5);
+  padding: 1rem;
+}
+
+.advanced-settings summary,
+.advanced-details summary,
+.audio-parts-details summary {
+  color: #ffd591;
+  cursor: pointer;
+  font-weight: 900;
+}
+
+.advanced-settings .settings-grid {
+  margin-top: 1rem;
+}

@@ -12,14 +12,15 @@ class SingleSpeakerRenderPlannerTest {
     private final SingleSpeakerRenderPlanner planner = new SingleSpeakerRenderPlanner(new ObjectMapper());
 
     @Test
-    void groupsOnlyConsecutiveTurnsFromSameSpeakerIntoProviderRenderRequests() {
+    void createsOneRenderRequestPerTurnAndPreservesOrder() {
         SingleSpeakerRenderPlanResponse response = planner.plan(exampleRequest());
 
-        assertEquals(4, response.renderRequests().size());
-        assertRenderRequest(response.renderRequests().get(0), "Schedar", "The rain hit the windows.\nThe café was nearly empty.");
-        assertRenderRequest(response.renderRequests().get(1), "Kore", "So this is your surprise?");
-        assertRenderRequest(response.renderRequests().get(2), "Iapetus", "I thought you would be pleased.");
-        assertRenderRequest(response.renderRequests().get(3), "Kore", "Pleased is a generous word.");
+        assertEquals(5, response.renderRequests().size());
+        assertRenderRequest(response.renderRequests().get(0), 0, "Narrator", "Schedar", "The rain hit the windows.");
+        assertRenderRequest(response.renderRequests().get(1), 1, "Narrator", "Schedar", "The cafe was nearly empty.");
+        assertRenderRequest(response.renderRequests().get(2), 2, "Mara", "Kore", "So this is your surprise?");
+        assertRenderRequest(response.renderRequests().get(3), 3, "Jonas", "Iapetus", "I thought you would be pleased.");
+        assertRenderRequest(response.renderRequests().get(4), 4, "Mara", "Kore", "Pleased is a generous word.");
     }
 
     @Test
@@ -42,7 +43,8 @@ class SingleSpeakerRenderPlannerTest {
             .toList();
 
         assertEquals(List.of(
-            "The rain hit the windows.\nThe café was nearly empty.",
+            "The rain hit the windows.",
+            "The cafe was nearly empty.",
             "So this is your surprise?",
             "I thought you would be pleased.",
             "Pleased is a generous word."
@@ -67,9 +69,16 @@ class SingleSpeakerRenderPlannerTest {
         assertTrue(planner.plan(new SingleSpeakerRenderPlanRequest(Map.of(), Map.of(), Map.of())).renderRequests().isEmpty());
     }
 
-    private void assertRenderRequest(SingleSpeakerRenderRequest renderRequest, String voiceName, String text) {
-        assertEquals(Map.of("text", text), renderRequest.input());
+    private void assertRenderRequest(
+        SingleSpeakerRenderRequest renderRequest,
+        int segmentOrderIndex,
+        String speakerName,
+        String voiceName,
+        String text
+    ) {
+        assertEquals(Map.of("text", text, "segmentOrderIndex", segmentOrderIndex), renderRequest.input());
         assertEquals("en-US", renderRequest.voice().get("languageCode"));
+        assertEquals(speakerName, renderRequest.voice().get("speakerName"));
         assertEquals(voiceName, renderRequest.voice().get("name"));
         assertEquals("{{google-model}}", renderRequest.voice().get("modelName"));
         assertEquals(Map.of("audioEncoding", "MP3"), renderRequest.audioConfig());
@@ -78,10 +87,10 @@ class SingleSpeakerRenderPlannerTest {
     private SingleSpeakerRenderPlanRequest exampleRequest() {
         return new SingleSpeakerRenderPlanRequest(
             Map.of(
-                "prompt", "A tense café conversation.",
+                "prompt", "A tense cafe conversation.",
                 "multiSpeakerMarkup", Map.of("turns", List.of(
                     Map.of("speaker", "Narrator", "text", "The rain hit the windows."),
-                    Map.of("speaker", "Narrator", "text", "The café was nearly empty."),
+                    Map.of("speaker", "Narrator", "text", "The cafe was nearly empty."),
                     Map.of("speaker", "Mara", "text", "So this is your surprise?"),
                     Map.of("speaker", "Jonas", "text", "I thought you would be pleased."),
                     Map.of("speaker", "Mara", "text", "Pleased is a generous word.")
@@ -100,4 +109,3 @@ class SingleSpeakerRenderPlannerTest {
         );
     }
 }
-

@@ -2,6 +2,8 @@ package com.example.ttslab.audiobooks.workflow.service;
 
 import java.util.List;
 
+import com.example.ttslab.audiobooks.model.AudiobookProject;
+import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.workflow.*;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.*;
 import org.springframework.stereotype.Service;
@@ -50,9 +52,8 @@ public class AudiobookWorkflowService {
     public SingleSpeakerRenderPlanResponse planSingleSpeakerRenderRequests(SingleSpeakerRenderPlanRequest request) {
         return singleSpeakerRenderPlanner.plan(request);
     }
-
-    public TtsAudioFile createAudio(SingleSpeakerRenderPlanResponse requestPlan) {
-        return ttsAudioCreationService.createAudio(requestPlan);
+    public TtsAudioFile createAudio(AudiobookProject project, int targetSegmentIndex) {
+        return ttsAudioCreationService.createAudio(project, targetSegmentIndex);
     }
 }
 

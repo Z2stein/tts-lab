@@ -9,7 +9,7 @@ import { formatSpeakerDisplayName } from '../../../utils/speaker-name';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './script-turn.component.html',
-  styleUrl: './script-turn.component.css'
+  styleUrls: ['../../audiobook-studio-section-shared.css', './script-turn.component.css']
 })
 export class ScriptTurnComponent {
   @Input() indexedTurn!: IndexedSpeakerSplitTurn;

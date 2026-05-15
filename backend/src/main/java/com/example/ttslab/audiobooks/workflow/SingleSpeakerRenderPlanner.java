@@ -32,43 +32,33 @@ public class SingleSpeakerRenderPlanner {
         String audioEncoding = stringValue(request.audioConfig() == null ? null : request.audioConfig().get("audioEncoding"));
 
         List<SingleSpeakerRenderRequest> renderRequests = new ArrayList<>();
-        RenderGroup currentGroup = null;
-
         for (int turnIndex = 0; turnIndex < turns.size(); turnIndex++) {
             Map<String, Object> turn = turns.get(turnIndex);
             String speakerName = stringValue(turn.get("speaker"));
             String text = stringValue(turn.get("text"));
-
-            if (currentGroup == null || !currentGroup.speakerName().equals(speakerName)) {
-                if (currentGroup != null) {
-                    renderRequests.add(toRenderRequest(currentGroup, voiceNamesBySpeaker, languageCode, modelName, audioEncoding));
-                }
-                currentGroup = new RenderGroup(speakerName);
-            }
-
-            currentGroup.addTurn(turnIndex, text);
-        }
-
-        if (currentGroup != null) {
-            renderRequests.add(toRenderRequest(currentGroup, voiceNamesBySpeaker, languageCode, modelName, audioEncoding));
+            renderRequests.add(toRenderRequest(turnIndex, speakerName, text, voiceNamesBySpeaker, languageCode, modelName, audioEncoding));
         }
 
         return new SingleSpeakerRenderPlanResponse(renderRequests);
     }
 
     private SingleSpeakerRenderRequest toRenderRequest(
-        RenderGroup group,
+        int segmentOrderIndex,
+        String speakerName,
+        String text,
         Map<String, String> voiceNamesBySpeaker,
         String languageCode,
         String modelName,
         String audioEncoding
     ) {
         Map<String, Object> input = new LinkedHashMap<>();
-        input.put("text", group.text());
+        input.put("text", text);
+        input.put("segmentOrderIndex", segmentOrderIndex);
 
         Map<String, Object> voice = new LinkedHashMap<>();
         voice.put("languageCode", languageCode);
-        voice.put("name", voiceNamesBySpeaker.getOrDefault(group.speakerName(), ""));
+        voice.put("speakerName", speakerName);
+        voice.put("name", voiceNamesBySpeaker.getOrDefault(speakerName, ""));
         voice.put("modelName", modelName);
 
         Map<String, Object> audioConfig = new LinkedHashMap<>();
@@ -123,27 +113,6 @@ public class SingleSpeakerRenderPlanner {
 
     private String stringValue(Object value) {
         return value == null ? "" : value.toString();
-    }
-
-    private static final class RenderGroup {
-        private final String speakerName;
-        private final List<String> texts = new ArrayList<>();
-
-        private RenderGroup(String speakerName) {
-            this.speakerName = speakerName;
-        }
-
-        private String speakerName() {
-            return speakerName;
-        }
-
-        private void addTurn(int originalTurnIndex, String text) {
-            texts.add(text);
-        }
-
-        private String text() {
-            return String.join("\n", texts);
-        }
     }
 }
 

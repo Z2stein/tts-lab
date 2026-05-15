@@ -43,13 +43,8 @@ public class EmotionAnnotationPersistenceService {
             return List.of();
         }
 
-        Map<String, String> speakerNamesByCharacterId = new LinkedHashMap<>();
-        for (SpeakerCharacter character : speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc(project.getId())) {
-            speakerNamesByCharacterId.put(character.getId(), character.getSpeakerName());
-        }
-
         return segments.stream()
-            .map(segment -> new SpeakerSplitTurn(resolveSpeakerName(segment, speakerNamesByCharacterId), resolveTurnText(segment)))
+            .map(segment -> new SpeakerSplitTurn(resolveSpeakerName(segment), resolveTurnText(segment)))
             .toList();
     }
 
@@ -72,13 +67,13 @@ public class EmotionAnnotationPersistenceService {
         for (int i = 0; i < segments.size(); i++) {
             AudiobookSpeechSegment segment = segments.get(i);
             segment.setStyledText(annotatedTurns.get(i).text());
+            segment.setReviewStatus(AudiobookSpeechSegmentReviewStatus.APPROVED);
             segment.setUpdatedAt(now);
         }
 
         speechSegmentRepository.saveAll(segments);
     }
 
-    @Transactional
     public List<SpeakerSplitTurn> saveScriptPreviewTurns(AudiobookProject project, List<SpeakerSplitTurn> turns) {
         List<AudiobookSpeechSegment> segments = speechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(
             project.getId(),
@@ -109,11 +104,19 @@ public class EmotionAnnotationPersistenceService {
             String text = requireTurnValue(turn.text());
             SpeakerCharacter character = charactersByName.get(normalized(speaker));
 
+            if (character == null) {
+                throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "SCRIPT_PREVIEW_SPEAKER_NOT_FOUND",
+                    "Speaker '" + speaker.trim() + "' not found in available characters."
+                );
+            }
+
             boolean needsChanges = segment.getReviewStatus() == AudiobookSpeechSegmentReviewStatus.APPROVED
+                || segment.getReviewStatus() == AudiobookSpeechSegmentReviewStatus.NEEDS_CHANGES
                 || (segment.getStyledText() != null && !segment.getStyledText().isBlank());
 
-            segment.setSpeakerName(character != null ? character.getSpeakerName() : speaker.trim());
-            segment.setCharacterId(character != null ? character.getId() : null);
+            segment.setCharacter(character);
             segment.setOriginalText(text.trim());
             segment.setStyledText(null);
             segment.setReviewStatus(needsChanges
@@ -121,26 +124,19 @@ public class EmotionAnnotationPersistenceService {
                 : AudiobookSpeechSegmentReviewStatus.PENDING);
             segment.setUpdatedAt(now);
 
-            savedTurns.add(new SpeakerSplitTurn(segment.getSpeakerName(), segment.getOriginalText()));
+            savedTurns.add(new SpeakerSplitTurn(character.getSpeakerName(), segment.getOriginalText()));
         }
 
         speechSegmentRepository.saveAll(segments);
         return savedTurns;
     }
 
-    private String resolveSpeakerName(AudiobookSpeechSegment segment, Map<String, String> speakerNamesByCharacterId) {
-        if (segment.getSpeakerName() != null && !segment.getSpeakerName().isBlank()) {
-            return segment.getSpeakerName().trim();
+    private String resolveSpeakerName(AudiobookSpeechSegment segment) {
+        SpeakerCharacter character = segment.getCharacter();
+        String speakerName = character.getSpeakerName();
+        if (speakerName != null && !speakerName.isBlank()) {
+            return speakerName.trim();
         }
-
-        String characterId = segment.getCharacterId();
-        if (characterId != null && !characterId.isBlank()) {
-            String speakerName = speakerNamesByCharacterId.get(characterId);
-            if (speakerName != null && !speakerName.isBlank()) {
-                return speakerName.trim();
-            }
-        }
-
         throw new ApiException(
             HttpStatus.BAD_REQUEST,
             "EMOTION_ANNOTATION_SEGMENT_MISMATCH",

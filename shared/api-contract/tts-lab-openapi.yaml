@@ -202,6 +202,20 @@ paths:
         '502':
           $ref: '#/components/responses/ProviderUnavailableError'
 
+  /api/audiobooks/workflow/voices:
+    get:
+      tags: [Audiobook Workflow]
+      operationId: getVoiceCatalog
+      responses:
+        '200':
+          description: All available speaker voices
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SpeakerVoiceCatalogItem'
+
   /api/audiobooks/workflow/speaker-voice-analysis:
     post:
       tags: [Audiobook Workflow]
@@ -268,7 +282,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/EmotionAnnotationAnalysisResponse'
+                $ref: '#/components/schemas/AudiobookWorkflowSnapshotResponse'
         '400':
           $ref: '#/components/responses/ValidationError'
         '500':
@@ -339,15 +353,15 @@ paths:
       parameters:
         - name: projectId
           in: query
-          required: false
+          required: true
           schema:
             type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SingleSpeakerRenderPlanResponse'
+        - name: targetSegmentIndex
+          in: query
+          required: true
+          schema:
+            type: integer
+            description: Zero-based index of the speech segment to render
       responses:
         '200':
           description: Rendered audio download
@@ -372,6 +386,122 @@ paths:
           $ref: '#/components/responses/RateLimitedError'
         '500':
           $ref: '#/components/responses/InternalError'
+
+  /api/audiobooks/workflow/projects/{projectId}/audio-generated:
+    post:
+      tags: [Audiobook Workflow]
+      operationId: finalizeAudiobookAudioGeneration
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current audiobook workflow snapshot after the preview is finalized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudiobookWorkflowSnapshotResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+
+  /api/audiobooks/workflow/projects/{projectId}:
+    get:
+      tags: [Audiobook Workflow]
+      operationId: getAudiobookWorkflowSnapshot
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Current audiobook workflow snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudiobookWorkflowSnapshotResponse'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/audiobooks/workflow/projects/{projectId}/cast-approval:
+    post:
+      tags: [Audiobook Workflow]
+      operationId: approveAudiobookCast
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated audiobook workflow snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudiobookWorkflowSnapshotResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/audiobooks/workflow/projects/{projectId}/script-approval:
+    post:
+      tags: [Audiobook Workflow]
+      operationId: approveAudiobookScript
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Updated audiobook workflow snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudiobookWorkflowSnapshotResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
+  /api/audiobooks/workflow/projects/{projectId}/production-settings:
+    patch:
+      tags: [Audiobook Workflow]
+      operationId: updateAudiobookWorkflowProductionSettings
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AudiobookWorkflowProductionSettingsRequest'
+      responses:
+        '200':
+          description: Updated audiobook workflow snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudiobookWorkflowSnapshotResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
 
 components:
   responses:
@@ -608,6 +738,9 @@ components:
           type: string
         streamUrl:
           type: string
+        speakerName:
+          type: string
+          nullable: true
       additionalProperties: false
 
     AudiobookSummaryResponse:
@@ -716,6 +849,78 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/AudioAssetResponse'
+      additionalProperties: false
+
+    AudiobookWorkflowStage:
+      type: string
+      enum: [CAST_REVIEW, CAST_APPROVED, SCRIPT_REVIEW, SCRIPT_APPROVED, PERFORMANCE_READY, AUDIO_GENERATED]
+
+    AudiobookWorkflowProductionSettings:
+      type: object
+      required: [prompt, languageCode, modelName, audioEncoding]
+      properties:
+        prompt:
+          type: string
+        languageCode:
+          type: string
+        modelName:
+          type: string
+        audioEncoding:
+          type: string
+      additionalProperties: false
+
+    AudiobookWorkflowProductionSettingsRequest:
+      type: object
+      required: [prompt, languageCode, modelName, audioEncoding]
+      properties:
+        prompt:
+          type: string
+        languageCode:
+          type: string
+        modelName:
+          type: string
+        audioEncoding:
+          type: string
+      additionalProperties: false
+
+    AudiobookWorkflowSnapshotResponse:
+      type: object
+      required: [projectId, title, workflowStage, speakers, scriptTurns, annotatedTurns, productionSettings, audioAssets, audioAssetsCurrent, performanceNotesStale]
+      properties:
+        projectId:
+          type: string
+        title:
+          type: string
+        storyText:
+          type: string
+          nullable: true
+        workflowStage:
+          $ref: '#/components/schemas/AudiobookWorkflowStage'
+        speakers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpeakerVoiceAnalysisItem'
+        scriptTurns:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpeakerSplitTurn'
+        annotatedTurns:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnnotatedSpeakerTurn'
+        productionSettings:
+          $ref: '#/components/schemas/AudiobookWorkflowProductionSettings'
+        audioAssets:
+          type: array
+          items:
+            $ref: '#/components/schemas/AudioAssetResponse'
+        audioAssetsCurrent:
+          type: boolean
+        performanceNotesStale:
+          type: boolean
+        mergedAudioUrl:
+          type: string
+          nullable: true
       additionalProperties: false
 
     ChatRequest:
@@ -927,6 +1132,18 @@ components:
           additionalProperties: true
       additionalProperties: false
 
+    CreateAudioRequest:
+      type: object
+      required: [projectId, targetSegmentIndex]
+      properties:
+        projectId:
+          type: string
+          description: ID of the project containing segments to render
+        targetSegmentIndex:
+          type: integer
+          description: Zero-based index of the speech segment to render
+      additionalProperties: false
+
     SingleSpeakerRenderPlanResponse:
       type: object
       required: [renderRequests]
@@ -935,6 +1152,24 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SingleSpeakerRenderRequest'
+      additionalProperties: false
+
+    SpeakerVoiceCatalogItem:
+      type: object
+      required: [id, providerVoiceName, displayName, description, imageUrl, demoMp3Url]
+      properties:
+        id:
+          type: string
+        providerVoiceName:
+          type: string
+        displayName:
+          type: string
+        description:
+          type: string
+        imageUrl:
+          type: string
+        demoMp3Url:
+          type: string
       additionalProperties: false
 
 
