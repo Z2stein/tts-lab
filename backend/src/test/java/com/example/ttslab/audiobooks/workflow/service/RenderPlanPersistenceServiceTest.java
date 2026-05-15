@@ -5,6 +5,8 @@ import com.example.ttslab.audiobooks.model.AudiobookProjectStatus;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus;
+import com.example.ttslab.audiobooks.model.SpeakerCharacter;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookSpeechSegmentRepository;
 import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderPlanResponse;
@@ -31,10 +33,9 @@ class RenderPlanPersistenceServiceTest {
 
         AudiobookProject project = createProject("project-1", "Claude's Audiobook", "en-US", "google.generativeai-1.5-flash");
         AudiobookSpeechSegment segment = createSegment("segment-1", project, 0, "The Storyteller", "warm-voice", "Once upon a time...");
+        project.getSpeechSegments().add(segment);
 
-        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
-        when(segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex("project-1", AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW))
-            .thenReturn(List.of(segment));
+        when(projectRepository.findWithDetailsById("project-1")).thenReturn(Optional.of(project));
 
         SingleSpeakerRenderPlanResponse response = service.loadRenderPlanFromDatabase("project-1");
 
@@ -43,7 +44,7 @@ class RenderPlanPersistenceServiceTest {
         assertThat(request.input().get("text")).isEqualTo("Once upon a time...");
         assertThat(request.input().get("segmentOrderIndex")).isEqualTo(0);
         assertThat(request.voice().get("speakerName")).isEqualTo("The Storyteller");
-        assertThat(request.voice().get("name")).isEqualTo("warm-voice");
+        assertThat(request.voice().get("name")).isEqualTo(SpeakerVoice.ACHIRD);
         assertThat(request.voice().get("modelName")).isEqualTo("google.generativeai-1.5-flash");
         assertThat(request.voice().get("languageCode")).isEqualTo("en-US");
         assertThat(request.audioConfig().get("audioEncoding")).isEqualTo("MP3");
@@ -58,10 +59,9 @@ class RenderPlanPersistenceServiceTest {
         AudiobookProject project = createProject("project-1", "My Book", "fr-FR", "model-name");
         AudiobookSpeechSegment first = createSegment("seg-1", project, 0, "Alice", "voice-a", "First line");
         AudiobookSpeechSegment second = createSegment("seg-2", project, 1, "Bob", "voice-b", "Second line");
+        project.getSpeechSegments().addAll(List.of(first, second));
 
-        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
-        when(segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex("project-1", AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW))
-            .thenReturn(List.of(first, second));
+        when(projectRepository.findWithDetailsById("project-1")).thenReturn(Optional.of(project));
 
         SingleSpeakerRenderPlanResponse response = service.loadRenderPlanFromDatabase("project-1");
 
@@ -78,7 +78,7 @@ class RenderPlanPersistenceServiceTest {
         AudiobookSpeechSegmentRepository segmentRepository = mock(AudiobookSpeechSegmentRepository.class);
         RenderPlanPersistenceService service = new RenderPlanPersistenceService(projectRepository, segmentRepository);
 
-        when(projectRepository.findById("missing-project")).thenReturn(Optional.empty());
+        when(projectRepository.findWithDetailsById("missing-project")).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> service.loadRenderPlanFromDatabase("missing-project"))
             .isInstanceOf(ApiException.class)
@@ -92,7 +92,7 @@ class RenderPlanPersistenceServiceTest {
         RenderPlanPersistenceService service = new RenderPlanPersistenceService(projectRepository, segmentRepository);
 
         AudiobookProject project = createProject("project-1", "Book", "en-US", null);
-        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+        when(projectRepository.findWithDetailsById("project-1")).thenReturn(Optional.of(project));
 
         assertThatThrownBy(() -> service.loadRenderPlanFromDatabase("project-1"))
             .isInstanceOf(ApiException.class)
@@ -106,7 +106,7 @@ class RenderPlanPersistenceServiceTest {
         RenderPlanPersistenceService service = new RenderPlanPersistenceService(projectRepository, segmentRepository);
 
         AudiobookProject project = createProject("project-1", "Book", null, "model-name");
-        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
+        when(projectRepository.findWithDetailsById("project-1")).thenReturn(Optional.of(project));
 
         assertThatThrownBy(() -> service.loadRenderPlanFromDatabase("project-1"))
             .isInstanceOf(ApiException.class)
@@ -120,9 +120,7 @@ class RenderPlanPersistenceServiceTest {
         RenderPlanPersistenceService service = new RenderPlanPersistenceService(projectRepository, segmentRepository);
 
         AudiobookProject project = createProject("project-1", "Book", "en-US", "model-name");
-        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
-        when(segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex("project-1", AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW))
-            .thenReturn(List.of());
+        when(projectRepository.findWithDetailsById("project-1")).thenReturn(Optional.of(project));
 
         assertThatThrownBy(() -> service.loadRenderPlanFromDatabase("project-1"))
             .isInstanceOf(ApiException.class)
@@ -137,10 +135,9 @@ class RenderPlanPersistenceServiceTest {
 
         AudiobookProject project = createProject("project-1", "Book", "en-US", "model-name");
         AudiobookSpeechSegment segment = createSegment("seg-1", project, 0, "Speaker", "voice", null);
+        project.getSpeechSegments().add(segment);
 
-        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
-        when(segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex("project-1", AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW))
-            .thenReturn(List.of(segment));
+        when(projectRepository.findWithDetailsById("project-1")).thenReturn(Optional.of(project));
 
         assertThatThrownBy(() -> service.loadRenderPlanFromDatabase("project-1"))
             .isInstanceOf(ApiException.class)
@@ -155,10 +152,9 @@ class RenderPlanPersistenceServiceTest {
 
         AudiobookProject project = createProject("project-1", "Book", "en-US", "model-name");
         AudiobookSpeechSegment segment = createSegment("seg-1", project, 0, "Speaker", "voice", "  ");
+        project.getSpeechSegments().add(segment);
 
-        when(projectRepository.findById("project-1")).thenReturn(Optional.of(project));
-        when(segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex("project-1", AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW))
-            .thenReturn(List.of(segment));
+        when(projectRepository.findWithDetailsById("project-1")).thenReturn(Optional.of(project));
 
         assertThatThrownBy(() -> service.loadRenderPlanFromDatabase("project-1"))
             .isInstanceOf(ApiException.class)
@@ -184,6 +180,15 @@ class RenderPlanPersistenceServiceTest {
     }
 
     private AudiobookSpeechSegment createSegment(String id, AudiobookProject project, int orderIndex, String speakerName, String voiceName, String styledText) {
+        SpeakerCharacter character = new SpeakerCharacter(
+            id + "-char",
+            project.getId(),
+            0,
+            speakerName,
+            null,
+            SpeakerVoice.ACHIRD,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
         AudiobookSpeechSegment segment = new AudiobookSpeechSegment(
             id,
             project,
@@ -193,12 +198,10 @@ class RenderPlanPersistenceServiceTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            speakerName,
-            null,
-            voiceName,
-            null
+            styledText,
+            styledText,
+            character
         );
-        segment.setStyledText(styledText);
         segment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         return segment;
     }

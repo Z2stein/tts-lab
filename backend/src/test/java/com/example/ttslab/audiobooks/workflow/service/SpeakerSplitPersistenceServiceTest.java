@@ -85,7 +85,7 @@ class SpeakerSplitPersistenceServiceTest {
         assertThat(segments).extracting(AudiobookSpeechSegment::getOrderIndex).containsExactly(0, 1);
         assertThat(segments).extracting(AudiobookSpeechSegment::getOriginalText).containsExactly("Hello", "Hi");
         assertThat(segments).extracting(AudiobookSpeechSegment::getCharacterId).containsExactly("character-1", "character-2");
-        assertThat(segments).extracting(AudiobookSpeechSegment::getSpeakerName).allMatch(value -> value == null);
+        assertThat(segments).extracting(s -> s.getCharacter().getSpeakerName()).containsExactly("Alice", "Bob");
         assertThat(segments).extracting(AudiobookSpeechSegment::getReviewStatus).containsOnly(AudiobookSpeechSegmentReviewStatus.PENDING);
         assertThat(segments).extracting(AudiobookSpeechSegment::getSegmentOrigin).containsOnly(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
     }

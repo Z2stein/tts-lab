@@ -9,13 +9,17 @@ import org.springframework.stereotype.Repository;
 
 import java.util.List;
 import java.util.Optional;
+import org.springframework.data.jpa.repository.EntityGraph;
 
 @Repository
 public interface AudiobookSpeechSegmentRepository extends JpaRepository<AudiobookSpeechSegment, String> {
+    @EntityGraph(attributePaths = {"character"})
+    Optional<AudiobookSpeechSegment> findById(String id);
+
     @Query("SELECT s FROM AudiobookSpeechSegment s WHERE s.project.id = ?1 ORDER BY s.orderIndex ASC")
     List<AudiobookSpeechSegment> findByProjectIdOrderByOrderIndex(String projectId);
 
-    @Query("SELECT s FROM AudiobookSpeechSegment s WHERE s.project.id = ?1 AND s.segmentOrigin = ?2 ORDER BY s.orderIndex ASC")
+    @Query("SELECT s FROM AudiobookSpeechSegment s LEFT JOIN FETCH s.character WHERE s.project.id = ?1 AND s.segmentOrigin = ?2 ORDER BY s.orderIndex ASC")
     List<AudiobookSpeechSegment> findByProjectIdAndSegmentOriginOrderByOrderIndex(String projectId, AudiobookSpeechSegmentOrigin segmentOrigin);
 
     @Query("SELECT s FROM AudiobookSpeechSegment s WHERE s.project.id = ?1")

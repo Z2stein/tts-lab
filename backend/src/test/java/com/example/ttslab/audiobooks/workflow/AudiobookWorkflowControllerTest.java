@@ -16,6 +16,8 @@ import com.example.ttslab.audiobooks.model.AudioAssetStatus;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus;
+import com.example.ttslab.audiobooks.model.SpeakerCharacter;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.error.GlobalApiExceptionHandler;
 import com.example.ttslab.audiobooks.workflow.*;
 import com.example.ttslab.audiobooks.workflow.service.AudiobookWorkflowService;
@@ -37,6 +39,7 @@ import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import java.util.List;
 import com.example.ttslab.error.ApiException;
 import java.util.Map;
+import java.time.Instant;
 import org.mockito.InOrder;
 
 import org.junit.jupiter.api.Test;
@@ -145,6 +148,15 @@ class AudiobookWorkflowControllerTest {
         when(audiobookLibraryService.getProjectForUser(anyString(), any(CurrentUser.class)))
             .thenReturn(testProject);
 
+        SpeakerCharacter character = new SpeakerCharacter(
+            "character-1",
+            testProject.getId(),
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
         AudiobookSpeechSegment testSegment = new AudiobookSpeechSegment(
             "test-scene-1",
             testProject,
@@ -152,15 +164,11 @@ class AudiobookWorkflowControllerTest {
             "Speech segment 1",
             AudiobookSpeechSegmentReviewStatus.PENDING,
             null,
-            null,
-            null,
-            "Narrator",
-            null,
-            "Kore",
-            null,
+            Instant.now(),
+            Instant.now(),
             "Hello",
             null,
-            null
+            character
         );
         testSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         when(audiobookLibraryService.preparePreviewSegments(any(AudiobookProject.class), anyList(), anyBoolean()))

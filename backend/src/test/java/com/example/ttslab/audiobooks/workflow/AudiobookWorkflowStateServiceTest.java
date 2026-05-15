@@ -9,6 +9,7 @@ import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.audiobooks.model.SpeakerCharacter;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookRepository;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
@@ -250,6 +251,15 @@ class AudiobookWorkflowStateServiceTest {
     }
 
     private AudiobookSpeechSegment previewSegment(AudiobookProject project, String speakerName, String originalText) {
+        SpeakerCharacter character = new SpeakerCharacter(
+            "character-1",
+            project.getId(),
+            0,
+            speakerName,
+            null,
+            SpeakerVoice.ACHIRD,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
         AudiobookSpeechSegment segment = new AudiobookSpeechSegment(
             "segment-1",
             project,
@@ -259,13 +269,9 @@ class AudiobookWorkflowStateServiceTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            speakerName,
-            null,
-            null,
-            null,
             originalText,
             null,
-            null
+            character
         );
         segment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         return segment;

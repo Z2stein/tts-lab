@@ -3,6 +3,7 @@ package com.example.ttslab.audiobooks.workflow;
 import com.example.ttslab.audiobooks.model.AudioAsset;
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
+import com.example.ttslab.audiobooks.model.SpeakerCharacter;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowProductionSettings;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowSnapshotResponse;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowStage;
@@ -199,13 +200,12 @@ public class AudiobookWorkflowStateService {
     }
 
     private String resolveSpeakerName(AudiobookSpeechSegment segment) {
-        if (segment.getSpeakerName() != null && !segment.getSpeakerName().isBlank()) {
-            return segment.getSpeakerName().trim();
-        }
-        if (segment.getCharacterId() != null && !segment.getCharacterId().isBlank()) {
-            return speakerCharacterRepository.findById(segment.getCharacterId())
-                .map(character -> character.getSpeakerName() == null ? null : character.getSpeakerName().trim())
-                .orElseThrow(() -> new ApiException(HttpStatus.BAD_REQUEST, "AUDIOBOOK_WORKFLOW_SNAPSHOT_INVALID", "The audiobook workflow snapshot is no longer valid."));
+        SpeakerCharacter character = segment.getCharacter();
+        if (character != null) {
+            String speakerName = character.getSpeakerName();
+            if (speakerName != null && !speakerName.isBlank()) {
+                return speakerName.trim();
+            }
         }
         throw new ApiException(HttpStatus.BAD_REQUEST, "AUDIOBOOK_WORKFLOW_SNAPSHOT_INVALID", "The audiobook workflow snapshot is no longer valid.");
     }

@@ -14,8 +14,11 @@ import com.example.ttslab.audiobooks.model.AudiobookProjectStatus;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus;
+import com.example.ttslab.audiobooks.model.SpeakerCharacter;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookSpeechSegmentRepository;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.GlobalApiExceptionHandler;
 import com.example.ttslab.prompts.CurrentUserResolver;
@@ -57,6 +60,9 @@ class ScriptPreviewWorkflowIntegrationTest {
     @Autowired
     private AudiobookSpeechSegmentRepository audiobookSpeechSegmentRepository;
 
+    @Autowired
+    private SpeakerCharacterRepository speakerCharacterRepository;
+
     @MockBean
     private CurrentUserResolver currentUserResolver;
 
@@ -89,6 +95,16 @@ class ScriptPreviewWorkflowIntegrationTest {
         project.setWorkflowStage(AudiobookWorkflowStage.CAST_APPROVED);
         AudiobookProject savedProject = audiobookProjectRepository.save(project);
 
+        SpeakerCharacter character = new SpeakerCharacter(
+            "character-1",
+            projectId,
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.ACHIRD,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
+        speakerCharacterRepository.save(character);
         AudiobookSpeechSegment segment = new AudiobookSpeechSegment(
             segmentId,
             savedProject,
@@ -98,13 +114,9 @@ class ScriptPreviewWorkflowIntegrationTest {
             null,
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z"),
-            "Narrator",
-            null,
-            null,
-            null,
             "The opening line.",
             "[calm] The opening line.",
-            null
+            character
         );
         segment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         audiobookSpeechSegmentRepository.save(segment);
@@ -137,7 +149,7 @@ class ScriptPreviewWorkflowIntegrationTest {
         assertThat(project.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.CAST_APPROVED);
 
         AudiobookSpeechSegment segment = audiobookSpeechSegmentRepository.findById(segmentId).orElseThrow();
-        assertThat(segment.getSpeakerName()).isEqualTo("Narrator");
+        assertThat(segment.getCharacter().getSpeakerName()).isEqualTo("Narrator");
         assertThat(segment.getOriginalText()).isEqualTo("The opening line.");
         assertThat(segment.getStyledText()).isEqualTo("[calm] The opening line.");
         assertThat(segment.getReviewStatus()).isEqualTo(AudiobookSpeechSegmentReviewStatus.APPROVED);

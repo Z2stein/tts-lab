@@ -20,6 +20,7 @@ import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
 import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderRequest;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.storage.FileStorageService;
 import com.example.ttslab.storage.StorageKeyBuilder;
 import com.example.ttslab.storage.StorageProperties;
@@ -166,6 +167,15 @@ class AudiobookLibraryServiceTest {
             Instant.now(),
             Instant.now()
         );
+        SpeakerCharacter character = new SpeakerCharacter(
+            "character-1",
+            "Test Audiobook",
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
         AudiobookSpeechSegment previewSegment = new AudiobookSpeechSegment(
             "segment-1",
             project,
@@ -175,13 +185,9 @@ class AudiobookLibraryServiceTest {
             null,
             Instant.now(),
             Instant.now(),
-            "Narrator",
-            null,
-            "Kore",
-            null,
             "Hello",
             null,
-            null
+            character
         );
         previewSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
 

@@ -4,9 +4,12 @@ import com.example.ttslab.audiobooks.dto.AudiobookDetailResponse;
 import com.example.ttslab.audiobooks.dto.AudiobookSummaryResponse;
 import com.example.ttslab.audiobooks.model.*;
 import com.example.ttslab.audiobooks.repository.AudiobookRepository;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
 import com.example.ttslab.error.ApiErrorResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,6 +47,9 @@ class AudiobookLibraryIntegrationTest {
     AudiobookRepository repository;
 
     @Autowired
+    SpeakerCharacterRepository speakerCharacterRepository;
+
+    @Autowired
     JdbcTemplate jdbcTemplate;
 
     @Autowired
@@ -71,8 +77,10 @@ class AudiobookLibraryIntegrationTest {
     @BeforeEach
     void setupFixtures() {
         // Clean up any previous test data for user-1 and user-2 to ensure test isolation
+        // Delete in order: assets -> segments -> characters -> projects (respecting foreign keys)
         jdbcTemplate.update("DELETE FROM audio_asset WHERE project_id IN (SELECT id FROM audiobook_project WHERE user_id IN (?, ?))", "user-1", "user-2");
         jdbcTemplate.update("DELETE FROM audiobook_speech_segment WHERE project_id IN (SELECT id FROM audiobook_project WHERE user_id IN (?, ?))", "user-1", "user-2");
+        jdbcTemplate.update("DELETE FROM charakters WHERE project_id IN (SELECT id FROM audiobook_project WHERE user_id IN (?, ?))", "user-1", "user-2");
         jdbcTemplate.update("DELETE FROM audiobook_project WHERE user_id IN (?, ?)", "user-1", "user-2");
 
         // Generate IDs for all fixtures
@@ -115,9 +123,19 @@ class AudiobookLibraryIntegrationTest {
         ));
 
         // Speech segment with metadata
+        SpeakerCharacter narratorCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            projectA,
+            0,
+            "narrator",
+            "Main narrator",
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
+        speakerCharacterRepository.save(narratorCharacter);
         AudiobookSpeechSegment fixtureASegment = new AudiobookSpeechSegment(
             speechSegmentA1, projectA, 1, "Opening Speech Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
-            30, null, null, "narrator", "Main narrator", null, null
+            30, null, null, null, null, narratorCharacter
         );
         fixtureASegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         repository.addSpeechSegment(fixtureASegment);
@@ -152,16 +170,36 @@ class AudiobookLibraryIntegrationTest {
             "AUDIOBOOK_WORKFLOW", 0, null, null, null, null
         ));
 
+        SpeakerCharacter multiSpeakerCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            projectB,
+            0,
+            "TestSpeaker",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
+        speakerCharacterRepository.save(multiSpeakerCharacter);
         AudiobookSpeechSegment fixtureBSegment = new AudiobookSpeechSegment(
             speechSegmentB1, projectB, 1, "Multi-Speaker Speech Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
-            55, null, null, null, null, null, null
+            55, null, null, null, null, multiSpeakerCharacter
         );
         fixtureBSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         repository.addSpeechSegment(fixtureBSegment);
 
+        SpeakerCharacter generatedAudioCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            projectB,
+            1,
+            "TestSpeaker",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
+        speakerCharacterRepository.save(generatedAudioCharacter);
         AudiobookSpeechSegment generatedLinkSegment = new AudiobookSpeechSegment(
             speechSegmentB2, projectB, 2, "Generated Audio Link Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
-            55, null, null, null, null, null, null
+            55, null, null, null, null, generatedAudioCharacter
         );
         generatedLinkSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.GENERATED_AUDIO);
         repository.addSpeechSegment(generatedLinkSegment);
@@ -197,9 +235,19 @@ class AudiobookLibraryIntegrationTest {
             "AUDIOBOOK_WORKFLOW", 0, null, null, null, null
         ));
 
+        SpeakerCharacter jamesCharacter = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            projectC,
+            0,
+            "james",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
+        speakerCharacterRepository.save(jamesCharacter);
         AudiobookSpeechSegment fixtureCSegment = new AudiobookSpeechSegment(
             speechSegmentC1, projectC, 1, "Private Speech Segment", AudiobookSpeechSegmentReviewStatus.PENDING,
-            20, null, null, "james", null, null, null
+            20, null, null, null, null, jamesCharacter
         );
         fixtureCSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         repository.addSpeechSegment(fixtureCSegment);

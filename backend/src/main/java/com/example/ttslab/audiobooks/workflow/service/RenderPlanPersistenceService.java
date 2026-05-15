@@ -3,6 +3,7 @@ package com.example.ttslab.audiobooks.workflow.service;
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
+import com.example.ttslab.audiobooks.model.SpeakerCharacter;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookSpeechSegmentRepository;
 import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderPlanResponse;
@@ -31,7 +32,7 @@ public class RenderPlanPersistenceService {
 
     @Transactional(readOnly = true)
     public SingleSpeakerRenderPlanResponse loadRenderPlanFromDatabase(String projectId) {
-        AudiobookProject project = projectRepository.findById(projectId)
+        AudiobookProject project = projectRepository.findWithDetailsById(projectId)
             .orElseThrow(() -> new ApiException(
                 HttpStatus.NOT_FOUND,
                 "PROJECT_NOT_FOUND",
@@ -54,10 +55,9 @@ public class RenderPlanPersistenceService {
             );
         }
 
-        List<AudiobookSpeechSegment> segments = segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(
-            projectId,
-            AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW
-        );
+        List<AudiobookSpeechSegment> segments = project.getSpeechSegments().stream()
+            .filter(s -> s.getSegmentOrigin() == AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW)
+            .toList();
 
         if (segments.isEmpty()) {
             throw new ApiException(
@@ -95,12 +95,13 @@ public class RenderPlanPersistenceService {
         Map<String, Object> voice = new HashMap<>();
         voice.put("languageCode", project.getProductionLanguageCode());
         voice.put("modelName", project.getProductionModelName());
-        voice.put("speakerName", segment.getSpeakerName());
-        voice.put("name", segment.getVoiceName());
+        voice.put("speakerName", segment.getCharacter().getSpeakerName().trim());
+        voice.put("name", segment.getCharacter().getVoiceSuggestion());
 
         Map<String, Object> audioConfig = new HashMap<>();
         audioConfig.put("audioEncoding", "MP3");
 
         return new SingleSpeakerRenderRequest(input, voice, audioConfig);
     }
+
 }

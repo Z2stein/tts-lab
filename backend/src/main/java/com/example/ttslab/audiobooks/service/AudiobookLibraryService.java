@@ -105,18 +105,21 @@ public class AudiobookLibraryService {
             project.getCreatedAt(),
             project.getUpdatedAt(),
             repository.findPreviewSpeechSegments(project.getId()).stream()
-                .map(speechSegment -> new AudiobookSpeechSegmentResponse(
-                    speechSegment.getId(),
-                    speechSegment.getOrderIndex(),
-                    speechSegment.getTitle(),
-                    speechSegment.getReviewStatus(),
-                    speechSegment.getDurationSeconds(),
-                    speechSegment.getSpeakerName(),
-                    speechSegment.getSpeakerRoleDescription(),
-                    speechSegment.getVoiceName(),
-                    speechSegment.getPerformanceDirections(),
-                    speechSegment.getStyledText()
-                ))
+                .map(speechSegment -> {
+                    SpeakerCharacter character = speechSegment.getCharacter();
+                    return new AudiobookSpeechSegmentResponse(
+                        speechSegment.getId(),
+                        speechSegment.getOrderIndex(),
+                        speechSegment.getTitle(),
+                        speechSegment.getReviewStatus(),
+                        speechSegment.getDurationSeconds(),
+                        character.getSpeakerName(),
+                        character.getRoleDescription(),
+                        character.getVoiceSuggestion() != null ? character.getVoiceSuggestion().toString() : null,
+                        null,
+                        speechSegment.getStyledText()
+                    );
+                })
                 .toList(),
             repository.findAssets(project.getId()).stream().map(this::assetResponse).toList()
         );
@@ -277,6 +280,17 @@ public class AudiobookLibraryService {
         Instant now = Instant.now();
         for (int i = 0; i < renderRequests.size(); i++) {
             SingleSpeakerRenderRequest renderRequest = renderRequests.get(i);
+            // Create a temporary character for this segment
+            SpeakerCharacter character = new SpeakerCharacter(
+                UUID.randomUUID().toString(),
+                project.getId(),
+                i,
+                speakerName(renderRequest),
+                null,
+                null,
+                now
+            );
+
             AudiobookSpeechSegment speechSegment = new AudiobookSpeechSegment(
                 UUID.randomUUID().toString(),
                 project,
@@ -286,13 +300,9 @@ public class AudiobookLibraryService {
                 null,
                 now,
                 now,
-                speakerName(renderRequest),
-                null,
-                voiceName(renderRequest),
-                null,
                 originalText(renderRequest),
                 null,
-                null
+                character
             );
             speechSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
             previewSegments.add(segmentRepository.save(speechSegment));
@@ -377,6 +387,17 @@ public class AudiobookLibraryService {
         project.setProductionAudioEncoding("MP3");
         projectRepository.save(project);
 
+        // Create a temporary character for the preview segment
+        SpeakerCharacter character = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            projectId,
+            0,
+            "Narrator",
+            null,
+            null,
+            now
+        );
+
         AudiobookSpeechSegment speechSegment = new AudiobookSpeechSegment(
             speechSegmentId,
             project,
@@ -388,8 +409,7 @@ public class AudiobookLibraryService {
             now,
             null,
             null,
-            null,
-            null
+            character
         );
         speechSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.GENERATED_PREVIEW);
         segmentRepository.save(speechSegment);

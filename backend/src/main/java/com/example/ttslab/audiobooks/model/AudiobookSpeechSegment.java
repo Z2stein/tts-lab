@@ -37,17 +37,6 @@ public class AudiobookSpeechSegment {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    @Column(name = "speaker_name")
-    private String speakerName;
-
-    @Column(name = "speaker_role_description")
-    private String speakerRoleDescription;
-
-    @Column(name = "voice_name")
-    private String voiceName;
-
-    @Column(name = "performance_directions")
-    private String performanceDirections;
 
     @Column(name = "original_text")
     private String originalText;
@@ -55,8 +44,9 @@ public class AudiobookSpeechSegment {
     @Column(name = "styled_text")
     private String styledText;
 
-    @Column(name = "character_id")
-    private String characterId;
+    @ManyToOne(fetch = FetchType.LAZY, optional = false)
+    @JoinColumn(name = "character_id", nullable = false)
+    private SpeakerCharacter character;
 
     @Enumerated(EnumType.STRING)
     @Column(name = "segment_origin", nullable = false)
@@ -78,12 +68,9 @@ public class AudiobookSpeechSegment {
         Integer durationSeconds,
         Instant createdAt,
         Instant updatedAt,
-        String speakerName,
-        String speakerRoleDescription,
-        String voiceName,
-        String performanceDirections
+        SpeakerCharacter character
     ) {
-        this(id, project, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, null, null, null);
+        this(id, project, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, null, null, character);
     }
 
     public AudiobookSpeechSegment(
@@ -95,13 +82,9 @@ public class AudiobookSpeechSegment {
         Integer durationSeconds,
         Instant createdAt,
         Instant updatedAt,
-        String speakerName,
-        String speakerRoleDescription,
-        String voiceName,
-        String performanceDirections,
         String originalText,
         String styledText,
-        String characterId
+        SpeakerCharacter character
     ) {
         this.id = id;
         this.project = project;
@@ -111,13 +94,9 @@ public class AudiobookSpeechSegment {
         this.durationSeconds = durationSeconds;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-        this.speakerName = speakerName;
-        this.speakerRoleDescription = speakerRoleDescription;
-        this.voiceName = voiceName;
-        this.performanceDirections = performanceDirections;
         this.originalText = originalText;
         this.styledText = styledText;
-        this.characterId = characterId;
+        this.character = character;
     }
 
     public AudiobookSpeechSegment(
@@ -129,17 +108,14 @@ public class AudiobookSpeechSegment {
         Integer durationSeconds,
         Instant createdAt,
         Instant updatedAt,
-        String speakerName,
-        String speakerRoleDescription,
-        String voiceName,
-        String performanceDirections,
         String originalText,
-        String characterId
+        SpeakerCharacter character
     ) {
-        this(id, project, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, originalText, null, characterId);
+        this(id, project, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, originalText, null, character);
     }
 
     // Constructor for JDBC/legacy code with projectId string
+    // Note: Legacy constructors should not be used for new code; use the JPA constructors above
     public AudiobookSpeechSegment(
         String id,
         String projectId,
@@ -149,12 +125,9 @@ public class AudiobookSpeechSegment {
         Integer durationSeconds,
         Instant createdAt,
         Instant updatedAt,
-        String speakerName,
-        String speakerRoleDescription,
-        String voiceName,
-        String performanceDirections
+        SpeakerCharacter character
     ) {
-        this(id, projectId, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, null, null, null);
+        this(id, projectId, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, null, null, character);
     }
 
     public AudiobookSpeechSegment(
@@ -166,13 +139,9 @@ public class AudiobookSpeechSegment {
         Integer durationSeconds,
         Instant createdAt,
         Instant updatedAt,
-        String speakerName,
-        String speakerRoleDescription,
-        String voiceName,
-        String performanceDirections,
         String originalText,
         String styledText,
-        String characterId
+        SpeakerCharacter character
     ) {
         this.id = id;
         this.projectIdValue = projectId;
@@ -182,13 +151,9 @@ public class AudiobookSpeechSegment {
         this.durationSeconds = durationSeconds;
         this.createdAt = createdAt;
         this.updatedAt = updatedAt;
-        this.speakerName = speakerName;
-        this.speakerRoleDescription = speakerRoleDescription;
-        this.voiceName = voiceName;
-        this.performanceDirections = performanceDirections;
         this.originalText = originalText;
         this.styledText = styledText;
-        this.characterId = characterId;
+        this.character = character;
     }
 
     public AudiobookSpeechSegment(
@@ -200,14 +165,10 @@ public class AudiobookSpeechSegment {
         Integer durationSeconds,
         Instant createdAt,
         Instant updatedAt,
-        String speakerName,
-        String speakerRoleDescription,
-        String voiceName,
-        String performanceDirections,
         String originalText,
-        String characterId
+        SpeakerCharacter character
     ) {
-        this(id, projectId, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, speakerName, speakerRoleDescription, voiceName, performanceDirections, originalText, null, characterId);
+        this(id, projectId, orderIndex, title, reviewStatus, durationSeconds, createdAt, updatedAt, originalText, null, character);
     }
 
     public String getId() {
@@ -281,37 +242,6 @@ public class AudiobookSpeechSegment {
         this.updatedAt = updatedAt;
     }
 
-    public String getSpeakerName() {
-        return speakerName;
-    }
-
-    public void setSpeakerName(String speakerName) {
-        this.speakerName = speakerName;
-    }
-
-    public String getSpeakerRoleDescription() {
-        return speakerRoleDescription;
-    }
-
-    public void setSpeakerRoleDescription(String speakerRoleDescription) {
-        this.speakerRoleDescription = speakerRoleDescription;
-    }
-
-    public String getVoiceName() {
-        return voiceName;
-    }
-
-    public void setVoiceName(String voiceName) {
-        this.voiceName = voiceName;
-    }
-
-    public String getPerformanceDirections() {
-        return performanceDirections;
-    }
-
-    public void setPerformanceDirections(String performanceDirections) {
-        this.performanceDirections = performanceDirections;
-    }
 
     public String getOriginalText() {
         return originalText;
@@ -329,12 +259,17 @@ public class AudiobookSpeechSegment {
         this.styledText = styledText;
     }
 
-    public String getCharacterId() {
-        return characterId;
+    public SpeakerCharacter getCharacter() {
+        return character;
     }
 
-    public void setCharacterId(String characterId) {
-        this.characterId = characterId;
+    public void setCharacter(SpeakerCharacter character) {
+        this.character = character;
+    }
+
+    // Backward compatibility wrapper for code that still uses character ID strings
+    public String getCharacterId() {
+        return character.getId();
     }
 
     public AudiobookSpeechSegmentOrigin getSegmentOrigin() {

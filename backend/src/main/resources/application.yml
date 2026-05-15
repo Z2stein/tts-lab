@@ -8,13 +8,14 @@ spring:
     password: ${SPRING_DATASOURCE_PASSWORD:}
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
     show-sql: false
     database-platform: org.hibernate.dialect.H2Dialect
     properties:
       hibernate.format_sql: true
   flyway:
     enabled: true
+    repair-on-migrate: true
   security:
     oauth2:
       client:

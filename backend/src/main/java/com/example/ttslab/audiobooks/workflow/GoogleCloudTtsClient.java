@@ -90,8 +90,9 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
             .setModelName(stringValue(voice,"modelName"));
         String name = stringValue(voice, "name");
         if (!name.isBlank()) {
-            builder.setName(name);
+            throw new TtsAudioCreationException("Voice name cannot be null: see VoiceMap: " +voice);
         }
+        builder.setName(name);
         return builder.build();
     }
 
