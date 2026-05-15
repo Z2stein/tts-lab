@@ -72,7 +72,7 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
     public String getSpeakerVoiceAnalysisPrompt(String rawDialogue) {
 
         String availableVoices = Arrays.stream(SpeakerVoice.values())
-                .map(v -> "Key: " + v.getKey() + " Style: " + v.getStyle())
+                .map(SpeakerVoice::toString)
                 .collect(Collectors.joining(", "));
 
         return """
