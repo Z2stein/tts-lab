@@ -462,7 +462,8 @@ class AudiobookWorkflowIntegrationTest {
         audiobookSpeechSegmentRepository.save(seg);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
-                .param("projectId", projectId))
+                .param("projectId", projectId)
+                .param("targetSegmentIndex", "0"))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
             .andExpect(header().string("X-Audiobook-Project-Id", projectId))
