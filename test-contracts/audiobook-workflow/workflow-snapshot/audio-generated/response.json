@@ -49,7 +49,20 @@
     "modelName": "gemini-3.1-flash-tts-preview",
     "audioEncoding": "MP3"
   },
-  "audioAssets": [],
+  "audioAssets": [
+    {
+      "speakerName": "Mara",
+      "filename": "mara-part-1.mp3",
+      "streamUrl": "https://example.com/audio/mara-part-1.mp3",
+      "downloadUrl": "https://example.com/audio/download/mara-part-1.mp3"
+    },
+    {
+      "speakerName": "Jonas",
+      "filename": "jonas-part-1.mp3",
+      "streamUrl": "https://example.com/audio/jonas-part-1.mp3",
+      "downloadUrl": "https://example.com/audio/download/jonas-part-1.mp3"
+    }
+  ],
   "audioAssetsCurrent": true,
   "performanceNotesStale": false
 }

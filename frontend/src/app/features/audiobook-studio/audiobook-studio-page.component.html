@@ -119,7 +119,7 @@
         </div>
       </div>
 
-      <p *ngIf="!audioProductionPlan" class="empty-state">The audiobook setup will appear after performance notes.</p>
+      <p *ngIf="!audioProductionPlan && audioAssets.length === 0" class="empty-state">The audiobook setup will appear after performance notes.</p>
       <div *ngIf="audioProductionPlan" class="plan-summary" aria-label="Audiobook setup">
         <div class="plan-summary-status">
           <span>Generation state</span>
@@ -148,6 +148,38 @@
         <div>
           <span>Audio encoding</span>
           <strong>{{ audioEncodingControl.value }}</strong>
+        </div>
+      </div>
+
+      <!-- Fallback: show readonly summary when audio is saved but production plan was not regenerated after reload -->
+      <div *ngIf="!audioProductionPlan && audioAssets.length > 0" class="plan-summary" aria-label="Saved audiobook setup">
+        <div class="plan-summary-status">
+          <span>Generation state</span>
+          <strong>Ready to listen</strong>
+        </div>
+        <div>
+          <span>Audio parts</span>
+          <strong>{{ audioAssets.length }}</strong>
+        </div>
+        <div>
+          <span>Ready parts</span>
+          <strong>{{ audioAssets.length }} / {{ audioAssets.length }}</strong>
+        </div>
+        <div>
+          <span>Needs generation</span>
+          <strong>0</strong>
+        </div>
+        <div>
+          <span>Failed parts</span>
+          <strong>0</strong>
+        </div>
+        <div *ngIf="productionSettings?.languageCode">
+          <span>Language code</span>
+          <strong>{{ productionSettings?.languageCode }}</strong>
+        </div>
+        <div *ngIf="productionSettings?.audioEncoding">
+          <span>Audio encoding</span>
+          <strong>{{ productionSettings?.audioEncoding }}</strong>
         </div>
       </div>
 
@@ -196,6 +228,32 @@
         </button>
       </app-waveform-player>
 
+      <!-- Show previously generated audio when production plan was not yet loaded after reload -->
+      <details *ngIf="audioAssets.length > 0 && !audioProductionPlan" class="audio-parts-details">
+        <summary>Previously generated audio ({{ audioAssets.length }})</summary>
+        <p class="saved-audio-hint">Generate a new production plan to re-generate or download individual parts.</p>
+        <div class="render-list">
+          <article *ngFor="let asset of audioAssets; let i = index" class="render-request" [ngStyle]="speakerStyle(asset.speakerName ?? undefined)">
+            <div class="render-identity">
+              <span class="cast-avatar part-avatar" aria-hidden="true">{{ speakerInitials(asset.speakerName ?? 'Unknown') }}</span>
+              <div>
+                <span class="badge">Part {{ i + 1 }} of {{ audioAssets.length }}</span>
+                <h3>{{ asset.speakerName ?? 'Unknown speaker' }}</h3>
+              </div>
+            </div>
+            <app-waveform-player
+              class="render-player framework-player"
+              [key]="'saved-part:' + i"
+              [src]="asset.streamUrl"
+              [ariaLabel]="'previously generated voice part ' + (i + 1)"
+            >
+              <a class="secondary-button download-button" [href]="asset.downloadUrl" [download]="asset.filename">
+                Download part
+              </a>
+            </app-waveform-player>
+          </article>
+        </div>
+      </details>
 
       <details *ngIf="renderRequests.length > 0" class="audio-parts-details">
         <summary>Audio parts and individual previews</summary>

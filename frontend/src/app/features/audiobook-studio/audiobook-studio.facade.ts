@@ -9,6 +9,7 @@ import {
   FinalTtsRequestPreviewResponse,
   SingleSpeakerRenderPlanResponse,
 } from '../audiobook-shared/service/audiobook-workflow.service';
+import { AudioAssetResponse, AudiobookWorkflowProductionSettings } from '../../shared/api-contract.generated';
 import { AudiobookLibraryService } from '../audiobook-library/services/audiobook-library.service';
 import { ScriptGroup } from './models/audiobook-studio.types';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
@@ -21,6 +22,8 @@ export class AudiobookStudioFacade {
   private readonly _annotatedTurns = signal<AnnotatedSpeakerTurn[]>([]);
   private readonly _finalRequest = signal<FinalTtsRequestPreviewResponse | null>(null);
   private readonly _audioProductionPlan = signal<SingleSpeakerRenderPlanResponse | null>(null);
+  private readonly _audioAssets = signal<AudioAssetResponse[]>([]);
+  private readonly _productionSettings = signal<AudiobookWorkflowProductionSettings | null>(null);
   private readonly _projectTitle = signal('');
   private readonly _workflowStage = signal<AudiobookWorkflowStage | null>(null);
   private readonly _castReviewed = signal(false);
@@ -39,6 +42,8 @@ export class AudiobookStudioFacade {
   readonly annotatedTurns = this._annotatedTurns.asReadonly();
   readonly finalRequest = this._finalRequest.asReadonly();
   readonly audioProductionPlan = this._audioProductionPlan.asReadonly();
+  readonly audioAssets = this._audioAssets.asReadonly();
+  readonly productionSettings = this._productionSettings.asReadonly();
   readonly projectTitle = this._projectTitle.asReadonly();
   readonly workflowStage = this._workflowStage.asReadonly();
   readonly castReviewed = this._castReviewed.asReadonly();
@@ -303,6 +308,8 @@ export class AudiobookStudioFacade {
     this._annotatedTurns.set([]);
     this._finalRequest.set(null);
     this._audioProductionPlan.set(null);
+    this._audioAssets.set([]);
+    this._productionSettings.set(null);
     this._projectTitle.set('');
     this._workflowStage.set(null);
     this._castReviewed.set(false);
@@ -337,6 +344,8 @@ export class AudiobookStudioFacade {
     this._cast.set(snapshot.speakers);
     this._scriptTurns.set(snapshot.scriptTurns);
     this._annotatedTurns.set(snapshot.annotatedTurns);
+    this._audioAssets.set(snapshot.audioAssets);
+    this._productionSettings.set(snapshot.productionSettings);
     this._workflowStage.set(snapshot.workflowStage);
     const stage = snapshot.workflowStage;
     this._castReviewed.set(stage !== 'CAST_REVIEW');

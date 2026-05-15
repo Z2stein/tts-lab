@@ -795,6 +795,14 @@ h1 span {
 
 .plan-summary-status {
   grid-column: 1 / -1;
+  display: grid !important;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 0.5rem;
+  border: 1px solid rgba(195, 204, 255, 0.16) !important;
+  border-radius: 0.9rem !important;
+  background: rgba(5, 9, 20, 0.58) !important;
+  padding: 1rem !important;
 }
 
 .plan-summary div {

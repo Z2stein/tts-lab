@@ -128,6 +128,9 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   get audioProductionPlan(): SingleSpeakerRenderPlanResponse | null { return this.facade.audioProductionPlan(); }
   set audioProductionPlan(value: SingleSpeakerRenderPlanResponse | null) { this.facade.setAudioProductionPlan(value); }
 
+  get audioAssets() { return this.facade.audioAssets(); }
+  get productionSettings() { return this.facade.productionSettings(); }
+
   get castReviewed(): boolean { return this.facade.castReviewed(); }
   set castReviewed(value: boolean) { this.facade.setCastReviewed(value); }
 

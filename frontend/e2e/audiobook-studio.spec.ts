@@ -429,5 +429,41 @@ test('audiobook studio shows structured backend errors without internal details'
   await expect(page.getByText('request-1')).toHaveCount(0);
 });
 
+test('audiobook studio shows saved audio setup and previously generated audio after page reload', async ({ context, page }) => {
+  await authenticate(context, page);
+  const audioGeneratedSnapshot = await loadWorkflowSnapshotFixture('audio-generated');
+
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(audioGeneratedSnapshot)
+    });
+  });
+
+  await page.goto(`/audiobook-studio/${testProjectId}`);
+
+  const audioSection = page.getByTestId('audio-section');
+
+  // Empty state must NOT appear when audio assets are present
+  await expect(audioSection.getByText('The audiobook setup will appear after performance notes.')).toHaveCount(0);
+
+  // Verify the "Audiobook setup" readonly summary appears in audio-section
+  await expect(audioSection.locator('.plan-summary')).toBeVisible();
+  await expect(audioSection.getByText('Generation state')).toBeVisible();
+  await expect(audioSection.getByText('Ready to listen')).toBeVisible();
+
+  // Verify all status items are visible
+  await expect(audioSection.locator('.plan-summary').getByText('Audio parts')).toBeVisible();
+  await expect(audioSection.locator('.plan-summary').getByText('Ready parts')).toBeVisible();
+  await expect(audioSection.locator('.plan-summary').getByText('Needs generation')).toBeVisible();
+  await expect(audioSection.locator('.plan-summary').getByText('Failed parts')).toBeVisible();
+  await expect(audioSection.locator('.plan-summary').getByText('Language code')).toBeVisible();
+  await expect(audioSection.locator('.plan-summary').getByText('Audio encoding')).toBeVisible();
+
+  // Verify previously generated audio is inside a collapsible details section
+  await expect(audioSection.locator('details.audio-parts-details summary')).toContainText('Previously generated audio');
+});
+
 
 
