@@ -411,15 +411,14 @@ class AudiobookWorkflowControllerTest {
             .thenReturn(new TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "tts-render-request-1.mp3"));
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
-                .param("projectId", "project-1"))
+                .param("projectId", "project-1")
+                .param("targetSegmentIndex", "0"))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
             .andExpect(content().bytes(readBytes("audiobook-workflow/create-audio/default/response.body.bin")))
             .andExpect(header().exists("X-Audiobook-Project-Id"))
             .andExpect(header().string("X-Audiobook-Project-Id", "project-1"))
             .andReturn();
-
-        // TODO: Update API contract in tts-lab-openapi.yaml to reflect new CreateAudioRequest format
     }
 
     @Test

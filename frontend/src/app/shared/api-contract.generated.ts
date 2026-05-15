@@ -577,6 +577,8 @@ export type components = {
         CreateAudioRequest: {
             /** @description ID of the project containing segments to render */
             projectId: string;
+            /** @description Zero-based index of the speech segment to render */
+            targetSegmentIndex: number;
         };
         SingleSpeakerRenderPlanResponse: {
             renderRequests: components["schemas"]["SingleSpeakerRenderRequest"][];
@@ -1068,16 +1070,15 @@ export interface operations {
     };
     createAudio: {
         parameters: {
-            query?: never;
+            query: {
+                projectId: string;
+                targetSegmentIndex: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateAudioRequest"];
-            };
-        };
+        requestBody?: never;
         responses: {
             /** @description Rendered audio download */
             200: {

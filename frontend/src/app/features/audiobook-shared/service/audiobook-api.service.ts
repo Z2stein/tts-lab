@@ -15,8 +15,11 @@ export class AudiobookApiService {
     private readonly currentUserService: CurrentUserService
   ) {}
 
-  async createAudio(renderPlan: SingleSpeakerRenderPlanResponse, options: RequestOptions = {}, projectId?: string): Promise<CreatedAudioDownload> {
-    const url = projectId ? `/api/audiobooks/workflow/create-audio?projectId=${encodeURIComponent(projectId)}` : '/api/audiobooks/workflow/create-audio';
+  async createAudio(renderPlan: SingleSpeakerRenderPlanResponse, options: RequestOptions = {}, projectId?: string, targetSegmentIndex?: number): Promise<CreatedAudioDownload> {
+    let url = projectId ? `/api/audiobooks/workflow/create-audio?projectId=${encodeURIComponent(projectId)}` : '/api/audiobooks/workflow/create-audio';
+    if (targetSegmentIndex !== undefined) {
+      url += `${url.includes('?') ? '&' : '?'}targetSegmentIndex=${targetSegmentIndex}`;
+    }
     const response = await this.postBlobResponse(url, renderPlan, 'Audio creation failed', options);
 
     if (!response.body) {
@@ -33,9 +36,10 @@ export class AudiobookApiService {
   async createAudioForRenderRequest(
     renderRequest: SingleSpeakerRenderRequest,
     options: RequestOptions = {},
-    projectId?: string
+    projectId?: string,
+    targetSegmentIndex?: number
   ): Promise<CreatedAudioDownload> {
-    return this.createAudio({ renderRequests: [renderRequest] }, options, projectId);
+    return this.createAudio({ renderRequests: [renderRequest] }, options, projectId, targetSegmentIndex);
   }
 
   async post<T>(url: string, body: unknown, errorPrefix: string, options: RequestOptions = {}): Promise<T> {

@@ -25,7 +25,6 @@ import com.example.ttslab.ratelimit.RequestRateLimitResult;
 import com.example.ttslab.ratelimit.RequestRateLimitService;
 import com.example.ttslab.ratelimit.RequestUsageMeasurer;
 import jakarta.validation.Valid;
-import java.io.ByteArrayOutputStream;
 import java.util.*;
 import java.util.stream.Collectors;
 import org.slf4j.Logger;
@@ -186,34 +185,25 @@ public class AudiobookWorkflowController {
     @PostMapping("/create-audio")
     public ResponseEntity<byte[]> createAudio(
             @RequestParam String projectId,
-        Authentication authentication
+            @RequestParam int targetSegmentIndex,
+            Authentication authentication
     ) {
         CurrentUser user = currentUserResolver.resolve(authentication);
 
         AudiobookProject project = renderPlanPersistenceService.loadProjectFromDatabase(projectId);
-        enforceLimit(user, ModelType.SPEECH_MODEL, project);
+        enforceLimit(user, ModelType.SPEECH_MODEL, project,targetSegmentIndex);
         try {
             audiobookWorkflowStateService.ensureAudioGenerationReady(project);
-            List<byte[]> audioBytes = new ArrayList<>();
-            TtsAudioFile firstAudioPart = null;
-            for (int i = 0; i < project.getSpeechSegments().size(); i++) {
-                TtsAudioFile audioPart = audiobookWorkflowService.createAudio(project, i);
-                if (firstAudioPart == null) firstAudioPart = audioPart;
-
-                audioBytes.add(audioPart.content());
-                Integer partDuration = DurationEstimator.estimateSpeakingDurationSeconds(project.getSpeechSegments().get(i).getStyledText());
-                audiobookLibraryService.persistAudioAsset(project, audioPart, project.getSpeechSegments().get(i), 1, partDuration);
-            }
-
-            byte[] mergedAudio = mergeMp3Parts(audioBytes);
-            String filename = project.getSpeechSegments().size() == 1 ? firstAudioPart.filename() : "tts-render-plan.mp3";
-            TtsAudioFile audioFile = new TtsAudioFile(mergedAudio, firstAudioPart.contentType(), filename);
+            TtsAudioFile audioPart = audiobookWorkflowService.createAudio(project, targetSegmentIndex);
+            AudiobookSpeechSegment segment = project.getSpeechSegments().get(targetSegmentIndex);
+            Integer partDuration = DurationEstimator.estimateSpeakingDurationSeconds(segment.getStyledText());
+            audiobookLibraryService.persistAudioAsset(project, audioPart, segment, 1, partDuration);
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, project.getProductionModelName(), project.getStoryText(), PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
-                .header(HttpHeaders.CONTENT_TYPE, audioFile.contentType())
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioPart.filename() + "\"")
+                .header(HttpHeaders.CONTENT_TYPE, audioPart.contentType())
                 .header("X-Audiobook-Project-Id", project.getId())
-                .body(audioFile.content());
+                .body(audioPart.content());
         } catch (RuntimeException ex) {
             promptHistoryService.record(user, ModelType.SPEECH_MODEL, project.getProductionModelName(), project.getStoryText(), PromptRequestStatus.FAILED);
             throw ex;
@@ -226,8 +216,8 @@ public class AudiobookWorkflowController {
         return audiobookWorkflowStateService.finalizeAudioGeneration(user, projectId);
     }
 
-    private void enforceLimit(CurrentUser user, ModelType modelType, AudiobookProject project) {
-        String promptText = project.getStoryText();
+    private void enforceLimit(CurrentUser user, ModelType modelType, AudiobookProject project,int targetSegmentIndex) {
+        String promptText = project.getSpeechSegments().get(targetSegmentIndex).getStyledText();
         RequestRateLimitResult result = requestRateLimitService.checkAndConsume(
                 user,
                 modelType,
@@ -308,14 +298,6 @@ public class AudiobookWorkflowController {
             }
         }
         return "";
-    }
-
-    private byte[] mergeMp3Parts(List<byte[]> audioParts) {
-        ByteArrayOutputStream output = new ByteArrayOutputStream();
-        for (byte[] audioPart : audioParts) {
-            output.writeBytes(audioPart);
-        }
-        return output.toByteArray();
     }
 
     private String providerModelName(String provider, String modelName) {

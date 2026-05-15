@@ -336,12 +336,18 @@ paths:
     post:
       tags: [Audiobook Workflow]
       operationId: createAudio
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateAudioRequest'
+      parameters:
+        - name: projectId
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: targetSegmentIndex
+          in: query
+          required: true
+          schema:
+            type: integer
+            description: Zero-based index of the speech segment to render
       responses:
         '200':
           description: Rendered audio download
@@ -1108,11 +1114,14 @@ components:
 
     CreateAudioRequest:
       type: object
-      required: [projectId]
+      required: [projectId, targetSegmentIndex]
       properties:
         projectId:
           type: string
           description: ID of the project containing segments to render
+        targetSegmentIndex:
+          type: integer
+          description: Zero-based index of the speech segment to render
       additionalProperties: false
 
     SingleSpeakerRenderPlanResponse:
