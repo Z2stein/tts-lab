@@ -17,7 +17,7 @@ public class AudiobookProject {
     @Column(nullable = false)
     private String title;
 
-    @Column(name = "story_text")
+    @Column(name = "story_text", columnDefinition = "TEXT")
     private String storyText;
 
     @Enumerated(EnumType.STRING)
@@ -34,7 +34,7 @@ public class AudiobookProject {
     @Column(name = "audio_assets_current", nullable = false)
     private boolean audioAssetsCurrent;
 
-    @Column(name = "production_prompt")
+    @Column(name = "production_prompt", columnDefinition = "TEXT")
     private String productionPrompt;
 
     @Column(name = "production_language_code")
