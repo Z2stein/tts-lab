@@ -112,31 +112,41 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
             throw new IllegalArgumentException("speakers cannot be null or empty");
         }
         return """
-                Split this prose/dialogue text into ordered audiobook workflow turns.
-
-                Return only JSON with this shape:
-                {"turns":[{"speaker":"...","text":"..."}]}
-
-                Critical preservation rules:
-                - Preserve ALL original wording.
-                - Do not summarize.
-                - Do not remove narration.
-                - Do not merge narration into character speech.
-                - Every piece of non-quoted prose must become a turn spoken by "Narrator".
-                - Quoted speech must become a turn spoken by the character who says it.
-                - Dialogue attribution and action beats belong to "Narrator".
-                  Example: Mara folded the letter twice, then unfolded it again.
-                - If one paragraph contains narration and speech, split it in reading order.
-                - Use ONLY the speakers in the provided list. Do not introduce speakers that are not in the list.
-
-                speaker cannot contain whitespace or non-alphanumeric characters.
-
-                Speakers:
-                %s
-
-                Text:
-                %s
-                """.formatted(toJson(speakers), rawDialogue);
+            Split this audiobook text into ordered speaker turns.
+    
+            Return only JSON:
+            {"turns":[{"speaker":"...","text":"..."}]}
+    
+            Allowed speakers:
+            %s
+    
+            Rules for all cases:
+            - Use only speakerName values from the allowed speakers list.
+            - Do not invent speakers.
+            - Preserve all content that should be read aloud.
+            - Do not summarize or rewrite.
+            - Split mixed dialogue and prose in reading order.
+            - Speaker labels are structural metadata, not spoken text.
+              Example: `Zephyr — "Hello"` -> speaker `Zephyr`, text `Hello`.
+              Example: `Zephyr: "Hello"` -> speaker `Zephyr`, text `Hello`.
+            - Always remove speaker labels and separators from the text field.
+            - Quoted dialogue belongs to the speaking character if that character is allowed.
+    
+            Rules if "Narrator" is in the allowed speakers list:
+            - Real narration, scene description, action beats, and dialogue attribution belong to "Narrator".
+            - Speaker labels still do not belong to "Narrator".
+            - Use "Narrator" only for prose that should actually be read aloud.
+    
+            Rules if "Narrator" is NOT in the allowed speakers list:
+            - Do not create Narrator turns.
+            - Ignore structural speaker labels such as `Zephyr —`, `Puck:`, or `Charon said:` when they only identify the speaker.
+            - Keep only the spoken quoted text for character dialogue.
+            - If there is real narration that cannot be assigned to an allowed speaker, omit it rather than inventing "Narrator".
+            - If the speaking character is not allowed, use "Other" if "Other" is allowed. Otherwise omit that dialogue rather than inventing a speaker.
+    
+            Text:
+            %s
+            """.formatted(toJson(speakers), rawDialogue);
     }
 
     @Override
