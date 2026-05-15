@@ -189,47 +189,33 @@ public class AudiobookWorkflowController {
         Authentication authentication
     ) {
         CurrentUser user = currentUserResolver.resolve(authentication);
-        SingleSpeakerRenderPlanResponse requestPlan = renderPlanPersistenceService.loadRenderPlanFromDatabase(projectId);
-        String promptText = renderPromptText(requestPlan);
-        String providerModelName = renderProviderModelName(requestPlan);
-        enforceLimit(user, ModelType.SPEECH_MODEL, promptText, providerModelName);
+
+        AudiobookProject project = renderPlanPersistenceService.loadProjectFromDatabase(projectId);
+        enforceLimit(user, ModelType.SPEECH_MODEL, project);
         try {
-
-            List<SingleSpeakerRenderRequest> renderRequests = requestPlan.renderRequests() == null ? List.of() : requestPlan.renderRequests();
-            if (renderRequests.isEmpty()) {
-                throw new ApiException(
-                    org.springframework.http.HttpStatus.BAD_REQUEST,
-                    "TTS_AUDIO_RENDER_REQUESTS_REQUIRED",
-                    "At least one render request is required to create audio."
-                );
-            }
-
-            AudiobookProject project = audiobookLibraryService.getProjectForUser(projectId, user);
             audiobookWorkflowStateService.ensureAudioGenerationReady(project);
-
-            List<AudiobookSpeechSegment> previewSegments = audiobookLibraryService.preparePreviewSegments(project, renderRequests, false);
             List<byte[]> audioBytes = new ArrayList<>();
             TtsAudioFile firstAudioPart = null;
-            for (int i = 0; i < renderRequests.size(); i++) {
-                TtsAudioFile audioPart = audiobookWorkflowService.createAudio(renderRequests.get(i));
+            for (int i = 0; i < project.getSpeechSegments().size(); i++) {
+                TtsAudioFile audioPart = audiobookWorkflowService.createAudio(project, i);
                 if (firstAudioPart == null) firstAudioPart = audioPart;
 
                 audioBytes.add(audioPart.content());
-                Integer partDuration = DurationEstimator.estimateSpeakingDurationSeconds(stringValue(renderRequests.get(i).input(), "text"));
-                audiobookLibraryService.persistAudioAsset(project, audioPart, previewSegments.get(i), 1, partDuration);
+                Integer partDuration = DurationEstimator.estimateSpeakingDurationSeconds(project.getSpeechSegments().get(i).getStyledText());
+                audiobookLibraryService.persistAudioAsset(project, audioPart, project.getSpeechSegments().get(i), 1, partDuration);
             }
 
             byte[] mergedAudio = mergeMp3Parts(audioBytes);
-            String filename = renderRequests.size() == 1 ? firstAudioPart.filename() : "tts-render-plan.mp3";
+            String filename = project.getSpeechSegments().size() == 1 ? firstAudioPart.filename() : "tts-render-plan.mp3";
             TtsAudioFile audioFile = new TtsAudioFile(mergedAudio, firstAudioPart.contentType(), filename);
-            promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.SUCCESS);
+            promptHistoryService.record(user, ModelType.SPEECH_MODEL, project.getProductionModelName(), project.getStoryText(), PromptRequestStatus.SUCCESS);
             return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + audioFile.filename() + "\"")
                 .header(HttpHeaders.CONTENT_TYPE, audioFile.contentType())
                 .header("X-Audiobook-Project-Id", project.getId())
                 .body(audioFile.content());
         } catch (RuntimeException ex) {
-            promptHistoryService.record(user, ModelType.SPEECH_MODEL, providerModelName, promptText, PromptRequestStatus.FAILED);
+            promptHistoryService.record(user, ModelType.SPEECH_MODEL, project.getProductionModelName(), project.getStoryText(), PromptRequestStatus.FAILED);
             throw ex;
         }
     }
@@ -240,6 +226,20 @@ public class AudiobookWorkflowController {
         return audiobookWorkflowStateService.finalizeAudioGeneration(user, projectId);
     }
 
+    private void enforceLimit(CurrentUser user, ModelType modelType, AudiobookProject project) {
+        String promptText = project.getStoryText();
+        RequestRateLimitResult result = requestRateLimitService.checkAndConsume(
+                user,
+                modelType,
+                requestUsageMeasurer.measure(promptText, requestRateLimitService.unit())
+        );
+        if (!result.allowed()) {
+            promptHistoryService.record(user, modelType, project.getProductionModelName(), promptText, PromptRequestStatus.RATE_LIMITED);
+            throw new RequestRateLimitExceededException(result);
+        }
+    }
+
+    @Deprecated //use AudiobookProject based
     private void enforceLimit(CurrentUser user, ModelType modelType, String promptText, String providerModelName) {
         RequestRateLimitResult result = requestRateLimitService.checkAndConsume(
             user,

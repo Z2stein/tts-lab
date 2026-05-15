@@ -57,6 +57,7 @@ import java.io.IOException;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
@@ -367,16 +368,46 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void createAudioReturnsDownloadableMp3() throws Exception {
-        SingleSpeakerRenderPlanResponse mockRenderPlan = new SingleSpeakerRenderPlanResponse(List.of(
-            new SingleSpeakerRenderRequest(
-                Map.of("text", "Hello", "segmentOrderIndex", 0),
-                Map.of("speakerName", "Narrator", "name", "Zephyr", "modelName", "google.generativeai-1.5-flash", "languageCode", "en-US"),
-                Map.of("audioEncoding", "MP3")
-            )
-        ));
-        when(renderPlanPersistenceService.loadRenderPlanFromDatabase("project-1"))
-            .thenReturn(mockRenderPlan);
-        when(audiobookWorkflowService.createAudio(any(SingleSpeakerRenderRequest.class)))
+        Instant now = Instant.now();
+        AudiobookProject project = new AudiobookProject(
+            "project-1",
+            "user-1",
+            "Test Project",
+            AudiobookProjectStatus.DRAFT,
+            "text",
+            1,
+            1,
+            60,
+            now,
+            now
+        );
+        SpeakerCharacter character = new SpeakerCharacter(
+            "char-1",
+            "project-1",
+            0,
+            "Narrator",
+            "Main narrator voice",
+            SpeakerVoice.ZEPHYR,
+            now
+        );
+        AudiobookSpeechSegment segment = new AudiobookSpeechSegment(
+            "segment-1",
+            project,
+            0,
+            "Segment 1",
+            AudiobookSpeechSegmentReviewStatus.PENDING,
+            30,
+            now,
+            now,
+            "Hello",
+            "Hello",
+            character
+        );
+        project.getSpeechSegments().add(segment);
+
+        when(renderPlanPersistenceService.loadProjectFromDatabase("project-1"))
+            .thenReturn(project);
+        when(audiobookWorkflowService.createAudio(any(AudiobookProject.class), anyInt()))
             .thenReturn(new TtsAudioFile(new byte[] {'I', 'D', '3'}, "audio/mpeg", "tts-render-request-1.mp3"));
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")

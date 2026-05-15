@@ -3,7 +3,6 @@ package com.example.ttslab.audiobooks.workflow.service;
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
-import com.example.ttslab.audiobooks.model.SpeakerCharacter;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookSpeechSegmentRepository;
 import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderPlanResponse;
@@ -28,6 +27,17 @@ public class RenderPlanPersistenceService {
     ) {
         this.projectRepository = projectRepository;
         this.segmentRepository = segmentRepository;
+    }
+
+    @Transactional(readOnly = true)
+    public AudiobookProject loadProjectFromDatabase(String projectId) {
+        AudiobookProject project = projectRepository.findWithDetailsById(projectId)
+                .orElseThrow(() -> new ApiException(
+                        HttpStatus.NOT_FOUND,
+                        "PROJECT_NOT_FOUND",
+                        "Project not found with ID: " + projectId
+                ));
+        return project;
     }
 
     @Transactional(readOnly = true)

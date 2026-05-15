@@ -1,5 +1,7 @@
 package com.example.ttslab.audiobooks.workflow;
 
+import com.example.ttslab.audiobooks.model.AudiobookProject;
+import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.config.AudiobookWorkflowGoogleProperties;
 import com.google.api.gax.core.FixedCredentialsProvider;
 import com.google.auth.oauth2.GoogleCredentials;
@@ -33,12 +35,12 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
     }
 
     @Override
-    public byte[] synthesize(SingleSpeakerRenderRequest request) {
+    public byte[] synthesize(AudiobookProject project, int targetSegmentIndex) {
         try (TextToSpeechClient client = TextToSpeechClient.create(settings())) {
             SynthesizeSpeechRequest synthesizeSpeechRequest = SynthesizeSpeechRequest.newBuilder()
-                    .setInput(parseToGoogleInput(request.input()))
-                    .setVoice(parseToGoogleVoice(request.voice()))
-                    .setAudioConfig(parseToGoogleAudioConfig(request.audioConfig()))
+                    .setInput(parseToGoogleInput(project.getSpeechSegments().get(targetSegmentIndex)))
+                    .setVoice(parseToGoogleVoice(project,targetSegmentIndex))
+                    .setAudioConfig(parseToGoogleAudioConfig(project))
                     .build();
 
             log.debug("sending Request to Google:" +synthesizeSpeechRequest.toString());
@@ -51,7 +53,7 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
         } catch (IOException ex) {
             throw new TtsAudioCreationException("Google Cloud Text-to-Speech client failed", ex, false);
         } catch (RuntimeException ex) {
-            throw new TtsAudioCreationException("Google Cloud Text-to-Speech request failed", ex, false);
+            throw new TtsAudioCreationException("Google Cloud Text-to-Speech project failed", ex, false);
         }
     }
 
@@ -76,29 +78,25 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
         }
     }
 
-    private SynthesisInput parseToGoogleInput(Map<String, Object> input) {
-        log.debug("input:" + input.toString());
+    private SynthesisInput parseToGoogleInput(AudiobookSpeechSegment speechSegment) {
+        log.debug("speechSegment:" + speechSegment.toString());
         return SynthesisInput.newBuilder()
-            .setText(stringValue(input, "text"))
+            .setText(speechSegment.getStyledText())
             .build();
     }
 
-    private VoiceSelectionParams parseToGoogleVoice(Map<String, Object> voice) {
-        log.debug("voice:" + voice.toString());
+    private VoiceSelectionParams parseToGoogleVoice( AudiobookProject project, int targetSegmentIndex) {
+        log.debug("project:" + project.toString());
         VoiceSelectionParams.Builder builder = VoiceSelectionParams.newBuilder()
-            .setLanguageCode(stringValue(voice, "languageCode"))
-            .setModelName(stringValue(voice,"modelName"));
-        String name = stringValue(voice, "name");
-        if (name.isBlank()) {
-            throw new TtsAudioCreationException("Voice name cannot be null: see VoiceMap: " +voice);
-        }
-        builder.setName(name);
+            .setLanguageCode(project.getProductionLanguageCode())
+            .setModelName(project.getProductionModelName())
+            .setName(project.getSpeechSegments().get(targetSegmentIndex).getCharacter().getVoiceSuggestion().getKey());
         return builder.build();
     }
 
-    private AudioConfig parseToGoogleAudioConfig(Map<String, Object> audioConfig) {
-        log.debug("audioConfig:" + audioConfig.toString());
-        String encoding = stringValue(audioConfig, "audioEncoding");
+    private AudioConfig parseToGoogleAudioConfig(AudiobookProject project) {
+        log.debug("project:" + project.toString());
+        String encoding = project.getProductionAudioEncoding();
         return AudioConfig.newBuilder()
             .setAudioEncoding(encoding.isBlank() ? AudioEncoding.MP3 : AudioEncoding.valueOf(encoding))
             .build();
