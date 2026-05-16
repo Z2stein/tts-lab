@@ -18,3 +18,4 @@ frontend/coverage/
 /backend/gradlew.bat
 /data/
 /.idea/
+/scripts/tokens/
