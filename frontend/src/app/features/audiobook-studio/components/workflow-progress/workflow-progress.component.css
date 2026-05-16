@@ -115,8 +115,18 @@
   color: #ffd591;
 }
 
-@media (max-width: 820px) {
+.sticky-sentinel {
+  height: 0;
+  visibility: hidden;
+  pointer-events: none;
+}
+
+@media (max-width: 600px) {
   .workflow-progress {
     @apply grid-cols-1;
   }
+}
+
+.workflow-progress.compact {
+  @apply grid-cols-2;
 }

@@ -1,8 +1,9 @@
+<div #sentinel class="sticky-sentinel" aria-hidden="true"></div>
 <nav class="workflow-progress-shell" aria-label="Audiobook workflow progress" data-testid="workflow-progress">
   <div class="workflow-progress-panel">
-    <div class="workflow-progress">
+    <div class="workflow-progress" [class.compact]="isSticky && isNarrow">
       <button
-        *ngFor="let step of steps"
+        *ngFor="let step of visibleSteps"
         type="button"
         class="workflow-step"
         data-testid="workflow-step"
