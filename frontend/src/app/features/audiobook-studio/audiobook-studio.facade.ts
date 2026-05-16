@@ -1,26 +1,31 @@
 import { computed, Injectable, signal } from '@angular/core';
 import {
-  FinalTtsRequestPreview,
-  SingleSpeakerRenderPlan,
-  SingleSpeakerRenderRequest,
+  AudiobookWorkflowService,
   SpeakerVoiceAnalysisItem,
-  TtsWorkbenchService,
-} from '../tts-workbench/tts-workbench.service';
-import {
   AnnotatedSpeakerTurn,
-  ScriptGroup,
+  AudiobookWorkflowSnapshotResponse,
+  AudiobookWorkflowStage,
   SpeakerSplitTurn,
-} from './models/audiobook-studio.types';
+  FinalTtsRequestPreviewResponse,
+  SingleSpeakerRenderPlanResponse,
+} from '../audiobook-shared/service/audiobook-workflow.service';
+import { AudioAssetResponse, AudiobookWorkflowProductionSettings } from '../../shared/api-contract.generated';
+import { AudiobookLibraryService } from '../audiobook-library/services/audiobook-library.service';
+import { ScriptGroup } from './models/audiobook-studio.types';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
-import { RenderRequestAudioService } from './services/render-request-audio.service';
+import { RenderRequestAudioService } from '../audiobook-shared/service/render-request-audio.service';
 
 @Injectable()
 export class AudiobookStudioFacade {
   private readonly _cast = signal<SpeakerVoiceAnalysisItem[]>([]);
   private readonly _scriptTurns = signal<SpeakerSplitTurn[]>([]);
   private readonly _annotatedTurns = signal<AnnotatedSpeakerTurn[]>([]);
-  private readonly _finalRequest = signal<FinalTtsRequestPreview | null>(null);
-  private readonly _audioProductionPlan = signal<SingleSpeakerRenderPlan | null>(null);
+  private readonly _finalRequest = signal<FinalTtsRequestPreviewResponse | null>(null);
+  private readonly _audioProductionPlan = signal<SingleSpeakerRenderPlanResponse | null>(null);
+  private readonly _audioAssets = signal<AudioAssetResponse[]>([]);
+  private readonly _productionSettings = signal<AudiobookWorkflowProductionSettings | null>(null);
+  private readonly _projectTitle = signal('');
+  private readonly _workflowStage = signal<AudiobookWorkflowStage | null>(null);
   private readonly _castReviewed = signal(false);
   private readonly _scriptApproved = signal(false);
   private readonly _performanceNotesStale = signal(false);
@@ -31,15 +36,28 @@ export class AudiobookStudioFacade {
   private readonly _editingScriptTurnIndex = signal<number | null>(null);
   private readonly _scriptTurnEditDraft = signal<SpeakerSplitTurn | null>(null);
   private readonly _currentProjectId = signal<string | null>(null);
+  private readonly _mergedAudioUrl = signal<string | null>(null);
 
   readonly cast = this._cast.asReadonly();
   readonly scriptTurns = this._scriptTurns.asReadonly();
   readonly annotatedTurns = this._annotatedTurns.asReadonly();
   readonly finalRequest = this._finalRequest.asReadonly();
   readonly audioProductionPlan = this._audioProductionPlan.asReadonly();
+  readonly audioAssets = this._audioAssets.asReadonly();
+  readonly productionSettings = this._productionSettings.asReadonly();
+  readonly projectTitle = this._projectTitle.asReadonly();
+  readonly workflowStage = this._workflowStage.asReadonly();
   readonly castReviewed = this._castReviewed.asReadonly();
   readonly scriptApproved = this._scriptApproved.asReadonly();
   readonly performanceNotesStale = this._performanceNotesStale.asReadonly();
+  readonly mergedAudioUrl = this._mergedAudioUrl.asReadonly();
+  readonly performanceReady = computed(() => {
+    const workflowStage = this._workflowStage();
+    if (workflowStage !== null) {
+      return workflowStage === 'PERFORMANCE_READY' || workflowStage === 'AUDIO_GENERATED';
+    }
+    return this._annotatedTurns().length > 0 && !this._performanceNotesStale();
+  });
   readonly loadingAction = this._loadingAction.asReadonly();
   readonly error = this._error.asReadonly();
   readonly editingCastIndex = this._editingCastIndex.asReadonly();
@@ -77,7 +95,8 @@ export class AudiobookStudioFacade {
   onAudioReset: (() => void) | null = null;
 
   constructor(
-    private readonly ttsWorkbenchService: TtsWorkbenchService,
+    private readonly audiobookWorkflowService: AudiobookWorkflowService,
+    private readonly audiobookLibraryService: AudiobookLibraryService,
     private readonly renderRequestAudioService: RenderRequestAudioService,
     private readonly fullAudioGenerationService: FullAudioGenerationService,
   ) {}
@@ -87,8 +106,9 @@ export class AudiobookStudioFacade {
   setCast(value: SpeakerVoiceAnalysisItem[]): void { this._cast.set(value); }
   setScriptTurns(value: SpeakerSplitTurn[]): void { this._scriptTurns.set(value); }
   setAnnotatedTurns(value: AnnotatedSpeakerTurn[]): void { this._annotatedTurns.set(value); }
-  setFinalRequest(value: FinalTtsRequestPreview | null): void { this._finalRequest.set(value); }
-  setAudioProductionPlan(value: SingleSpeakerRenderPlan | null): void { this._audioProductionPlan.set(value); }
+  setFinalRequest(value: FinalTtsRequestPreviewResponse | null): void { this._finalRequest.set(value); }
+  setAudioProductionPlan(value: SingleSpeakerRenderPlanResponse | null): void { this._audioProductionPlan.set(value); }
+  setProjectTitle(value: string): void { this._projectTitle.set(value); }
   setCastReviewed(value: boolean): void { this._castReviewed.set(value); }
   setScriptApproved(value: boolean): void { this._scriptApproved.set(value); }
   setPerformanceNotesStale(value: boolean): void { this._performanceNotesStale.set(value); }
@@ -96,13 +116,17 @@ export class AudiobookStudioFacade {
   // ── Pipeline operations ───────────────────────────────────────────────────
 
   async analyzeStory(storyText: string): Promise<void> {
+    this._projectTitle.set('');
     await this.runStep('cast', async () => {
-      const cast = await this.ttsWorkbenchService.analyzeSpeakers(storyText);
-      this._cast.set(cast);
+      const analysis = await this.audiobookWorkflowService.analyzeSpeakers(storyText);
+      this._cast.set(analysis.speakers);
+      this._currentProjectId.set(analysis.projectId);
+      this._projectTitle.set(analysis.projectTitle);
       this._scriptTurns.set([]);
       this._annotatedTurns.set([]);
       this._finalRequest.set(null);
       this._audioProductionPlan.set(null);
+      this._workflowStage.set('CAST_REVIEW');
       this._castReviewed.set(false);
       this._scriptApproved.set(false);
       this._performanceNotesStale.set(false);
@@ -114,12 +138,19 @@ export class AudiobookStudioFacade {
 
   async createScriptPreview(storyText: string): Promise<void> {
     await this.runStep('script', async () => {
-      const scriptTurns = await this.ttsWorkbenchService.splitDialogue(storyText, this._cast());
+      if (!this._castReviewed()) {
+        throw new Error('Approve the cast before creating the script preview.');
+      }
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const scriptTurns = await this.audiobookWorkflowService.splitDialogue(storyText, this._cast(), projectId);
       this._scriptTurns.set(scriptTurns);
       this._annotatedTurns.set([]);
       this._finalRequest.set(null);
       this._audioProductionPlan.set(null);
-      this._castReviewed.set(true);
+      this._workflowStage.set('SCRIPT_REVIEW');
       this._scriptApproved.set(false);
       this._performanceNotesStale.set(false);
       this.cancelCastEdit();
@@ -128,13 +159,33 @@ export class AudiobookStudioFacade {
     }, 'Script preview failed.');
   }
 
+  async approveCast(): Promise<void> {
+    await this.runStep('cast-approval', async () => {
+      if (this._castReviewed()) {
+        return;
+      }
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const snapshot = await this.audiobookWorkflowService.approveCast(projectId);
+      this.applyWorkflowSnapshot(snapshot);
+    }, 'Cast approval failed.');
+  }
+
   async createPerformanceNotes(): Promise<void> {
     await this.runStep('notes', async () => {
-      const annotatedTurns = await this.ttsWorkbenchService.annotateEmotions(this._scriptTurns());
-      this._annotatedTurns.set(annotatedTurns);
+      if (this._editingScriptTurnIndex() !== null) {
+        throw new Error('Save or cancel the script edit before adding emotion and pacing.');
+      }
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const snapshot = await this.audiobookWorkflowService.annotateEmotions(projectId);
+      this.applyWorkflowSnapshot(snapshot);
       this._finalRequest.set(null);
       this._audioProductionPlan.set(null);
-      this._performanceNotesStale.set(false);
       this.resetAudio();
     }, 'Performance notes failed.');
   }
@@ -146,7 +197,17 @@ export class AudiobookStudioFacade {
     audioEncoding: string;
   }): Promise<void> {
     await this.runStep('plan', async () => {
-      const finalRequest = await this.ttsWorkbenchService.generateFinalJson({
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      await this.audiobookWorkflowService.saveProductionSettings(projectId, {
+        prompt: options.prompt,
+        languageCode: options.languageCode,
+        modelName: options.modelName,
+        audioEncoding: options.audioEncoding,
+      });
+      const finalRequest = await this.audiobookWorkflowService.generateFinalJson({
         prompt: options.prompt,
         speakers: this._cast(),
         annotatedTurns: this._annotatedTurns(),
@@ -155,14 +216,39 @@ export class AudiobookStudioFacade {
         audioEncoding: options.audioEncoding,
       });
       this._finalRequest.set(finalRequest);
-      const audioProductionPlan = await this.ttsWorkbenchService.planSingleSpeakerRenderRequests(finalRequest);
+      const audioProductionPlan = await this.audiobookWorkflowService.planSingleSpeakerRenderRequests(finalRequest);
       this._audioProductionPlan.set(audioProductionPlan);
       this.resetAudio();
     }, 'Audio production plan failed.');
   }
 
-  approveScript(): void {
-    this._scriptApproved.set(true);
+  async finalizeAudioGeneration(projectId: string): Promise<void> {
+    await this.runStep('audio', async () => {
+      const snapshot = await this.audiobookWorkflowService.markAudioGenerated(projectId);
+      this.applyWorkflowSnapshot(snapshot);
+    }, 'Audio finalization failed.');
+  }
+
+  async approveScript(): Promise<void> {
+    await this.runStep('script-approval', async () => {
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const snapshot = await this.audiobookWorkflowService.approveScript(projectId);
+      this.applyWorkflowSnapshot(snapshot);
+    }, 'Script approval failed.');
+  }
+
+  async saveProjectTitle(title: string): Promise<void> {
+    await this.runStep('title', async () => {
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const detail = await this.audiobookLibraryService.updateTitle(projectId, title);
+      this._projectTitle.set(detail.title);
+    }, 'Project title save failed.');
   }
 
   // ── Edit operations ───────────────────────────────────────────────────────
@@ -189,18 +275,26 @@ export class AudiobookStudioFacade {
     this._scriptTurnEditDraft.set({ ...this._scriptTurns()[index] });
   }
 
-  saveScriptTurnEdit(index: number): void {
-    const draft = this._scriptTurnEditDraft();
-    if (!draft) return;
-    this._scriptTurns.update((turns) => turns.map((t, i) => (i === index ? { ...draft } : t)));
-    this.cancelScriptTurnEdit();
-    this._scriptApproved.set(false);
-    if (this._annotatedTurns().length > 0) {
-      this._performanceNotesStale.set(true);
+  async saveScriptTurnEdit(index: number): Promise<void> {
+    await this.runStep('script-edit', async () => {
+      const draft = this._scriptTurnEditDraft();
+      const projectId = this._currentProjectId();
+      if (!draft) return;
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+
+      const nextTurns = this._scriptTurns().map((turn, i) => (i === index ? { ...draft } : { ...turn }));
+      const persistedTurns = await this.audiobookWorkflowService.saveScriptPreview(projectId, nextTurns);
+      this._scriptTurns.set(persistedTurns);
+      this.cancelScriptTurnEdit();
+      this._workflowStage.set('SCRIPT_REVIEW');
+      this._scriptApproved.set(false);
+      this._performanceNotesStale.set(this._annotatedTurns().length > 0);
       this._finalRequest.set(null);
       this._audioProductionPlan.set(null);
       this.resetAudio();
-    }
+    }, 'Script turn save failed.');
   }
 
   cancelScriptTurnEdit(): void {
@@ -216,9 +310,14 @@ export class AudiobookStudioFacade {
     this._annotatedTurns.set([]);
     this._finalRequest.set(null);
     this._audioProductionPlan.set(null);
+    this._audioAssets.set([]);
+    this._productionSettings.set(null);
+    this._projectTitle.set('');
+    this._workflowStage.set(null);
     this._castReviewed.set(false);
     this._scriptApproved.set(false);
     this._performanceNotesStale.set(false);
+    this._mergedAudioUrl.set(null);
     this._error.set(null);
     this._currentProjectId.set(null);
     this.cancelCastEdit();
@@ -230,11 +329,34 @@ export class AudiobookStudioFacade {
     this._currentProjectId.set(id);
   }
 
+  hydrateFromSnapshot(snapshot: AudiobookWorkflowSnapshotResponse): void {
+    this.resetPipeline();
+    this.applyWorkflowSnapshot(snapshot);
+  }
+
   private resetAudio(): void {
     this.renderRequestAudioService.abortAll();
     this.renderRequestAudioService.revokeUrls();
     this.fullAudioGenerationService.clearAudio();
     this.onAudioReset?.();
+  }
+
+  private applyWorkflowSnapshot(snapshot: AudiobookWorkflowSnapshotResponse): void {
+    this._currentProjectId.set(snapshot.projectId);
+    this._projectTitle.set(snapshot.title);
+    this._cast.set(snapshot.speakers);
+    this._scriptTurns.set(snapshot.scriptTurns);
+    this._annotatedTurns.set(snapshot.annotatedTurns);
+    this._audioAssets.set(snapshot.audioAssets);
+    this._productionSettings.set(snapshot.productionSettings);
+    this._workflowStage.set(snapshot.workflowStage);
+    const stage = snapshot.workflowStage;
+    this._castReviewed.set(stage !== 'CAST_REVIEW');
+    this._scriptApproved.set(stage === 'SCRIPT_APPROVED' || stage === 'PERFORMANCE_READY' || stage === 'AUDIO_GENERATED');
+    this._performanceNotesStale.set(snapshot.performanceNotesStale);
+    this._mergedAudioUrl.set(snapshot.mergedAudioUrl ?? null);
+    this._error.set(null);
+    this._loadingAction.set(null);
   }
 
   private async runStep(action: string, step: () => Promise<void>, fallbackMessage: string): Promise<void> {

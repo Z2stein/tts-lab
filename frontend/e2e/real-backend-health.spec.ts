@@ -41,3 +41,11 @@ test('frontend can reach and process the real backend health response', async ({
   });
   await expect(page.getByTestId('real-backend-health-status')).toHaveText('Backend status: ok');
 });
+
+test('frontend loads the authenticated shell from the real backend', async ({ page }) => {
+  await page.goto('/');
+
+  await expect(page.getByRole('link', { name: 'TTS Lab home' })).toBeVisible();
+  await expect(page.getByText(/Signed in as .* \(mock\)/)).toBeVisible();
+  await expect(page.getByLabel('Remaining usage')).toBeVisible();
+});

@@ -1,29 +1,96 @@
-import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks } from '@angular/core/testing';
-import { AudiobookStudioPageComponent, formatSpeakerDisplayName } from './audiobook-studio-page.component';
-import { TtsWorkbenchService } from '../tts-workbench/tts-workbench.service';
+import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks, discardPeriodicTasks, flush } from '@angular/core/testing';
+import { AudiobookStudioWorkspaceComponent, formatSpeakerDisplayName } from './audiobook-studio-page.component';
+import { AudiobookApiService } from '../audiobook-shared/service/audiobook-api.service';
+import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
+import { AudiobookLibraryService } from '../audiobook-library/services/audiobook-library.service';
+import { VoicePickerService } from './services/voice-picker.service';
 
-describe('AudiobookStudioPageComponent', () => {
-  let fixture: ComponentFixture<AudiobookStudioPageComponent>;
-  let component: AudiobookStudioPageComponent;
-  let ttsWorkbenchService: jasmine.SpyObj<TtsWorkbenchService>;
+describe('AudiobookStudioWorkspaceComponent', () => {
+  let fixture: ComponentFixture<AudiobookStudioWorkspaceComponent>;
+  let component: AudiobookStudioWorkspaceComponent;
+  let audiobookWorkflowService: jasmine.SpyObj<AudiobookWorkflowService>;
+  let audiobookApiService: jasmine.SpyObj<AudiobookApiService>;
+  let audiobookLibraryService: jasmine.SpyObj<AudiobookLibraryService>;
+  let voicePickerService: jasmine.SpyObj<VoicePickerService>;
 
   beforeEach(async () => {
-    ttsWorkbenchService = jasmine.createSpyObj<TtsWorkbenchService>('TtsWorkbenchService', [
+    audiobookWorkflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
       'analyzeSpeakers',
+      'approveCast',
       'splitDialogue',
+      'saveScriptPreview',
       'annotateEmotions',
+      'saveProductionSettings',
+      'approveScript',
       'generateFinalJson',
       'planSingleSpeakerRenderRequests',
       'createAudio',
-      'createAudioForRenderRequest'
+      'markAudioGenerated'
     ]);
+    audiobookApiService = jasmine.createSpyObj<AudiobookApiService>('AudiobookApiService', [
+      'createAudio',
+      'createAudioForRenderRequest',
+      'post',
+      'postJsonResponse',
+      'postBlobResponse'
+    ]);
+    audiobookLibraryService = jasmine.createSpyObj<AudiobookLibraryService>('AudiobookLibraryService', ['updateTitle']);
+    voicePickerService = jasmine.createSpyObj<VoicePickerService>('VoicePickerService', ['getVoiceCatalog']);
+    voicePickerService.getVoiceCatalog.and.resolveTo([
+      { id: 'zephyr', providerVoiceName: 'Zephyr', displayName: 'Zephyr', description: 'Bright.', imageUrl: '/assets/voices/zephyr/avatar.png', demoMp3Url: '/assets/voices/zephyr/demo.mp3' },
+      { id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '/assets/voices/puck/avatar.png', demoMp3Url: '/assets/voices/puck/demo.mp3' },
+    ]);
+    audiobookApiService.createAudioForRenderRequest.and.callFake(async () => ({
+      blob: new Blob(['generated'], { type: 'audio/mpeg' }),
+      filename: 'tts-render-request-1.mp3'
+    }));
+    audiobookWorkflowService.saveScriptPreview.and.callFake(async (_projectId, turns) => turns);
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [],
+      projectId: null,
+      projectTitle: ''
+    });
+    audiobookWorkflowService.markAudioGenerated.and.resolveTo({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'Mara: We go now.',
+      workflowStage: 'AUDIO_GENERATED',
+      speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
+      scriptTurns: [{ speaker: 'Mara', text: 'We go now.' }],
+      annotatedTurns: [{ speaker: 'Mara', text: '[urgent] We go now.' }],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      performanceNotesStale: false
+    } as never);
+    audiobookLibraryService.updateTitle.and.resolveTo({
+      id: 'project-1',
+      title: 'The Hidden Signal',
+      status: 'NEEDS_REVIEW',
+      speechSegmentCount: 0,
+      speakerCount: null,
+      totalDurationSeconds: null,
+      createdAt: '2026-05-12T10:00:00Z',
+      updatedAt: '2026-05-12T10:01:00Z',
+      speechSegments: [],
+      audioAssets: []
+    } as never);
 
     await TestBed.configureTestingModule({
-      imports: [AudiobookStudioPageComponent],
-      providers: [{ provide: TtsWorkbenchService, useValue: ttsWorkbenchService }]
+      imports: [AudiobookStudioWorkspaceComponent],
+      providers: [
+        { provide: AudiobookWorkflowService, useValue: audiobookWorkflowService },
+        { provide: AudiobookApiService, useValue: audiobookApiService },
+        { provide: AudiobookLibraryService, useValue: audiobookLibraryService },
+        { provide: VoicePickerService, useValue: voicePickerService },
+      ]
     }).compileComponents();
 
-    fixture = TestBed.createComponent(AudiobookStudioPageComponent);
+    fixture = TestBed.createComponent(AudiobookStudioWorkspaceComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
   });
@@ -39,19 +106,62 @@ describe('AudiobookStudioPageComponent', () => {
   });
 
   it('shows cast cards after story analysis succeeds', async () => {
-    ttsWorkbenchService.analyzeSpeakers.and.resolveTo([
-      { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }
-    ]);
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
+      projectId: 'project-1',
+      projectTitle: 'The Hidden Signal'
+    });
     component.storyTextControl.setValue('Mara: We go now.');
 
     await component.analyzeStory();
     fixture.detectChanges();
 
-    expect(ttsWorkbenchService.analyzeSpeakers).toHaveBeenCalledWith('Mara: We go now.');
+    expect(audiobookWorkflowService.analyzeSpeakers).toHaveBeenCalledWith('Mara: We go now.');
     expect(fixture.nativeElement.textContent).toContain('Mara');
-    expect(fixture.nativeElement.textContent).toContain('Detected character');
-    expect(fixture.nativeElement.textContent).toContain('Warm alto voice');
+    expect(fixture.nativeElement.textContent).toContain('Dialogue speaker');
+    expect(fixture.nativeElement.textContent).toContain('WARM ALTO VOICE');
     expect(fixture.nativeElement.textContent).toContain('Cast needs review');
+    expect(fixture.nativeElement.textContent).toContain('The Hidden Signal');
+  });
+
+  it('shows and saves the AI project title from the first workflow step', async () => {
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
+      projectId: 'project-1',
+      projectTitle: 'The Hidden Signal'
+    });
+    component.storyTextControl.setValue('Mara: We go now.');
+
+    await component.analyzeStory();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('The Hidden Signal');
+    expect(fixture.nativeElement.querySelector('[data-testid="edit-project-title"]')).not.toBeNull();
+
+    clickButton('Edit title');
+    fixture.detectChanges();
+
+    setInputValue('#project-title', 'Updated Signal');
+    audiobookLibraryService.updateTitle.and.resolveTo({
+      id: 'project-1',
+      title: 'Updated Signal',
+      status: 'NEEDS_REVIEW',
+      speechSegmentCount: 0,
+      speakerCount: null,
+      totalDurationSeconds: null,
+      createdAt: '2026-05-12T10:00:00Z',
+      updatedAt: '2026-05-12T10:02:00Z',
+      speechSegments: [],
+      audioAssets: []
+    } as never);
+
+    clickButton('Save title');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(audiobookLibraryService.updateTitle).toHaveBeenCalledWith('project-1', 'Updated Signal');
+    expect(component.projectTitleControl.value).toBe('Updated Signal');
+    expect(fixture.nativeElement.textContent).toContain('Updated Signal');
   });
 
   it('shows an edited cast speaker name after saving the cast card', async () => {
@@ -60,7 +170,7 @@ describe('AudiobookStudioPageComponent', () => {
     ];
     fixture.detectChanges();
 
-    clickButton('Edit');
+    getByTestId('cast-edit-0').click();
     fixture.detectChanges();
 
     setInputValue('#cast-speaker-name-0', 'Captain Mara');
@@ -79,12 +189,36 @@ describe('AudiobookStudioPageComponent', () => {
 
   it('uses edited cast data when continuing to script preview', async () => {
     component.storyTextControl.setValue('StationKeeper: All aboard.');
-    component.cast = [
-      { speakerName: 'StationKeeper', roleDescription: 'Old role', voiceSuggestion: 'Old voice' }
-    ];
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [
+        { speakerName: 'StationKeeper', roleDescription: 'Old role', voiceSuggestion: 'Old voice' }
+      ],
+      projectId: 'project-1',
+      projectTitle: 'The Hidden Signal'
+    });
+    await component.analyzeStory();
     fixture.detectChanges();
+    audiobookWorkflowService.approveCast.and.resolveTo({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'StationKeeper: All aboard.',
+      workflowStage: 'CAST_APPROVED',
+      speakers: [
+        { speakerName: 'Station Keeper', roleDescription: 'Caretaker of the midnight platform', voiceSuggestion: 'Warm gravelly voice' }
+      ],
+      scriptTurns: [],
+      annotatedTurns: [],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      performanceNotesStale: false
+    } as never);
 
-    clickButton('Edit');
+    getByTestId('cast-edit-0').click();
     fixture.detectChanges();
     setInputValue('#cast-speaker-name-0', 'Station Keeper');
     setInputValue('#cast-role-description-0', 'Caretaker of the midnight platform');
@@ -92,41 +226,72 @@ describe('AudiobookStudioPageComponent', () => {
     clickButton('Save');
     fixture.detectChanges();
 
-    ttsWorkbenchService.splitDialogue.and.resolveTo([
+    audiobookWorkflowService.splitDialogue.and.resolveTo([
       { speaker: 'Station Keeper', text: 'All aboard.' }
     ]);
 
+    await component.approveCast();
     await component.createScriptPreview();
 
-    expect(ttsWorkbenchService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, [
+    expect(audiobookWorkflowService.approveCast).toHaveBeenCalledWith('project-1');
+    expect(audiobookWorkflowService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, [
       {
         speakerName: 'Station Keeper',
         roleDescription: 'Caretaker of the midnight platform',
         voiceSuggestion: 'Warm gravelly voice'
       }
-    ]);
+    ], 'project-1');
   });
 
   it('shows script preview turns after cast analysis continues', async () => {
     component.storyTextControl.setValue('Mara: We go now.\nJonas: Together.');
-    component.cast = [
-      { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' },
-      { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
-    ];
-    ttsWorkbenchService.splitDialogue.and.resolveTo([
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [
+        { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' },
+        { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
+      ],
+      projectId: 'project-1',
+      projectTitle: 'The Hidden Signal'
+    });
+    await component.analyzeStory();
+    fixture.detectChanges();
+    audiobookWorkflowService.approveCast.and.resolveTo({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'Mara: We go now.\nJonas: Together.',
+      workflowStage: 'CAST_APPROVED',
+      speakers: [
+        { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' },
+        { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
+      ],
+      scriptTurns: [],
+      annotatedTurns: [],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      performanceNotesStale: false
+    } as never);
+    audiobookWorkflowService.splitDialogue.and.resolveTo([
       { speaker: 'Mara', text: 'We go now.' },
       { speaker: 'Jonas', text: 'Together.' }
     ]);
 
+    await component.approveCast();
     await component.createScriptPreview();
     fixture.detectChanges();
 
-    expect(ttsWorkbenchService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast);
-    expect(fixture.nativeElement.textContent).toContain('Review script preview');
+    expect(audiobookWorkflowService.approveCast).toHaveBeenCalledWith('project-1');
+    expect(audiobookWorkflowService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast, 'project-1');
+    expect(fixture.nativeElement.textContent).toContain('Review script');
     expect(fixture.nativeElement.textContent).toContain('We go now.');
     expect(fixture.nativeElement.textContent).toContain('Together.');
-    expect(fixture.nativeElement.textContent).toContain('Script needs review');
+    expect(fixture.nativeElement.textContent).toContain('Script needs your approval');
   });
+
 
   it('shows an edited script turn after saving the speaker and text', async () => {
     component.cast = [
@@ -134,14 +299,15 @@ describe('AudiobookStudioPageComponent', () => {
       { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
     ];
     component.scriptTurns = [{ speaker: 'Mara', text: 'We go now.' }];
+    (component as any).facade.setCurrentProjectId('project-1');
     fixture.detectChanges();
 
-    clickButton('Edit', 2);
+    component.startScriptTurnEdit(0);
     fixture.detectChanges();
 
-    setSelectValue('#script-speaker-0', 'Jonas');
-    setInputValue('#script-text-0', 'We wait for the signal.');
-    clickButton('Save');
+    component.scriptTurnEditDraft!.speaker = 'Jonas';
+    component.scriptTurnEditDraft!.text = 'We wait for the signal.';
+    await component.saveScriptTurnEdit(0);
     fixture.detectChanges();
 
     expect(component.scriptTurns[0]).toEqual({ speaker: 'Jonas', text: 'We wait for the signal.' });
@@ -177,43 +343,112 @@ describe('AudiobookStudioPageComponent', () => {
     component.scriptTurns = [{ speaker: 'Mara', text: 'We go now.' }];
     component.scriptApproved = true;
     component.annotatedTurns = [{ speaker: 'Mara', text: '[urgent] We go now.' }];
+    (component as any).facade.setCurrentProjectId('project-1');
     fixture.detectChanges();
 
-    clickButton('Edit', 1);
+    getByTestId('script-turn-edit-0').click();
     fixture.detectChanges();
     setInputValue('#script-text-0', 'We go at sunrise.');
     clickButton('Save');
     fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
 
-    const planButton = buttonByText('Prepare audio generation');
-    expect(fixture.nativeElement.textContent).toContain('Script changed. Regenerate performance notes before creating the audio production plan.');
+    const planButton = buttonByText('Next: Prepare audiobook');
+    expect(fixture.nativeElement.textContent).toContain('Script changed. Update the emotion & pacing before generating the audiobook.');
     expect(planButton.disabled).toBeTrue();
 
-    clickButton('Approve script');
-    ttsWorkbenchService.annotateEmotions.and.resolveTo([{ speaker: 'Mara', text: '[hopeful] We go at sunrise.' }]);
-    await component.createPerformanceNotes();
+    audiobookWorkflowService.approveScript.and.resolveTo({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'Mara: We go at sunrise.',
+      workflowStage: 'SCRIPT_APPROVED',
+      speakers: [
+        { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }
+      ],
+      scriptTurns: [{ speaker: 'Mara', text: 'We go at sunrise.' }],
+      annotatedTurns: [],
+      audioAssets: [],
+      performanceNotesStale: true
+    } as never);
+    audiobookWorkflowService.annotateEmotions.and.resolveTo({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'Mara: We go at sunrise.',
+      workflowStage: 'PERFORMANCE_READY',
+      speakers: [
+        { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }
+      ],
+      scriptTurns: [{ speaker: 'Mara', text: 'We go at sunrise.' }],
+      annotatedTurns: [{ speaker: 'Mara', text: '[hopeful] We go at sunrise.' }],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      performanceNotesStale: false
+    } as never);
+    clickButton('Approve script & continue');
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(component.performanceNotesStale).toBeFalse();
-    expect(buttonByText('Prepare audio generation').disabled).toBeFalse();
+    expect(component.performanceReady).toBeTrue();
+    expect(buttonByText('Next: Prepare audiobook').disabled).toBeFalse();
   });
 
   it('continues the emotion annotation flow after the user approves the script', async () => {
+    component.cast = [{ speakerName: 'Narrator', roleDescription: 'Story voice', voiceSuggestion: 'Clear narrator' }];
     component.scriptTurns = [{ speaker: 'Narrator', text: 'The lamps dimmed.' }];
-    ttsWorkbenchService.annotateEmotions.and.resolveTo([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
+    (component as any).facade.setCurrentProjectId('project-1');
+    component.castReviewed = true;
+    audiobookWorkflowService.approveScript.and.resolveTo({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'The lamps dimmed.',
+      workflowStage: 'SCRIPT_APPROVED',
+      speakers: [{ speakerName: 'Narrator', roleDescription: 'Story voice', voiceSuggestion: 'Clear narrator' }],
+      scriptTurns: [{ speaker: 'Narrator', text: 'The lamps dimmed.' }],
+      annotatedTurns: [],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      performanceNotesStale: false
+    } as never);
+    audiobookWorkflowService.annotateEmotions.and.resolveTo({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'The lamps dimmed.',
+      workflowStage: 'PERFORMANCE_READY',
+      speakers: [{ speakerName: 'Narrator', roleDescription: 'Story voice', voiceSuggestion: 'Clear narrator' }],
+      scriptTurns: [{ speaker: 'Narrator', text: 'The lamps dimmed.' }],
+      annotatedTurns: [{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      performanceNotesStale: false
+    } as never);
     fixture.detectChanges();
 
-    expect(buttonByText('Add emotion & pacing').disabled).toBeTrue();
-
-    clickButton('Approve script');
+    await component.approveScript();
     fixture.detectChanges();
-    clickButton('Add emotion & pacing');
+    await component.createPerformanceNotes();
     fixture.detectChanges();
-    await fixture.whenStable();
 
-    expect(ttsWorkbenchService.annotateEmotions).toHaveBeenCalledWith(component.scriptTurns);
+    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1');
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
   });
+
 
   it('cancels an in-flight part generation and keeps already generated parts', async () => {
     component.audioProductionPlan = {
@@ -223,7 +458,7 @@ describe('AudiobookStudioPageComponent', () => {
       ]
     };
     prepareGeneratedPart(0, 'part-1.mp3', 'part one');
-    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookApiService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -248,7 +483,7 @@ describe('AudiobookStudioPageComponent', () => {
     component.audioProductionPlan = {
       renderRequests: [{ input: { text: 'Only part' }, voice: { name: 'Kore' }, audioConfig: {} }]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookApiService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -267,7 +502,7 @@ describe('AudiobookStudioPageComponent', () => {
     component.audioProductionPlan = {
       renderRequests: [{ input: { text: 'Only part' }, voice: { name: 'Kore' }, audioConfig: {} }]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookApiService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -276,7 +511,7 @@ describe('AudiobookStudioPageComponent', () => {
     const first = component.generateAudioForRenderRequest(component.renderRequests[0], 0);
     const second = component.generateAudioForRenderRequest(component.renderRequests[0], 0);
 
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
     component.cancelRenderRequestGeneration(0);
     await Promise.all([first, second]);
   });
@@ -291,7 +526,7 @@ describe('AudiobookStudioPageComponent', () => {
     };
     prepareGeneratedPart(0, 'part-1.mp3', 'part one');
     prepareGeneratedPart(1, 'part-2.mp3', 'part two');
-    ttsWorkbenchService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
+    audiobookApiService.createAudioForRenderRequest.and.callFake((_renderRequest, options) => {
       return new Promise<never>((_resolve, reject) => {
         options?.signal?.addEventListener('abort', () => reject(abortError()), { once: true });
       });
@@ -310,21 +545,24 @@ describe('AudiobookStudioPageComponent', () => {
     expect(component.renderRequestAudioState(1).status).toBe('generated');
     expect(component.renderRequestAudioState(2).status).toBe('canceled');
     expect(component.fullPlanAudioLoading).toBeFalse();
-    expect(component.fullPlanAudioStatusMessage).toBe('Generation canceled. You can retry the pending part.');
+    expect(component.fullPlanAudioError).toBe('Audiobook preview generation was canceled.');
+    expect(component.currentGenerationStatusLabel()).toBe('Audiobook preview generation was canceled.');
 
-    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+    audiobookApiService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['part three'], { type: 'audio/mpeg' }),
       filename: 'part-3.mp3'
     });
-    ttsWorkbenchService.createAudioForRenderRequest.calls.reset();
+    audiobookApiService.createAudioForRenderRequest.calls.reset();
 
     await component.generateAudio();
     fixture.detectChanges();
 
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[2],
-      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) })
+      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
+      undefined,
+      2
     );
     expect(component.renderRequestAudioState(2).status).toBe('generated');
     expect(component.fullPlanAudioUrl).not.toBeNull();
@@ -335,7 +573,7 @@ describe('AudiobookStudioPageComponent', () => {
     component.audioProductionPlan = {
       renderRequests: [{ input: {}, voice: { name: 'Kore' }, audioConfig: {} }]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+    audiobookApiService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['fake mp3'], { type: 'audio/mpeg' }),
       filename: 'part.mp3'
     });
@@ -344,15 +582,36 @@ describe('AudiobookStudioPageComponent', () => {
     fixture.detectChanges();
 
     const player = fixture.nativeElement.querySelector('.generated-audio-player .waveform-canvas') as HTMLElement | null;
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[0],
-      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) })
+      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
+      undefined,
+      0
     );
     expect(player).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
-    expect(fixture.nativeElement.textContent).toContain('Download audiobook');
-    expect(component.fullPlanAudioFilename).toBe('audiobook-preview.mp3');
+    expect(fixture.nativeElement.textContent).toContain('Download MP3');
+    expect(component.fullPlanAudioFilename).toBe('audiobook-preview-merged.mp3');
     expect(anchorClickSpy).not.toHaveBeenCalled();
+  });
+
+  it('confirms the workflow after merging the full audiobook preview', async () => {
+    component.audioProductionPlan = {
+      renderRequests: [{ input: {}, voice: { name: 'Kore' }, audioConfig: {} }]
+    };
+    audiobookApiService.createAudioForRenderRequest.and.resolveTo({
+      blob: new Blob(['fake mp3'], { type: 'audio/mpeg' }),
+      filename: 'part.mp3',
+      projectId: 'project-1'
+    });
+    (component as any).facade.setCurrentProjectId('project-1');
+
+    await component.generateAudio();
+    fixture.detectChanges();
+
+    expect(audiobookWorkflowService.markAudioGenerated).toHaveBeenCalledWith('project-1');
+    expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
+    expect(fixture.nativeElement.textContent).toContain('Ready to listen');
   });
 
   it('generating one part stores only that part and does not start a download', async () => {
@@ -363,7 +622,7 @@ describe('AudiobookStudioPageComponent', () => {
         { input: { text: 'Second' }, voice: { name: 'Iapetus' }, audioConfig: {} }
       ]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+    audiobookApiService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['part one'], { type: 'audio/mpeg' }),
       filename: 'part-1.mp3'
     });
@@ -387,21 +646,23 @@ describe('AudiobookStudioPageComponent', () => {
         { input: { text: 'Third' }, voice: { name: 'Kore' }, audioConfig: {} }
       ]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.resolveTo({
+    audiobookApiService.createAudioForRenderRequest.and.resolveTo({
       blob: new Blob(['mp3'], { type: 'audio/mpeg' }),
       filename: 'part.mp3'
     });
 
     await component.generateAudioForRenderRequest(component.renderRequests[0], 0);
     await component.generateAudioForRenderRequest(component.renderRequests[1], 1);
-    ttsWorkbenchService.createAudioForRenderRequest.calls.reset();
+    audiobookApiService.createAudioForRenderRequest.calls.reset();
 
     await component.generateAudio();
 
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
-    expect(ttsWorkbenchService.createAudioForRenderRequest).toHaveBeenCalledWith(
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(audiobookApiService.createAudioForRenderRequest).toHaveBeenCalledWith(
       component.renderRequests[2],
-      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) })
+      jasmine.objectContaining({ signal: jasmine.any(AbortSignal) }),
+      undefined,
+      2
     );
     expect(component.fullPlanAudioUrl).not.toBeNull();
   });
@@ -447,7 +708,7 @@ describe('AudiobookStudioPageComponent', () => {
         { input: { text: 'Third' }, voice: { name: 'Kore' }, audioConfig: {} }
       ]
     };
-    ttsWorkbenchService.createAudioForRenderRequest.and.callFake(async (renderRequest) => {
+    audiobookApiService.createAudioForRenderRequest.and.callFake(async (renderRequest) => {
       if (renderRequest === component.renderRequests[1]) {
         throw new Error('Provider exploded');
       }
@@ -464,12 +725,12 @@ describe('AudiobookStudioPageComponent', () => {
     expect(component.renderRequestAudioState(1).status).toBe('failed');
     expect(component.renderRequestAudioState(2).status).toBe('generated');
     expect(component.fullPlanAudioUrl).toBeNull();
-    expect(component.currentGenerationStatusLabel()).toBe('2 of 3 parts ready - 1 failed');
+    expect(component.currentGenerationStatusLabel()).toBe('1 part failed to generate. Please retry them individually before generating the final preview.');
     expect(component.currentGenerationDetails()).toBe('Generate audiobook preview will use the parts that are already ready and only generate the 1 missing, canceled, failed, or timed-out part before merging.');
   });
 
   it('shows a user-facing backend error when analysis fails', async () => {
-    ttsWorkbenchService.analyzeSpeakers.and.rejectWith(new Error('The cast analysis provider is currently unavailable. Please try again later.'));
+    audiobookWorkflowService.analyzeSpeakers.and.rejectWith(new Error('The cast analysis provider is currently unavailable. Please try again later.'));
     component.storyTextControl.setValue('Mara: Hello');
 
     await component.analyzeStory();
@@ -483,6 +744,67 @@ describe('AudiobookStudioPageComponent', () => {
 
     expect(markup.tags).toEqual(['serious', 'curious']);
     expect(markup.text).toBe('Jonas, listen.');
+  });
+
+  it('preserves in-text tags in the remaining text for highlighting', () => {
+    const markup = component.markupFor({ speaker: 'Mara', text: '[sigh] [curious] Jonas, [short pause] tell me you did not hide this.' });
+
+    expect(markup.tags).toEqual(['sigh', 'curious']);
+    expect(markup.text).toContain('[short pause]');
+    expect(markup.text).toBe('Jonas, [short pause] tell me you did not hide this.');
+  });
+
+  it('exposes the persisted merged audio URL from the workflow snapshot via facade signal', () => {
+    component.hydrateFromSnapshot({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'Mara: We go now.',
+      workflowStage: 'AUDIO_GENERATED',
+      speakers: [],
+      scriptTurns: [],
+      annotatedTurns: [],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      audioAssetsCurrent: true,
+      performanceNotesStale: false,
+      mergedAudioUrl: '/api/audiobooks/project-1/audio-assets/merged-1/stream'
+    });
+
+    expect((component as any).facade.mergedAudioUrl()).toBe('/api/audiobooks/project-1/audio-assets/merged-1/stream');
+  });
+
+  it('shows the generated preview player after page reload using the persisted merged audio URL', () => {
+    component.hydrateFromSnapshot({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'Mara: We go now.',
+      workflowStage: 'AUDIO_GENERATED',
+      speakers: [],
+      scriptTurns: [],
+      annotatedTurns: [],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      audioAssetsCurrent: true,
+      performanceNotesStale: false,
+      mergedAudioUrl: '/api/audiobooks/project-1/audio-assets/merged-1/stream'
+    });
+    fixture.detectChanges();
+
+    expect(component.fullPlanAudioUrl).toBe('/api/audiobooks/project-1/audio-assets/merged-1/stream');
+    const player = fixture.nativeElement.querySelector('.generated-audio-player') as HTMLElement | null;
+    expect(player).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
+    expect(fixture.nativeElement.textContent).toContain('Download MP3');
   });
 
   function buttonByText(text: string, occurrence = 0): HTMLButtonElement {
@@ -525,6 +847,75 @@ describe('AudiobookStudioPageComponent', () => {
   function abortError(): DOMException {
     return new DOMException('Aborted', 'AbortError');
   }
+
+  // ── Voice picker ────────────────────────────────────────────────────────────
+
+  describe('voice picker', () => {
+    beforeEach(() => {
+      component.cast = [
+        { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'ZEPHYR' },
+        { speakerName: 'Jonas', roleDescription: 'The guide', voiceSuggestion: 'PUCK' },
+      ];
+      fixture.detectChanges();
+    });
+
+    it('opens the voice picker modal when Change voice is clicked', () => {
+      const changeBtn = fixture.nativeElement.querySelector('[data-testid="cast-change-voice-0"]');
+      expect(changeBtn).not.toBeNull();
+      changeBtn.click();
+      fixture.detectChanges();
+
+      expect(component.voicePickerOpenForIndex).toBe(0);
+      const modal = fixture.nativeElement.querySelector('[data-testid="voice-picker-modal"]');
+      expect(modal).not.toBeNull();
+    });
+
+    it('passes the correct speaker name to the modal', () => {
+      component.openVoicePicker(0);
+      fixture.detectChanges();
+
+      expect(component.voicePickerSpeakerName()).toBe('Mara');
+    });
+
+    it('passes the current voice id (lowercase) to the modal', () => {
+      component.openVoicePicker(0);
+      expect(component.voicePickerCurrentVoiceId()).toBe('zephyr');
+    });
+
+    it('updates voiceSuggestion when a voice is selected', fakeAsync(() => {
+      component.openVoicePicker(0);
+      fixture.detectChanges();
+
+      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
+      fixture.detectChanges();
+
+      expect(component.cast[0].voiceSuggestion).toBe('PUCK');
+      flush();
+    }));
+
+    it('shows the updated voice on the cast card immediately after selection', fakeAsync(() => {
+      component.openVoicePicker(0);
+      fixture.detectChanges();
+
+      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
+      fixture.detectChanges();
+
+      const voiceBadge = fixture.nativeElement.querySelector('.voice-name-display');
+      expect(voiceBadge.textContent.trim()).toBe('PUCK');
+      flush();
+    }));
+
+    it('closes the voice picker when closeVoicePicker is called', () => {
+      component.openVoicePicker(0);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-testid="voice-picker-modal"]')).not.toBeNull();
+
+      component.closeVoicePicker();
+      fixture.detectChanges();
+      expect(component.voicePickerOpenForIndex).toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-testid="voice-picker-modal"]')).toBeNull();
+    });
+  });
 
   function prepareGeneratedPart(index: number, filename: string, body: string): void {
     const state = component.renderRequestAudioState(index);

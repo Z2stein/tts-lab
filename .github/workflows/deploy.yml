@@ -111,7 +111,7 @@ jobs:
       - name: Build and push backend image
         uses: docker/build-push-action@v6
         with:
-          context: ./backend
+          context: .
           file: ./backend/Dockerfile
           push: true
           tags: |
@@ -218,13 +218,14 @@ jobs:
           CHAT_PROVIDER: ${{ needs.prepare-build.outputs.chat_provider }}
           CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
           APP_SLUG: ${{ needs.prepare-build.outputs.app_slug }}
+          TTS_LAB_DEMO_TOKEN_SIGNING_SECRET: ${{ secrets.TTS_LAB_DEMO_TOKEN_SIGNING_SECRET }}
         run: |
           set -euo pipefail
           REMOTE_APP_DIR="/opt/${APP_SLUG}"
           ssh "$USER@$HOST" "mkdir -p '$REMOTE_APP_DIR/charts'"
           scp -r charts/tts-lab "$USER@$HOST:$REMOTE_APP_DIR/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "$CHAT_PROVIDER" "$REMOTE_APP_DIR" "$TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64" <<'EOF'
+          ssh -o ServerAliveInterval=30 -o ServerAliveCountMax=10 "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "$CHAT_PROVIDER" "$REMOTE_APP_DIR" "$TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64" "$TTS_LAB_DEMO_TOKEN_SIGNING_SECRET" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -242,6 +243,7 @@ jobs:
             CHAT_PROVIDER="${14}"
             REMOTE_APP_DIR="${15}"
             TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64="${16}"
+            TTS_LAB_DEMO_TOKEN_SIGNING_SECRET="${17}"
 
             if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
               AUTH_MODE="google"
@@ -267,6 +269,10 @@ jobs:
 
             kubectl -n "$NAMESPACE" create secret generic gemini-api \
               --from-literal=api-key="${GEMINI_API_KEY:-}" \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            kubectl -n "$NAMESPACE" create secret generic demo-token-signing \
+              --from-literal=signing-secret="${TTS_LAB_DEMO_TOKEN_SIGNING_SECRET:-}" \
               --dry-run=client -o yaml | kubectl apply -f -
 
             TTS_GOOGLE_CREDENTIALS_CHECKSUM=""
@@ -305,9 +311,11 @@ jobs:
               --set-string postgresql.auth.password="$POSTGRES_PASSWORD" \
               --set chat.geminiSecretName="gemini-api" \
               --set chat.provider="$CHAT_PROVIDER" \
-              --set ttsWorkbench.googleCredentialsSecretName="$TTS_GOOGLE_CREDENTIALS_SECRET_NAME" \
-              --set ttsWorkbench.googleCredentialsChecksum="$TTS_GOOGLE_CREDENTIALS_CHECKSUM" \
-              --set chat.realProviderOnFeatureBranches="$([ "$CHAT_PROVIDER" = "gemini" ] && echo true || echo false)"
+              --set audiobookWorkflow.googleCredentialsSecretName="$TTS_GOOGLE_CREDENTIALS_SECRET_NAME" \
+              --set audiobookWorkflow.googleCredentialsChecksum="$TTS_GOOGLE_CREDENTIALS_CHECKSUM" \
+              --set chat.realProviderOnFeatureBranches="$([ "$CHAT_PROVIDER" = "gemini" ] && echo true || echo false)" \
+              --set demoToken.enabled=true \
+              --set demoToken.signingSecretName="demo-token-signing"
 
             BACKEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-backend"
             FRONTEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-frontend"
@@ -319,10 +327,61 @@ jobs:
             echo "Waiting for frontend rollout: deployment/$FRONTEND_DEPLOYMENT"
             kubectl -n "$NAMESPACE" rollout status "deployment/$FRONTEND_DEPLOYMENT" --timeout=5m
 
+            wait_for_ready_pods() {
+              local selector="$1"
+              local description="$2"
+              local deadline=$((SECONDS + 300))
+
+              while true; do
+                local pod_state
+                pod_state="$(
+                  kubectl -n "$NAMESPACE" get pods -l "$selector" -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.phase}{" "}{range .status.conditions[?(@.type=="Ready")]}{.status}{end}{"\n"}{end}'
+                )"
+
+                if [ -z "$pod_state" ]; then
+                  if [ "$SECONDS" -ge "$deadline" ]; then
+                    echo "::error title=Pod readiness timeout::Timed out waiting for $description pods to appear and become Ready."
+                    exit 1
+                  fi
+                  sleep 5
+                  continue
+                fi
+
+                local all_ready=true
+                while IFS= read -r line; do
+                  [ -n "$line" ] || continue
+                  local pod_name pod_phase pod_ready
+                  pod_name="${line%% *}"
+                  line="${line#* }"
+                  pod_phase="${line%% *}"
+                  pod_ready="${line##* }"
+
+                  if [ "$pod_phase" != "Running" ] || [ "$pod_ready" != "True" ]; then
+                    all_ready=false
+                    break
+                  fi
+                done <<EOF
+                  $pod_state
+                  EOF
+
+                if [ "$all_ready" = true ]; then
+                  return 0
+                fi
+
+                if [ "$SECONDS" -ge "$deadline" ]; then
+                  echo "::error title=Pod readiness timeout::Timed out waiting for $description pods to become Ready."
+                  kubectl -n "$NAMESPACE" get pods -l "$selector" -o wide
+                  exit 1
+                fi
+
+                sleep 5
+              done
+            }
+
             echo "Waiting for backend pods to be Ready with selector: $BACKEND_SELECTOR"
-            kubectl -n "$NAMESPACE" wait --for=condition=Ready pod -l "$BACKEND_SELECTOR" --timeout=5m
+            wait_for_ready_pods "$BACKEND_SELECTOR" "backend"
             echo "Waiting for frontend pods to be Ready with selector: $FRONTEND_SELECTOR"
-            kubectl -n "$NAMESPACE" wait --for=condition=Ready pod -l "$FRONTEND_SELECTOR" --timeout=5m
+            wait_for_ready_pods "$FRONTEND_SELECTOR" "frontend"
 
             kubectl -n "$NAMESPACE" get deployments,pods -l "app.kubernetes.io/instance=$RELEASE_NAME" -o wide
           EOF
@@ -362,11 +421,50 @@ jobs:
         with:
           gradle-version: 8.8
 
+      - name: Locate Chrome for frontend unit tests
+        id: chrome
+        run: |
+          set -euo pipefail
+          for candidate in /usr/bin/google-chrome /usr/bin/google-chrome-stable /usr/bin/chromium /usr/bin/chromium-browser; do
+            if [ -x "$candidate" ]; then
+              echo "chrome_bin=$candidate" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
+          done
+          echo "::error title=Chrome binary not found::No Chrome-compatible binary is available on the runner."
+          exit 1
+
       - name: Install frontend dependencies
         run: |
           set -euo pipefail
           cd frontend
           npm ci
+
+      - name: Verify frontend contract types against OpenAPI
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm run verify:api-contract
+
+      - name: Lint frontend code
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm run lint
+
+      - name: Run frontend unit tests
+        env:
+          CHROME_BIN: ${{ steps.chrome.outputs.chrome_bin }}
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm test
+
+      - name: Build frontend bundle
+        run: |
+          set -euo pipefail
+          cd frontend
+          npm run build
 
       - name: Install Playwright browser
         run: |

@@ -1,6 +1,8 @@
 package com.example.ttslab.auth;
 
+import java.io.Serializable;
 import java.util.List;
 
-public record CurrentUser(String id, String email, String name, List<String> roles, String authMode) {
+public record CurrentUser(String id, String email, String name, List<String> roles, String authMode)
+    implements Serializable {
 }

@@ -3,6 +3,7 @@ package com.example.ttslab.prompts;
 import com.example.ttslab.auth.AuthMode;
 import com.example.ttslab.auth.AuthProperties;
 import com.example.ttslab.auth.CurrentUser;
+import com.example.ttslab.auth.DemoAuthentication;
 import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -18,6 +19,10 @@ public class CurrentUserResolver {
     }
 
     public CurrentUser resolve(Authentication authentication) {
+        if (authentication instanceof DemoAuthentication demo) {
+            return demo.getPrincipal();
+        }
+
         if (authProperties.mode() == AuthMode.MOCK) {
             return authProperties.mockCurrentUser();
         }

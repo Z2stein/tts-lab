@@ -1,10 +1,27 @@
 package com.example.ttslab.audiobooks;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.example.ttslab.audiobooks.dto.AudiobookSummaryResponse;
+import com.example.ttslab.audiobooks.model.*;
+import com.example.ttslab.audiobooks.repository.AudioAssetRepository;
+import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
+import com.example.ttslab.audiobooks.repository.AudiobookRepository;
+import com.example.ttslab.audiobooks.repository.AudiobookSpeechSegmentRepository;
+import com.example.ttslab.audiobooks.service.AudiobookMetadataCalculator;
+import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
+import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
+import com.example.ttslab.audiobooks.workflow.SingleSpeakerRenderRequest;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.storage.FileStorageService;
 import com.example.ttslab.storage.StorageKeyBuilder;
 import com.example.ttslab.storage.StorageProperties;
@@ -12,17 +29,27 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 
 class AudiobookLibraryServiceTest {
     @Test
     void rejectsDownloadWhenAssetDoesNotBelongToCurrentUser() {
         AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
+        AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
+        AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = Mockito.mock(SpeakerCharacterRepository.class);
         FileStorageService storage = Mockito.mock(FileStorageService.class);
         AudiobookLibraryService service = new AudiobookLibraryService(
             repository,
+            projectRepository,
+            segmentRepository,
+            assetRepository,
             storage,
-            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch"))
+            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
+            new AudiobookMetadataCalculator(repository),
+            speakerCharacterRepository
         );
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
@@ -36,11 +63,20 @@ class AudiobookLibraryServiceTest {
     @Test
     void rejectsDownloadWhenAssetIsNotReady() {
         AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
+        AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
+        AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = Mockito.mock(SpeakerCharacterRepository.class);
         FileStorageService storage = Mockito.mock(FileStorageService.class);
         AudiobookLibraryService service = new AudiobookLibraryService(
             repository,
+            projectRepository,
+            segmentRepository,
+            assetRepository,
             storage,
-            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch"))
+            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
+            new AudiobookMetadataCalculator(repository),
+            speakerCharacterRepository
         );
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
         AudioAsset asset = new AudioAsset("asset-1", "project-1", null, AudioAssetType.PREVIEW_MP3, 1, "key", "a.mp3", "audio/mpeg", 3, null, AudioAssetStatus.GENERATING, Instant.now());
@@ -51,4 +87,193 @@ class AudiobookLibraryServiceTest {
             .isInstanceOf(ApiException.class)
             .hasMessageContaining("The requested audio asset is not ready yet.");
     }
+
+    @Test
+    void listComputesMetadataFromProjectSegmentsAndCharacters() {
+        // Test that list() uses project speech segments and assigned characters instead of audio assets
+        AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
+        AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
+        AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = Mockito.mock(SpeakerCharacterRepository.class);
+        FileStorageService storage = Mockito.mock(FileStorageService.class);
+        AudiobookLibraryService service = new AudiobookLibraryService(
+            repository,
+            projectRepository,
+            segmentRepository,
+            assetRepository,
+            storage,
+            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
+            new AudiobookMetadataCalculator(repository),
+            speakerCharacterRepository
+        );
+        CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
+
+        // Create a project with stale metadata (0, 0, 0)
+        AudiobookProject project = new AudiobookProject(
+            "proj-1",
+            "user-1",
+            "Test Audiobook",
+            AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,  // Stale speechSegmentCount
+            0,  // Stale speakerCount
+            0,  // Stale totalDurationSeconds
+            Instant.now(),
+            Instant.now()
+        );
+
+        SpeakerCharacter narrator = new SpeakerCharacter(
+            "character-1",
+            "proj-1",
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
+        SpeakerCharacter mara = new SpeakerCharacter(
+            "character-2",
+            "proj-1",
+            1,
+            "Mara",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
+        List<AudiobookSpeechSegment> previewSegments = List.of(
+            new AudiobookSpeechSegment(
+                "segment-1",
+                project,
+                0,
+                "Speech segment 1",
+                AudiobookSpeechSegmentReviewStatus.PENDING,
+                6,
+                Instant.now(),
+                Instant.now(),
+                "Hello",
+                null,
+                narrator
+            ),
+            new AudiobookSpeechSegment(
+                "segment-2",
+                project,
+                1,
+                "Speech segment 2",
+                AudiobookSpeechSegmentReviewStatus.PENDING,
+                5,
+                Instant.now(),
+                Instant.now(),
+                "Hi",
+                null,
+                mara
+            )
+        );
+
+        // Create 3 assets, but the counts should ignore them
+        List<AudioAsset> assets = List.of(
+            new AudioAsset("asset-1", "proj-1", "speech-segment-1", AudioAssetType.PREVIEW_MP3, 1, "key-1", "segment-1-narrator.mp3", "audio/mpeg", 1000L, 6, AudioAssetStatus.READY, Instant.now()),
+            new AudioAsset("asset-2", "proj-1", "speech-segment-2", AudioAssetType.PREVIEW_MP3, 1, "key-2", "segment-2-mara.mp3", "audio/mpeg", 1000L, 5, AudioAssetStatus.READY, Instant.now()),
+            new AudioAsset("asset-3", "proj-1", "speech-segment-3", AudioAssetType.PREVIEW_MP3, 1, "key-3", "segment-3-narrator.mp3", "audio/mpeg", 1000L, 8, AudioAssetStatus.READY, Instant.now())
+        );
+
+        when(repository.findProjectsForUser("user-1")).thenReturn(List.of(project));
+        when(repository.findPreviewSpeechSegments("proj-1")).thenReturn(previewSegments);
+        when(repository.findAssets("proj-1")).thenReturn(assets);
+        when(speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc("proj-1")).thenReturn(List.of(narrator, mara));
+
+        AudiobookSummaryResponse response = service.list(user);
+
+        assertEquals(1, response.items().size());
+        AudiobookSummaryResponse.AudiobookSummaryItem item = response.items().get(0);
+
+        // Verify metadata was calculated from project segments and assigned characters
+        assertEquals(2, item.speechSegmentCount(), "Should calculate 2 segments from project speech segments");
+        assertEquals(2, item.speakerCount(), "Should calculate 2 assigned speakers (narrator, mara)");
+        assertEquals(19, item.totalDurationSeconds(), "Should calculate 19 seconds total (6+5+8)");
+    }
+
+
+
+    @Test
+    void rejectsMissingOrInvalidSegmentOrderIndex() {
+        AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
+        AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
+        AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = Mockito.mock(SpeakerCharacterRepository.class);
+        FileStorageService storage = Mockito.mock(FileStorageService.class);
+        AudiobookLibraryService service = new AudiobookLibraryService(
+            repository,
+            projectRepository,
+            segmentRepository,
+            assetRepository,
+            storage,
+            new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
+            new AudiobookMetadataCalculator(repository),
+            speakerCharacterRepository
+        );
+        AudiobookProject project = new AudiobookProject(
+            "proj-1",
+            "user-1",
+            "Test Audiobook",
+            AudiobookProjectStatus.NEEDS_REVIEW,
+            "AUDIOBOOK_WORKFLOW",
+            0,
+            null,
+            null,
+            Instant.now(),
+            Instant.now()
+        );
+        SpeakerCharacter character = new SpeakerCharacter(
+            "character-1",
+            "Test Audiobook",
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
+        AudiobookSpeechSegment previewSegment = new AudiobookSpeechSegment(
+            "segment-1",
+            project,
+            0,
+            "Speech segment 1",
+            AudiobookSpeechSegmentReviewStatus.PENDING,
+            null,
+            Instant.now(),
+            Instant.now(),
+            "Hello",
+            null,
+            character
+        );
+        previewSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+
+        when(segmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex("proj-1", AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW))
+            .thenReturn(List.of(previewSegment));
+
+        TtsAudioFile audioFile = new TtsAudioFile(new byte[] {1, 2, 3}, "audio/mpeg", "test.mp3");
+
+        assertThatThrownBy(() -> service.persistAudioAsset(
+            project,
+            audioFile,
+            new SingleSpeakerRenderRequest(java.util.Map.of("text", "Hello"), java.util.Map.of("name", "Kore"), java.util.Map.of()),
+                1,
+                19
+        ))
+            .isInstanceOf(ApiException.class)
+            .hasMessageContaining("segment order index");
+
+        assertThatThrownBy(() -> service.persistAudioAsset(
+            project,
+            audioFile,
+            new SingleSpeakerRenderRequest(java.util.Map.of("text", "Hello", "segmentOrderIndex", -1), java.util.Map.of("name", "Kore"), java.util.Map.of()),
+                1,
+                19
+        ))
+            .isInstanceOf(ApiException.class)
+            .hasMessageContaining("segment order index");
+    }
 }
+
+

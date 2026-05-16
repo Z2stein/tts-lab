@@ -1,41 +1,30 @@
 package com.example.ttslab.storage;
 
 import java.nio.file.Path;
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Component;
+import org.springframework.boot.context.properties.ConfigurationProperties;
 
-@Component
-public class StorageProperties {
-    private final Path rootPath;
-    private final String appSlug;
-    private final String environment;
-    private final String branchSlug;
-
-    public StorageProperties(
-        @Value("${audiobooks.storage.root:${AUDIOBOOK_STORAGE_ROOT:./data/audio-storage}}") String root,
-        @Value("${audiobooks.storage.app-slug:${APP_SLUG:tts-lab}}") String appSlug,
-        @Value("${audiobooks.storage.environment:${ENVIRONMENT:feature}}") String environment,
-        @Value("${audiobooks.storage.branch-slug:${BRANCH_SLUG:${ENVIRONMENT:feature}}}") String branchSlug
-    ) {
-        this.rootPath = Path.of(root);
-        this.appSlug = appSlug;
-        this.environment = environment;
-        this.branchSlug = branchSlug;
+@ConfigurationProperties(prefix = "audiobooks.storage")
+public record StorageProperties(
+    String root,
+    String appSlug,
+    String environment,
+    String branchSlug
+) {
+    public StorageProperties {
+        root = normalize(root, "./data/audio-storage");
+        appSlug = normalize(appSlug, "tts-lab");
+        environment = normalize(environment, "feature");
+        branchSlug = normalize(branchSlug, environment);
     }
 
     public Path rootPath() {
-        return rootPath;
+        return Path.of(root);
     }
 
-    public String appSlug() {
-        return appSlug;
-    }
-
-    public String environment() {
-        return environment;
-    }
-
-    public String branchSlug() {
-        return branchSlug;
+    private static String normalize(String value, String defaultValue) {
+        if (value == null || value.isBlank()) {
+            return defaultValue;
+        }
+        return value.trim();
     }
 }

@@ -1,129 +1,101 @@
+import { HttpClient, HttpErrorResponse, HttpResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { LoggerService } from './logger.service';
+import { CurrentUser, RequestRateLimitSummary } from './shared/api-contract.generated';
 
-export type CurrentUser = {
-  id: string;
-  email: string;
-  name: string;
-  roles: string[];
-  authMode: 'google' | 'mock';
-};
-
-export type RequestLimitItem = {
-  modelType: 'TEXT_MODEL' | 'SPEECH_MODEL';
-  used: number;
-  limit: number;
-  remaining: number;
-  unit: 'WORDS' | 'TOKENS';
-};
-
-export type RequestLimitSummary = {
-  windowResetAt: string;
-  windowSeconds: number;
-  limits: RequestLimitItem[];
-};
+export type { CurrentUser, RequestRateLimitSummary, RequestRateLimitSummaryItem } from './shared/api-contract.generated';
 
 @Injectable({ providedIn: 'root' })
 export class CurrentUserService {
-  private csrfToken: string | null = null;
+  constructor(
+    private readonly http: HttpClient,
+    private readonly logger: LoggerService
+  ) {}
 
   async getCurrentUser(): Promise<CurrentUser | null> {
-    console.info('[auth] Checking current user via /api/me');
+    this.logger.info('auth', 'Checking current user via /api/me');
 
     try {
-      const response = await fetch('/api/me', { redirect: 'follow' });
-
-      if (response.status === 401) {
-        console.info('[auth] /api/me returned 401 (unauthenticated)');
+      const response = await firstValueFrom(this.http.get('/api/me', { observe: 'response', responseType: 'text' }));
+      const user = this.parseJsonResponse<CurrentUser>(response, '/api/me');
+      if (!user) {
         return null;
       }
-
-      if (response.redirected) {
-        console.warn('[auth] /api/me triggered redirect, treating as unauthenticated', {
-          redirectedUrl: response.url
-        });
-        return null;
-      }
-
-      const contentType = response.headers.get('content-type') ?? '';
-      if (!response.ok || !contentType.includes('application/json')) {
-        console.error('[auth] /api/me returned unexpected response', {
-          status: response.status,
-          contentType
-        });
-        return null;
-      }
-
-      const user = (await response.json()) as CurrentUser;
-      console.info('[auth] User authenticated', { id: user.id, authMode: user.authMode });
+      this.logger.info('auth', 'User authenticated', { id: user.id, authMode: user.authMode });
       return user;
     } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 401) {
+        this.logger.info('auth', '/api/me returned 401 (unauthenticated)');
+        return null;
+      }
+
       console.error('[auth] /api/me request failed, treating as unauthenticated', error);
       return null;
     }
   }
 
-  async refreshRequestLimits(): Promise<RequestLimitSummary | null> {
+  async refreshRequestLimits(): Promise<RequestRateLimitSummary | null> {
     try {
-      const response = await fetch('/api/request-limits/me', { redirect: 'follow' });
-      if (!response.ok || response.redirected) {
+      const response = await firstValueFrom(this.http.get('/api/request-limits/me', { observe: 'response', responseType: 'text' }));
+      const summary = this.parseJsonResponse<RequestRateLimitSummary>(response, '/api/request-limits/me');
+      if (!summary) {
         return null;
       }
-      const summary = (await response.json()) as RequestLimitSummary;
-      window.dispatchEvent(new CustomEvent<RequestLimitSummary>('request-limits-updated', { detail: summary }));
+      window.dispatchEvent(new CustomEvent<RequestRateLimitSummary>('request-limits-updated', { detail: summary }));
       return summary;
     } catch (error) {
+      if (error instanceof HttpErrorResponse && error.status === 401) {
+        return null;
+      }
+
       console.error('[auth] /api/request-limits/me request failed', error);
       return null;
     }
   }
 
   startGoogleLogin(): void {
-    console.info('[auth] Starting Google login redirect');
-    window.location.href = '/oauth2/authorization/google';
+    this.logger.info('auth', 'Starting Google login redirect');
+    this.navigate('/oauth2/authorization/google');
   }
 
   async startLogout(): Promise<void> {
     try {
-      const csrfToken = await this.ensureCsrfToken();
-      await fetch('/logout', {
-        method: 'POST',
-        headers: {
-          'X-XSRF-TOKEN': csrfToken
-        }
-      });
-      console.info('[auth] Logout request completed, reloading page');
-      window.location.href = '/';
+      await firstValueFrom(this.http.post('/logout', null, { responseType: 'text' }));
+      this.logger.info('auth', 'Logout request completed, reloading page');
+      this.navigate('/');
     } catch (error) {
       console.error('[auth] Logout request failed', error);
     }
   }
 
-  async ensureCsrfToken(): Promise<string> {
-    if (this.csrfToken) {
-      return this.csrfToken;
+  private parseJsonResponse<T>(response: HttpResponse<string>, requestName: string): T | null {
+    const contentType = response.headers.get('content-type') ?? '';
+    if (!contentType.includes('application/json')) {
+      console.error(`[auth] ${requestName} returned unexpected response`, {
+        status: response.status,
+        contentType
+      });
+      return null;
     }
 
-    let token = this.readCookie('XSRF-TOKEN');
-    if (!token) {
-      await fetch('/api/me', { redirect: 'follow' });
-      token = this.readCookie('XSRF-TOKEN');
+    if (!response.body?.trim()) {
+      console.error(`[auth] ${requestName} returned an empty JSON response`, {
+        status: response.status,
+        contentType
+      });
+      return null;
     }
 
-    if (!token) {
-      throw new Error('Missing CSRF token cookie');
+    try {
+      return JSON.parse(response.body) as T;
+    } catch (error) {
+      console.error(`[auth] ${requestName} returned invalid JSON`, error);
+      return null;
     }
-
-    this.csrfToken = token;
-    return token;
   }
 
-  private readCookie(name: string): string | null {
-    const prefix = `${name}=`;
-    const cookie = document.cookie
-      .split(';')
-      .map((entry) => entry.trim())
-      .find((entry) => entry.startsWith(prefix));
-
-    return cookie ? decodeURIComponent(cookie.slice(prefix.length)) : null;
+  private navigate(url: string): void {
+    window.location.assign(url);
   }
 }

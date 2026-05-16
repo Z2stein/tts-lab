@@ -29,12 +29,14 @@ This repository is a deliberately simple learning project for:
 - Do not introduce unnecessary architecture, frameworks, infrastructure, or abstractions.
 - Fix the actual cause of broken behavior instead of hiding symptoms.
 - Prefer existing project capabilities over custom code: before writing new styling, utility logic, configuration, or infrastructure, check whether the project already has a simple established way to solve the task.
+- Do not bypass supported framework tooling with a hand-written workaround when the project already has a standard generator, integration, or extension point for the problem.
 
 ## Frontend-specific rules
 
 - Structure frontend changes component-first: split UI into small, meaningful Angular components with clear responsibilities instead of growing large page-level templates.
-- When frontend behavior is changed, run the frontend unit tests, frontend build, and end-to-end tests.
+- When frontend behavior is changed, run the frontend unit tests, frontend build, frontend lint, and end-to-end tests.
 - Do not treat a frontend change as done until E2E tests have passed, unless the environment technically cannot run them. If they cannot be run, clearly state why.
+- Frontend linting must cover both application code and E2E specs. Run `cd frontend && npm run lint` for `src/**/*.ts`, and run `cd frontend && npx eslint --no-ignore e2e/**/*.ts` whenever Playwright specs or shared E2E helpers change.
 - Avoid expensive, mutating, regex-heavy, or non-memoized methods in templates/render paths.
 - Derived UI state should be precomputed, memoized, signal-based, selector-based, or otherwise cheap and pure.
 - New UI components should be small, focused, and compatible with the project’s preferred change-detection/rendering strategy.
@@ -60,6 +62,10 @@ Run fast, non-Docker checks by default when the touched areas make them applicab
 4. Linting or formatting checks if added to the project
 5. Helm chart validation when chart files changed
 6. README update when behavior, setup, deployment, or quality checks changed
+7. Contract verification when API shapes or shared fixtures change:
+   - `cd frontend && npm run verify:api-contract`
+   - backend controller tests that validate responses against `shared/api-contract/tts-lab-openapi.yaml`
+   - shared fixture tests that read from `test-contracts/`
 
 ### End-to-end tests in Codex/local workflow
 
@@ -74,8 +80,16 @@ npm run test:e2e
 
 The Playwright suite contains two kinds of tests:
 
-- Mocked UI E2E specs, such as `text-length.spec.ts` and `tts-workbench.spec.ts`, mock selected backend routes to keep UI behavior deterministic.
+- Mocked UI E2E specs, such as `text-length.spec.ts` and `audiobook-studio.spec.ts`, mock selected backend routes to keep UI behavior deterministic.
 - Real frontend-backend E2E specs, such as `real-backend-health.spec.ts`, must not mock the backend route they verify and should use stable internal endpoints without external provider dependencies.
+
+Contract testing applies alongside E2E for API-surface changes:
+
+- Keep `shared/api-contract/tts-lab-openapi.yaml` as the schema source of truth.
+- Keep `test-contracts/` as the shared request/response fixture source of truth for frontend and backend tests.
+- For any mocked API, AI, or provider payload that represents a real request/response shape, load the payload from `test-contracts/` instead of hard-coding a duplicate object inline.
+- Inline literals are only acceptable for very small, test-local control values that do not represent the contract itself, such as counters, booleans, or route-state toggles.
+- Do not reintroduce handwritten schema mirrors in the frontend; use generated types and `npm run verify:api-contract` instead.
 
 To run Playwright against an already deployed environment instead of local web servers:
 

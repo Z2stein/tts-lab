@@ -1,6 +1,9 @@
 app:
   environment: dev
 
+demoToken:
+  enabled: true
+
 postgresql:
   enabled: true
   persistence:

@@ -104,9 +104,13 @@ chat:
   provider: mock
   realProviderOnFeatureBranches: false
 
-ttsWorkbench:
+audiobookWorkflow:
   googleCredentialsSecretName: ""
   googleCredentialsChecksum: ""
+
+demoToken:
+  enabled: false
+  signingSecretName: ""
 
 chatbot:
   rateLimit:
@@ -114,3 +118,4 @@ chatbot:
     window: 1h
     maxRequests: 5
     idHeader: X-User-Id
+

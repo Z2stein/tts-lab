@@ -1,0 +1,8 @@
+{
+  "windowResetAt": "2026-05-09T12:00:00Z",
+  "windowSeconds": 43200,
+  "limits": [
+    { "modelType": "SPEECH_MODEL", "used": 0, "limit": 600, "remaining": 600, "unit": "WORDS" },
+    { "modelType": "TEXT_MODEL", "used": 0, "limit": 600, "remaining": 600, "unit": "WORDS" }
+  ]
+}

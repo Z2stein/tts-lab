@@ -1,4 +1,4 @@
-import { AnnotatedSpeakerTurn, SpeakerSplitTurn } from '../../tts-workbench/tts-workbench.service';
+import { AnnotatedSpeakerTurn, SpeakerSplitTurn } from '../../audiobook-shared/service/audiobook-workflow.service';
 
 export interface ScriptGroup {
   speaker: string;
@@ -19,6 +19,7 @@ export interface HeroCastMember {
   name: string;
   tone: string;
   initials: string;
+  imageUrl?: string;
 }
 
 export interface JourneyStep {
@@ -26,6 +27,7 @@ export interface JourneyStep {
   title: string;
   description: string;
   sectionId: string;
+  stepIcon: string;
 }
 
 export type WorkflowStepKey = 'story' | 'cast' | 'script' | 'performance' | 'audio';

@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
-import { AudioAsset } from '../models/audiobook-library.types';
+import { AudioAssetResponse } from '../../../shared/api-contract.generated';
 
 @Component({
   selector: 'app-audio-asset-player',
@@ -33,7 +33,7 @@ import { AudioAsset } from '../models/audiobook-library.types';
   `
 })
 export class AudioAssetPlayerComponent {
-  @Input({ required: true }) asset!: AudioAsset;
+  @Input({ required: true }) asset!: AudioAssetResponse;
   @Input() testId = 'audio-asset-player';
   readonly bars = [28, 62, 44, 78, 35, 92, 58, 70, 42, 82, 48, 64, 30, 74, 52, 88, 40, 68];
 

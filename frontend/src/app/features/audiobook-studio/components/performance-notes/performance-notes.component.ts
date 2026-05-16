@@ -4,17 +4,19 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { AnnotatedMarkup, AnnotatedSpeakerTurn } from '../../models/audiobook-studio.types';
 import { markupFor } from '../../utils/annotated-markup';
 import { formatSpeakerDisplayName } from '../../utils/speaker-name';
+import { HighlightTagsPipe } from '../../pipes/highlight-tags.pipe';
 
 @Component({
   selector: 'app-performance-notes',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, HighlightTagsPipe],
   templateUrl: './performance-notes.component.html',
-  styleUrl: './performance-notes.component.css'
+  styleUrls: ['../audiobook-studio-section-shared.css', './performance-notes.component.css']
 })
 export class PerformanceNotesComponent {
   @Input() annotatedTurns: AnnotatedSpeakerTurn[] = [];
   @Input() performanceNotesStale = false;
+  @Input() performanceReady = false;
   @Input() promptControl!: FormControl<string>;
   @Input() languageCodeControl!: FormControl<string>;
   @Input() modelNameControl!: FormControl<string>;

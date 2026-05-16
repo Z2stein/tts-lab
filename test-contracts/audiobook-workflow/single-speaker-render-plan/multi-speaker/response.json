@@ -1,0 +1,79 @@
+{
+  "renderRequests": [
+    {
+      "input": {
+        "text": "The rain hit the windows.",
+        "segmentOrderIndex": 0
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "speakerName": "Narrator",
+        "name": "Schedar",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    },
+    {
+      "input": {
+        "text": "The cafÃ© was nearly empty.",
+        "segmentOrderIndex": 1
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "speakerName": "Narrator",
+        "name": "Schedar",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    },
+    {
+      "input": {
+        "text": "So this is your surprise?",
+        "segmentOrderIndex": 2
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "speakerName": "Mara",
+        "name": "Iapetus",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    },
+    {
+      "input": {
+        "text": "I thought you would be pleased.",
+        "segmentOrderIndex": 3
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "speakerName": "Jonas",
+        "name": "Rasalgethi",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    },
+    {
+      "input": {
+        "text": "Pleased is a generous word.",
+        "segmentOrderIndex": 4
+      },
+      "voice": {
+        "languageCode": "en-US",
+        "speakerName": "Mara",
+        "name": "Kore",
+        "modelName": "{{google-model}}"
+      },
+      "audioConfig": {
+        "audioEncoding": "MP3"
+      }
+    }
+  ]
+}

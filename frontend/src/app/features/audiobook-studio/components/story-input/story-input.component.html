@@ -2,7 +2,7 @@
   <span class="step-number">1</span>
   <div>
     <h2 id="story-input-title">Story input</h2>
-    <p>Start with narration and character dialogue.</p>
+    <p>Start with narration and character dialogue. The AI will find the narrator and characters for you.</p>
   </div>
 </div>
 
@@ -24,7 +24,7 @@
       Use sample story
     </button>
     <button type="button" class="primary-button next-action" (click)="analyzeStory.emit()" [disabled]="loadingAction !== null || storyControl.value.trim().length === 0">
-      {{ isLoading('cast') ? 'Finding characters...' : 'Find characters' }}
+      {{ isLoading('cast') ? 'Finding narrator & characters...' : 'Find narrator & characters' }}
     </button>
   </div>
 </div>

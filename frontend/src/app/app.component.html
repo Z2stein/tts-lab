@@ -8,13 +8,10 @@
     <a class="brand" routerLink="/" aria-label="TTS Lab home">TTS Lab</a>
 
     <nav class="main-nav" aria-label="Primary navigation">
-      <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
       <a routerLink="/audiobook-studio" routerLinkActive="active">Audiobook Studio</a>
       <a routerLink="/audiobook-library" routerLinkActive="active">My Audiobooks</a>
       <a routerLink="/cv-audiobook-demo" routerLinkActive="active">Demo</a>
-      <a routerLink="/text-length" routerLinkActive="active">Text Length</a>
-      <a routerLink="/tts-workbench" routerLinkActive="active">TTS Workbench</a>
-      <a routerLink="/prompt-history" routerLinkActive="active">Prompt History</a>
+      <a *ngIf="currentUser?.email === 'christiophthurn0@gmail.com'" routerLink="/prompt-history" routerLinkActive="active">Prompt History</a>
     </nav>
 
     <div class="auth-summary" aria-live="polite">

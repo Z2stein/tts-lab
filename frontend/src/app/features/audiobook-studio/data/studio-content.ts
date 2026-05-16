@@ -1,38 +1,49 @@
 import { HeroCastMember, JourneyStep, SpeakerAccent } from '../models/audiobook-studio.types';
 
-export const BENEFIT_CHIPS: readonly string[] = ['Multi-speaker', 'Scene detection', 'Voice previews', 'Export MP3'];
+export const BENEFIT_CHIPS: readonly string[] = ['Multi-speaker', 'Speech segment detection', 'Voice previews', 'Export MP3'];
 
 export const HERO_CAST: readonly HeroCastMember[] = [
-  { name: 'Narrator', tone: 'warm calm', initials: 'N' },
-  { name: 'Mara', tone: 'young tense', initials: 'M' },
-  { name: 'Jonas', tone: 'soft nervous', initials: 'J' },
-  { name: 'Station Keeper', tone: 'old gravelly', initials: 'SK' }
+  { name: 'Narrator', tone: 'warm calm', initials: 'N', imageUrl: '/assets/voices/zephyr/avatar.png' },
+  { name: 'Mara', tone: 'young tense', initials: 'M', imageUrl: '/assets/voices/puck/avatar.png' },
+  { name: 'Jonas', tone: 'soft nervous', initials: 'J', imageUrl: '/assets/voices/charon/avatar.png' },
+  { name: 'Station Keeper', tone: 'old gravelly', initials: 'SK', imageUrl: '/assets/voices/kore/avatar.png' }
 ];
 
 export const JOURNEY_STEPS: readonly JourneyStep[] = [
   {
     icon: '01',
-    title: 'Paste your story',
-    description: 'Drop in a chapter, scene, or script and keep the original story flow intact.',
-    sectionId: 'story-section'
+    title: 'Add story',
+    description: 'Paste your text. We\'ll keep the original wording and structure it for audio.',
+    sectionId: 'story-section',
+    stepIcon: '📝'
   },
   {
     icon: '02',
-    title: 'Discover the cast',
-    description: 'AI identifies the narrator and characters, then suggests fitting voice directions.',
-    sectionId: 'cast-section'
+    title: 'Choose voices',
+    description: 'We found the speakers in your story. Preview each voice or change it.',
+    sectionId: 'cast-section',
+    stepIcon: '🎤'
   },
   {
     icon: '03',
-    title: 'Direct the performance',
-    description: 'Review dialogue, approve pacing, and add emotional notes before production.',
-    sectionId: 'script-section'
+    title: 'Review script',
+    description: 'Check that each line is assigned to the correct speaker.',
+    sectionId: 'script-section',
+    stepIcon: '✓'
   },
   {
     icon: '04',
-    title: 'Generate audio',
-    description: 'Create a multi-speaker MP3 from the final production plan.',
-    sectionId: 'audio-section'
+    title: 'Add emotion & pacing',
+    description: 'Fine-tune how each line should be spoken, for example calm, urgent, or whispered.',
+    sectionId: 'performance-section',
+    stepIcon: '🎵'
+  },
+  {
+    icon: '05',
+    title: 'Generate audiobook',
+    description: 'Create a preview. You can still go back and edit before downloading.',
+    sectionId: 'audio-section',
+    stepIcon: '▶'
   }
 ];
 

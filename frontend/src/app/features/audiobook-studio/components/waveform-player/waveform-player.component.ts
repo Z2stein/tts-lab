@@ -1,5 +1,6 @@
 import {
   AfterViewInit,
+  ChangeDetectorRef,
   Component,
   ElementRef,
   EventEmitter,
@@ -10,6 +11,7 @@ import {
   SimpleChanges,
   ViewChild,
 } from '@angular/core';
+import { NgIf } from '@angular/common';
 import { durationLabelFor } from '../../utils/audio-format';
 import { VoiceSampleService } from '../../services/voice-sample.service';
 import { WaveSurferService } from '../../services/wave-surfer.service';
@@ -27,9 +29,11 @@ import { WaveSurferService } from '../../services/wave-surfer.service';
 @Component({
   selector: 'app-waveform-player',
   standalone: true,
+  imports: [NgIf],
   template: `
     <ng-content select="[slot=header]"></ng-content>
     <button
+      *ngIf="showPlayButton"
       type="button"
       class="player-button"
       [class.is-playing]="playing"
@@ -39,7 +43,7 @@ import { WaveSurferService } from '../../services/wave-surfer.service';
       <span class="play-icon" aria-hidden="true"></span>
     </button>
     <div #waveformEl class="waveform-canvas generated-waveform" aria-hidden="true"></div>
-    <span class="wave-time">00:00 / {{ durationLabel }}</span>
+    <span *ngIf="showTime" class="wave-time">00:00 / {{ durationLabel }}</span>
     <ng-content></ng-content>
   `,
   styleUrl: './../../audiobook-studio-page.component.css',
@@ -49,6 +53,10 @@ export class WaveformPlayerComponent implements AfterViewInit, OnChanges, OnDest
   @Input() src: string | null = null;
   @Input() playing = false;
   @Input() ariaLabel = 'audio';
+  @Input() progressColor: string | null = null;
+  @Input() waveHeight: number | null = null;
+  @Input() showPlayButton = true;
+  @Input() showTime = true;
 
   @Output() playingChange = new EventEmitter<boolean>();
 
@@ -63,6 +71,7 @@ export class WaveformPlayerComponent implements AfterViewInit, OnChanges, OnDest
   constructor(
     private readonly waveSurferService: WaveSurferService,
     private readonly voiceSampleService: VoiceSampleService,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngAfterViewInit(): void {
@@ -91,7 +100,18 @@ export class WaveformPlayerComponent implements AfterViewInit, OnChanges, OnDest
 
   private createWaveSurfer(): void {
     if (!this.src || !this.waveformEl) return;
-    const ws = this.waveSurferService.create(this.key, this.waveformEl.nativeElement, this.src);
+    const colorOverrides = this.progressColor
+      ? { progressColor: this.progressColor, cursorColor: this.progressColor, height: this.waveHeight ?? undefined }
+      : this.waveHeight !== null
+        ? { height: this.waveHeight }
+        : undefined;
+    const ws = this.waveSurferService.create(this.key, this.waveformEl.nativeElement, this.src, colorOverrides);
+
+    // Update duration label when audio is ready
+    ws.on('ready', () => {
+      this.cdr.markForCheck();
+    });
+
     this.waveSurferService.bind(
       ws,
       () => {

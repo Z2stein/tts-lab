@@ -1,0 +1,8 @@
+{
+  "status": 502,
+  "code": "AUDIOBOOK_WORKFLOW_PROVIDER_FAILED",
+  "message": "The speaker voice analysis provider is currently unavailable. Please try again later.",
+  "details": null,
+  "requestId": "request-1"
+}
+

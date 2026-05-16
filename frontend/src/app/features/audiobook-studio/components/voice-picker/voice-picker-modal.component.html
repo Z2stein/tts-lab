@@ -1,0 +1,86 @@
+<div
+  *ngIf="open"
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/70"
+  role="dialog"
+  aria-modal="true"
+  [attr.aria-label]="'Choose voice for ' + speakerName"
+  data-testid="voice-picker-modal"
+  (click)="close()"
+>
+  <div
+    class="relative flex flex-col bg-studio-shell rounded-2xl border border-studio-line shadow-2xl w-full max-w-2xl mx-4 max-h-[90vh]"
+    (click)="$event.stopPropagation()"
+  >
+    <!-- Header -->
+    <div class="flex items-start justify-between px-6 pt-6 pb-4 border-b border-studio-line shrink-0">
+      <div>
+        <h2 class="text-xl font-semibold text-studio-text">
+          Choose voice for <span class="text-studio-accent">{{ speakerName }}</span>
+        </h2>
+        <p class="text-studio-muted text-sm mt-1">Listen to voice demos and choose the best fit for this character.</p>
+      </div>
+      <button
+        type="button"
+        class="text-studio-muted hover:text-studio-text transition-colors ml-4 text-lg leading-none"
+        (click)="close()"
+        aria-label="Close"
+        data-testid="voice-picker-close"
+      >✕</button>
+    </div>
+
+    <!-- Current voice + search -->
+    <div class="flex flex-col sm:flex-row sm:items-center gap-3 px-6 py-3 border-b border-studio-line shrink-0">
+      <div class="flex items-center gap-2 text-sm text-studio-muted shrink-0">
+        <span>Current voice:</span>
+        <span class="rounded-full bg-studio-panelSoft border border-studio-line px-3 py-0.5 text-studio-accent font-medium text-xs uppercase tracking-wide">
+          {{ currentVoiceId || '—' }}
+        </span>
+      </div>
+      <div class="sm:ml-auto w-full sm:w-64">
+        <app-voice-search-input
+          [value]="searchQuery"
+          (valueChange)="searchQuery = $event"
+        ></app-voice-search-input>
+      </div>
+    </div>
+
+    <!-- Voice grid -->
+    <div class="overflow-y-auto flex-1 px-6 py-4">
+      <p *ngIf="loading" class="text-studio-muted text-sm text-center py-8">Loading voices…</p>
+      <p *ngIf="error" class="text-studio-danger text-sm text-center py-8">{{ error }}</p>
+      <p *ngIf="!loading && !error && filteredVoices.length === 0" class="text-studio-muted text-sm text-center py-8">
+        No voices match "{{ searchQuery }}"
+      </p>
+      <div
+        *ngIf="!loading && !error && filteredVoices.length > 0"
+        class="grid grid-cols-2 gap-3"
+        data-testid="voice-grid"
+      >
+        <app-voice-option-card
+          *ngFor="let voice of filteredVoices; trackBy: trackByVoiceId"
+          [voice]="voice"
+          [selected]="isSelected(voice)"
+          [demoPlaying]="isDemoPlaying(voice)"
+          (selectVoice)="selectVoice($event)"
+          (toggleDemo)="toggleDemo($event)"
+        ></app-voice-option-card>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="flex justify-end gap-3 px-6 py-4 border-t border-studio-line shrink-0">
+      <button
+        type="button"
+        class="rounded-lg border border-studio-line text-studio-muted px-5 py-2 text-sm hover:border-studio-lineStrong hover:text-studio-text transition-colors"
+        (click)="close()"
+        data-testid="voice-picker-cancel"
+      >Cancel</button>
+      <button
+        type="button"
+        class="rounded-lg bg-studio-accent text-studio-field px-5 py-2 text-sm font-semibold hover:bg-studio-accentSoft transition-colors"
+        (click)="confirm()"
+        data-testid="voice-picker-done"
+      >Done</button>
+    </div>
+  </div>
+</div>

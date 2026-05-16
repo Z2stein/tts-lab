@@ -1,6 +1,6 @@
 package com.example.ttslab.storage;
 
-import com.example.ttslab.audiobooks.AudioAssetType;
+import com.example.ttslab.audiobooks.model.AudioAssetType;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -11,8 +11,8 @@ public class StorageKeyBuilder {
         this.storageProperties = storageProperties;
     }
 
-    public String sceneMp3(String userId, String projectId, String sceneId, int version) {
-        return base(userId, projectId) + "/scenes/" + slug(sceneId) + "/v" + version + ".mp3";
+    public String speechSegmentMp3(String userId, String projectId, String speechSegmentId, int version) {
+        return base(userId, projectId) + "/speech-segments/" + slug(speechSegmentId) + "/v" + version + ".mp3";
     }
 
     public String projectAsset(String userId, String projectId, AudioAssetType type, int version, String extension) {

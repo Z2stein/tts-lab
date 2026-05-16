@@ -1,0 +1,54 @@
+<section *ngIf="projectTitleVisible" class="project-title-block mt-6 rounded-lg border border-studio-line bg-studio-panel/60 p-4" aria-labelledby="project-title-label">
+  <div class="flex items-start justify-between gap-3">
+    <div>
+      <span class="task-label">Project title</span>
+      <h3 id="project-title-label" class="m-0 text-xl font-black">AI-suggested title</h3>
+    </div>
+    <button
+      *ngIf="!projectTitleEditing"
+      type="button"
+      class="secondary-button"
+      (click)="startProjectTitleEdit.emit()"
+      [disabled]="loadingAction !== null"
+      data-testid="edit-project-title"
+    >
+      Edit title
+    </button>
+  </div>
+
+  <ng-container *ngIf="projectTitleEditing; else projectTitlePreview">
+    <label for="project-title">Title</label>
+    <input
+      id="project-title"
+      type="text"
+      [formControl]="projectTitleControl"
+      [disabled]="loadingAction !== null"
+      maxlength="255"
+      data-testid="project-title-input"
+    />
+    <div class="button-row">
+      <button
+        type="button"
+        class="secondary-button"
+        (click)="cancelProjectTitleEdit.emit()"
+        [disabled]="loadingAction !== null"
+        data-testid="cancel-project-title"
+      >
+        Cancel
+      </button>
+      <button
+        type="button"
+        class="primary-button next-action"
+        (click)="saveProjectTitle.emit()"
+        [disabled]="loadingAction !== null || projectTitleControl.value.trim().length === 0"
+        data-testid="save-project-title"
+      >
+        {{ isLoading('title') ? 'Saving title...' : 'Save title' }}
+      </button>
+    </div>
+  </ng-container>
+
+  <ng-template #projectTitlePreview>
+    <p class="m-0 text-lg font-semibold text-studio-text" data-testid="project-title-display">{{ projectTitleControl.value }}</p>
+  </ng-template>
+</section>

@@ -22,7 +22,7 @@ class RequestRateLimitServiceTest {
             true,
             Duration.ofHours(12),
             600,
-            0,
+            1,
             RequestRateLimitUnit.WORDS
         );
         RequestRateLimitRepository repository = Mockito.mock(RequestRateLimitRepository.class);

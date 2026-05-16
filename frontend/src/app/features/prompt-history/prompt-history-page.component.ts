@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { PromptHistoryItem, PromptHistoryService, PromptModelType } from './prompt-history.service';
+import { PromptHistoryItem, PromptHistoryService } from './prompt-history.service';
+import { ModelType } from '../../shared/api-contract.generated';
 
 @Component({
   selector: 'app-prompt-history-page',
@@ -11,7 +12,7 @@ import { PromptHistoryItem, PromptHistoryService, PromptModelType } from './prom
   styleUrl: './prompt-history-page.component.css'
 })
 export class PromptHistoryPageComponent implements OnInit {
-  modelTypeControl = new FormControl<'ALL' | PromptModelType>('ALL', { nonNullable: true });
+  modelTypeControl = new FormControl<'ALL' | ModelType>('ALL', { nonNullable: true });
   prompts: PromptHistoryItem[] = [];
   loading = false;
   error: string | null = null;

@@ -2,7 +2,7 @@
 
 Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
-⚠️ ⚠️
+?? ??
 
 ## Inhaltsverzeichnis
 
@@ -20,7 +20,6 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 - [API error responses](#api-error-responses)
 - [Authentication modes](#authentication-modes)
 - [Audiobook Studio MVP](#audiobook-studio-mvp)
-- [TTS Workbench (MVP)](#tts-workbench-mvp)
 - [Chatbot (MVP)](#chatbot-mvp)
 - [Request limits (MVP)](#request-limits-mvp)
 
@@ -35,7 +34,7 @@ This chat upgraded the existing Audiobook Studio MVP from an internal workflow p
 - The existing functional workflow remains below the motivational sections and still uses the same Angular component state and backend APIs.
 - Detected cast cards now feel more like creative character/voice cards, with initials, stronger hierarchy, voice badges, and subtle per-card accent glows.
 - Technical production fields such as language code, model name, and audio encoding are tucked behind `Advanced production settings`, while the story direction stays visible.
-- This was a frontend-only UX/UI pass. No backend endpoints, database tables, provider behavior, Helm config, or business logic changed.
+- This feature adds backend workflow changes, a persisted project-title update endpoint, contract updates, and matching frontend behavior.
 - Verification run for this chat: `npm run build`, `npm run test -- --watch=false --browsers=ChromeHeadless`, and `npm run test:e2e -- e2e/audiobook-studio.spec.ts`.
 
 ## Repo-Onboarding (kurzer Config-Block)
@@ -43,7 +42,7 @@ This chat upgraded the existing Audiobook Studio MVP from an internal workflow p
 Für ein neues Repository muss nur ein kleiner Satz an Variablen gesetzt werden (statt Shell-Logik zu ändern):
 
 ```text
-# GitHub Actions Repository Variables (Settings → Secrets and variables → Actions)
+# GitHub Actions Repository Variables (Settings ? Secrets and variables ? Actions)
 APP_SLUG=<kebab-case-app-name>      # required app/release/host slug
 BASE_DOMAIN=<public-base-domain>    # required public wildcard DNS domain
 HETZNER_PUBLIC_IP=<server-public-ip> # required deployment target (SSH/k3s server)
@@ -81,11 +80,11 @@ Wiederverwendbare Deployment-Bausteine liegen unter `shared/deployment/`:
   - Frontend: `GET /`
   - Backend: `GET /health`
 - Routing:
-  - `/` → Frontend Service
-  - `/api` → Backend Service
-  - `/oauth2` → Backend Service
-  - `/login/oauth2` → Backend Service
-  - `/logout` → Backend Service
+  - `/` ? Frontend Service
+  - `/api` ? Backend Service
+  - `/oauth2` ? Backend Service
+  - `/login/oauth2` ? Backend Service
+  - `/logout` ? Backend Service
 - Backend-Alias-Service `backend` bleibt standardmäßig aktiv für `http://backend:8080` im Frontend-Container.
 
 ### In-Repo TLS activation
@@ -120,7 +119,7 @@ Für Feature-Branches im Workflow:
 
 1. Prefix entfernen: `feature/`, `bugfix/`, `hotfix/`, `release/`
 2. lowercase
-3. Sonderzeichen → `-`
+3. Sonderzeichen ? `-`
 4. Mehrfach-`-` reduzieren
 5. führende/abschließende `-` entfernen
 6. max. 10 Zeichen
@@ -128,11 +127,13 @@ Für Feature-Branches im Workflow:
 
 Beispiel:
 
-- `feature/codex-k3s-ganz-viel-mehr-text` → `codex-k3s`
+- `feature/codex-k3s-ganz-viel-mehr-text` ? `codex-k3s`
 
 ## CI/CD (GitHub Actions)
 
 Workflow: `.github/workflows/deploy.yml`
+
+The backend image build now runs the backend test suite, including OpenAPI contract validation against `shared/api-contract/tts-lab-openapi.yaml`, before producing the runtime jar.
 
 Ablauf bei Push:
 
@@ -147,12 +148,12 @@ Ablauf bei Push:
 9. Wenn `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` gesetzt ist, die Google-TTS-Credentials vor dem Helm-Upgrade als Kubernetes Secret anlegen/aktualisieren; der Chat-Provider `gemini` funktioniert auch ohne dieses optionale TTS-Secret
 10. `helm upgrade --install --wait --timeout 5m` ausführen
 11. Backend- und Frontend-Deployments per `kubectl rollout status` abwarten
-12. Backend- und Frontend-Pods per `kubectl wait --for=condition=Ready pod -l ...` abwarten
+12. Backend- und Frontend-Pods per Live-Selector-Readiness-Check abwarten, der die aktuellen Pods wiederholt per Label neu abfragt und nur auf tatsächlich vorhandene Pods wartet
 13. Deployment-URL veröffentlichen; parallel zum Deployment-Pfad führt der separate Job `e2e-local` die mandatory Playwright-E2E-Tests lokal im GitHub-Actions-Runner mit Playwright-Webservern aus, inklusive realem Frontend-Backend-Check ohne Mock für die geprüfte Backend-Route
 
 Die Pipeline schlägt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn der separate `e2e-local`-Job fehlschlägt. Feste Sleep-Zeiten sind nicht der primäre Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend).
 
-Der lokale E2E-Job läuft mit `E2E_BASE_URL=http://127.0.0.1:4200` und `E2E_USE_LOCAL_SERVERS=true` (der Standard wäre ebenfalls lokal), startet also Backend und Frontend über die bestehende Playwright-`webServer`-Konfiguration. Er enthält weiterhin deterministische UI-Tests mit gemockten Backend-Routen und zusätzlich `real-backend-health.spec.ts`. Dieser reale Integrationscheck lädt das lokale Frontend und ruft aus dem Browser-Kontext `GET /api/health` auf. Die Route ist bewusst stabil, benötigt keine Anmeldung, keine CSRF-Token und keine externen Provider-Secrets. Der Test schlägt fehl, wenn der Browser das lokal gestartete Backend nicht erreicht, wenn die Antwort kein `200 {"status":"ok"}` ist, oder wenn das Frontend die Antwort nicht verarbeiten und anzeigen kann.
+Der lokale E2E-Job läuft mit `E2E_BASE_URL=http://127.0.0.1:4200` und `E2E_USE_LOCAL_SERVERS=true` (der Standard wäre ebenfalls lokal), startet also Backend und Frontend über die bestehende Playwright-`webServer`-Konfiguration. Vor den Playwright-Tests laufen dort zusätzlich die Frontend-Unit-Tests und der Frontend-Build. Er enthält weiterhin deterministische UI-Tests mit gemockten Backend-Routen und zusätzlich `real-backend-health.spec.ts`. Dieser reale Integrationscheck lädt das lokale Frontend und ruft aus dem Browser-Kontext `GET /api/health` auf. Die Route ist bewusst stabil, benötigt keine Anmeldung, keine CSRF-Token und keine externen Provider-Secrets. Der Test schlägt fehl, wenn der Browser das lokal gestartete Backend nicht erreicht, wenn die Antwort kein `200 {"status":"ok"}` ist, oder wenn das Frontend die Antwort nicht verarbeiten und anzeigen kann.
 
 Cleanup:
 
@@ -178,16 +179,30 @@ npm start
 
 ### Lokale Checks und E2E
 
-Empfohlene schnelle lokale/Codex-Checks sind Backend-Build/Unit-Tests, Frontend-Unit-Tests und Frontend-Builds. E2E-Tests sind lokal optional und sollen gezielt laufen, wenn eine Änderung End-to-End-Verhalten, Routing, Auth, Deployment-Verhalten oder mehrere App-Schichten betrifft.
+Empfohlene schnelle lokale/Codex-Checks sind Backend-Build/Unit-Tests, Frontend-Unit-Tests, Frontend-Linting und Frontend-Builds. E2E-Tests sind lokal optional und sollen gezielt laufen, wenn eine Änderung End-to-End-Verhalten, Routing, Auth, Deployment-Verhalten oder mehrere App-Schichten betrifft.
+
+Contract testing ist Teil der regulären Validierung:
+
+- Backend-Controller-Tests prüfen Responses gegen `shared/api-contract/tts-lab-openapi.yaml`.
+- Frontend-Typen werden aus derselben OpenAPI-Datei generiert; `cd frontend && npm run verify:api-contract` prüft, dass die generierten Typen zur Spezifikation passen.
+- Shared fixtures liegen unter `test-contracts/` und werden von Frontend- und Backend-Tests gemeinsam verwendet.
+- Wenn ein Mock eine echte API-/AI-Request- oder Response-Struktur beschreibt, soll er aus `test-contracts/` geladen werden und nicht als hart codiertes Inline-Objekt dupliziert werden.
+
+Die OpenAPI-Contract-Datei liegt unter `shared/api-contract/tts-lab-openapi.yaml`; die Backend-Tests validieren controller responses gegen genau diese Datei.
+Die Frontend-Contract-Typen werden aus dieser OpenAPI-Datei generiert; `frontend/src/app/shared/api-contract.generated.ts` ist die generierte Quelle, `frontend/src/app/shared/api-contract.ts` ist nur ein dünner Alias-Layer, und `cd frontend && npm run verify:api-contract` prüft die Generierung gegen dieselbe Quelle.
 
 ```bash
 cd backend
 gradle build
 
 cd ../frontend
+npm run lint
+npx eslint --no-ignore e2e/**/*.ts
 CHROME_BIN="${CHROME_BIN:-/tmp/chrome-no-sandbox}" npm test
 npm run build
 ```
+
+Hinweis: `npm run lint` deckt nur `src/**/*.ts` ab. Playwright-Spezifikationen unter `frontend/e2e/` werden mit `npx eslint --no-ignore e2e/**/*.ts` separat geprüft.
 
 Lokale E2E-Tests starten standardmäßig Backend und Frontend über Playwright:
 
@@ -198,7 +213,7 @@ npm run test:e2e
 
 Die Playwright-Suite unterscheidet zwischen:
 
-- gemockten UI-E2E-Tests (`text-length.spec.ts`, `tts-workbench.spec.ts`), die gezielt Backend-Routen mocken, um UI-Erfolg und UI-Fehler deterministisch zu prüfen;
+- gemockten UI-E2E-Tests (`audiobook-studio.spec.ts`), die gezielt Backend-Routen mocken, um UI-Erfolg und UI-Fehler deterministisch zu prüfen;
 - realen Frontend-Backend-E2E-Tests (`real-backend-health.spec.ts`), die die geprüfte Backend-Route nicht mocken und standardmäßig über die lokal gestarteten Playwright-Webserver laufen.
 
 E2E gegen eine deployte Umgebung:
@@ -209,6 +224,8 @@ E2E_BASE_URL="https://<deployed-host>" E2E_USE_LOCAL_SERVERS=false npm run test:
 ```
 
 Wichtig: Obwohl E2E lokal/Codex optional ist, ist E2E in der CI/CD-Pipeline mandatory und läuft dort lokal im GitHub-Actions-Runner mit `E2E_USE_LOCAL_SERVERS=true`.
+
+Wichtig: Contract testing ist ebenfalls mandatory für API-Änderungen. Wenn sich Request-/Response-Shapes, Statuscodes, Header oder Beispielpayloads ändern, müssen die OpenAPI-Spezifikation, die Shared Fixtures und die betroffenen Backend-/Frontend-Tests gemeinsam angepasst werden.
 
 ## Database and prompt history
 
@@ -227,18 +244,6 @@ Behavior by environment:
 Prompt history is visible in the frontend `Prompt History` tab and is filtered to the current authenticated user. The backend also records prompts from the text chat flow and the TTS workbench flow.
 
 
-## Akzeptanzkriterien (Textlänge)
-
-The frontend calls `POST /api/projects/text-length/calculate`. For backward compatibility, `POST /api/text-length` remains supported with the same behavior.
-
-Bewusst unterstützte Fälle für both Text Length endpoints:
-
-- Leerer Text (`""`) liefert `length = 0`.
-- Unicode-Eingaben (z. B. Umlaute/Emoji) werden akzeptiert und gezählt.
-- Große Inputs (z. B. 10.000 Zeichen) werden verarbeitet.
-- Ungültige JSON-Payloads werden mit HTTP `400 Bad Request` und strukturierter Fehlerantwort abgelehnt.
-- Fehlende `text`-Property wird wie `null` behandelt und liefert `length = 0`.
-
 ## Health endpoints
 
 - `GET /health` is the backend pod health endpoint used by Kubernetes probes.
@@ -251,7 +256,7 @@ Backend API failures use a structured, frontend-safe JSON response:
 ```json
 {
   "status": 502,
-  "code": "TTS_WORKBENCH_PROVIDER_FAILED",
+  "code": "AUDIOBOOK_WORKFLOW_PROVIDER_FAILED",
   "message": "The speaker voice analysis provider is currently unavailable. Please try again later.",
   "details": null,
   "requestId": "request-or-generated-id"
@@ -313,7 +318,7 @@ Feature deployments do not create or inject Google OAuth secrets.
 Frontend behavior note:
 
 - On startup, the frontend first checks `/api/me` and shows a short loading state until auth is resolved. If `/api/me` fails (for example due to CORS/network issues), the UI no longer hangs in loading and falls back to unauthenticated with a visible error message and browser console logs.
-- The authenticated app uses a shared header and client-side routes: `/` for the landing page, `/audiobook-studio` for the Audiobook Studio MVP, `/text-length` for the existing text-length UI, and `/tts-workbench` for the TTS Workbench speaker/voice analysis MVP. Unknown frontend routes redirect to `/`.
+- The authenticated app uses a shared header and client-side routes: `/` for the landing page and `/audiobook-studio` for the Audiobook Studio MVP. Unknown frontend routes redirect to `/`.
 - Only authenticated users see the routed app pages and chatbot widget.
 - Unauthenticated users see only the sign-in UI, which starts OAuth via `/oauth2/authorization/google`.
 - Logged-in users also see their auth state in the header and a logout button that calls `/logout` and returns to `/`.
@@ -321,15 +326,17 @@ Frontend behavior note:
 
 ## Audiobook Studio MVP
 
-Audiobook Studio is a user-friendly frontend flow built on top of the existing TTS Workbench endpoints. It is available at `/audiobook-studio` and reframes the same pipeline as story input, cast discovery, script preview, performance notes, an audio production plan, and generated audio.
+Audiobook Studio is a user-friendly frontend flow built on top of the existing audiobook workflow API. It is available at `/audiobook-studio` and reframes the same pipeline as story input, cast discovery, script preview, performance notes, an audio production plan, and generated audio.
 
-The MVP does not add database tables or new backend endpoints. It reuses the existing speaker analysis, speaker split, emotion annotation, final request preview, single-speaker render plan, and audio creation APIs while presenting story-focused language and a dark cinematic studio interface.
+The MVP now also persists and edits the project title. It reuses the existing speaker analysis, speaker split, emotion annotation, final request preview, single-speaker render plan, and audio creation APIs while presenting story-focused language and a dark cinematic studio interface.
+
+The first workflow step asks the model for both speakers and a project title. The title is persisted on the audiobook project, displayed in the studio and library views, and can be edited through `PATCH /api/audiobooks/{id}`.
 
 The page now starts with a product-led landing/workflow layer:
 
 - A premium hero with the headline “Give every character in your story a voice.”
 - A static visual demo that shows story text transforming into a detected cast and an audio waveform.
-- Benefit chips for `Multi-speaker`, `Scene detection`, `Voice previews`, and `Export MP3`.
+- Benefit chips for `Multi-speaker`, `Speech segment detection`, `Voice previews`, and `Export MP3`.
 - A four-card “From plain text to performed story” journey section.
 - Hero CTAs that keep the existing workflow reachable: `Create audio story` focuses the story input, and `Listen to demo` loads the sample story before focusing the textarea.
 
@@ -342,35 +349,28 @@ The page now includes a frontend-only review and correction layer before generat
 - Editing the script after performance notes exist marks those notes stale and blocks audio production planning until notes are regenerated.
 - These review states are local component state only; no persistence, auth, deployment, database, provider, or Helm behavior changed.
 
-## TTS Workbench (MVP)
+Audiobook Studio calls the workflow endpoints under `/api/audiobooks/workflow/*`. The previous route names and page are gone.
 
-The TTS Workbench page is a step-by-step development workbench for inspecting the intermediate data that will later feed a text-to-speech provider. It currently supports:
+- `POST /api/audiobooks/workflow/speaker-voice-analysis` with raw dialogue returns suggested rows containing `speakerName`, `roleDescription`, and `voiceSuggestion`.
+- `POST /api/audiobooks/workflow/speaker-split-analysis` with raw dialogue, speaker suggestions, and `projectId` returns `turns` containing `speaker` and `text` while persisting split rows to `audiobook_speech_segment`.
+- `POST /api/audiobooks/workflow/script-preview-save` with `projectId` and ordered script turns persists edited preview rows and returns the saved `turns`.
+- `POST /api/audiobooks/workflow/emotion-annotation-analysis` with `projectId` returns annotated `turns` containing `speaker` and marked-up `text`. The server reloads the persisted `SCRIPT_PREVIEW` rows for that project, uses those turns as the annotation input, and persists the styled text to `audiobook_speech_segment.styled_text` on the matching preview rows.
+- `POST /api/audiobooks/workflow/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
+- `POST /api/audiobooks/workflow/single-speaker-render-plan` with the final request JSON returns `renderRequests`, where each item is provider-shaped JSON containing `input.text`, `voice.languageCode`, `voice.name`, `voice.modelName`, and `audioConfig.audioEncoding`.
+- `POST /api/audiobooks/workflow/create-audio` with `renderRequests` returns a downloadable MP3 for one render request or one concatenated MP3 for multiple requests. It stores the generated preview parts on the project, but it does not mark the workflow as current by itself.
+- `POST /api/audiobooks/workflow/projects/{projectId}/audio-generated` marks the generated preview as current after the merged audiobook preview is complete and returns the refreshed workflow snapshot.
 
-1. Raw dialogue input
-2. Speaker and voice suggestions
-3. Speaker split preview
-4. Emotion annotation preview with simple markup such as `[happy]`, `[sad]`, `[calm]`, `[urgent]`, `[sigh]`, `[short pause]`, and `[medium pause]`
-5. Final request JSON preview
-6. Single-speaker render plan preview that groups only consecutive turns from the same speaker and outputs provider-shaped render requests
-
-Backend endpoints:
-
-- `POST /api/projects/tts-workbench/speaker-voice-analysis` with raw dialogue returns suggested rows containing `speakerName`, `roleDescription`, and `voiceSuggestion`.
-- `POST /api/projects/tts-workbench/speaker-split-analysis` with raw dialogue and speaker suggestions returns `turns` containing `speaker` and `text`.
-- `POST /api/projects/tts-workbench/emotion-annotation-analysis` with split turns returns annotated `turns` containing `speaker` and marked-up `text`.
-- `POST /api/projects/tts-workbench/final-request-preview` with prompt, speakers, annotated turns, language code, model name, and audio encoding returns the final provider request JSON preview.
-- `POST /api/projects/tts-workbench/single-speaker-render-plan` with the final request JSON returns `renderRequests`, where each item is provider-shaped JSON containing `input.text`, `voice.languageCode`, `voice.name`, `voice.modelName`, and `audioConfig.audioEncoding`.
-- `POST /api/projects/tts-workbench/create-audio` with the step 6 `renderRequests` returns a downloadable MP3 for one render request or one concatenated MP3 for multiple requests. The UI keeps the full-plan button and also shows a per-render-request **Create audio** button. A per-request button sends only that one render request and downloads a filename such as `tts-render-request-2.mp3`; the full-plan flow downloads `tts-render-request-1.mp3` for a single request or `tts-render-plan.mp3` for multiple requests.
-
-Single-speaker render requests intentionally do not return internal planning metadata such as turn indexes or speaker aliases. The preview JSON matches the provider request shape, for example:
+Single-speaker render requests now include backend-only persistence metadata such as `input.segmentOrderIndex` and `voice.speakerName` so generated audio can be attached back to the saved script-preview rows. Provider request builders still ignore those extra fields, so the preview JSON remains compatible with the external TTS request shape, for example:
 
 ```json
 {
   "input": {
-    "text": "[calm]The rain had turned the windows silver by the time they reached the old station café.\n[serious]Mara folded the letter twice, then unfolded it again."
+    "text": "[calm]The rain had turned the windows silver by the time they reached the old station café.\n[serious]Mara folded the letter twice, then unfolded it again.",
+    "segmentOrderIndex": 0
   },
   "voice": {
     "languageCode": "en-US",
+    "speakerName": "Narrator",
     "name": "Schedar",
     "modelName": "{{google-model}}"
   },
@@ -386,7 +386,7 @@ Runtime behavior follows the existing chatbot provider mode where possible:
 - `CHATBOT_PROVIDER=gemini` asks the configured chat provider for structured speaker/voice, speaker split, and emotion annotation output. Provider failures or invalid provider output return structured API errors so the frontend can show a clear failure instead of silently displaying fallback data.
 - Google Cloud Text-to-Speech credentials are loaded by the backend from the optional backend-only `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` environment variable, which contains the Base64-encoded service account JSON. When it is not configured, the backend still starts and Gemini chat works, but `create-audio` returns a structured TTS provider error instead of real Google Cloud audio. The secret is never exposed to Angular.
 
-Prompts are accessed through a `TtsWorkbenchPromptProvider` abstraction. The current implementation returns static defaults, but the service structure is intentionally open for future prompts loaded from configuration, a database, an admin UI, project settings, or tenant-specific settings.
+Prompts are accessed through a `AudiobookWorkflowPromptProvider` abstraction. The current implementation returns static defaults, but the service structure is intentionally open for future prompts loaded from configuration, a database, an admin UI, project settings, or tenant-specific settings.
 
 Automated tests use mock behavior and do not call Gemini APIs.
 
@@ -399,8 +399,8 @@ The frontend now includes a reusable chatbot widget component that calls `POST /
 - `chat.geminiModel` controls the Gemini model (`gemini-2.5-flash` by default).
 - `chat.provider` controls backend runtime provider (`gemini` or `mock`); the chart default is `mock` so local/feature-style installs do not require `GEMINI_API_KEY`.
 - `chat.realProviderOnFeatureBranches` defaults to `false` and is used by the deploy workflow to keep feature branches in mock chatbot mode by default.
-- `ttsWorkbench.googleCredentialsSecretName` controls the optional Kubernetes secret that provides `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` to the backend. Leave it empty to run Gemini chat without Google Cloud TTS credentials.
-- `ttsWorkbench.googleCredentialsChecksum` is written to the backend pod template annotation so a Google TTS credential change creates a new backend ReplicaSet.
+- `audiobookWorkflow.googleCredentialsSecretName` controls the optional Kubernetes secret that provides `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` to the backend. Leave it empty to run Gemini chat without Google Cloud TTS credentials.
+- `audiobookWorkflow.googleCredentialsChecksum` is written to the backend pod template annotation so a Google TTS credential change creates a new backend ReplicaSet.
 - The frontend remains provider-agnostic and always calls `POST /api/chat`.
 
 ### Required secret
@@ -478,3 +478,8 @@ The prompt history shows the model type that was actually used:
 - `SPEECH_MODEL` for TTS audio creation
 
 That keeps the history table, top-bar counters, and backend enforcement lined up.
+
+
+
+
+

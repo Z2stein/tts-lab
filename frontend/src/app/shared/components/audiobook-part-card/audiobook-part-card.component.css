@@ -1,0 +1,219 @@
+/* Speaker Accent Colors - 6 color rotation */
+.cast-accent-0 {
+  --speaker-accent: #f0ad5d;
+  --speaker-accent-shadow: rgba(240, 173, 93, 0.34);
+}
+.cast-accent-1 {
+  --speaker-accent: #c965ff;
+  --speaker-accent-shadow: rgba(201, 101, 255, 0.34);
+}
+.cast-accent-2 {
+  --speaker-accent: #48b5ff;
+  --speaker-accent-shadow: rgba(72, 181, 255, 0.32);
+}
+.cast-accent-3 {
+  --speaker-accent: #8fe7bd;
+  --speaker-accent-shadow: rgba(143, 231, 189, 0.38);
+}
+.cast-accent-4 {
+  --speaker-accent: #ffb4a8;
+  --speaker-accent-shadow: rgba(255, 180, 168, 0.38);
+}
+.cast-accent-5 {
+  --speaker-accent: #ffd591;
+  --speaker-accent-shadow: rgba(255, 213, 145, 0.38);
+}
+
+/* Render Request Card */
+.render-request {
+  border-radius: 0.9rem;
+  border: 2px solid transparent;
+  border-left: 4px solid var(--speaker-accent, #f0ad5d);
+  background: rgba(5, 9, 20, 0.44);
+  padding: 1rem;
+  display: grid;
+  gap: 1rem;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+}
+
+/* Speaker Identity Section */
+.render-identity {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: start;
+  gap: 1rem;
+}
+
+/* Avatar Badge */
+.cast-avatar {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 900;
+  font-size: 1.5rem;
+  background: linear-gradient(135deg, var(--speaker-accent), rgba(0, 0, 0, 0.2));
+  color: #fff8ec;
+  box-shadow: 0 0 24px var(--speaker-accent-shadow);
+  flex-shrink: 0;
+}
+
+.cast-avatar.part-avatar {
+  font-size: 1.5rem;
+  font-weight: 900;
+}
+
+/* Part Badge */
+.badge {
+  display: inline-block;
+  background: rgba(255, 213, 145, 0.15);
+  border: 1px solid rgba(255, 213, 145, 0.42);
+  border-radius: 999px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #ffd591;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0.35rem;
+}
+
+/* Headings */
+h3 {
+  margin: 0;
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #fff8ec;
+  line-height: 1.2;
+}
+
+/* Part Meta (role/voice) */
+.part-meta {
+  margin: 0.25rem 0 0 0;
+  font-size: 0.95rem;
+  color: #c9d1e8;
+  line-height: 1.4;
+}
+
+/* Original Text */
+.original-text {
+  margin: 0;
+  font-size: 0.95rem;
+  color: #d5d9e8;
+  font-style: italic;
+  padding: 0.75rem;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 0.5rem;
+  border-left: 3px solid var(--speaker-accent, #f0ad5d);
+}
+
+/* Emotion & Direction Tags */
+.emotion-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.tag {
+  display: inline-block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 0.4rem 0.65rem;
+  border-radius: 0.35rem;
+  border: 1px solid transparent;
+}
+
+.tag.emotion-tag {
+  background: rgba(255, 213, 145, 0.15);
+  border-color: rgba(255, 213, 145, 0.42);
+  color: #ffd591;
+}
+
+.tag.direction-tag {
+  background: transparent;
+  color: #c9d1e8;
+  font-style: italic;
+  border-color: rgba(201, 209, 232, 0.25);
+}
+
+/* Part Status Badge */
+.part-status {
+  margin: 0;
+  display: inline-block;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #d5d9e8;
+  padding: 0.55rem 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+}
+
+.part-status.ready {
+  border-color: rgba(143, 231, 189, 0.42);
+  color: #8fe7bd;
+}
+
+.part-status.generating {
+  border-color: rgba(255, 213, 145, 0.42);
+  color: #ffd591;
+}
+
+.part-status.failed {
+  border-color: rgba(255, 180, 168, 0.42);
+  color: #ffb4a8;
+}
+
+.part-status.approved {
+  border-color: rgba(143, 231, 189, 0.42);
+  color: #8fe7bd;
+}
+
+/* Download Button */
+.download-btn {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border-radius: 0.6rem;
+  border: 1px solid rgba(255, 213, 145, 0.42);
+  background: rgba(255, 213, 145, 0.1);
+  color: #ffd591;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.download-btn:hover {
+  background: rgba(255, 213, 145, 0.2);
+  border-color: rgba(255, 213, 145, 0.6);
+}
+
+/* Waveform Player */
+.render-player.framework-player {
+  display: grid;
+  grid-template-columns: auto minmax(12rem, 1fr) auto auto;
+  align-items: center;
+  gap: 0.85rem;
+  border-radius: 0.9rem;
+  background: rgba(5, 9, 20, 0.44);
+  padding: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.render-player .waveform-canvas {
+  width: 100%;
+}
+
+/* Error Message */
+.error {
+  margin: 0.5rem 0 0 0;
+  padding: 0.65rem;
+  background: rgba(255, 180, 168, 0.1);
+  border: 1px solid rgba(255, 180, 168, 0.42);
+  border-radius: 0.5rem;
+  color: #ffb4a8;
+  font-size: 0.9rem;
+}

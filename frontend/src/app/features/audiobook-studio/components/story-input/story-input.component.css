@@ -1,1 +1,3 @@
-/* Styles live in the page component CSS via ::ng-deep — Phase 5 will migrate to Tailwind */
+.story-tools {
+  justify-content: space-between;
+}

@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, OnDestroy, OnInit, Output, ViewChild, ElementRef } from '@angular/core';
 import { WaveSurferService } from '../../audiobook-studio/services/wave-surfer.service';
-import { AudioAsset } from '../models/audiobook-library.types';
+import { AudioAssetResponse } from '../../../shared/api-contract.generated';
 
 @Component({
   selector: 'app-audio-player-modal',
@@ -47,7 +47,7 @@ import { AudioAsset } from '../models/audiobook-library.types';
   `]
 })
 export class AudioPlayerModalComponent implements OnInit, OnDestroy {
-  @Input({ required: true }) asset!: AudioAsset;
+  @Input({ required: true }) asset!: AudioAssetResponse;
   @Output() close = new EventEmitter<void>();
 
   @ViewChild('waveformContainer') waveformContainer!: ElementRef;
@@ -61,10 +61,10 @@ export class AudioPlayerModalComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     setTimeout(() => {
-      if (this.waveformContainer) {
+      if (this.waveformContainer?.nativeElement) {
         const waveSurfer = this.waveSurferService.create(
           this.waveSurferId,
-          this.waveformContainer.nativeElement,
+          this.waveformContainer.nativeElement as HTMLElement,
           this.asset.streamUrl
         );
 
@@ -88,7 +88,7 @@ export class AudioPlayerModalComponent implements OnInit, OnDestroy {
   togglePlayPause(): void {
     const waveSurfer = this.waveSurferService.get(this.waveSurferId);
     if (waveSurfer) {
-      waveSurfer.playPause();
+      void waveSurfer.playPause();
     }
   }
 

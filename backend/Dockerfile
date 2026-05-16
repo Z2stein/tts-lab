@@ -1,8 +1,10 @@
 FROM gradle:8.8-jdk21-alpine AS build
 WORKDIR /app
-COPY build.gradle settings.gradle ./
-COPY src ./src
-RUN gradle --no-daemon clean bootJar
+COPY backend/build.gradle backend/settings.gradle ./
+COPY backend/src ./src
+COPY shared ./shared
+COPY test-contracts ./test-contracts
+RUN gradle --no-daemon clean test bootJar
 
 FROM eclipse-temurin:21-jre-alpine
 WORKDIR /app

@@ -3,21 +3,21 @@ set -euo pipefail
 
 rendered_gemini=$(helm template test charts/tts-lab \
   --set chat.provider=gemini \
-  --set ttsWorkbench.googleCredentialsChecksum=gemini-secret-checksum)
+  --set audiobookWorkflow.googleCredentialsChecksum=gemini-secret-checksum)
 rendered_gemini_with_tts=$(helm template test charts/tts-lab \
   --set chat.provider=gemini \
-  --set ttsWorkbench.googleCredentialsSecretName=google-tts-service-account \
-  --set ttsWorkbench.googleCredentialsChecksum=gemini-secret-checksum)
+  --set audiobookWorkflow.googleCredentialsSecretName=google-tts-service-account \
+  --set audiobookWorkflow.googleCredentialsChecksum=gemini-secret-checksum)
 rendered_mock=$(helm template test charts/tts-lab --set chat.provider=mock)
 rendered_switch_mock_to_gemini_before=$(helm template same-release charts/tts-lab --namespace same-namespace --set chat.provider=mock)
 rendered_switch_mock_to_gemini_after=$(helm template same-release charts/tts-lab --namespace same-namespace \
   --set chat.provider=gemini \
-  --set ttsWorkbench.googleCredentialsSecretName=google-tts-service-account \
-  --set ttsWorkbench.googleCredentialsChecksum=after-mock-secret-checksum)
+  --set audiobookWorkflow.googleCredentialsSecretName=google-tts-service-account \
+  --set audiobookWorkflow.googleCredentialsChecksum=after-mock-secret-checksum)
 rendered_switch_gemini_to_mock_before=$(helm template same-release charts/tts-lab --namespace same-namespace \
   --set chat.provider=gemini \
-  --set ttsWorkbench.googleCredentialsSecretName=google-tts-service-account \
-  --set ttsWorkbench.googleCredentialsChecksum=before-mock-secret-checksum)
+  --set audiobookWorkflow.googleCredentialsSecretName=google-tts-service-account \
+  --set audiobookWorkflow.googleCredentialsChecksum=before-mock-secret-checksum)
 rendered_switch_gemini_to_mock_after=$(helm template same-release charts/tts-lab --namespace same-namespace --set chat.provider=mock)
 
 # Gemini mode requires only Gemini chat credentials by default.
@@ -82,3 +82,4 @@ if echo "$rendered_gemini_with_tts" | rg -q "volumeMounts|/var/secrets/google|se
   echo "Found old file-based Google TTS credentials mount; expected environment secret reference only." >&2
   exit 1
 fi
+

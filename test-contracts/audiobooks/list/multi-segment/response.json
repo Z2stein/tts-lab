@@ -1,0 +1,57 @@
+{
+  "items": [
+    {
+      "id": "project-multi-speaker",
+      "title": "Generated audiobook 2026-05-09T20:50:36.213985432Z",
+      "status": "NEEDS_REVIEW",
+      "speechSegmentCount": 3,
+      "speakerCount": 2,
+      "totalDurationSeconds": 19,
+      "updatedAt": "2026-05-09T22:50:00Z",
+      "audioAssets": [
+        {
+          "id": "segment-1-narrator",
+          "speechSegmentId": "speech-segment-1",
+          "type": "PREVIEW_MP3",
+          "version": 1,
+          "filename": "segment-1-narrator.mp3",
+          "contentType": "audio/mpeg",
+          "sizeBytes": 96000,
+          "durationSeconds": 6,
+          "status": "READY",
+          "createdAt": "2026-05-09T22:50:00Z",
+          "downloadUrl": "/api/audiobooks/project-multi-speaker/audio-assets/segment-1-narrator/download",
+          "streamUrl": "/api/audiobooks/project-multi-speaker/audio-assets/segment-1-narrator/stream"
+        },
+        {
+          "id": "segment-2-mara",
+          "speechSegmentId": "speech-segment-2",
+          "type": "PREVIEW_MP3",
+          "version": 1,
+          "filename": "segment-2-mara.mp3",
+          "contentType": "audio/mpeg",
+          "sizeBytes": 80000,
+          "durationSeconds": 5,
+          "status": "READY",
+          "createdAt": "2026-05-09T22:50:00Z",
+          "downloadUrl": "/api/audiobooks/project-multi-speaker/audio-assets/segment-2-mara/download",
+          "streamUrl": "/api/audiobooks/project-multi-speaker/audio-assets/segment-2-mara/stream"
+        },
+        {
+          "id": "segment-3-narrator",
+          "speechSegmentId": "speech-segment-3",
+          "type": "PREVIEW_MP3",
+          "version": 1,
+          "filename": "segment-3-narrator.mp3",
+          "contentType": "audio/mpeg",
+          "sizeBytes": 128000,
+          "durationSeconds": 8,
+          "status": "READY",
+          "createdAt": "2026-05-09T22:50:00Z",
+          "downloadUrl": "/api/audiobooks/project-multi-speaker/audio-assets/segment-3-narrator/download",
+          "streamUrl": "/api/audiobooks/project-multi-speaker/audio-assets/segment-3-narrator/stream"
+        }
+      ]
+    }
+  ]
+}

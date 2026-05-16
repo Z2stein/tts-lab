@@ -1,5 +1,6 @@
 package com.example.ttslab.chat;
 
+import com.example.ttslab.config.ChatbotProperties;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -8,7 +9,7 @@ import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.prompt.Prompt;
 import org.springframework.beans.factory.ObjectProvider;
-import org.springframework.beans.factory.annotation.Value;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -20,9 +21,17 @@ public class ChatService {
     private final ObjectProvider<ChatModel> chatModelProvider;
     private final String chatbotProvider;
 
+    @Autowired
     public ChatService(
         ObjectProvider<ChatModel> chatModelProvider,
-        @Value("${chatbot.provider:mock}") String chatbotProvider
+        ChatbotProperties chatbotProperties
+    ) {
+        this(chatModelProvider, chatbotProperties == null ? PROVIDER_MOCK : chatbotProperties.provider());
+    }
+
+    public ChatService(
+        ObjectProvider<ChatModel> chatModelProvider,
+        String chatbotProvider
     ) {
         this.chatModelProvider = chatModelProvider;
         this.chatbotProvider = chatbotProvider == null ? PROVIDER_MOCK : chatbotProvider.trim().toLowerCase();
@@ -49,6 +58,7 @@ public class ChatService {
         }
 
         try {
+            log.debug("is called withrequestMessage:\n"+request.message());
             String answer = chatModel.call(new Prompt(new UserMessage(request.message()))).getResult().getOutput().getText();
             log.debug("received answer"+answer);
             return new ChatResponse(answer == null ? "" : answer, conversationId);

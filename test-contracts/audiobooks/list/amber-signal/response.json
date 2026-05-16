@@ -1,0 +1,29 @@
+{
+  "items": [
+    {
+      "id": "project-amber",
+      "title": "The Amber Signal",
+      "status": "NEEDS_REVIEW",
+      "speechSegmentCount": 2,
+      "speakerCount": 3,
+      "totalDurationSeconds": 185,
+      "updatedAt": "2026-05-09T10:30:00Z",
+      "audioAssets": [
+        {
+          "id": "asset-preview",
+          "speechSegmentId": null,
+          "type": "PREVIEW_MP3",
+          "version": 1,
+          "filename": "amber-signal-preview.mp3",
+          "contentType": "audio/mpeg",
+          "sizeBytes": 1240000,
+          "durationSeconds": 185,
+          "status": "READY",
+          "createdAt": "2026-05-09T10:30:00Z",
+          "downloadUrl": "/api/audiobooks/project-amber/audio-assets/asset-preview/download",
+          "streamUrl": "/api/audiobooks/project-amber/audio-assets/asset-preview/stream"
+        }
+      ]
+    }
+  ]
+}

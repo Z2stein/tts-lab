@@ -1,13 +1,13 @@
 <div class="step-heading">
   <span class="step-number">3</span>
   <div>
-    <h2 id="script-preview-title">Review script preview</h2>
-    <p>Speaker turns are grouped into a readable script view.</p>
+    <h2 id="script-preview-title">Review script</h2>
+    <p>Check that each line is assigned to the correct speaker.</p>
   </div>
 </div>
 
-<p *ngIf="scriptTurns.length > 0 && !scriptApproved" class="review-status">Script needs review</p>
-<p *ngIf="scriptTurns.length === 0" class="empty-state">Script preview turns will appear after cast discovery.</p>
+<p *ngIf="scriptTurns.length > 0 && !scriptApproved" class="review-status">Script needs your approval</p>
+<p *ngIf="scriptTurns.length === 0" class="empty-state">Script will appear after voices are chosen.</p>
 <div *ngIf="scriptTurns.length > 0" class="script-panel">
   <article *ngFor="let group of scriptGroups; trackBy: trackScriptGroup" class="script-group" [ngStyle]="speakerStyleFn(group.speaker)">
     <h3>{{ displayName(group.speaker) }}</h3>
@@ -17,6 +17,7 @@
       [editing]="editingScriptTurnIndex === indexedTurn.index"
       [editDraft]="editingScriptTurnIndex === indexedTurn.index ? scriptTurnEditDraft : null"
       [speakerOptions]="speakerOptions"
+      [loadingAction]="loadingAction"
       (startEdit)="startTurnEdit.emit(indexedTurn.index)"
       (saveEdit)="saveTurnEdit.emit(indexedTurn.index)"
       (cancelEdit)="cancelTurnEdit.emit()"
@@ -25,8 +26,5 @@
 </div>
 
 <button type="button" class="primary-button next-action" (click)="approveScript.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || scriptApproved">
-  Approve script
-</button>
-<button type="button" class="secondary-button" (click)="addEmotionAndPacing.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || !scriptApproved">
-  {{ isLoading('notes') ? 'Adding emotion & pacing...' : 'Add emotion & pacing' }}
+  Approve script & continue
 </button>

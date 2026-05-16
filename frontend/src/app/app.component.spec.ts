@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
 import { CurrentUserService } from './current-user.service';
@@ -13,12 +14,12 @@ describe('AppComponent layout and chatbot visibility', () => {
       imports: [AppComponent],
       providers: [
         provideRouter(routes),
+        provideHttpClient(),
         {
           provide: CurrentUserService,
           useValue: {
             getCurrentUser: jasmine.createSpy(),
             refreshRequestLimits: jasmine.createSpy().and.resolveTo(null),
-            ensureCsrfToken: jasmine.createSpy(),
             startGoogleLogin: jasmine.createSpy(),
             startLogout: jasmine.createSpy()
           }
@@ -41,12 +42,11 @@ describe('AppComponent layout and chatbot visibility', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Home');
+    expect(text).toContain('TTS Lab');
     expect(text).toContain('Audiobook Studio');
     expect(text).toContain('My Audiobooks');
-    expect(text).toContain('Text Length');
-    expect(text).toContain('TTS Workbench');
-    expect(text).toContain('Prompt History');
+    expect(text).toContain('Demo');
+    expect(text).not.toContain('Prompt History');
   });
 
   it('chatbot widget is not visible when unauthenticated', () => {

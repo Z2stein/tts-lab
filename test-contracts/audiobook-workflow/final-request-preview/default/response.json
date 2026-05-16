@@ -1,0 +1,18 @@
+{
+  "input": {
+    "prompt": "Prompt",
+    "multiSpeakerMarkup": {
+      "turns": []
+    }
+  },
+  "voice": {
+    "languageCode": "en-US",
+    "modelName": "{{google-model}}",
+    "multiSpeakerVoiceConfig": {
+      "speakerVoiceConfigs": []
+    }
+  },
+  "audioConfig": {
+    "audioEncoding": "MP3"
+  }
+}

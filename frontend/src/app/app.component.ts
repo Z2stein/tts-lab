@@ -3,7 +3,9 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { ChatbotWidgetComponent } from './chatbot/chatbot-widget.component';
-import { CurrentUser, CurrentUserService, RequestLimitItem, RequestLimitSummary } from './current-user.service';
+import { CurrentUserService } from './current-user.service';
+import { CurrentUser, RequestRateLimitSummary, RequestRateLimitSummaryItem } from './shared/api-contract.generated';
+import { LoggerService } from './logger.service';
 
 @Component({
   selector: 'app-root',
@@ -16,17 +18,18 @@ export class AppComponent implements OnInit, OnDestroy {
   authStatus: 'loading' | 'authenticated' | 'unauthenticated' = 'loading';
   authError: string | null = null;
   currentUser: CurrentUser | null = null;
-  requestLimitSummary: RequestLimitSummary | null = null;
+  requestLimitSummary: RequestRateLimitSummary | null = null;
   isPublicRoute = false;
   private authInitialized = false;
   private routerEventsSubscription: Subscription | null = null;
   private readonly requestLimitsUpdated = (event: Event): void => {
-    this.requestLimitSummary = (event as CustomEvent<RequestLimitSummary>).detail;
+    this.requestLimitSummary = (event as CustomEvent<RequestRateLimitSummary>).detail;
   };
 
   constructor(
     private readonly currentUserService: CurrentUserService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly logger: LoggerService
   ) {}
 
   async ngOnInit(): Promise<void> {
@@ -54,7 +57,7 @@ export class AppComponent implements OnInit, OnDestroy {
   private async initializeAuth(): Promise<void> {
     this.authInitialized = true;
     this.authStatus = 'loading';
-    console.info('[app] Initializing app and resolving auth state');
+    this.logger.info('app', 'Initializing app and resolving auth state');
     try {
       this.currentUser = await this.currentUserService.getCurrentUser();
       this.authStatus = this.currentUser ? 'authenticated' : 'unauthenticated';
@@ -66,7 +69,7 @@ export class AppComponent implements OnInit, OnDestroy {
       this.authStatus = 'unauthenticated';
       this.authError = 'Could not validate session. Please try signing in again.';
     }
-    console.info('[app] Auth state resolved', { authStatus: this.authStatus });
+    this.logger.info('app', 'Auth state resolved', { authStatus: this.authStatus });
   }
 
   private updatePublicRouteState(url: string): void {
@@ -82,11 +85,11 @@ export class AppComponent implements OnInit, OnDestroy {
     await this.currentUserService.startLogout();
   }
 
-  limitFor(modelType: 'TEXT_MODEL' | 'SPEECH_MODEL'): RequestLimitItem | null {
+  limitFor(modelType: 'TEXT_MODEL' | 'SPEECH_MODEL'): RequestRateLimitSummaryItem | null {
     return this.requestLimitSummary?.limits.find((limit) => limit.modelType === modelType) ?? null;
   }
 
-  formatRemaining(limit: RequestLimitItem | null): string {
+  formatRemaining(limit: RequestRateLimitSummaryItem | null): string {
     if (!limit) {
       return '...';
     }

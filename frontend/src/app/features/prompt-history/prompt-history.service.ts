@@ -1,33 +1,24 @@
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
 import { Injectable } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
+import { ModelType, PromptHistoryItem, PromptHistoryResponse } from '../../shared/api-contract.generated';
 
-export type PromptModelType = 'TEXT_MODEL' | 'SPEECH_MODEL';
-
-export interface PromptHistoryItem {
-  id: number;
-  userId: string;
-  userEmail: string | null;
-  modelType: PromptModelType;
-  providerModelName: string | null;
-  promptText: string;
-  requestStatus: string;
-  createdAt: string;
-}
-
-interface PromptHistoryResponse {
-  items: PromptHistoryItem[];
-}
+export type { ModelType, PromptHistoryItem, PromptHistoryResponse } from '../../shared/api-contract.generated';
 
 @Injectable({ providedIn: 'root' })
 export class PromptHistoryService {
-  async getHistory(modelType?: PromptModelType): Promise<PromptHistoryItem[]> {
+  constructor(private readonly http: HttpClient) {}
+
+  async getHistory(modelType?: ModelType): Promise<PromptHistoryItem[]> {
     const query = modelType ? `?modelType=${encodeURIComponent(modelType)}` : '';
-    const response = await fetch(`/api/prompts/history${query}`);
-
-    if (!response.ok) {
-      throw new Error(`Prompt history failed (HTTP ${response.status}).`);
+    try {
+      const response = await firstValueFrom(this.http.get<PromptHistoryResponse>(`/api/prompts/history${query}`));
+      return response.items;
+    } catch (error) {
+      if (error instanceof HttpErrorResponse) {
+        throw new Error(`Prompt history failed (HTTP ${error.status}).`);
+      }
+      throw error;
     }
-
-    const data = (await response.json()) as PromptHistoryResponse;
-    return data.items;
   }
 }

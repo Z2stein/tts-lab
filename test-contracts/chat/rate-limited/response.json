@@ -1,0 +1,7 @@
+{
+  "status": 429,
+  "code": "RATE_LIMIT_EXCEEDED",
+  "message": "Usage limit exceeded. Please try again later.",
+  "details": null,
+  "requestId": "request-1"
+}

@@ -1,23 +1,27 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, OnDestroy, ViewEncapsulation } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewEncapsulation } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
+import { AudiobookWorkflowSnapshotResponse, SpeakerVoiceCatalogItem } from '../../shared/api-contract.generated';
 import {
-  FinalTtsRequestPreview,
-  SingleSpeakerRenderPlan,
-  SingleSpeakerRenderRequest,
+  AnnotatedSpeakerTurn,
+  FinalTtsRequestPreviewResponse,
   SpeakerVoiceAnalysisItem,
-} from '../tts-workbench/tts-workbench.service';
+  SingleSpeakerRenderPlanResponse,
+  SingleSpeakerRenderRequest,
+} from '../audiobook-shared/service/audiobook-workflow.service';
 import { CastSectionComponent } from './components/cast-section/cast-section.component';
+import { VoicePickerModalComponent } from './components/voice-picker/voice-picker-modal.component';
 import { JourneyGridComponent } from './components/journey-grid/journey-grid.component';
 import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
 import { ScriptReviewComponent } from './components/script-review/script-review.component';
+import { ProjectTitleEditorComponent } from './components/project-title-editor/project-title-editor.component';
 import { StoryInputComponent } from './components/story-input/story-input.component';
 import { StudioHeroComponent } from './components/studio-hero/studio-hero.component';
+import { CurrentTaskPanelComponent } from './components/current-task-panel/current-task-panel.component';
 import { WaveformPlayerComponent } from './components/waveform-player/waveform-player.component';
 import { WorkflowProgressComponent } from './components/workflow-progress/workflow-progress.component';
 import {
-  BENEFIT_CHIPS,
   HERO_CAST,
   JOURNEY_STEPS,
   LANGUAGE_CODE_OPTIONS,
@@ -27,7 +31,6 @@ import {
 } from './data/studio-content';
 import {
   AnnotatedMarkup,
-  AnnotatedSpeakerTurn,
   CurrentTask,
   HeroCastMember,
   IndexedSpeakerSplitTurn,
@@ -42,16 +45,17 @@ import { markupFor } from './utils/annotated-markup';
 import { formatSpeakerDisplayName, normalizedSpeakerKey, speakerInitials } from './utils/speaker-name';
 import { AudiobookStudioFacade } from './audiobook-studio.facade';
 import { FullAudioGenerationService } from './services/full-audio-generation.service';
-import { RenderRequestAudioService } from './services/render-request-audio.service';
+import { RenderRequestAudioService } from '../audiobook-shared/service/render-request-audio.service';
 import { ScrollService } from './services/scroll.service';
 import { VoiceSampleService } from './services/voice-sample.service';
 import { WaveSurferService } from './services/wave-surfer.service';
+import { buildCurrentTask, buildWorkflowSteps, StudioWorkflowState } from './utils/studio-workflow-state';
 
 // Re-export so the spec can import formatSpeakerDisplayName from this file path unchanged.
 export { formatSpeakerDisplayName };
 
 @Component({
-  selector: 'app-audiobook-studio-page',
+  selector: 'app-audiobook-studio-workspace',
   standalone: true,
   imports: [
     CommonModule,
@@ -61,10 +65,13 @@ export { formatSpeakerDisplayName };
     WaveformPlayerComponent,
     JourneyGridComponent,
     WorkflowProgressComponent,
+    ProjectTitleEditorComponent,
     StoryInputComponent,
     CastSectionComponent,
     ScriptReviewComponent,
     PerformanceNotesComponent,
+    CurrentTaskPanelComponent,
+    VoicePickerModalComponent,
   ],
   providers: [
     AudiobookStudioFacade,
@@ -75,17 +82,16 @@ export { formatSpeakerDisplayName };
     ScrollService,
   ],
   templateUrl: './audiobook-studio-page.component.html',
-  styleUrl: './audiobook-studio-page.component.css',
+  styleUrls: ['./audiobook-studio-page.component.css', './components/audiobook-studio-section-shared.css'],
   encapsulation: ViewEncapsulation.None,
 })
-export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
+export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChanges, OnDestroy {
   // ── Spec proxy: partGenerationTimeoutMs ───────────────────────────────────
   get partGenerationTimeoutMs(): number { return this.renderRequestAudioService.partGenerationTimeoutMs; }
   set partGenerationTimeoutMs(ms: number) { this.renderRequestAudioService.partGenerationTimeoutMs = ms; }
 
   readonly speakerStyleFn = (name: string | null | undefined) => this.speakerStyle(name);
 
-  readonly benefitChips = BENEFIT_CHIPS;
   readonly heroCast: readonly HeroCastMember[] = HERO_CAST;
   readonly journeySteps = JOURNEY_STEPS;
   readonly speakerAccents: readonly SpeakerAccent[] = SPEAKER_ACCENTS;
@@ -94,10 +100,18 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   readonly modelNameOptions = MODEL_NAME_OPTIONS;
 
   storyTextControl = new FormControl('', { nonNullable: true });
+  projectTitleControl = new FormControl('', { nonNullable: true });
   promptControl = new FormControl('An immersive audiobook performance with a clear narrator and distinct character voices.', { nonNullable: true });
   languageCodeControl = new FormControl('en-US', { nonNullable: true });
   modelNameControl = new FormControl('gemini-3.1-flash-tts-preview', { nonNullable: true });
   audioEncodingControl = new FormControl('MP3', { nonNullable: true });
+  projectTitleEditing = false;
+  @Input() showHero = true;
+  @Input() snapshot: AudiobookWorkflowSnapshotResponse | null = null;
+  @Input() scrollToSectionAfterLoad: string | null = null;
+  @Output() projectCreated = new EventEmitter<string>();
+
+  private pendingScrollToSection: string | null = null;
 
   // ── Facade state proxies (spec reads/writes these directly) ───────────────
 
@@ -110,11 +124,14 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   get annotatedTurns(): AnnotatedSpeakerTurn[] { return this.facade.annotatedTurns(); }
   set annotatedTurns(value: AnnotatedSpeakerTurn[]) { this.facade.setAnnotatedTurns(value); }
 
-  get finalRequest(): FinalTtsRequestPreview | null { return this.facade.finalRequest(); }
-  set finalRequest(value: FinalTtsRequestPreview | null) { this.facade.setFinalRequest(value); }
+  get finalRequest(): FinalTtsRequestPreviewResponse | null { return this.facade.finalRequest(); }
+  set finalRequest(value: FinalTtsRequestPreviewResponse | null) { this.facade.setFinalRequest(value); }
 
-  get audioProductionPlan(): SingleSpeakerRenderPlan | null { return this.facade.audioProductionPlan(); }
-  set audioProductionPlan(value: SingleSpeakerRenderPlan | null) { this.facade.setAudioProductionPlan(value); }
+  get audioProductionPlan(): SingleSpeakerRenderPlanResponse | null { return this.facade.audioProductionPlan(); }
+  set audioProductionPlan(value: SingleSpeakerRenderPlanResponse | null) { this.facade.setAudioProductionPlan(value); }
+
+  get audioAssets() { return this.facade.audioAssets(); }
+  get productionSettings() { return this.facade.productionSettings(); }
 
   get castReviewed(): boolean { return this.facade.castReviewed(); }
   set castReviewed(value: boolean) { this.facade.setCastReviewed(value); }
@@ -124,6 +141,8 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   get performanceNotesStale(): boolean { return this.facade.performanceNotesStale(); }
   set performanceNotesStale(value: boolean) { this.facade.setPerformanceNotesStale(value); }
+
+  get performanceReady(): boolean { return this.facade.performanceReady(); }
 
   get loadingAction(): string | null { return this.facade.loadingAction(); }
   get error(): string | null { return this.facade.error(); }
@@ -138,7 +157,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   get fullPlanAudioError(): string | null { return this.fullAudioGenerationService.error; }
   get fullPlanAudioStale(): boolean { return this.fullAudioGenerationService.stale; }
   get fullPlanAudioStatusMessage(): string | null { return this.fullAudioGenerationService.statusMessage; }
-  get fullPlanAudioUrl(): string | null { return this.fullAudioGenerationService.audioUrl; }
+  get fullPlanAudioUrl(): string | null { return this.fullAudioGenerationService.audioUrl ?? this.facade.mergedAudioUrl(); }
   get fullPlanAudioFilename(): string | null { return this.fullAudioGenerationService.filename; }
 
   // ── Voice-sample delegated state ──────────────────────────────────────────
@@ -146,6 +165,8 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
+  voicePickerOpenForIndex: number | null = null;
+  private lastKnownProjectId: string | null = null;
 
   constructor(
     private readonly facade: AudiobookStudioFacade,
@@ -162,141 +183,20 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   get scriptGroups(): ScriptGroup[] { return this.facade.scriptGroups(); }
   get speakerOptions(): string[] { return this.facade.speakerOptions(); }
 
-  get renderRequests(): SingleSpeakerRenderRequest[] {
-    return this.facade.audioProductionPlan()?.renderRequests ?? [];
-  }
-
-  get finalRequestJson(): string {
-    return this.facade.finalRequest() ? JSON.stringify(this.facade.finalRequest(), null, 2) : '';
-  }
-
-  get audioProductionPlanJson(): string {
-    return this.facade.audioProductionPlan() ? JSON.stringify(this.facade.audioProductionPlan(), null, 2) : '';
-  }
-
-  get workflowSteps(): WorkflowStep[] {
-    const storyAdded = this.storyTextControl.value.trim().length > 0;
-    const castDetected = this.facade.cast().length > 0;
-    const scriptReady = this.facade.scriptTurns().length > 0;
-    const performanceReady = this.facade.annotatedTurns().length > 0 && !this.facade.performanceNotesStale();
-    const audioReady = this.fullPlanAudioUrl !== null;
-
-    return [
-      {
-        key: 'story',
-        label: 'Story',
-        sectionId: 'story-section',
-        status: storyAdded ? 'completed' : 'current',
-        statusLabel: storyAdded ? 'Story added' : 'Add story'
-      },
-      {
-        key: 'cast',
-        label: 'Cast',
-        sectionId: 'cast-section',
-        status: !storyAdded ? 'locked' : this.facade.castReviewed() ? 'completed' : castDetected ? 'warning' : 'current',
-        statusLabel: !storyAdded ? 'Locked' : this.facade.castReviewed() ? 'Cast approved' : castDetected ? 'Cast needs review' : 'Find characters'
-      },
-      {
-        key: 'script',
-        label: 'Script',
-        sectionId: 'script-section',
-        status: !this.facade.castReviewed() && !scriptReady ? 'locked' : this.facade.scriptApproved() ? 'completed' : scriptReady ? 'warning' : 'current',
-        statusLabel: !this.facade.castReviewed() && !scriptReady ? 'Locked' : this.facade.scriptApproved() ? 'Script approved' : scriptReady ? 'Script needs review' : 'Review script'
-      },
-      {
-        key: 'performance',
-        label: 'Performance',
-        sectionId: 'performance-section',
-        status: !this.facade.scriptApproved() ? 'locked' : this.facade.performanceNotesStale() ? 'warning' : performanceReady ? 'completed' : 'current',
-        statusLabel: !this.facade.scriptApproved() ? 'Locked' : this.facade.performanceNotesStale() ? 'Notes stale' : performanceReady ? 'Performance ready' : 'Add emotion'
-      },
-      {
-        key: 'audio',
-        label: 'Audio',
-        sectionId: 'audio-section',
-        status: !performanceReady ? 'locked' : audioReady ? 'completed' : 'current',
-        statusLabel: !performanceReady ? 'Locked' : audioReady ? 'Preview ready' : this.facade.audioProductionPlan() ? 'Generate preview' : 'Prepare audio'
-      }
-    ];
-  }
-
-  get currentTask(): CurrentTask {
-    if (this.storyTextControl.value.trim().length === 0) {
-      return {
-        title: 'Current task: Add your story',
-        body: 'Paste a chapter or scene with narration and dialogue. This gives the studio enough material to discover speakers.',
-        nextAction: 'Paste text or use the sample story, then choose Find characters.',
-        sectionId: 'story-section'
-      };
-    }
-
-    if (this.facade.cast().length === 0) {
-      return {
-        title: 'Current task: Find characters',
-        body: 'The studio will detect the narrator and speaking characters, then suggest voice directions for each one.',
-        nextAction: 'Choose Find characters to build the cast.',
-        sectionId: 'story-section'
-      };
-    }
-
-    if (!this.facade.castReviewed()) {
-      return {
-        title: 'Current task: Review the cast',
-        body: 'Check each character and preview the closest matching sample voice before the script is created.',
-        nextAction: 'Edit any voice card that needs cleanup, then choose Review script.',
-        sectionId: 'cast-section'
-      };
-    }
-
-    if (this.facade.scriptTurns().length === 0) {
-      return {
-        title: 'Current task: Create the script preview',
-        body: 'The story will be split into speaker turns so every line can be performed by the right voice.',
-        nextAction: 'Choose Review script to inspect the scene line by line.',
-        sectionId: 'cast-section'
-      };
-    }
-
-    if (!this.facade.scriptApproved()) {
-      return {
-        title: 'Current task: Review the script',
-        body: 'Check that every line is assigned to the correct speaker. The generated audio uses these speaker assignments.',
-        nextAction: 'Edit any incorrect turn, then choose Approve script.',
-        sectionId: 'script-section'
-      };
-    }
-
-    if (this.facade.annotatedTurns().length === 0 || this.facade.performanceNotesStale()) {
-      return {
-        title: 'Current task: Add emotion and pacing',
-        body: 'Performance notes add emotional intent and pauses so the audiobook sounds directed instead of flat.',
-        nextAction: this.facade.performanceNotesStale() ? 'Regenerate emotion and pacing before preparing audio.' : 'Choose Add emotion & pacing.',
-        sectionId: 'performance-section'
-      };
-    }
-
-    if (!this.facade.audioProductionPlan()) {
-      return {
-        title: 'Current task: Prepare audio generation',
-        body: 'The studio will convert your reviewed script and performance notes into voice parts ready for MP3 generation.',
-        nextAction: 'Choose Prepare audio generation.',
-        sectionId: 'performance-section'
-      };
-    }
-
-    return {
-      title: 'Current task: Generate and listen',
-      body: 'Create the audiobook preview, then listen directly in the page or generate individual voice parts as needed.',
-      nextAction: 'Choose Generate audiobook preview.',
-      sectionId: 'audio-section'
-    };
-  }
+  get renderRequests(): SingleSpeakerRenderRequest[] { return this.facade.audioProductionPlan()?.renderRequests ?? []; }
+  get finalRequestJson(): string { return this.facade.finalRequest() ? JSON.stringify(this.facade.finalRequest(), null, 2) : ''; }
+  get audioProductionPlanJson(): string { return this.facade.audioProductionPlan() ? JSON.stringify(this.facade.audioProductionPlan(), null, 2) : ''; }
+  get workflowSteps(): WorkflowStep[] { return buildWorkflowSteps(this.workflowState()); }
+  get currentTask(): CurrentTask { return buildCurrentTask(this.workflowState()); }
 
   // ── User actions ──────────────────────────────────────────────────────────
 
   useSampleStory(): void {
     this.storyTextControl.setValue(this.sampleStory);
     this.facade.resetPipeline();
+    this.projectTitleControl.setValue('');
+    this.projectTitleEditing = false;
+    this.lastKnownProjectId = null;
   }
 
   focusStoryInput(event?: Event): void {
@@ -317,16 +217,24 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  async approveCast(): Promise<void> {
+    await this.facade.approveCast();
+  }
+
   async createScriptPreviewAndScroll(): Promise<void> {
+    await this.approveCast();
     await this.createScriptPreview();
     if (this.facade.scriptTurns().length > 0) {
       this.scrollService.scrollTo('script-section');
     }
   }
 
-  approveScriptAndScroll(): void {
-    this.approveScript();
-    this.scrollService.scrollTo('performance-section');
+    async approveScriptAndContinueWorkflow(): Promise<void> {
+    await this.approveScript();
+    if (this.scriptApproved) {
+      await this.createPerformanceNotes();
+      this.scrollService.scrollTo('performance-section');
+    }
   }
 
   async createPerformanceNotesAndScroll(): Promise<void> {
@@ -344,7 +252,16 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   async analyzeStory(): Promise<void> {
+    this.projectTitleControl.setValue('');
+    this.projectTitleEditing = false;
     await this.facade.analyzeStory(this.storyTextControl.value);
+    this.projectTitleControl.setValue(this.facade.projectTitle());
+    this.projectTitleEditing = false;
+    this.lastKnownProjectId = this.facade.currentProjectId();
+    const projectId = this.facade.currentProjectId();
+    if (projectId) {
+      this.projectCreated.emit(projectId);
+    }
     if (this.facade.cast().length > 0) {
       void this.liveAnnouncer.announce(`Found ${this.facade.cast().length} characters`, 'polite');
     } else if (this.facade.error()) {
@@ -352,8 +269,21 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     }
   }
 
+  hydrateFromSnapshot(snapshot: AudiobookWorkflowSnapshotResponse): void {
+    this.facade.hydrateFromSnapshot(snapshot);
+    this.storyTextControl.setValue(snapshot.storyText ?? '');
+    this.projectTitleControl.setValue(snapshot.title);
+    this.promptControl.setValue(snapshot.productionSettings.prompt);
+    this.languageCodeControl.setValue(snapshot.productionSettings.languageCode);
+    this.modelNameControl.setValue(snapshot.productionSettings.modelName);
+    this.audioEncodingControl.setValue(snapshot.productionSettings.audioEncoding);
+    this.projectTitleEditing = false;
+    this.lastKnownProjectId = snapshot.projectId;
+  }
+
   async createScriptPreview(): Promise<void> {
     await this.facade.createScriptPreview(this.storyTextControl.value);
+    this.lastKnownProjectId = this.facade.currentProjectId();
     if (this.facade.scriptTurns().length > 0) {
       void this.liveAnnouncer.announce(`Script ready with ${this.facade.scriptTurns().length} turns`, 'polite');
     } else if (this.facade.error()) {
@@ -362,6 +292,9 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
   }
 
   async createPerformanceNotes(): Promise<void> {
+    if (!this.facade.currentProjectId() && this.lastKnownProjectId) {
+      this.facade.setCurrentProjectId(this.lastKnownProjectId);
+    }
     await this.facade.createPerformanceNotes();
     if (this.facade.annotatedTurns().length > 0) {
       void this.liveAnnouncer.announce('Performance notes added', 'polite');
@@ -386,11 +319,17 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
 
   async generateAudio(): Promise<void> {
     if (!this.facade.audioProductionPlan() || this.renderRequests.length === 0) return;
-    const projectId = await this.fullAudioGenerationService.generate(this.renderRequests);
+    const projectId = await this.fullAudioGenerationService.generate(this.renderRequests, this.facade.currentProjectId() ?? undefined);
     if (projectId) {
       this.facade.setCurrentProjectId(projectId);
+      this.lastKnownProjectId = projectId;
+      await this.facade.finalizeAudioGeneration(projectId);
+      if (this.facade.error()) {
+        void this.liveAnnouncer.announce(this.facade.error()!, 'assertive');
+        return;
+      }
     }
-    if (this.fullAudioGenerationService.audioUrl) {
+    if (this.fullAudioGenerationService.audioUrl && !this.facade.error()) {
       void this.liveAnnouncer.announce('Audiobook preview is ready', 'polite');
     }
   }
@@ -400,7 +339,10 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     requestIndex: number,
     options: { fullRunId?: number } = {}
   ): Promise<void> {
-    await this.renderRequestAudioService.generate(renderRequest, requestIndex, options);
+    await this.renderRequestAudioService.generate(renderRequest, requestIndex, {
+      ...options,
+      projectId: this.facade.currentProjectId() ?? undefined,
+    });
 
     const state = this.renderRequestAudioService.audioStates[requestIndex];
     if (state?.status === 'generated' && this.fullAudioGenerationService.audioUrl) {
@@ -418,16 +360,73 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     this.fullAudioGenerationService.cancel();
   }
 
-  approveScript(): void {
-    this.facade.approveScript();
+  async approveScript(): Promise<void> {
+    await this.facade.approveScript();
+  }
+
+  private workflowState(): StudioWorkflowState {
+    return {
+      storyText: this.storyTextControl.value,
+      castCount: this.facade.cast().length,
+      castReviewed: this.facade.castReviewed(),
+      scriptTurnCount: this.facade.scriptTurns().length,
+      scriptApproved: this.facade.scriptApproved(),
+      annotatedTurnCount: this.facade.annotatedTurns().length,
+      performanceNotesStale: this.facade.performanceNotesStale(),
+      performanceReady: this.facade.performanceReady(),
+      audioProductionPlanReady: this.facade.audioProductionPlan() !== null,
+      audioGenerated: this.fullPlanAudioUrl !== null && !this.fullPlanAudioStale,
+    };
+  }
+
+  startProjectTitleEdit(): void {
+    this.projectTitleControl.setValue(this.facade.projectTitle());
+    this.projectTitleEditing = true;
+  }
+
+  async saveProjectTitle(): Promise<void> {
+    await this.facade.saveProjectTitle(this.projectTitleControl.value);
+    if (!this.facade.error()) {
+      this.projectTitleControl.setValue(this.facade.projectTitle());
+      this.projectTitleEditing = false;
+    }
+  }
+
+  cancelProjectTitleEdit(): void {
+    this.projectTitleControl.setValue(this.facade.projectTitle());
+    this.projectTitleEditing = false;
   }
 
   startCastEdit(index: number): void { this.facade.startCastEdit(index); }
   saveCastEdit(index: number): void { this.facade.saveCastEdit(index); }
   cancelCastEdit(): void { this.facade.cancelCastEdit(); }
 
+  openVoicePicker(index: number): void { this.voicePickerOpenForIndex = index; }
+  closeVoicePicker(): void { this.voicePickerOpenForIndex = null; }
+
+  voicePickerSpeakerName(): string {
+    if (this.voicePickerOpenForIndex === null) return '';
+    return formatSpeakerDisplayName(this.facade.cast()[this.voicePickerOpenForIndex]?.speakerName ?? '');
+  }
+
+  voicePickerCurrentVoiceId(): string {
+    if (this.voicePickerOpenForIndex === null) return '';
+    return (this.facade.cast()[this.voicePickerOpenForIndex]?.voiceSuggestion ?? '').toLowerCase();
+  }
+
+  applyVoiceSelection(voice: SpeakerVoiceCatalogItem): void {
+    if (this.voicePickerOpenForIndex === null) return;
+    const cast = this.facade.cast();
+    const speaker = cast[this.voicePickerOpenForIndex];
+    if (!speaker) return;
+    const updated: SpeakerVoiceAnalysisItem = { ...speaker, voiceSuggestion: voice.id.toUpperCase() };
+    const newCast = cast.map((s, i) => (i === this.voicePickerOpenForIndex ? updated : s));
+    this.facade.setCast(newCast);
+    this.facade.setPerformanceNotesStale(true);
+  }
+
   startScriptTurnEdit(index: number): void { this.facade.startScriptTurnEdit(index); }
-  saveScriptTurnEdit(index: number): void { this.facade.saveScriptTurnEdit(index); }
+  async saveScriptTurnEdit(index: number): Promise<void> { await this.facade.saveScriptTurnEdit(index); }
   cancelScriptTurnEdit(): void { this.facade.cancelScriptTurnEdit(); }
 
   // ── Presentation helpers ──────────────────────────────────────────────────
@@ -546,7 +545,7 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     if (this.fullPlanAudioLoading && currentIndex !== null) {
       return `Generating part ${currentIndex + 1} of ${this.renderRequests.length}`;
     }
-    return this.fullPlanAudioStale ? 'Rebuild audiobook preview' : 'Generate audiobook preview';
+    return this.fullPlanAudioStale ? 'Regenerate preview' : 'Generate preview';
   }
 
   currentGenerationCanCancel(): boolean {
@@ -653,11 +652,28 @@ export class AudiobookStudioPageComponent implements AfterViewInit, OnDestroy {
     this.fullAudioGenerationService.clearAudio();
   }
 
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['snapshot']?.currentValue) {
+      this.hydrateFromSnapshot(changes['snapshot'].currentValue as AudiobookWorkflowSnapshotResponse);
+      if (this.scrollToSectionAfterLoad) {
+        this.pendingScrollToSection = this.scrollToSectionAfterLoad;
+      }
+    }
+  }
+
   ngAfterViewInit(): void {
     this.facade.onAudioReset = () => {
       this.fullPlanAudioPlaying = false;
       this.renderRequestAudioPlayingStates = {};
     };
+
+    if (this.pendingScrollToSection) {
+      setTimeout(() => {
+        this.scrollService.scrollTo(this.pendingScrollToSection!);
+        this.pendingScrollToSection = null;
+        this.scrollToSectionAfterLoad = null;
+      }, 50);
+    }
   }
 
   // ── Private helpers ───────────────────────────────────────────────────────

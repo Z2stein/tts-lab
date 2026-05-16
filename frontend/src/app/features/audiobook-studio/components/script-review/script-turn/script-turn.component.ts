@@ -9,13 +9,14 @@ import { formatSpeakerDisplayName } from '../../../utils/speaker-name';
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './script-turn.component.html',
-  styleUrl: './script-turn.component.css'
+  styleUrls: ['../../audiobook-studio-section-shared.css', './script-turn.component.css']
 })
 export class ScriptTurnComponent {
   @Input() indexedTurn!: IndexedSpeakerSplitTurn;
   @Input() editing = false;
   @Input() editDraft: SpeakerSplitTurn | null = null;
   @Input() speakerOptions: string[] = [];
+  @Input() loadingAction: string | null = null;
   @Output() startEdit = new EventEmitter<void>();
   @Output() saveEdit = new EventEmitter<void>();
   @Output() cancelEdit = new EventEmitter<void>();
@@ -26,5 +27,9 @@ export class ScriptTurnComponent {
 
   trackSpeakerOption(_: number, name: string): string {
     return name;
+  }
+
+  isLoading(): boolean {
+    return this.loadingAction !== null;
   }
 }

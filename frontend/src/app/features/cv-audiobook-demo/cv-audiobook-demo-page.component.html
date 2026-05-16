@@ -71,17 +71,65 @@
         </a>
       </nav>
 
-      <div id="technical-details" class="mx-auto grid max-w-2xl gap-4 border-t border-white/10 pt-6 text-left sm:grid-cols-[auto_1fr]">
-        <div class="grid h-10 w-10 place-items-center rounded-xl border border-white/12 bg-white/[0.035] text-white/55" aria-hidden="true">
-          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="none">
-            <path d="m12 3 8 4.5v9L12 21l-8-4.5v-9L12 3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-            <path d="m4 7.5 8 4.5 8-4.5M12 12v9" stroke="currentColor" stroke-width="2" stroke-linejoin="round" />
-          </svg>
+      <section
+        id="technical-details"
+        data-testid="cv-demo-technical-features"
+        class="mx-auto w-full max-w-5xl border-t border-white/10 pt-8 text-left"
+        aria-labelledby="cv-demo-technical-features-title"
+      >
+        <div class="mx-auto max-w-2xl text-center">
+          <p class="eyebrow">Technical features</p>
+          <h2 id="cv-demo-technical-features-title" class="mt-2 text-2xl font-black tracking-normal text-white sm:text-3xl">
+            Evidence from the repository
+          </h2>
+          <p class="mt-3 text-sm leading-7 text-white/62 sm:text-base">
+            The cards below come directly from the implemented and prepared features in this repository.
+          </p>
         </div>
-        <p class="m-0 text-sm font-medium uppercase leading-7 tracking-[0.14em] text-white/48">
-          Built with {{ technicalStack.join(', ') }}.
-        </p>
-      </div>
+
+        <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          @for (card of technicalFeatureCards; track card.id) {
+            <article
+              data-testid="cv-demo-feature-card"
+              class="group rounded-[1.4rem] border border-white/12 bg-white/[0.04] p-5 shadow-[0_22px_70px_rgba(0,0,0,0.22)] backdrop-blur transition hover:-translate-y-0.5 hover:border-[#f0ad5d]/35 hover:bg-white/[0.055]"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <p class="m-0 text-xs font-bold uppercase tracking-[0.16em] text-[#ffd77f]">
+                  Portfolio proof
+                </p>
+                <span class="rounded-full border border-white/10 bg-black/15 px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-[0.16em] text-white/45">
+                  {{ card.id }}
+                </span>
+              </div>
+
+              <h3 data-testid="cv-demo-feature-card-title" class="mt-4 text-lg font-black tracking-normal text-white">
+                {{ card.title }}
+              </h3>
+
+              <p class="mt-2 text-sm leading-7 text-white/72">
+                {{ card.description }}
+              </p>
+
+              <ul class="mt-4 grid gap-2 text-sm leading-6 text-white/64">
+                @for (proofLine of card.proof; track proofLine) {
+                  <li data-testid="cv-demo-feature-card-proof" class="flex gap-2">
+                    <span class="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[#f0ad5d]"></span>
+                    <span>{{ proofLine }}</span>
+                  </li>
+                }
+              </ul>
+
+              <p
+                data-testid="cv-demo-feature-card-demonstrates"
+                class="mt-4 rounded-2xl border border-white/8 bg-black/15 px-4 py-3 text-sm leading-6 text-white/70"
+              >
+                <span class="font-bold text-white/86">What this demonstrates:</span>
+                {{ card.demonstrates }}
+              </p>
+            </article>
+          }
+        </div>
+      </section>
     </div>
   </section>
 </main>

@@ -11,21 +11,27 @@
       "architect": {
         "build": {
           "builder": "@angular-devkit/build-angular:application",
-          "options": {
-            "outputPath": "dist/tts-lab-frontend",
-            "index": "src/index.html",
-            "browser": "src/main.ts",
-            "polyfills": [
-              "zone.js"
-            ],
-            "tsConfig": "tsconfig.app.json",
-            "assets": [
-              "src/assets"
-            ],
-            "styles": [
-              "src/styles.css"
-            ]
-          },
+            "options": {
+              "outputPath": "dist/tts-lab-frontend",
+              "index": "src/index.html",
+              "browser": "src/main.ts",
+              "polyfills": [
+                "zone.js"
+              ],
+              "tsConfig": "tsconfig.app.json",
+              "assets": [
+                "src/favicon.ico",
+                "src/assets",
+                {
+                  "glob": "**/*",
+                  "input": "../test-contracts",
+                  "output": "test-contracts"
+                }
+              ],
+              "styles": [
+                "src/styles.css"
+              ]
+            },
           "configurations": {
             "production": {
               "optimization": true,
@@ -59,10 +65,21 @@
             "polyfills": [
               "zone.js",
               "zone.js/testing"
+            ],
+            "assets": [
+              "src/assets",
+              {
+                "glob": "**/*",
+                "input": "../test-contracts",
+                "output": "test-contracts"
+              }
             ]
           }
         }
       }
     }
+  },
+  "cli": {
+    "analytics": false
   }
 }
