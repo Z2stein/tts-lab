@@ -7,8 +7,7 @@ import { Subscription } from 'rxjs';
   selector: 'app-error-banner',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './error-banner.component.html',
-  styleUrl: './error-banner.component.scss'
+  templateUrl: './error-banner.component.html'
 })
 export class ErrorBannerComponent implements OnInit, OnDestroy {
   error$ = this.errorBannerService.error$;

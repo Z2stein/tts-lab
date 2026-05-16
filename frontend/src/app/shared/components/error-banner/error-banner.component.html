@@ -1,14 +1,16 @@
 <div
   *ngIf="error$ | async as error"
-  class="error-banner"
+  class="fixed top-0 left-0 right-0 bg-[#3a1618] border-b-2 border-[#834047] px-[clamp(1rem,4vw,2rem)] py-4 z-49 animate-in fade-in slide-in-from-top duration-300"
   role="alert"
   aria-live="assertive"
 >
-  <div class="error-banner-content">
-    <span class="error-banner-message">{{ error.message }}</span>
+  <div class="mx-auto max-w-[1280px] flex items-center justify-between gap-4">
+    <span class="text-[#ffd7d7] font-bold text-sm lg:text-base flex-1 leading-relaxed">
+      {{ error.message }}
+    </span>
     <button
       type="button"
-      class="error-banner-close"
+      class="flex-shrink-0 bg-none border-0 text-[#ffd7d7] text-xl cursor-pointer p-1 min-w-8 min-h-8 flex items-center justify-center hover:opacity-80 focus:outline-2 focus:outline-[#f0ad5d] focus:outline-offset-2"
       (click)="dismissError()"
       aria-label="Dismiss error message"
     >
