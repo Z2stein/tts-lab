@@ -361,8 +361,8 @@ jobs:
                     break
                   fi
                 done <<EOF
-$pod_state
-EOF
+                  $pod_state
+                  EOF
 
                 if [ "$all_ready" = true ]; then
                   return 0
