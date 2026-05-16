@@ -296,7 +296,6 @@
             >
               {{ partActionLabel(requestIndex) }}
             </button>
-            <p *ngIf="renderRequestAudioState(requestIndex).error" class="error">{{ renderRequestAudioState(requestIndex).error }}</p>
             <app-waveform-player
               *ngIf="renderRequestAudioState(requestIndex).audioUrl"
               class="render-player framework-player"
