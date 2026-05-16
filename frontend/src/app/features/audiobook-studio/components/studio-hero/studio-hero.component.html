@@ -10,12 +10,12 @@
       <button
         #ctaBtn
         type="button"
-        class="primary-button"
+        class="primary-button hero-primary"
         (click)="focusStoryInput.emit($event)"
       >Create audio story</button>
       <button
         type="button"
-        class="secondary-button flex items-center gap-2"
+        class="secondary-button flex items-center gap-2 hero-secondary"
         [class.is-playing]="demoPlaying"
         (click)="playDemo($event)"
       >
@@ -55,7 +55,7 @@
           <h2 class="m-0 text-[#fff8ec] font-black">Detected cast</h2>
         </div>
         <div class="flex flex-col gap-2 min-w-0">
-          <div *ngFor="let member of heroCast" class="flex items-center gap-2 min-w-0 text-sm" [ngStyle]="speakerStyleFn(member.name)">
+          <div *ngFor="let member of heroCast" class="flex items-center gap-2 min-w-0 text-sm hero-cast-row" [ngStyle]="speakerStyleFn(member.name)">
             <div class="flex-none w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-[rgba(240,173,93,0.4)] to-[rgba(240,173,93,0.2)] flex-shrink-0">
               <img *ngIf="member.imageUrl"
                    [src]="member.imageUrl"
