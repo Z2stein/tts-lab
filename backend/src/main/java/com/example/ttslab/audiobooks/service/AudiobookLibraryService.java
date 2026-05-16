@@ -6,6 +6,7 @@ import com.example.ttslab.audiobooks.dto.AudiobookSummaryResponse;
 import com.example.ttslab.audiobooks.model.*;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import com.example.ttslab.audiobooks.repository.*;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
@@ -35,6 +36,7 @@ public class AudiobookLibraryService {
     private final FileStorageService fileStorageService;
     private final StorageKeyBuilder storageKeyBuilder;
     private final AudiobookMetadataCalculator metadataCalculator;
+    private final SpeakerCharacterRepository speakerCharacterRepository;
 
     public AudiobookLibraryService(
         AudiobookRepository repository,
@@ -43,7 +45,8 @@ public class AudiobookLibraryService {
         AudioAssetRepository assetRepository,
         FileStorageService fileStorageService,
         StorageKeyBuilder storageKeyBuilder,
-        AudiobookMetadataCalculator metadataCalculator
+        AudiobookMetadataCalculator metadataCalculator,
+        SpeakerCharacterRepository speakerCharacterRepository
     ) {
         this.repository = repository;
         this.projectRepository = projectRepository;
@@ -52,17 +55,15 @@ public class AudiobookLibraryService {
         this.fileStorageService = fileStorageService;
         this.storageKeyBuilder = storageKeyBuilder;
         this.metadataCalculator = metadataCalculator;
+        this.speakerCharacterRepository = speakerCharacterRepository;
     }
 
     public AudiobookSummaryResponse list(CurrentUser user) {
         List<AudiobookSummaryResponse.AudiobookSummaryItem> items = repository.findProjectsForUser(user.id()).stream()
             .map(project -> {
                 var assets = repository.findAssets(project.getId());
-
-                // CALCULATE metadata on-demand from audio assets
-                // This ensures metadata is always fresh and accurate, never stale
-                int calculatedSpeechSegmentCount = metadataCalculator.calculateSpeechSegmentCount(project.getId());
-                int calculatedSpeakerCount = metadataCalculator.calculateSpeakerCount(project.getId());
+                int calculatedSpeechSegmentCount = repository.findPreviewSpeechSegments(project.getId()).size();
+                int calculatedSpeakerCount = speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc(project.getId()).size();
                 int calculatedDuration = metadataCalculator.calculateTotalDurationSeconds(project.getId());
 
                 return new AudiobookSummaryResponse.AudiobookSummaryItem(
@@ -97,12 +98,14 @@ public class AudiobookLibraryService {
     }
 
     private AudiobookDetailResponse toDetailResponse(AudiobookProject project) {
+        int speechSegmentCount = repository.findPreviewSpeechSegments(project.getId()).size();
+        int speakerCount = speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc(project.getId()).size();
         return new AudiobookDetailResponse(
             project.getId(),
             project.getTitle(),
             project.getStatus(),
-            project.getSpeechSegmentCount(),
-            project.getSpeakerCount(),
+            speechSegmentCount,
+            speakerCount,
             project.getTotalDurationSeconds(),
             project.getCreatedAt(),
             project.getUpdatedAt(),

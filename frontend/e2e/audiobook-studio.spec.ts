@@ -87,7 +87,8 @@ test('audiobook studio shows cast cards after story analysis succeeds', async ({
 
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
   await expect(page.getByTestId('studio-hero')).toHaveCount(0);
-  await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
+    await expect(page.locator('.cast-card')).toHaveCount(2);
+    await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
   await expect(page.getByRole('heading', { name: 'Mara' })).toBeVisible();
   await expect(page.getByText('KORE')).toBeVisible();
   await expect(page.getByText('The Hidden Signal')).toBeVisible();
@@ -155,7 +156,8 @@ test('audiobook studio shows script preview turns after cast analysis continues'
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
-  await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
+    await expect(page.locator('.cast-card')).toHaveCount(2);
+    await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
   await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
 
   await expect(page.locator('h2', { hasText: 'Review script' })).toBeVisible();
@@ -411,7 +413,8 @@ test('audiobook studio edits a script preview turn without freezing the app', as
   await page.getByRole('button', { name: 'Use sample story' }).click();
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
-  await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
+    await expect(page.locator('.cast-card')).toHaveCount(2);
+    await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
   await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
 
   await page.getByTestId('script-turn-edit-0').click();
