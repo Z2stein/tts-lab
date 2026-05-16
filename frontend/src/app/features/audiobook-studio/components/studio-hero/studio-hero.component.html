@@ -30,8 +30,8 @@
 
   <!-- Hero Demo (Right Column) -->
   <div class="flex flex-col gap-6" aria-label="Story to cast audio preview">
-    <!-- Demo Flow: Story → Arrow → Cast (3-column grid layout) -->
-    <div class="grid items-center gap-[0.4rem] overflow-hidden" style="grid-template-columns: minmax(0, 1fr) clamp(3rem, 8vw, 5rem) minmax(0, 1fr)">
+    <!-- Demo Flow: Story → Arrow → Cast (3-column grid on large screens, stacks on smaller) -->
+    <div class="flex flex-col gap-3 lg:grid lg:items-center lg:gap-[0.4rem]" style="grid-template-columns: minmax(0, 1fr) clamp(3rem, 8vw, 5rem) minmax(0, 1fr)">
       <!-- Story Card -->
       <article class="grid gap-[0.8rem] rounded-[1rem] p-4 border border-[rgba(195,204,255,0.16)] bg-[rgba(12,14,25,0.6)] border-[rgba(240,173,93,0.32)]">
         <div class="flex items-center gap-[0.6rem]">
@@ -47,8 +47,8 @@
         <p class="m-0 text-sm text-[#9aa3bc] leading-relaxed">The rain tapped against the train window as Mara clutched the letter.</p>
       </article>
 
-      <!-- Flow Arrow (horizontal) -->
-      <div class="flex justify-center items-center text-[#ffd591]" aria-hidden="true">
+      <!-- Flow Arrow (horizontal, hidden on small screens) -->
+      <div class="hidden lg:flex justify-center items-center text-[#ffd591]" aria-hidden="true">
         <svg viewBox="0 0 92 24" class="w-[5rem] h-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
           <path d="M2 12H82" />
           <path d="M72 3L82 12L72 21" />
