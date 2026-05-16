@@ -8,10 +8,10 @@
 
 <p *ngIf="annotatedTurns.length === 0" class="m-0 text-[#c9d1e8] leading-[1.6]">Performance notes will appear after script approval.</p>
 <ol *ngIf="annotatedTurns.length > 0" class="grid gap-[0.75rem] m-0 p-0 list-none">
-  <li *ngFor="let turn of annotatedTurns" class="flex flex-wrap items-baseline gap-[0.5rem] border border-[rgba(195,204,255,0.14)] border-l-4 rounded-[0.8rem] bg-[rgba(5,9,20,0.58)] leading-[1.6] p-[0.8rem]" [ngStyle]="speakerStyleFn(turn.speaker)">
-    <span class="font-[900]">{{ displayName(turn.speaker) }}</span>
-    <span *ngFor="let tag of markupFor(turn).tags" class="border border-[rgba(240,173,93,0.24)] rounded-full bg-[rgba(240,173,93,0.1)] text-[#ffd591] text-[0.78rem] font-[900] tracking-[0.02em] shadow-[0_0_12px_rgba(240,173,93,0.2)] px-[0.7rem] py-[0.35rem]">[{{ tag }}]</span>
-    <span [innerHTML]="(markupFor(turn).text | highlightTags)"></span>
+  <li *ngFor="let turn of annotatedTurns" class="flex flex-wrap items-baseline gap-[0.5rem] border border-[rgba(195,204,255,0.14)] border-l-4 rounded-[0.8rem] bg-[rgba(5,9,20,0.58)] leading-[1.6] p-[0.8rem]" [style.borderLeftColor]="'var(--speaker-accent, #f0ad5d)'" [ngStyle]="speakerStyleFn(turn.speaker)">
+    <span class="font-[900]" [style.color]="'var(--speaker-accent, #f0ad5d)'">{{ displayName(turn.speaker) }}</span>
+    <span *ngFor="let tag of markupFor(turn).tags" class="font-[900]" [style.color]="'var(--speaker-accent, #f0ad5d)'">[{{ tag }}]</span>
+    <span class="annotated-turn-text" [innerHTML]="(markupFor(turn).text | highlightTags)" [style.color]="'inherit'"></span>
   </li>
 </ol>
 <p *ngIf="performanceNotesStale" class="rounded-[0.8rem] border border-[rgba(247,178,103,0.6)] bg-[#3a2411] text-[#ffd8a8] text-[0.92rem] font-[900] p-[0.7rem_0.85rem]" role="status">

@@ -1,5 +1,5 @@
 <article
-  class="relative flex flex-col md:flex-row md:items-stretch gap-4 overflow-hidden border border-[rgba(195,204,255,0.12)] rounded-[1rem] p-[1rem] transition-[border-color] duration-200 hover:border-[color-mix(in_srgb,var(--speaker-accent,#f0ad5d)_24%,rgba(195,204,255,0.12))]"
+  class="relative flex flex-col md:flex-row items-stretch gap-4 overflow-hidden border border-[rgba(195,204,255,0.12)] rounded-[1rem] p-[1rem] transition-[border-color] duration-200 hover:border-[color-mix(in_srgb,var(--speaker-accent,#f0ad5d)_24%,rgba(195,204,255,0.12))]"
   [style.background]="'radial-gradient(ellipse at 0% 50%, color-mix(in srgb, var(--speaker-accent, #f0ad5d) 8%, transparent), transparent 18rem), #16131a'"
   [ngClass]="accentClass"
   [ngStyle]="speakerStyleFn(speaker.speakerName)"
@@ -8,18 +8,20 @@
 
   <ng-container *ngIf="!editing; else castEditForm">
 
-    <!-- Voice avatar -->
-    <div class="flex-none flex items-center justify-center min-h-0 mx-auto md:mx-0">
+    <!-- Avatar + Character Info Row -->
+    <div class="flex flex-row gap-2 md:gap-4 items-start md:items-stretch md:flex-1 min-w-0">
+      <!-- Voice avatar -->
+      <div class="flex-none flex items-center justify-center min-h-0">
       <img
         [src]="voiceAvatarPath || ''"
         [alt]="'Avatar for voice ' + (speaker.voiceSuggestion | uppercase)"
-        class="w-[8.5rem] h-[8.5rem] rounded-full object-cover border-2 shadow-[0_0_0_4px_rgba(14,11,18,0.8),0_0_40px_var(--speaker-accent-shadow,rgba(240,173,93,0.28))]"
+        class="w-[6rem] h-[6rem] md:w-[8.5rem] md:h-[8.5rem] rounded-full object-cover border-2 shadow-[0_0_0_4px_rgba(14,11,18,0.8),0_0_40px_var(--speaker-accent-shadow,rgba(240,173,93,0.28))]"
         [style.border-color]="'color-mix(in srgb, var(--speaker-accent, #f0ad5d) 32%, transparent)'"
         [hidden]="!voiceAvatarPath || avatarError"
         (error)="onAvatarError()"
       />
       <span
-        class="inline-flex w-[8.5rem] h-[8.5rem] items-center justify-center rounded-full text-[2.2rem] flex-none font-[900] text-[#fff7ea]"
+        class="inline-flex w-[6rem] h-[6rem] md:w-[8.5rem] md:h-[8.5rem] items-center justify-center rounded-full text-[1.6rem] md:text-[2.2rem] flex-none font-[900] text-[#fff7ea]"
         [style.background]="'radial-gradient(circle at 35% 20%, var(--speaker-accent, #f0ad5d), rgba(255, 255, 255, 0.08) 42%, rgba(12, 9, 20, 0.96) 100%)'"
         [style.box-shadow]="'0 0 28px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.24))'"
         aria-hidden="true"
@@ -27,18 +29,19 @@
       >{{ initials(speaker.speakerName) }}</span>
     </div>
 
-    <!-- Character info -->
-    <div class="flex-1 flex flex-col gap-[0.15rem] min-w-0 md:min-w-0">
-      <div class="flex items-center gap-[0.6rem] flex-wrap">
-        <h3 class="m-0 text-[#fff8ec] text-[1.25rem] font-[900] whitespace-nowrap">{{ displayName(speaker.speakerName) }}</h3>
-        <span class="border border-[rgba(240,173,93,0.24)] rounded-full bg-[rgba(240,173,93,0.1)] text-[#ffd591] text-[0.78rem] font-[900] tracking-[0.02em] px-[0.7rem] py-[0.35rem]">{{ roleBadgeLabel }}</span>
+      <!-- Character info -->
+      <div class="flex-1 flex flex-col gap-[0.15rem] min-w-0 md:min-w-0">
+        <div class="flex items-center gap-[0.6rem] flex-wrap">
+          <h3 class="m-0 text-[#fff8ec] text-[1.25rem] font-[900] whitespace-nowrap">{{ displayName(speaker.speakerName) }}</h3>
+          <span class="border border-[rgba(240,173,93,0.24)] rounded-full bg-[rgba(240,173,93,0.1)] text-[#ffd591] text-[0.78rem] font-[900] tracking-[0.02em] px-[0.7rem] py-[0.35rem]">{{ roleBadgeLabel }}</span>
+        </div>
+        <p class="m-0 text-[#6b7494] text-[0.8rem] font-normal">Detected {{ roleBadgeLabel | lowercase }}</p>
+        <p class="m-0 mt-[0.05rem] text-[#9aa3bc] text-[0.84rem] leading-[1.5] line-clamp-2">{{ speaker.roleDescription }}</p>
       </div>
-      <p class="m-0 text-[#6b7494] text-[0.8rem] font-normal">Detected {{ roleBadgeLabel | lowercase }}</p>
-      <p class="m-0 mt-[0.05rem] text-[#9aa3bc] text-[0.84rem] leading-[1.5] line-clamp-2">{{ speaker.roleDescription }}</p>
     </div>
 
     <!-- Voice section -->
-    <div class="w-full md:flex-1 md:flex-0 flex flex-col gap-[0.2rem] items-stretch pt-[0.15rem]" [style.flex]="'1 0 clamp(15rem, 40%, 22rem)'">
+    <div class="w-full flex-1 flex flex-col gap-[0.2rem] items-stretch pt-[0.15rem]">
       <button
         type="button"
         class="absolute top-[-0.25rem] right-[-0.5rem] flex items-center justify-center w-[2rem] h-[2rem] border-none rounded-full bg-transparent text-[#5a6380] cursor-pointer text-[1.1rem] leading-none transition-[background,color] duration-150 hover:bg-white/[0.07] hover:text-[#fff8ec]"
@@ -52,7 +55,7 @@
 
       <span class="text-[0.7rem] font-[700] tracking-[0.12em] uppercase text-[#5a6380]">Voice</span>
       <strong
-        class="block text-[var(--speaker-accent,#f0ad5d)] text-[1rem] font-[900] tracking-[0.06em] whitespace-nowrap overflow-hidden text-ellipsis"
+        class="block text-[var(--speaker-accent,#f0ad5d)] text-[1rem] font-[900] tracking-[0.06em] md:whitespace-nowrap md:overflow-hidden md:text-ellipsis"
         [style.color]="hasVoice ? 'var(--speaker-accent, #f0ad5d)' : '#5a6380'"
         [style.font-size]="hasVoice ? '1rem' : '0.82rem'"
         [style.font-weight]="hasVoice ? '900' : '400'"

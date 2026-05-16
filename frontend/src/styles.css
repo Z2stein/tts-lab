@@ -266,6 +266,55 @@
     border-color: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 80%, transparent);
   }
 
+  /* Studio page texture overlay (::before pseudo-element) */
+  .studio::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 54px 54px;
+    mask-image: linear-gradient(to bottom, black, transparent 56%);
+  }
+
+  /* Mini waveform bars with variable heights per nth-child */
+  .mini-waveform span:nth-child(1) { height: 1rem; }
+  .mini-waveform span:nth-child(2) { height: 1.8rem; }
+  .mini-waveform span:nth-child(3) { height: 2.5rem; }
+  .mini-waveform span:nth-child(4) { height: 3.1rem; }
+  .mini-waveform span:nth-child(5) { height: 2.2rem; }
+  .mini-waveform span:nth-child(6) { height: 3.4rem; }
+  .mini-waveform span:nth-child(7) { height: 2rem; }
+  .mini-waveform span:nth-child(8) { height: 2.8rem; }
+  .mini-waveform span:nth-child(9) { height: 1.5rem; }
+  .mini-waveform span:nth-child(10) { height: 2.4rem; }
+  .mini-waveform span:nth-child(11) { height: 1.7rem; }
+  .mini-waveform span:nth-child(12) { height: 1.1rem; }
+
+  /* Part status badge state variants */
+  .part-status.ready {
+    border-color: rgba(143, 231, 189, 0.42);
+    color: #8fe7bd;
+  }
+
+  .part-status.failed {
+    border-color: rgba(255, 143, 143, 0.42);
+    color: #ffb4a8;
+  }
+
+  .part-status.generating {
+    border-color: rgba(255, 213, 145, 0.42);
+    color: #ffd591;
+  }
+
+  /* Inline voice-style tags in annotated turn text */
+  .annotated-turn-text .emotion-badge {
+    color: var(--speaker-accent, #f0ad5d);
+    font-weight: 900;
+  }
+
   /* Ensure [hidden] attribute beats display values */
   [hidden] {
     display: none !important;
