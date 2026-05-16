@@ -39,14 +39,14 @@ class DemoActivationControllerTest {
     MockMvc mockMvc;
 
     @Test
-    @DisplayName("GIVEN valid token WHEN activate THEN session contains SecurityContext and redirects to /")
+    @DisplayName("GIVEN valid token WHEN activate THEN session contains SecurityContext and redirects to /cv-audiobook-demo")
     void validTokenSetsSessionAndRedirects() throws Exception {
         String token = buildToken("demo-test-jti", "Hackathon-Besucher", Instant.now().plusSeconds(3600));
         MockHttpSession session = new MockHttpSession();
 
         mockMvc.perform(get("/api/demo/activate").param("token", token).session(session))
             .andExpect(status().is3xxRedirection())
-            .andExpect(redirectedUrl("/"));
+            .andExpect(redirectedUrl("/cv-audiobook-demo"));
 
         Object securityContext = session.getAttribute(
             HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY);
