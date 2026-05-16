@@ -1,17 +1,15 @@
 <div class="relative">
-  <!-- Collapsed State: Usage Button -->
   <button
     type="button"
-    class="flex items-center gap-2 px-2.5 py-1 bg-[#2a2025] border border-[#57414a] rounded-full text-[#f4c78e] text-xs font-black whitespace-nowrap cursor-pointer transition-colors hover:bg-[#3d2e33] hover:border-[#6d5460]"
+    class="usage-limits-trigger"
     (click)="toggleExpanded()"
     [attr.aria-expanded]="isExpanded"
     aria-label="Show usage details"
   >
     <span>Usage {{ getOverallUsagePercent() }}%</span>
-    <span class="inline-block text-[0.5rem] transition-transform" [class.rotate-180]="isExpanded">▼</span>
+    <span class="usage-limits-trigger__chevron" [class.rotate-180]="isExpanded">▼</span>
   </button>
 
-  <!-- Expanded State: Dropdown Panel -->
   <div
     *ngIf="isExpanded"
     class="absolute top-full right-0 mt-2 w-72 bg-[#1a1518] border border-[#57414a] rounded-lg p-4 z-50 shadow-lg animate-in slide-in-from-top-2 duration-200 max-h-80 overflow-y-auto"
@@ -53,7 +51,6 @@
     </div>
   </div>
 
-  <!-- Backdrop for mobile/dropdown dismiss -->
   <div
     *ngIf="isExpanded"
     class="fixed inset-0 z-40"
