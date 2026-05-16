@@ -6,8 +6,7 @@ import { RequestRateLimitSummary, RequestRateLimitSummaryItem } from '../../shar
   selector: 'app-usage-limits-panel',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './usage-limits-panel.component.html',
-  styleUrl: './usage-limits-panel.component.css'
+  templateUrl: './usage-limits-panel.component.html'
 })
 export class UsageLimitsPanelComponent implements OnInit, OnDestroy {
   @Input() limitSummary: RequestRateLimitSummary | null = null;
