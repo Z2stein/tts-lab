@@ -22,7 +22,6 @@ import { WaveSurferService } from '../../services/wave-surfer.service';
 })
 export class StudioHeroComponent implements AfterViewInit, OnDestroy {
   @Input() heroCast: readonly HeroCastMember[] = [];
-  @Input() benefitChips: readonly string[] = [];
   @Input() activeSampleKey: string | null = null;
   @Input() speakerStyleFn: (name: string | null | undefined) => Record<string, string> = () => ({});
 

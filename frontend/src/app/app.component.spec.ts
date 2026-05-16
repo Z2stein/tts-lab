@@ -45,7 +45,8 @@ describe('AppComponent layout and chatbot visibility', () => {
     expect(text).toContain('TTS Lab');
     expect(text).toContain('Audiobook Studio');
     expect(text).toContain('My Audiobooks');
-    expect(text).toContain('Prompt History');
+    expect(text).toContain('Demo');
+    expect(text).not.toContain('Prompt History');
   });
 
   it('chatbot widget is not visible when unauthenticated', () => {
