@@ -7,12 +7,7 @@ import { AudiobookStudioWorkspaceComponent } from './audiobook-studio-page.compo
   selector: 'app-audiobook-studio-landing-page',
   standalone: true,
   imports: [CommonModule, AudiobookStudioWorkspaceComponent],
-  template: `
-    <app-audiobook-studio-workspace
-      [showHero]="true"
-      (projectCreated)="onProjectCreated($event)"
-    ></app-audiobook-studio-workspace>
-  `
+  templateUrl: './audiobook-studio-landing-page.component.html'
 })
 export class AudiobookStudioLandingPageComponent {
   constructor(private readonly router: Router) {}

@@ -8,8 +8,7 @@ import { ChatbotService } from './chatbot.service';
   selector: 'app-chatbot-widget',
   standalone: true,
   imports: [CommonModule, FormsModule],
-  templateUrl: './chatbot-widget.component.html',
-  styleUrl: './chatbot-widget.component.css'
+  templateUrl: './chatbot-widget.component.html'
 })
 export class ChatbotWidgetComponent {
   isOpen = false;

@@ -1,46 +1,46 @@
-<div class="step-heading">
-  <span class="step-number">4</span>
+<div class="flex items-center gap-[0.9rem]">
+  <span class="inline-flex w-[2.35rem] h-[2.35rem] items-center justify-center flex-none rounded-full bg-gradient-to-r from-[#ffe2a7] to-[#f0ad5d] shadow-[0_0_28px_rgba(240,173,93,0.25)] text-[#140f14] font-black">4</span>
   <div>
-    <h2 id="performance-notes-title">Add emotion & pacing</h2>
-    <p>Fine-tune how each line should be spoken, for example calm, urgent, or whispered.</p>
+    <h2 id="performance-notes-title" class="m-0 mb-[0.2rem] text-[#fff8ec] font-family-georgia text-[clamp(1.4rem,3vw,2rem)] leading-[1.1]">Add emotion & pacing</h2>
+    <p class="m-0 text-[#c9d1e8] leading-[1.6]">Fine-tune how each line should be spoken, for example calm, urgent, or whispered.</p>
   </div>
 </div>
 
-<p *ngIf="annotatedTurns.length === 0" class="empty-state">Performance notes will appear after script approval.</p>
-<ol *ngIf="annotatedTurns.length > 0" class="notes-list">
-  <li *ngFor="let turn of annotatedTurns" [ngStyle]="speakerStyleFn(turn.speaker)">
-    <span class="speaker-name">{{ displayName(turn.speaker) }}</span>
-    <span *ngFor="let tag of markupFor(turn).tags" class="emotion-badge">[{{ tag }}]</span>
+<p *ngIf="annotatedTurns.length === 0" class="m-0 text-[#c9d1e8] leading-[1.6]">Performance notes will appear after script approval.</p>
+<ol *ngIf="annotatedTurns.length > 0" class="grid gap-[0.75rem] m-0 p-0 list-none">
+  <li *ngFor="let turn of annotatedTurns" class="flex flex-wrap items-baseline gap-[0.5rem] border border-[rgba(195,204,255,0.14)] border-l-4 rounded-[0.8rem] bg-[rgba(5,9,20,0.58)] leading-[1.6] p-[0.8rem]" [ngStyle]="speakerStyleFn(turn.speaker)">
+    <span class="font-[900]">{{ displayName(turn.speaker) }}</span>
+    <span *ngFor="let tag of markupFor(turn).tags" class="border border-[rgba(240,173,93,0.24)] rounded-full bg-[rgba(240,173,93,0.1)] text-[#ffd591] text-[0.78rem] font-[900] tracking-[0.02em] shadow-[0_0_12px_rgba(240,173,93,0.2)] px-[0.7rem] py-[0.35rem]">[{{ tag }}]</span>
     <span [innerHTML]="(markupFor(turn).text | highlightTags)"></span>
   </li>
 </ol>
-<p *ngIf="performanceNotesStale" class="warning" role="status">
+<p *ngIf="performanceNotesStale" class="rounded-[0.8rem] border border-[rgba(247,178,103,0.6)] bg-[#3a2411] text-[#ffd8a8] text-[0.92rem] font-[900] p-[0.7rem_0.85rem]" role="status">
   Script changed. Update the emotion & pacing before generating the audiobook.
 </p>
 
-<div class="settings-grid direction-setting">
-  <label for="studio-prompt">Direction</label>
-  <input id="studio-prompt" [formControl]="promptControl" />
+<div class="grid gap-[0.65rem_0.9rem] grid-cols-[minmax(8rem,auto)_1fr] items-center mb-4">
+  <label for="studio-prompt" class="font-[900]">Direction</label>
+  <input id="studio-prompt" class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)]" [formControl]="promptControl" />
 </div>
 
-<details class="advanced-settings">
-  <summary>Advanced production settings</summary>
-  <div class="settings-grid">
-    <label for="studio-language-code">Language code</label>
-    <select id="studio-language-code" [formControl]="languageCodeControl">
+<details class="border border-[rgba(195,204,255,0.16)] rounded-[1rem] bg-[rgba(5,9,20,0.5)] p-4">
+  <summary class="text-[#ffd591] cursor-pointer font-[900]">Advanced production settings</summary>
+  <div class="grid gap-[0.65rem_0.9rem] grid-cols-[minmax(8rem,auto)_1fr] items-center mt-4">
+    <label for="studio-language-code" class="font-[900]">Language code</label>
+    <select id="studio-language-code" class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)]" [formControl]="languageCodeControl">
       <option *ngFor="let language of languageCodeOptions" [value]="language.value">{{ language.label }}</option>
     </select>
 
-    <label for="studio-model-name">Model name</label>
-    <select id="studio-model-name" [formControl]="modelNameControl">
+    <label for="studio-model-name" class="font-[900]">Model name</label>
+    <select id="studio-model-name" class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)]" [formControl]="modelNameControl">
       <option *ngFor="let modelName of modelNameOptions" [value]="modelName">{{ modelName }}</option>
     </select>
 
-    <label for="studio-audio-encoding">Audio encoding</label>
-    <input id="studio-audio-encoding" [formControl]="audioEncodingControl" />
+    <label for="studio-audio-encoding" class="font-[900]">Audio encoding</label>
+    <input id="studio-audio-encoding" class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)]" [formControl]="audioEncodingControl" />
   </div>
 </details>
 
-<button type="button" class="primary-button next-action" (click)="createAudioProductionPlan.emit()" [disabled]="loadingAction !== null || !performanceReady || performanceNotesStale">
+<button type="button" class="primary-button" (click)="createAudioProductionPlan.emit()" [disabled]="loadingAction !== null || !performanceReady || performanceNotesStale">
   {{ isLoading('plan') ? 'Preparing audiobook...' : 'Next: Prepare audiobook' }}
 </button>

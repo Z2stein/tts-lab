@@ -30,23 +30,7 @@ import { WaveSurferService } from '../../services/wave-surfer.service';
   selector: 'app-waveform-player',
   standalone: true,
   imports: [NgIf],
-  template: `
-    <ng-content select="[slot=header]"></ng-content>
-    <button
-      *ngIf="showPlayButton"
-      type="button"
-      class="player-button"
-      [class.is-playing]="playing"
-      [attr.aria-label]="playing ? 'Pause ' + ariaLabel : 'Play ' + ariaLabel"
-      (click)="onPlayPause()"
-    >
-      <span class="play-icon" aria-hidden="true"></span>
-    </button>
-    <div #waveformEl class="waveform-canvas generated-waveform" aria-hidden="true"></div>
-    <span *ngIf="showTime" class="wave-time">00:00 / {{ durationLabel }}</span>
-    <ng-content></ng-content>
-  `,
-  styleUrl: './../../audiobook-studio-page.component.css',
+  templateUrl: './waveform-player.component.html'
 })
 export class WaveformPlayerComponent implements AfterViewInit, OnChanges, OnDestroy {
   @Input({ required: true }) key!: string;

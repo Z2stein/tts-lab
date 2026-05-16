@@ -10,8 +10,7 @@ import { HighlightTagsPipe } from '../../pipes/highlight-tags.pipe';
   selector: 'app-performance-notes',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, HighlightTagsPipe],
-  templateUrl: './performance-notes.component.html',
-  styleUrls: ['../audiobook-studio-section-shared.css', './performance-notes.component.css']
+  templateUrl: './performance-notes.component.html'
 })
 export class PerformanceNotesComponent {
   @Input() annotatedTurns: AnnotatedSpeakerTurn[] = [];

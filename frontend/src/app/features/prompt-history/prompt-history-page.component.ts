@@ -8,8 +8,7 @@ import { ModelType } from '../../shared/api-contract.generated';
   selector: 'app-prompt-history-page',
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
-  templateUrl: './prompt-history-page.component.html',
-  styleUrl: './prompt-history-page.component.css'
+  templateUrl: './prompt-history-page.component.html'
 })
 export class PromptHistoryPageComponent implements OnInit {
   modelTypeControl = new FormControl<'ALL' | ModelType>('ALL', { nonNullable: true });

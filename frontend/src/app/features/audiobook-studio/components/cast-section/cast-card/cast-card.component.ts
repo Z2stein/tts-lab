@@ -19,8 +19,7 @@ const ACCENT_COLORS: Record<string, string> = {
   selector: 'app-cast-card',
   standalone: true,
   imports: [CommonModule, FormsModule, WaveformPlayerComponent],
-  templateUrl: './cast-card.component.html',
-  styleUrls: ['../../audiobook-studio-section-shared.css', './cast-card.component.css']
+  templateUrl: './cast-card.component.html'
 })
 export class CastCardComponent {
   @Input() speaker!: SpeakerVoiceAnalysisItem;

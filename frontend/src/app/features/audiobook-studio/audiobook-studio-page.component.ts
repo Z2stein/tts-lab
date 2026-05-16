@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewEncapsulation } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { AudiobookWorkflowSnapshotResponse, SpeakerVoiceCatalogItem } from '../../shared/api-contract.generated';
@@ -82,9 +82,7 @@ export { formatSpeakerDisplayName };
     FullAudioGenerationService,
     ScrollService,
   ],
-  templateUrl: './audiobook-studio-page.component.html',
-  styleUrls: ['./audiobook-studio-page.component.css', './components/audiobook-studio-section-shared.css'],
-  encapsulation: ViewEncapsulation.None,
+  templateUrl: './audiobook-studio-page.component.html'
 })
 export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChanges, OnDestroy {
   // ── Spec proxy: partGenerationTimeoutMs ───────────────────────────────────

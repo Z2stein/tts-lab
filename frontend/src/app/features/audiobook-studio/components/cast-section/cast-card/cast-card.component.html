@@ -1,60 +1,69 @@
 <article
-  class="cast-card"
+  class="relative flex flex-col md:flex-row md:items-stretch gap-4 overflow-hidden border border-[rgba(195,204,255,0.12)] rounded-[1rem] p-[1rem] transition-[border-color] duration-200 hover:border-[color-mix(in_srgb,var(--speaker-accent,#f0ad5d)_24%,rgba(195,204,255,0.12))]"
+  [style.background]="'radial-gradient(ellipse at 0% 50%, color-mix(in srgb, var(--speaker-accent, #f0ad5d) 8%, transparent), transparent 18rem), #16131a'"
   [ngClass]="accentClass"
   [ngStyle]="speakerStyleFn(speaker.speakerName)"
 >
+  <span class="cast-card-bar" aria-hidden="true"></span>
+
   <ng-container *ngIf="!editing; else castEditForm">
 
     <!-- Voice avatar -->
-    <div class="cast-card-avatar">
+    <div class="flex-none flex items-center justify-center min-h-0 mx-auto md:mx-0">
       <img
         [src]="voiceAvatarPath || ''"
         [alt]="'Avatar for voice ' + (speaker.voiceSuggestion | uppercase)"
-        class="voice-avatar-img"
+        class="w-[8.5rem] h-[8.5rem] rounded-full object-cover border-2 shadow-[0_0_0_4px_rgba(14,11,18,0.8),0_0_40px_var(--speaker-accent-shadow,rgba(240,173,93,0.28))]"
+        [style.border-color]="'color-mix(in srgb, var(--speaker-accent, #f0ad5d) 32%, transparent)'"
         [hidden]="!voiceAvatarPath || avatarError"
         (error)="onAvatarError()"
       />
       <span
-        class="cast-avatar"
+        class="inline-flex w-[8.5rem] h-[8.5rem] items-center justify-center rounded-full text-[2.2rem] flex-none font-[900] text-[#fff7ea]"
+        [style.background]="'radial-gradient(circle at 35% 20%, var(--speaker-accent, #f0ad5d), rgba(255, 255, 255, 0.08) 42%, rgba(12, 9, 20, 0.96) 100%)'"
+        [style.box-shadow]="'0 0 28px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.24))'"
         aria-hidden="true"
         [hidden]="voiceAvatarPath && !avatarError"
       >{{ initials(speaker.speakerName) }}</span>
     </div>
 
     <!-- Character info -->
-    <div class="cast-card-info">
-      <div class="cast-card-nameline">
-        <h3>{{ displayName(speaker.speakerName) }}</h3>
-        <span class="badge">{{ roleBadgeLabel }}</span>
+    <div class="flex-1 flex flex-col gap-[0.15rem] min-w-0 md:min-w-0">
+      <div class="flex items-center gap-[0.6rem] flex-wrap">
+        <h3 class="m-0 text-[#fff8ec] text-[1.25rem] font-[900] whitespace-nowrap">{{ displayName(speaker.speakerName) }}</h3>
+        <span class="border border-[rgba(240,173,93,0.24)] rounded-full bg-[rgba(240,173,93,0.1)] text-[#ffd591] text-[0.78rem] font-[900] tracking-[0.02em] px-[0.7rem] py-[0.35rem]">{{ roleBadgeLabel }}</span>
       </div>
-      <p class="cast-role-subtitle">Detected {{ roleBadgeLabel | lowercase }}</p>
-      <p class="cast-role-description">{{ speaker.roleDescription }}</p>
+      <p class="m-0 text-[#6b7494] text-[0.8rem] font-normal">Detected {{ roleBadgeLabel | lowercase }}</p>
+      <p class="m-0 mt-[0.05rem] text-[#9aa3bc] text-[0.84rem] leading-[1.5] line-clamp-2">{{ speaker.roleDescription }}</p>
     </div>
 
     <!-- Voice section -->
-    <div class="cast-card-voice">
+    <div class="w-full md:flex-1 md:flex-0 flex flex-col gap-[0.2rem] items-stretch pt-[0.15rem]" [style.flex]="'1 0 clamp(15rem, 40%, 22rem)'">
       <button
         type="button"
-        class="cast-menu-btn"
+        class="absolute top-[-0.25rem] right-[-0.5rem] flex items-center justify-center w-[2rem] h-[2rem] border-none rounded-full bg-transparent text-[#5a6380] cursor-pointer text-[1.1rem] leading-none transition-[background,color] duration-150 hover:bg-white/[0.07] hover:text-[#fff8ec]"
         (click)="startEdit.emit()"
         [attr.data-testid]="'cast-edit-' + index"
         [attr.aria-label]="'Edit cast card for ' + displayName(speaker.speakerName)"
         title="Edit"
       >
-        <span class="menu-dots" aria-hidden="true">⋮</span>
+        <span aria-hidden="true" style="letter-spacing: -0.1em">⋮</span>
       </button>
 
-      <span class="voice-section-label">Voice</span>
+      <span class="text-[0.7rem] font-[700] tracking-[0.12em] uppercase text-[#5a6380]">Voice</span>
       <strong
-        class="voice-name-display"
-        [class.no-voice]="!hasVoice"
+        class="block text-[var(--speaker-accent,#f0ad5d)] text-[1rem] font-[900] tracking-[0.06em] whitespace-nowrap overflow-hidden text-ellipsis"
+        [style.color]="hasVoice ? 'var(--speaker-accent, #f0ad5d)' : '#5a6380'"
+        [style.font-size]="hasVoice ? '1rem' : '0.82rem'"
+        [style.font-weight]="hasVoice ? '900' : '400'"
+        [style.letter-spacing]="hasVoice ? '0.06em' : '0'"
       >
         {{ hasVoice ? (speaker.voiceSuggestion | uppercase) : 'No voice selected yet' }}
       </strong>
 
       <app-waveform-player
         *ngIf="hasVoice"
-        class="cast-waveform-player"
+        class="block m-0"
         [key]="voiceDemoKey"
         [src]="voiceDemoPath"
         [playing]="isPlaying"
@@ -66,11 +75,11 @@
         (playingChange)="onPlayingChange($event)"
       ></app-waveform-player>
 
-      <div class="voice-actions">
+      <div class="flex flex-row gap-[0.45rem] mt-0">
         <button
           type="button"
-          class="preview-voice-button"
-          [class.is-playing]="isPlaying"
+          class="preview-voice-button flex-1 flex items-center justify-center gap-[0.45rem] border border-[rgba(195,204,255,0.22)] rounded-full bg-[rgba(5,9,20,0.6)] text-[#e8e8f0] cursor-pointer text-[0.84rem] font-[700] p-[0.5rem_0.9rem] transition-[background,border-color] duration-150 hover:bg-white/[0.09] hover:border-[rgba(195,204,255,0.4)] disabled:opacity-35 disabled:cursor-not-allowed"
+          [class.preview-voice-playing]="isPlaying"
           [disabled]="!hasVoice"
           (click)="togglePreview()"
           [attr.aria-label]="'Preview voice ' + (speaker.voiceSuggestion | uppercase) + ' for ' + displayName(speaker.speakerName)"
@@ -80,7 +89,10 @@
         </button>
         <button
           type="button"
-          class="change-voice-button"
+          class="change-voice-button flex-1 flex items-center justify-center rounded-full cursor-pointer text-[0.84rem] font-[900] p-[0.5rem_0.9rem] transition-[background,border-color] duration-150"
+          [style.border]="'1px solid color-mix(in srgb, var(--speaker-accent, #f0ad5d) 55%, transparent)'"
+          [style.background]="'color-mix(in srgb, var(--speaker-accent, #f0ad5d) 7%, transparent)'"
+          [style.color]="'var(--speaker-accent, #f0ad5d)'"
           (click)="changeVoice.emit()"
           [attr.data-testid]="'cast-change-voice-' + index"
           [attr.aria-label]="'Change voice for ' + displayName(speaker.speakerName)"
@@ -91,18 +103,18 @@
   </ng-container>
 
   <ng-template #castEditForm>
-    <label [for]="'cast-speaker-name-' + index">Speaker name</label>
-    <input [id]="'cast-speaker-name-' + index" [name]="'cast-speaker-name-' + index" [(ngModel)]="editDraft!.speakerName" />
+    <label [for]="'cast-speaker-name-' + index" class="font-[900]">Speaker name</label>
+    <input [id]="'cast-speaker-name-' + index" [name]="'cast-speaker-name-' + index" class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)]" [(ngModel)]="editDraft!.speakerName" />
 
-    <label [for]="'cast-role-description-' + index">Role description</label>
-    <textarea [id]="'cast-role-description-' + index" [name]="'cast-role-description-' + index" rows="3" [(ngModel)]="editDraft!.roleDescription"></textarea>
+    <label [for]="'cast-role-description-' + index" class="font-[900]">Role description</label>
+    <textarea [id]="'cast-role-description-' + index" [name]="'cast-role-description-' + index" rows="3" class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)] leading-[1.6]" [(ngModel)]="editDraft!.roleDescription"></textarea>
 
-    <label [for]="'cast-voice-suggestion-' + index">Voice suggestion</label>
-    <input [id]="'cast-voice-suggestion-' + index" [name]="'cast-voice-suggestion-' + index" [(ngModel)]="editDraft!.voiceSuggestion" />
+    <label [for]="'cast-voice-suggestion-' + index" class="font-[900]">Voice suggestion</label>
+    <input [id]="'cast-voice-suggestion-' + index" [name]="'cast-voice-suggestion-' + index" class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)]" [(ngModel)]="editDraft!.voiceSuggestion" />
 
-    <div class="button-row compact-actions">
-      <button type="button" class="primary-button small-button" (click)="saveEdit.emit()">Save</button>
-      <button type="button" class="secondary-button small-button" (click)="cancelEdit.emit()">Cancel</button>
+    <div class="flex flex-wrap items-center gap-[0.85rem] justify-start">
+      <button type="button" class="primary-button p-[0.65rem_0.9rem]" (click)="saveEdit.emit()">Save</button>
+      <button type="button" class="secondary-button p-[0.65rem_0.9rem]" (click)="cancelEdit.emit()">Cancel</button>
     </div>
   </ng-template>
 </article>

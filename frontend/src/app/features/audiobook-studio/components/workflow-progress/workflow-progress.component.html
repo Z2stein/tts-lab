@@ -1,23 +1,23 @@
-<div #sentinel class="sticky-sentinel" aria-hidden="true"></div>
-<nav class="workflow-progress-shell" aria-label="Audiobook workflow progress" data-testid="workflow-progress">
-  <div class="workflow-progress-panel">
-    <div class="workflow-progress" [class.compact]="isSticky && isNarrow">
+<div #sentinel class="h-0 visibility-hidden pointer-events-none" aria-hidden="true"></div>
+<nav class="sticky top-4 z-20 self-start box-border w-full block" aria-label="Audiobook workflow progress" data-testid="workflow-progress">
+  <div class="p-[0.65rem] border border-[rgba(195,204,255,0.16)] bg-[rgba(5,9,20,0.9)] rounded-[0.75rem] backdrop-blur-[16px] shadow-[0_20px_60px_rgba(0,0,0,0.32)]">
+    <div class="grid grid-cols-5 gap-[0.55rem] max-[600px]:grid-cols-1" [class.!grid-cols-2]="isSticky">
       <button
         *ngFor="let step of visibleSteps"
         type="button"
-        class="workflow-step"
+        class="grid min-h-[3.2rem] grid-cols-[auto_minmax(0,1fr)] items-center gap-[0.55rem] rounded-[0.8rem] px-[0.7rem] py-[0.55rem] text-left text-studio-text border border-[rgba(195,204,255,0.14)] bg-[rgba(255,255,255,0.035)]"
         data-testid="workflow-step"
-        [class.completed]="step.status === 'completed'"
-        [class.current]="step.status === 'current'"
-        [class.warning-state]="step.status === 'warning'"
-        [class.locked]="step.status === 'locked'"
+        [class.step-completed]="step.status === 'completed'"
+        [class.step-current]="step.status === 'current'"
+        [class.step-warning]="step.status === 'warning'"
+        [class.step-locked]="step.status === 'locked'"
         [disabled]="step.status === 'locked'"
         (click)="onStepClick(step.sectionId, $event)"
       >
-        <span class="workflow-marker" aria-hidden="true"></span>
+        <span class="workflow-marker h-[0.95rem] w-[0.95rem] rounded-full border-2 border-[rgba(201,209,232,0.52)]" aria-hidden="true"></span>
         <span>
-          <strong>{{ step.label }}</strong>
-          <small>{{ step.statusLabel }}</small>
+          <strong class="block overflow-hidden text-ellipsis whitespace-nowrap text-[0.88rem]">{{ step.label }}</strong>
+          <small class="block overflow-hidden text-ellipsis whitespace-nowrap text-[0.72rem] font-extrabold text-studio-muted">{{ step.statusLabel }}</small>
         </span>
       </button>
     </div>

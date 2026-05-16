@@ -1,16 +1,16 @@
-<div class="step-heading">
-  <span class="step-number">3</span>
+<div class="flex items-center gap-[0.9rem]">
+  <span class="inline-flex w-[2.35rem] h-[2.35rem] items-center justify-center flex-none rounded-full bg-gradient-to-r from-[#ffe2a7] to-[#f0ad5d] shadow-[0_0_28px_rgba(240,173,93,0.25)] text-[#140f14] font-black">3</span>
   <div>
-    <h2 id="script-preview-title">Review script</h2>
-    <p>Check that each line is assigned to the correct speaker.</p>
+    <h2 id="script-preview-title" class="m-0 mb-[0.2rem] text-[#fff8ec] font-family-georgia text-[clamp(1.4rem,3vw,2rem)] leading-[1.1]">Review script</h2>
+    <p class="m-0 text-[#c9d1e8] leading-[1.6]">Check that each line is assigned to the correct speaker.</p>
   </div>
 </div>
 
-<p *ngIf="scriptTurns.length > 0 && !scriptApproved" class="review-status">Script needs your approval</p>
-<p *ngIf="scriptTurns.length === 0" class="empty-state">Script will appear after voices are chosen.</p>
-<div *ngIf="scriptTurns.length > 0" class="script-panel">
-  <article *ngFor="let group of scriptGroups; trackBy: trackScriptGroup" class="script-group" [ngStyle]="speakerStyleFn(group.speaker)">
-    <h3>{{ displayName(group.speaker) }}</h3>
+<p *ngIf="scriptTurns.length > 0 && !scriptApproved" class="rounded-[0.8rem] border border-[rgba(240,173,93,0.5)] bg-[rgba(240,173,93,0.1)] text-[#ffd591] text-[0.92rem] font-[900] p-[0.7rem_0.85rem]">Script needs your approval</p>
+<p *ngIf="scriptTurns.length === 0" class="m-0 text-[#c9d1e8] leading-[1.6]">Script will appear after voices are chosen.</p>
+<div *ngIf="scriptTurns.length > 0" class="grid gap-[0.85rem]">
+  <article *ngFor="let group of scriptGroups; trackBy: trackScriptGroup" class="border-l-4 pl-[0.9rem]" [ngStyle]="speakerStyleFn(group.speaker)">
+    <h3 class="m-0 mb-[0.35rem]" [style.color]="'color-mix(in srgb, var(--speaker-accent, #f0ad5d) 74%, #fff8ec)'">{{ displayName(group.speaker) }}</h3>
     <app-script-turn
       *ngFor="let indexedTurn of group.turns; trackBy: trackScriptTurn"
       [indexedTurn]="indexedTurn"
@@ -25,6 +25,6 @@
   </article>
 </div>
 
-<button type="button" class="primary-button next-action" (click)="approveScript.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || scriptApproved">
+<button type="button" class="primary-button" (click)="approveScript.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || scriptApproved">
   Approve script & continue
 </button>

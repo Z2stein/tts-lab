@@ -1,9 +1,0 @@
-.cast-grid {
-  display: grid;
-  gap: 0.3rem;
-  grid-template-columns: 1fr;
-}
-
-.cast-grid app-cast-card {
-  container-type: inline-size;
-}

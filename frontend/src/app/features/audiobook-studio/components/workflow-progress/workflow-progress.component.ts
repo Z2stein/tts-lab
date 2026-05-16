@@ -7,7 +7,7 @@ import { WorkflowStep } from '../../models/audiobook-studio.types';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './workflow-progress.component.html',
-  styleUrl: './workflow-progress.component.css'
+  host: { class: 'contents' }
 })
 export class WorkflowProgressComponent implements AfterViewInit, OnDestroy {
   @Input() steps: WorkflowStep[] = [];
@@ -48,7 +48,7 @@ export class WorkflowProgressComponent implements AfterViewInit, OnDestroy {
   }
 
   get visibleSteps(): WorkflowStep[] {
-    if (!this.isSticky || !this.isNarrow) return this.steps;
+    if (!this.isSticky) return this.steps;
     const currentIdx = this.steps.findIndex(s => s.status === 'current' || s.status === 'warning');
     if (currentIdx === -1) return this.steps.slice(0, 2);
     const result: WorkflowStep[] = [this.steps[currentIdx]];

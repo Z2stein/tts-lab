@@ -18,8 +18,7 @@ import { WaveSurferService } from '../../services/wave-surfer.service';
   selector: 'app-studio-hero',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './studio-hero.component.html',
-  styleUrl: './../../audiobook-studio-page.component.css',
+  templateUrl: './studio-hero.component.html'
 })
 export class StudioHeroComponent implements AfterViewInit, OnDestroy {
   @Input() heroCast: readonly HeroCastMember[] = [];

@@ -10,18 +10,7 @@ import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-
   selector: 'app-audiobook-studio-resume-page',
   standalone: true,
   imports: [CommonModule, AudiobookStudioWorkspaceComponent],
-  template: `
-    <section class="studio-resume-page">
-      <p *ngIf="error" class="error" role="alert">{{ error }}</p>
-      <section *ngIf="loading" class="app-panel" role="status">Loading audiobook project...</section>
-      <app-audiobook-studio-workspace
-        *ngIf="!loading && snapshot"
-        [showHero]="false"
-        [snapshot]="snapshot"
-        [scrollToSectionAfterLoad]="scrollToSection"
-      ></app-audiobook-studio-workspace>
-    </section>
-  `
+  templateUrl: './audiobook-studio-resume-page.component.html'
 })
 export class AudiobookStudioResumePageComponent implements OnInit {
   private readonly destroyRef = inject(DestroyRef);

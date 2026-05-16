@@ -1,13 +1,13 @@
-<section class="history" aria-labelledby="prompt-history-title">
-  <div class="history-header">
+<section class="rounded-xl border border-studio-line bg-studio-panel p-6 text-studio-text" aria-labelledby="prompt-history-title">
+  <div class="flex items-end justify-between gap-4 max-[720px]:grid max-[720px]:items-stretch">
     <div>
       <p class="eyebrow">User data</p>
-      <h1 id="prompt-history-title">Prompt History</h1>
+      <h1 id="prompt-history-title" class="m-0">Prompt History</h1>
     </div>
 
-    <label>
+    <label class="grid gap-1 font-bold">
       <span>Model type</span>
-      <select [formControl]="modelTypeControl" (change)="loadHistory()">
+      <select class="min-w-40 rounded-lg border border-studio-lineStrong bg-studio-field px-3 py-2.5 font-sans text-studio-text" [formControl]="modelTypeControl" (change)="loadHistory()">
         <option value="ALL">All</option>
         <option value="TEXT_MODEL">Text model</option>
         <option value="SPEECH_MODEL">Speech model</option>
@@ -15,26 +15,26 @@
     </label>
   </div>
 
-  <p *ngIf="loading" class="empty-state">Loading prompt history...</p>
-  <p *ngIf="error" class="error">{{ error }}</p>
-  <p *ngIf="!loading && !error && prompts.length === 0" class="empty-state">No prompts have been submitted yet.</p>
+  <p *ngIf="loading" class="empty-state mt-6">Loading prompt history...</p>
+  <p *ngIf="error" class="error mt-6">{{ error }}</p>
+  <p *ngIf="!loading && !error && prompts.length === 0" class="empty-state mt-6">No prompts have been submitted yet.</p>
 
-  <div *ngIf="!loading && !error && prompts.length > 0" class="table-wrap">
-    <table>
+  <div *ngIf="!loading && !error && prompts.length > 0" class="mt-6 overflow-x-auto">
+    <table class="w-full border-collapse">
       <thead>
         <tr>
-          <th>Timestamp</th>
-          <th>Model type</th>
-          <th>Model/provider</th>
-          <th>Prompt</th>
+          <th class="border-b border-studio-line bg-studio-field p-3 text-left align-top text-studio-accentSoft">Timestamp</th>
+          <th class="border-b border-studio-line bg-studio-field p-3 text-left align-top text-studio-accentSoft">Model type</th>
+          <th class="border-b border-studio-line bg-studio-field p-3 text-left align-top text-studio-accentSoft">Model/provider</th>
+          <th class="border-b border-studio-line bg-studio-field p-3 text-left align-top text-studio-accentSoft">Prompt</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let prompt of prompts">
-          <td>{{ formatTimestamp(prompt.createdAt) }}</td>
-          <td>{{ prompt.modelType }}</td>
-          <td>{{ prompt.providerModelName || 'n/a' }}</td>
-          <td class="prompt-text">{{ prompt.promptText }}</td>
+          <td class="border-b border-studio-line p-3 text-left align-top">{{ formatTimestamp(prompt.createdAt) }}</td>
+          <td class="border-b border-studio-line p-3 text-left align-top">{{ prompt.modelType }}</td>
+          <td class="border-b border-studio-line p-3 text-left align-top">{{ prompt.providerModelName || 'n/a' }}</td>
+          <td class="border-b border-studio-line p-3 text-left align-top max-w-[34rem] whitespace-pre-wrap">{{ prompt.promptText }}</td>
         </tr>
       </tbody>
     </table>

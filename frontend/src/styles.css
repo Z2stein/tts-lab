@@ -89,4 +89,185 @@
   .stat-pill {
     @apply rounded-full border border-studio-lineStrong bg-studio-panelSoft px-2.5 py-1 text-sm font-extrabold text-studio-accentSoft;
   }
+
+  /* ── CSS patterns that cannot be Tailwind utilities ────────────────────── */
+
+  /* Play icon & pause bars (CSS border triangles) */
+  .play-icon {
+    display: inline-block;
+    width: 0;
+    height: 0;
+    border-style: solid;
+    border-width: 4px 0 4px 7px;
+    border-color: transparent transparent transparent currentColor;
+  }
+
+  .play-icon-pause {
+    display: inline-block;
+    width: 7px;
+    height: 8px;
+    background: linear-gradient(
+      to right,
+      currentColor 0, currentColor 2.5px,
+      transparent 2.5px, transparent 4.5px,
+      currentColor 4.5px, currentColor 7px
+    );
+  }
+
+  /* Studio grid texture overlay (::before pseudo-element) */
+  .studio-texture {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.035) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
+    background-size: 54px 54px;
+    mask-image: linear-gradient(to bottom, black, transparent 56%);
+  }
+
+  /* Cast card left accent bar (::before pseudo-element) */
+  .cast-card-bar {
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 3px;
+    background: var(--speaker-accent, #f0ad5d);
+    box-shadow: 0 0 20px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.34));
+  }
+
+  /* Speaker accent color tokens (6 color rotation) */
+  .cast-accent-0 {
+    --speaker-accent: #f0ad5d;
+    --speaker-accent-shadow: rgba(240, 173, 93, 0.34);
+  }
+  .cast-accent-1 {
+    --speaker-accent: #c965ff;
+    --speaker-accent-shadow: rgba(201, 101, 255, 0.34);
+  }
+  .cast-accent-2 {
+    --speaker-accent: #48b5ff;
+    --speaker-accent-shadow: rgba(72, 181, 255, 0.32);
+  }
+  .cast-accent-3 {
+    --speaker-accent: #8fe77a;
+    --speaker-accent-shadow: rgba(143, 231, 122, 0.3);
+  }
+  .cast-accent-4 {
+    --speaker-accent: #ff7da8;
+    --speaker-accent-shadow: rgba(255, 125, 168, 0.3);
+  }
+  .cast-accent-5 {
+    --speaker-accent: #7de7d4;
+    --speaker-accent-shadow: rgba(125, 231, 212, 0.3);
+  }
+
+  /* Journey card (complex background + shadow + backdrop-filter) */
+  .journey-card {
+    border: 1px solid rgba(195, 204, 255, 0.16);
+    background: linear-gradient(145deg, rgba(24, 28, 46, 0.76), rgba(12, 14, 25, 0.76));
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(18px);
+  }
+
+  .journey-card:hover {
+    border-color: rgba(240, 173, 93, 0.42);
+    box-shadow: 0 20px 70px rgba(240, 173, 93, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  }
+
+  /* Journey step icon shimmer animation */
+  @keyframes icon-shimmer {
+    0%, 100% {
+      filter: drop-shadow(0 0 8px rgba(255, 213, 145, 0.6)) drop-shadow(0 0 12px rgba(240, 173, 93, 0.4));
+    }
+    50% {
+      filter: drop-shadow(0 0 12px rgba(255, 213, 145, 0.8)) drop-shadow(0 0 18px rgba(240, 173, 93, 0.6));
+    }
+  }
+
+  .journey-step-icon {
+    animation: icon-shimmer 2s ease-in-out infinite;
+  }
+
+  /* Container query host for cast cards */
+  .cast-card-container {
+    container-type: inline-size;
+  }
+
+  @container (max-width: 520px) {
+    .cast-card-voice-wrap {
+      flex-wrap: wrap;
+    }
+    .cast-card-voice {
+      width: 100%;
+      padding-top: 0;
+    }
+  }
+
+  /* Workflow step state classes (arbitrary colors + box-shadow variants) */
+  .step-completed {
+    border-color: rgba(143, 231, 189, 0.38) !important;
+    background: rgba(143, 231, 189, 0.08) !important;
+  }
+
+  .step-completed .workflow-marker {
+    border-color: #8fe7bd;
+    background: #8fe7bd;
+    box-shadow: 0 0 18px rgba(143, 231, 189, 0.38);
+  }
+
+  .step-current {
+    border-color: rgba(240, 173, 93, 0.5) !important;
+    background: rgba(240, 173, 93, 0.08) !important;
+  }
+
+  .step-current .workflow-marker {
+    border-color: #ffd591;
+    background: linear-gradient(135deg, #ffd591 0 45%, transparent 45%);
+    box-shadow: 0 0 0 4px rgba(240, 173, 93, 0.12), 0 0 18px rgba(240, 173, 93, 0.45);
+  }
+
+  .step-warning {
+    border-color: rgba(247, 178, 103, 0.62) !important;
+    background: rgba(247, 178, 103, 0.08) !important;
+  }
+
+  .step-warning .workflow-marker {
+    border-color: #ffd591;
+    background: linear-gradient(135deg, #ffd591 0 45%, transparent 45%);
+  }
+
+  .step-locked {
+    cursor: not-allowed;
+    opacity: 0.5;
+  }
+
+  /* Cast card hover: color-mix with var(--speaker-accent) */
+  article.cast-card:hover {
+    border-color: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 24%, rgba(195, 204, 255, 0.12));
+  }
+
+  /* Preview voice button playing state */
+  .preview-voice-playing {
+    background: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 14%, rgba(5, 9, 20, 0.7));
+    border-color: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 55%, transparent);
+    box-shadow: 0 0 10px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.22));
+    color: #fff;
+  }
+
+  /* Change voice button (uses var(--speaker-accent) dynamically) */
+  .change-voice-button {
+    border: 1px solid color-mix(in srgb, var(--speaker-accent, #f0ad5d) 55%, transparent);
+    background: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 7%, transparent);
+    color: var(--speaker-accent, #f0ad5d);
+  }
+
+  .change-voice-button:hover {
+    background: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 14%, transparent);
+    border-color: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 80%, transparent);
+  }
+
+  /* Ensure [hidden] attribute beats display values */
+  [hidden] {
+    display: none !important;
+  }
 }

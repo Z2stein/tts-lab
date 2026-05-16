@@ -7,8 +7,7 @@ import { JourneyStep } from '../../models/audiobook-studio.types';
   selector: 'app-journey-grid',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './journey-grid.component.html',
-  styleUrl: './journey-grid.component.css'
+  templateUrl: './journey-grid.component.html'
 })
 export class JourneyGridComponent {
   @Input() steps: readonly JourneyStep[] = [];

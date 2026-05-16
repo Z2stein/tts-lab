@@ -8,8 +8,7 @@ import { ScriptTurnComponent } from './script-turn/script-turn.component';
   selector: 'app-script-review',
   standalone: true,
   imports: [CommonModule, ScriptTurnComponent],
-  templateUrl: './script-review.component.html',
-  styleUrls: ['../audiobook-studio-section-shared.css', './script-review.component.css']
+  templateUrl: './script-review.component.html'
 })
 export class ScriptReviewComponent {
   @Input() scriptTurns: SpeakerSplitTurn[] = [];

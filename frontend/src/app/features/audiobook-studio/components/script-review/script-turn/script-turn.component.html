@@ -1,9 +1,9 @@
-<div class="script-turn">
+<div class="grid gap-[0.65rem] border border-transparent rounded-[0.8rem] p-[0.75rem] focus-within:border-[rgba(240,173,93,0.3)] focus-within:bg-white/[0.04]">
   <ng-container *ngIf="!editing; else scriptEditForm">
     <p>{{ indexedTurn.turn.text }}</p>
     <button
       type="button"
-      class="text-button"
+      class="justify-self-start border border-[rgba(240,173,93,0.28)] rounded-full bg-[rgba(255,255,255,0.04)] text-[#ffd591] cursor-pointer font-[900] p-[0.45rem_0.85rem] hover:border-[rgba(240,173,93,0.65)] hover:text-[#fff1d7] disabled:opacity-60 disabled:cursor-wait"
       (click)="startEdit.emit()"
       [attr.data-testid]="'script-turn-edit-' + indexedTurn.index"
       [attr.aria-label]="'Edit script turn ' + (indexedTurn.index + 1)"
@@ -13,17 +13,17 @@
   </ng-container>
 
   <ng-template #scriptEditForm>
-    <label [for]="'script-speaker-' + indexedTurn.index">Speaker</label>
-    <select [id]="'script-speaker-' + indexedTurn.index" [name]="'script-speaker-' + indexedTurn.index" [(ngModel)]="editDraft!.speaker">
+    <label [for]="'script-speaker-' + indexedTurn.index" class="font-[900]">Speaker</label>
+    <select [id]="'script-speaker-' + indexedTurn.index" [name]="'script-speaker-' + indexedTurn.index" class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)]" [(ngModel)]="editDraft!.speaker">
       <option *ngFor="let name of speakerOptions; trackBy: trackSpeakerOption" [value]="name">{{ displayName(name) }}</option>
     </select>
 
-    <label [for]="'script-text-' + indexedTurn.index">Text</label>
-    <textarea [id]="'script-text-' + indexedTurn.index" [name]="'script-text-' + indexedTurn.index" rows="4" [(ngModel)]="editDraft!.text"></textarea>
+    <label [for]="'script-text-' + indexedTurn.index" class="font-[900]">Text</label>
+    <textarea [id]="'script-text-' + indexedTurn.index" [name]="'script-text-' + indexedTurn.index" rows="4" class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)] leading-[1.6]" [(ngModel)]="editDraft!.text"></textarea>
 
-    <div class="button-row compact-actions">
-      <button type="button" class="primary-button small-button" (click)="saveEdit.emit()" [disabled]="isLoading()">Save</button>
-      <button type="button" class="secondary-button small-button" (click)="cancelEdit.emit()" [disabled]="isLoading()">Cancel</button>
+    <div class="flex flex-wrap items-center gap-[0.85rem] justify-start">
+      <button type="button" class="primary-button p-[0.65rem_0.9rem]" (click)="saveEdit.emit()" [disabled]="isLoading()">Save</button>
+      <button type="button" class="secondary-button p-[0.65rem_0.9rem]" (click)="cancelEdit.emit()" [disabled]="isLoading()">Cancel</button>
     </div>
   </ng-template>
 </div>

@@ -1,0 +1,39 @@
+<section class="rounded-lg border border-studio-line bg-studio-panel/85 p-5 backdrop-blur" data-testid="speech-segment-list">
+  <div class="mb-4">
+    <p class="eyebrow">Speech segment details</p>
+    <h2 class="m-0 text-2xl font-black">Performance notes</h2>
+  </div>
+
+  <ng-container *ngIf="speechSegments && speechSegments.length > 0">
+    <div class="grid gap-[0.75rem]">
+      <article *ngFor="let speechSegment of speechSegments; let i = index" class="border border-[rgba(255,255,255,0.08)] border-l-4 bg-[rgba(5,9,20,0.58)] rounded-[0.8rem] p-4 flex flex-col gap-[0.75rem]" data-testid="speech-segment-row" [style.--speaker-accent]="getSpeakerColor(speechSegment.speakerName)">
+        <div class="flex items-baseline gap-[0.5rem] mb-[0.25rem]">
+          <span class="font-[900] text-[0.9rem]" [style.color]="'var(--speaker-accent)'">{{ i + 1 }}.</span>
+          <span class="font-[700] text-[rgba(255,248,236,0.9)] text-[0.95rem]">{{ speechSegment.title }}</span>
+        </div>
+
+        <div class="flex flex-col gap-[0.5rem]">
+          <div class="flex items-center gap-[0.5rem]">
+            <span class="font-[700] text-[rgba(255,255,255,0.95)] text-[0.95rem]">{{ speechSegment.speakerName }}</span>
+            <span *ngIf="speechSegment.speakerRoleDescription" class="text-[0.8rem] text-[rgba(255,255,255,0.6)] italic">{{ speechSegment.speakerRoleDescription }}</span>
+          </div>
+
+          <div class="flex gap-[0.5rem] flex-wrap">
+            <span *ngFor="let tag of getEmotionTags(speechSegment)" class="border border-[rgba(240,173,93,0.4)] bg-[rgba(240,173,93,0.18)] text-[#ffd591] rounded-full p-[0.25rem_0.6rem] text-[0.75rem] font-[700] shadow-[0_0_12px_rgba(240,173,93,0.2)]">{{ tag }}</span>
+          </div>
+
+          <div *ngIf="getStyledText(speechSegment)" class="text-[rgba(255,248,236,0.85)] text-[0.9rem] leading-[1.4] py-[0.5rem]">
+            {{ getStyledText(speechSegment) }}
+          </div>
+
+          <div *ngIf="speechSegment.voiceName" class="text-[0.8rem] text-[rgba(255,255,255,0.6)] flex gap-[0.4rem]">
+            <span class="font-[600] text-[rgba(255,255,255,0.7)]">Voice:</span> {{ speechSegment.voiceName }}
+          </div>
+        </div>
+      </article>
+    </div>
+  </ng-container>
+  <ng-container *ngIf="!speechSegments || speechSegments.length === 0">
+    <div class="p-[2rem_1rem] text-center text-[rgba(255,255,255,0.5)] text-[0.9rem]">No speech segments to display</div>
+  </ng-container>
+</section>

@@ -1,18 +1,18 @@
-<section class="journey-section" aria-labelledby="journey-title" data-testid="journey-grid">
-  <h2 id="journey-title">From plain text to performed story</h2>
-  <div class="journey-grid">
+<section class="grid gap-[1.15rem] px-[clamp(0.25rem,2vw,1.5rem)] pb-4 pt-0" aria-labelledby="journey-title" data-testid="journey-grid">
+  <h2 id="journey-title" class="m-0 text-center text-[#fff8ec] text-[clamp(1.85rem,4vw,3rem)] leading-[1.08]" style="font-family: Georgia, 'Times New Roman', serif">From plain text to performed story</h2>
+  <div class="grid grid-cols-5 gap-4 max-[820px]:grid-cols-1">
     <button
       *ngFor="let step of steps"
       type="button"
-      class="journey-card helper-jump"
+      class="journey-card helper-jump cursor-pointer text-inherit grid gap-[0.65rem] rounded-xl p-[1.1rem] text-left border border-[rgba(195,204,255,0.16)]"
       data-testid="journey-card"
       (click)="onStepClick(step.sectionId, $event)"
     >
-      <div class="journey-icon-container">
-        <span class="journey-step-icon" aria-hidden="true" [innerHTML]="getStepIcon(step.stepIcon)"></span>
+      <div class="flex items-center justify-center bg-[rgba(12,14,25,0.8)] border-none rounded-[0.85rem] -mx-[1.1rem] -mt-[1.1rem] mb-2 px-[1.1rem] py-2 min-h-[4rem]">
+        <span class="journey-step-icon inline-flex items-center justify-center w-[2.2rem] h-[2.2rem] text-[#ffd591] flex-shrink-0" style="filter: drop-shadow(0 0 8px rgba(255, 213, 145, 0.6)) drop-shadow(0 0 12px rgba(240, 173, 93, 0.4))" aria-hidden="true" [innerHTML]="getStepIcon(step.stepIcon)"></span>
       </div>
-      <h3>{{ step.icon }}. {{ step.title }}</h3>
-      <p>{{ step.description }}</p>
+      <h3 class="m-0 text-[1.05rem] text-[#fff7ea]">{{ step.icon }}. {{ step.title }}</h3>
+      <p class="m-0 leading-[1.6] text-studio-muted">{{ step.description }}</p>
     </button>
   </div>
 </section>

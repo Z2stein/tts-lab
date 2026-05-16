@@ -1,15 +1,16 @@
-<div class="step-heading">
-  <span class="step-number">2</span>
+<div class="flex items-center gap-[0.9rem]">
+  <span class="inline-flex w-[2.35rem] h-[2.35rem] items-center justify-center flex-none rounded-full bg-gradient-to-r from-[#ffe2a7] to-[#f0ad5d] shadow-[0_0_28px_rgba(240,173,93,0.25)] text-[#140f14] font-black">2</span>
   <div>
-    <h2 id="discover-cast-title">Choose voices</h2>
-    <p>We found the speakers in your story. Preview each voice or change it.</p>
+    <h2 id="discover-cast-title" class="m-0 mb-[0.2rem] text-[#fff8ec] font-family-georgia text-[clamp(1.4rem,3vw,2rem)] leading-[1.1]">Choose voices</h2>
+    <p class="m-0 text-[#c9d1e8] leading-[1.6]">We found the speakers in your story. Preview each voice or change it.</p>
   </div>
 </div>
 
-<p *ngIf="cast.length > 0 && !castReviewed" class="review-status">Please review and approve the voices</p>
-<p *ngIf="cast.length === 0" class="empty-state">Speakers will appear after story analysis.</p>
-<div *ngIf="cast.length > 0" class="cast-grid" aria-label="Cast">
+<p *ngIf="cast.length > 0 && !castReviewed" class="rounded-[0.8rem] border border-[rgba(240,173,93,0.5)] bg-[rgba(240,173,93,0.1)] text-[#ffd591] text-[0.92rem] font-[900] p-[0.7rem_0.85rem]">Please review and approve the voices</p>
+<p *ngIf="cast.length === 0" class="m-0 text-[#c9d1e8] leading-[1.6]">Speakers will appear after story analysis.</p>
+<div *ngIf="cast.length > 0" class="grid gap-[0.3rem] grid-cols-1" aria-label="Cast">
   <app-cast-card
+    class="cast-card-container"
     *ngFor="let speaker of cast; let i = index; trackBy: trackCastByIndex"
     [speaker]="speaker"
     [index]="i"
@@ -24,6 +25,6 @@
   ></app-cast-card>
 </div>
 
-<button type="button" class="primary-button next-action" (click)="createScriptPreview.emit()" [disabled]="loadingAction !== null || cast.length === 0">
+<button type="button" class="primary-button" (click)="createScriptPreview.emit()" [disabled]="loadingAction !== null || cast.length === 0">
   {{ isLoading('script') ? 'Creating script preview...' : 'Approve voices & continue' }}
 </button>
