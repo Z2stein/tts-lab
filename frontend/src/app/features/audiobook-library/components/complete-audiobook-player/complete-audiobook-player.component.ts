@@ -9,7 +9,6 @@ import { AudioAssetResponse } from '../../../../shared/api-contract.generated';
   imports: [CommonModule, WaveformPlayerComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   templateUrl: './complete-audiobook-player.component.html',
-  styleUrl: './complete-audiobook-player.component.css',
 })
 export class CompleteAudiobookPlayerComponent {
   @Input({ required: true }) asset!: AudioAssetResponse;

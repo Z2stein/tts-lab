@@ -4,36 +4,36 @@
     <h2 class="m-0 text-2xl font-black">Full Audiobook</h2>
   </div>
 
-  <div class="player-container">
+  <div class="my-6">
     <app-waveform-player
       [key]="'complete-audiobook-' + asset.id"
       [src]="asset.streamUrl"
-      class="complete-audiobook-waveform"
+      class="grid grid-cols-[auto_1fr_auto] gap-4 items-center p-6 bg-black/30 rounded-[0.8rem] border border-white/8"
       [ariaLabel]="'Complete audiobook preview - ' + formatDuration(asset.durationSeconds)">
       <a
         slot="header"
         [href]="asset.downloadUrl"
-        class="download-button"
+        class="download-button inline-flex items-center gap-2 px-5 py-3 rounded-[0.6rem] text-[#ffd591] font-semibold text-sm no-underline cursor-pointer whitespace-nowrap transition-all"
         download
         *ngIf="asset.status === 'READY'">
-        <span class="download-icon" aria-hidden="true">↓</span>
+        <span class="font-bold text-lg" aria-hidden="true">↓</span>
         Download ({{ formatFileSize(asset.sizeBytes) }})
       </a>
     </app-waveform-player>
   </div>
 
-  <div class="metadata mt-4">
-    <span class="metadata-item" *ngIf="asset.durationSeconds">
-      <span class="label">Duration:</span>
-      <span class="value">{{ formatDuration(asset.durationSeconds) }}</span>
+  <div class="flex flex-wrap gap-6 text-sm text-white/70 p-4 bg-black/20 rounded-[0.6rem] mt-4">
+    <span class="flex gap-2 items-center" *ngIf="asset.durationSeconds">
+      <span class="font-semibold text-white/60">Duration:</span>
+      <span class="text-white/90">{{ formatDuration(asset.durationSeconds) }}</span>
     </span>
-    <span class="metadata-item">
-      <span class="label">Size:</span>
-      <span class="value">{{ formatFileSize(asset.sizeBytes) }}</span>
+    <span class="flex gap-2 items-center">
+      <span class="font-semibold text-white/60">Size:</span>
+      <span class="text-white/90">{{ formatFileSize(asset.sizeBytes) }}</span>
     </span>
-    <span class="metadata-item" *ngIf="asset.filename">
-      <span class="label">File:</span>
-      <span class="value">{{ asset.filename }}</span>
+    <span class="flex gap-2 items-center" *ngIf="asset.filename">
+      <span class="font-semibold text-white/60">File:</span>
+      <span class="text-white/90" style="font-family: 'Courier New', monospace">{{ asset.filename }}</span>
     </span>
   </div>
 </section>
