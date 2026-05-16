@@ -7,7 +7,7 @@ import { CurrentTask } from '../../models/audiobook-studio.types';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './current-task-panel.component.html',
-  styleUrl: './current-task-panel.component.css'
+  host: { class: 'block' }
 })
 export class CurrentTaskPanelComponent {
   @Input() currentTask!: CurrentTask;

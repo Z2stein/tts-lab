@@ -288,6 +288,14 @@
     color: #f0ad5d;
   }
 
+  /* Current task panel background gradient */
+  .current-task {
+    background:
+      radial-gradient(circle at 15% 0%, rgba(240, 173, 93, 0.14), transparent 18rem),
+      rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  }
+
   /* Studio page texture overlay (::before pseudo-element) */
   .studio::before {
     content: '';
