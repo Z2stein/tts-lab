@@ -37,7 +37,7 @@ public class DemoActivationController {
             session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
 
             log.info("Demo token activated for user '{}' (jti={})", claims.name(), claims.jti());
-            return new RedirectView("/");
+            return new RedirectView("/cv-audiobook-demo");
         } catch (InvalidDemoTokenException e) {
             log.warn("Demo token activation failed: {}", e.getMessage());
             return new RedirectView("/?demo-error=true");

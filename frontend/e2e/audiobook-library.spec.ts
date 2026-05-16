@@ -73,9 +73,10 @@ test('play preview button opens waveform player modal instead of navigating', as
 
   await page.getByTestId('play-preview').click();
 
-  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
-  await expect(page.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
+  const modal = page.locator('app-audio-player-modal');
+  await expect(modal.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
+  await expect(modal.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
 });
 
 test('closing waveform player modal returns to library view', async ({ context, page }) => {
