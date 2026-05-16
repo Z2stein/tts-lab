@@ -35,6 +35,11 @@ describe('StudioHeroComponent', () => {
     expect(fixture.nativeElement.querySelector('h1')).not.toBeNull();
   });
 
+  it('renders icon badges with svg artwork for the story and cast cards', () => {
+    expect(fixture.nativeElement.querySelector('[data-testid="story-demo-icon"] svg')).not.toBeNull();
+    expect(fixture.nativeElement.querySelector('[data-testid="cast-demo-icon"] svg')).not.toBeNull();
+  });
+
   it('renders cast rows for each hero cast member', () => {
     component.heroCast = [
       { name: 'Mara', initials: 'M', tone: 'Warm alto' },

@@ -70,6 +70,17 @@ test('audiobook studio fills the story textarea with sample content', async ({ c
   await expect(storyText).toHaveValue(/Station Keeper/);
 });
 
+test('audiobook studio renders icon badges in the hero preview cards', async ({ context, page }) => {
+  await authenticate(context, page);
+
+  await page.goto('/audiobook-studio');
+
+  await expect(page.getByTestId('story-demo-icon')).toContainText('');
+  await expect(page.getByTestId('cast-demo-icon')).toContainText('');
+  await expect(page.getByTestId('story-demo-icon').locator('svg')).toBeVisible();
+  await expect(page.getByTestId('cast-demo-icon').locator('svg')).toBeVisible();
+});
+
 test('audiobook studio keeps journey step icons beside the copy on mobile widths', async ({ context, page }) => {
   await authenticate(context, page);
   await page.setViewportSize({ width: 390, height: 844 });
