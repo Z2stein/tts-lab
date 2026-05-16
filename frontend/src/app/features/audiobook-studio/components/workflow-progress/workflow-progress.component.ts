@@ -51,6 +51,11 @@ export class WorkflowProgressComponent implements AfterViewInit, OnDestroy {
     return this.isSticky && this.isNarrow;
   }
 
+  get displayMode(): 'flex' | 'grid' {
+    // Option 1: Sticky + small screen => flexbox layout
+    return this.isMobileSticky ? 'flex' : 'grid';
+  }
+
   get currentStepIndex(): number {
     return this.steps.findIndex(s => s.status === 'current' || s.status === 'warning');
   }
@@ -60,10 +65,6 @@ export class WorkflowProgressComponent implements AfterViewInit, OnDestroy {
   }
 
   getGridColumns(): string {
-    // Option 1: Sticky + small screen => 2 columns (current + next side-by-side)
-    if (this.isMobileSticky) {
-      return 'repeat(2, minmax(0, 1fr))';
-    }
     // Option 2: Nonsticky + small screen => 1 column (all 5 stacked)
     if (this.isNarrow && !this.isSticky) {
       return 'repeat(1, minmax(0, 1fr))';
