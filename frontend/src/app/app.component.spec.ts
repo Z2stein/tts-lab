@@ -38,11 +38,11 @@ describe('AppComponent layout and chatbot visibility', () => {
 
   it('shows navigation links in the shared header', () => {
     component.authStatus = 'authenticated';
-    component.currentUser = { id: '1', email: 'u@test.dev', name: 'User', authMode: 'mock', roles: ['USER'] };
+    component.currentUser = { id: '1', email: 'christiophthurn0@gmail.com', name: 'User', authMode: 'mock', roles: ['USER'] };
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
-    expect(text).toContain('Home');
+    expect(text).toContain('TTS Lab');
     expect(text).toContain('Audiobook Studio');
     expect(text).toContain('My Audiobooks');
     expect(text).toContain('Prompt History');

@@ -1,6 +1,6 @@
-<button type="button" class="fixed bottom-4 right-4 z-10 rounded-full border-0 bg-studio-accent px-4 py-2 font-extrabold text-studio-field" (click)="toggle()">{{ isOpen ? 'Close chat' : 'Open chat' }}</button>
+<button type="button" class="fixed bottom-4 right-4 z-10 rounded-full border-0 bg-studio-accent px-4 py-2 font-extrabold text-studio-field chat-toggle" (click)="toggle()">{{ isOpen ? 'Close chat' : 'Open chat' }}</button>
 
-<section *ngIf="isOpen" class="fixed bottom-16 right-4 z-10 w-80 rounded-lg border border-studio-lineStrong bg-studio-panel p-3 text-studio-text shadow-2xl">
+<section *ngIf="isOpen" class="fixed bottom-16 right-4 z-10 w-80 rounded-lg border border-studio-lineStrong bg-studio-panel p-3 text-studio-text shadow-2xl chatbox">
   <div class="mb-2 max-h-56 overflow-auto">
     <p *ngFor="let message of messages" [class.text-right]="message.role === 'user'" [class.text-studio-accentSoft]="message.role === 'user'" [class.text-left]="message.role === 'assistant'" [class.text-studio-text]="message.role === 'assistant'">
       <strong>{{ message.role === 'user' ? 'You' : 'Assistant' }}:</strong> {{ message.text }}
