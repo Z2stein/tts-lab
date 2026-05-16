@@ -1,0 +1,18 @@
+<div
+  *ngIf="error$ | async as error"
+  class="error-banner"
+  role="alert"
+  aria-live="assertive"
+>
+  <div class="error-banner-content">
+    <span class="error-banner-message">{{ error.message }}</span>
+    <button
+      type="button"
+      class="error-banner-close"
+      (click)="dismissError()"
+      aria-label="Dismiss error message"
+    >
+      ✕
+    </button>
+  </div>
+</div>

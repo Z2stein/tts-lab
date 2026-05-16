@@ -1,0 +1,73 @@
+.error-banner {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  background-color: #3a1618;
+  border-bottom: 2px solid #834047;
+  padding: 1rem;
+  z-index: 49; /* Below header (z-50) but above content */
+  animation: slideDown 0.3s ease-out;
+
+  @media (max-width: 720px) {
+    padding: 0.75rem;
+  }
+}
+
+.error-banner-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 2rem);
+}
+
+.error-banner-message {
+  color: #ffd7d7;
+  font-weight: 700;
+  font-size: 0.95rem;
+  flex: 1;
+  line-height: 1.4;
+
+  @media (max-width: 720px) {
+    font-size: 0.85rem;
+  }
+}
+
+.error-banner-close {
+  background: none;
+  border: none;
+  color: #ffd7d7;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 0.25rem;
+  min-width: 2rem;
+  min-height: 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+
+  &:hover {
+    color: #fff;
+    opacity: 0.8;
+  }
+
+  &:focus {
+    outline: 2px solid #f0ad5d;
+    outline-offset: 2px;
+  }
+}
+
+@keyframes slideDown {
+  from {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}

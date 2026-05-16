@@ -3,6 +3,7 @@ import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
 import { ChatbotWidgetComponent } from './chatbot/chatbot-widget.component';
+import { ErrorBannerComponent } from './shared/components/error-banner/error-banner.component';
 import { CurrentUserService } from './current-user.service';
 import { CurrentUser, RequestRateLimitSummary, RequestRateLimitSummaryItem } from './shared/api-contract.generated';
 import { LoggerService } from './logger.service';
@@ -10,7 +11,7 @@ import { LoggerService } from './logger.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ChatbotWidgetComponent],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ChatbotWidgetComponent, ErrorBannerComponent],
   templateUrl: './app.component.html',
   host: { class: 'block min-h-screen' }
 })
