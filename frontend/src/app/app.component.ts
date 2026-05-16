@@ -4,14 +4,25 @@ import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } fro
 import { Subscription, filter } from 'rxjs';
 import { AccountMenuComponent } from './account-menu.component';
 import { ChatbotWidgetComponent } from './chatbot/chatbot-widget.component';
+import { UsageLimitsPanelComponent } from './components/usage-limits-panel/usage-limits-panel.component';
+import { ErrorBannerComponent } from './shared/components/error-banner/error-banner.component';
 import { CurrentUserService } from './current-user.service';
-import { CurrentUser, RequestRateLimitSummary, RequestRateLimitSummaryItem } from './shared/api-contract.generated';
+import { CurrentUser, RequestRateLimitSummary } from './shared/api-contract.generated';
 import { LoggerService } from './logger.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ChatbotWidgetComponent, AccountMenuComponent],
+  imports: [
+    CommonModule,
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    ChatbotWidgetComponent,
+    ErrorBannerComponent,
+    UsageLimitsPanelComponent,
+    AccountMenuComponent
+  ],
   templateUrl: './app.component.html',
   host: { class: 'block min-h-screen' }
 })
@@ -84,16 +95,5 @@ export class AppComponent implements OnInit, OnDestroy {
 
   async logout(): Promise<void> {
     await this.currentUserService.startLogout();
-  }
-
-  limitFor(modelType: 'TEXT_MODEL' | 'SPEECH_MODEL'): RequestRateLimitSummaryItem | null {
-    return this.requestLimitSummary?.limits.find((limit) => limit.modelType === modelType) ?? null;
-  }
-
-  formatRemaining(limit: RequestRateLimitSummaryItem | null): string {
-    if (!limit) {
-      return '...';
-    }
-    return `${limit.remaining}/${limit.limit} ${limit.unit.toLowerCase()}`;
   }
 }

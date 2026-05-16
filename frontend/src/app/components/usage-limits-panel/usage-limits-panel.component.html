@@ -1,0 +1,62 @@
+<div class="relative">
+  <!-- Collapsed State: Usage Button -->
+  <button
+    type="button"
+    class="flex items-center gap-2 px-2.5 py-1 bg-[#2a2025] border border-[#57414a] rounded-full text-[#f4c78e] text-xs font-black whitespace-nowrap cursor-pointer transition-colors hover:bg-[#3d2e33] hover:border-[#6d5460]"
+    (click)="toggleExpanded()"
+    [attr.aria-expanded]="isExpanded"
+    aria-label="Show usage details"
+  >
+    <span>Usage {{ getOverallUsagePercent() }}%</span>
+    <span class="inline-block text-[0.5rem] transition-transform" [class.rotate-180]="isExpanded">▼</span>
+  </button>
+
+  <!-- Expanded State: Dropdown Panel -->
+  <div
+    *ngIf="isExpanded"
+    class="absolute top-full right-0 mt-2 w-72 bg-[#1a1518] border border-[#57414a] rounded-lg p-4 z-50 shadow-lg animate-in slide-in-from-top-2 duration-200 max-h-80 overflow-y-auto"
+  >
+    <div class="flex justify-between items-center mb-4 gap-2">
+      <h3 class="m-0 text-xs font-semibold text-[#f4c78e] uppercase tracking-wider">Usage limits</h3>
+      <button
+        type="button"
+        class="bg-transparent border-none text-[#999] cursor-pointer text-base p-0 flex items-center justify-center w-5 h-5 transition-colors hover:text-[#f4c78e]"
+        (click)="toggleExpanded()"
+        aria-label="Close usage details"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div class="flex flex-col gap-5" *ngIf="limitSummary">
+      <div class="flex flex-col gap-2" *ngFor="let limit of limitSummary.limits">
+        <div class="flex justify-between items-baseline gap-2">
+          <span class="text-xs font-semibold text-[#ddd] flex-1">{{ getDisplayName(limit.modelType) }}</span>
+          <span class="text-[0.65rem] text-[#999] whitespace-nowrap">{{ limit.used }}/{{ limit.limit }} {{ limit.unit.toLowerCase() }}</span>
+        </div>
+        <div class="flex items-center gap-2">
+          <div class="flex-1 h-1.5 bg-[#2a2025] rounded border border-[#57414a] overflow-hidden">
+            <div
+              class="h-full rounded transition-all duration-300"
+              [ngClass]="getProgressPercent(limit) >= 80 ? 'bg-red-500' : 'bg-[#f4c78e]'"
+              [style.width.%]="getProgressPercent(limit)"
+            ></div>
+          </div>
+          <span class="text-[0.65rem] text-[#999] min-w-8 text-right">{{ getProgressPercent(limit) }}%</span>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-2 px-3 py-3 bg-[#2a2025] border border-[#57414a] rounded" *ngIf="resetCountdown">
+        <span class="text-sm text-[#f4c78e]">⏱</span>
+        <span class="text-xs text-[#ddd]">{{ resetCountdown }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backdrop for mobile/dropdown dismiss -->
+  <div
+    *ngIf="isExpanded"
+    class="fixed inset-0 z-40"
+    (click)="toggleExpanded()"
+  ></div>
+</div>
