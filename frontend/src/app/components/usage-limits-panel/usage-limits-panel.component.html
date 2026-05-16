@@ -1,0 +1,55 @@
+<div class="usage-limits-panel">
+  <!-- Collapsed State: Usage Button -->
+  <button
+    type="button"
+    class="usage-button"
+    (click)="toggleExpanded()"
+    [attr.aria-expanded]="isExpanded"
+    aria-label="Show usage details"
+  >
+    <span class="usage-percent">Usage {{ getOverallUsagePercent() }}%</span>
+    <span class="chevron" [class.rotated]="isExpanded">▼</span>
+  </button>
+
+  <!-- Expanded State: Dropdown Panel -->
+  <div class="usage-dropdown" *ngIf="isExpanded">
+    <div class="usage-header">
+      <h3>Usage limits</h3>
+      <button
+        type="button"
+        class="close-button"
+        (click)="toggleExpanded()"
+        aria-label="Close usage details"
+      >
+        ✕
+      </button>
+    </div>
+
+    <div class="usage-content" *ngIf="limitSummary">
+      <div class="limit-item" *ngFor="let limit of limitSummary.limits">
+        <div class="limit-label">
+          <span class="limit-name">{{ getDisplayName(limit.modelType) }}</span>
+          <span class="limit-amount">{{ limit.used }}/{{ limit.limit }} {{ limit.unit.toLowerCase() }}</span>
+        </div>
+        <div class="progress-bar-container">
+          <div class="progress-bar">
+            <div
+              class="progress-fill"
+              [style.width.%]="getProgressPercent(limit)"
+              [class.high-usage]="getProgressPercent(limit) >= 80"
+            ></div>
+          </div>
+          <span class="progress-percent">{{ getProgressPercent(limit) }}%</span>
+        </div>
+      </div>
+
+      <div class="reset-info" *ngIf="resetCountdown">
+        <span class="reset-icon">⏱</span>
+        <span class="reset-text">{{ resetCountdown }}</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Backdrop for mobile/dropdown dismiss -->
+  <div class="backdrop" *ngIf="isExpanded" (click)="toggleExpanded()"></div>
+</div>

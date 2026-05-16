@@ -5,13 +5,14 @@ import { Subscription, filter } from 'rxjs';
 import { ChatbotWidgetComponent } from './chatbot/chatbot-widget.component';
 import { ErrorBannerComponent } from './shared/components/error-banner/error-banner.component';
 import { CurrentUserService } from './current-user.service';
-import { CurrentUser, RequestRateLimitSummary, RequestRateLimitSummaryItem } from './shared/api-contract.generated';
+import { CurrentUser, RequestRateLimitSummary } from './shared/api-contract.generated';
 import { LoggerService } from './logger.service';
+import { UsageLimitsPanelComponent } from './components/usage-limits-panel/usage-limits-panel.component';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ChatbotWidgetComponent, ErrorBannerComponent],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ChatbotWidgetComponent, ErrorBannerComponent, UsageLimitsPanelComponent],
   templateUrl: './app.component.html',
   host: { class: 'block min-h-screen' }
 })
@@ -84,16 +85,5 @@ export class AppComponent implements OnInit, OnDestroy {
 
   async logout(): Promise<void> {
     await this.currentUserService.startLogout();
-  }
-
-  limitFor(modelType: 'TEXT_MODEL' | 'SPEECH_MODEL'): RequestRateLimitSummaryItem | null {
-    return this.requestLimitSummary?.limits.find((limit) => limit.modelType === modelType) ?? null;
-  }
-
-  formatRemaining(limit: RequestRateLimitSummaryItem | null): string {
-    if (!limit) {
-      return '...';
-    }
-    return `${limit.remaining}/${limit.limit} ${limit.unit.toLowerCase()}`;
   }
 }
