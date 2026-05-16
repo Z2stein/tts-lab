@@ -36,6 +36,7 @@ test('authenticated user can open the empty audiobook library', async ({ context
 
   await page.goto('/audiobook-library');
 
+  await expect(page.getByRole('link', { name: 'My Audiobooks' })).toHaveClass(/active/);
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
   await expect(page.getByTestId('empty-library-state')).toBeVisible();
   await expect(page.getByRole('link', { name: 'Create audiobook' })).toHaveAttribute('href', '/audiobook-studio');
@@ -51,7 +52,7 @@ test('library cards render with ready preview actions', async ({ context, page }
   await expect(page.getByRole('heading', { name: 'The Amber Signal' })).toBeVisible();
   await expect(page.getByTestId('continue-studio')).toBeVisible();
   await expect(page.getByTestId('play-preview')).toBeVisible();
-  await expect(page.getByTestId('download-asset')).toBeVisible();
+  await expect(page.getByTestId('download-preview')).toBeVisible();
 });
 
 test('multiple audiobook projects appear as distinct cards', async ({ context, page }) => {
@@ -73,10 +74,9 @@ test('play preview button opens waveform player modal instead of navigating', as
 
   await page.getByTestId('play-preview').click();
 
-  const modal = page.locator('app-audio-player-modal');
-  await expect(modal.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
-  await expect(modal.getByRole('button', { name: 'Download', exact: true })).toBeVisible();
-  await expect(modal.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Play', exact: true })).toBeVisible();
+  await expect(page.locator('app-audio-player-modal').getByRole('button', { name: 'Download', exact: true })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Close', exact: true })).toBeVisible();
 });
 
 test('closing waveform player modal returns to library view', async ({ context, page }) => {
@@ -114,11 +114,9 @@ test('library card displays correct metadata for multi-segment audiobook with re
   const card = page.locator('[data-testid="audiobook-card"]').first();
   await expect(card).toBeVisible();
 
-  const speechSegments = card.locator('dt:has-text("Speech segments")').locator('..').locator('dd');
-  await expect(speechSegments).toContainText('3');
+  await expect(card.getByTestId('speech-segment-count')).toHaveText('3');
 
-  const speakers = card.locator('dt:has-text("Speakers")').locator('..').locator('dd');
-  await expect(speakers).toContainText('2');
+  await expect(card.getByTestId('speaker-count')).toHaveText('2');
 
   const duration = card.locator('dt:has-text("Duration")').locator('..').locator('dd');
   await expect(duration).toContainText('0:19');
@@ -128,6 +126,17 @@ test('library card displays correct metadata for multi-segment audiobook with re
   const continueButton = card.locator('text=Continue');
   await expect(continueButton).toBeVisible();
   await expect(continueButton).toHaveAttribute('href', '/audiobook-studio/project-multi-speaker');
+});
+
+test('library card disables preview actions when no project preview exists', async ({ context, page }) => {
+  await authenticate(context, page);
+  await routeAudiobookList(page, 'audiobooks/list/multi-segment/response.json');
+
+  await page.goto('/audiobook-library');
+
+  const card = page.locator('[data-testid="audiobook-card"]').first();
+  await expect(card.getByTestId('play-preview')).toBeDisabled();
+  await expect(card.getByTestId('download-preview')).toBeDisabled();
 });
 
 test('audiobook library integration with components is functional', async ({ context, page }) => {

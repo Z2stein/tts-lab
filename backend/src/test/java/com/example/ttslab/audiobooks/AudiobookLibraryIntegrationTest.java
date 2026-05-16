@@ -284,12 +284,12 @@ class AudiobookLibraryIntegrationTest {
         // Verify correct metadata: speech segment count
         assertThat(response.items())
             .extracting(AudiobookSummaryResponse.AudiobookSummaryItem::speechSegmentCount)
-            .containsExactlyInAnyOrder(2, 4, 0);
+            .containsExactlyInAnyOrder(1, 1, 0);
 
         // Verify correct metadata: speaker count
         assertThat(response.items())
             .extracting(AudiobookSummaryResponse.AudiobookSummaryItem::speakerCount)
-            .containsExactlyInAnyOrder(2, 3, 0);
+            .containsExactlyInAnyOrder(1, 2, 0);
 
         // Verify correct metadata: total duration
         assertThat(response.items())
@@ -317,7 +317,7 @@ class AudiobookLibraryIntegrationTest {
     // ============================================================================
 
     @Test
-    @DisplayName("List calculates speech segment count from READY assets only")
+    @DisplayName("List calculates speech segment count from project speech segments")
     void testListCalculatesSceneCountFromReadyAssetsOnly() throws Exception {
         AudiobookSummaryResponse response = getListResponse();
 
@@ -326,12 +326,12 @@ class AudiobookLibraryIntegrationTest {
             .findFirst()
             .orElseThrow();
 
-        // Only 2 READY assets in Fixture A (GENERATING and FAILED excluded)
-        assertThat(amberSignal.speechSegmentCount()).isEqualTo(2);
+        // Fixture A has one project speech segment
+        assertThat(amberSignal.speechSegmentCount()).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("List calculates speaker count by extracting and deduplicating from filenames")
+    @DisplayName("List calculates speaker count from assigned project characters")
     void testListCalculatesSpeakerCountByExtractingFromFilenames() throws Exception {
         AudiobookSummaryResponse response = getListResponse();
 
@@ -340,9 +340,8 @@ class AudiobookLibraryIntegrationTest {
             .findFirst()
             .orElseThrow();
 
-        // Fixture B has 4 assets with speakers: narrator, mara, narrator (duplicate), alex
-        // Expected: 3 unique speakers (deduplication)
-        assertThat(voicesUnbound.speakerCount()).isEqualTo(3);
+        // Fixture B has two assigned project characters
+        assertThat(voicesUnbound.speakerCount()).isEqualTo(2);
     }
 
     @Test
@@ -364,7 +363,7 @@ class AudiobookLibraryIntegrationTest {
     // ============================================================================
 
     @Test
-    @DisplayName("Metadata calculator correctly extracts and deduplicates speakers from filenames")
+    @DisplayName("List calculates speaker count from assigned project characters")
     void testDetailExtractsSpeakerNamesFromAssetFilenames() throws Exception {
         List<AudioAsset> assets = repository.findAssets(projectB);
         assertThat(assets).hasSize(5);
@@ -378,13 +377,13 @@ class AudiobookLibraryIntegrationTest {
             "segment-5-link.mp3"
         ));
 
-        // Verify list endpoint calculates speaker count correctly (narrator, mara, alex deduplicated = 3)
+        // Verify list endpoint calculates speaker count from assigned project characters
         AudiobookSummaryResponse response = getListResponse();
         var voicesUnbound = response.items().stream()
             .filter(item -> item.title().equals("Voices Unbound"))
             .findFirst()
             .orElseThrow();
-        assertThat(voicesUnbound.speakerCount()).isEqualTo(3);
+        assertThat(voicesUnbound.speakerCount()).isEqualTo(2);
     }
 
     @Test
@@ -508,20 +507,15 @@ class AudiobookLibraryIntegrationTest {
     // ============================================================================
 
     @Test
-    @DisplayName("Asset status filtering excludes GENERATING and FAILED assets from metadata")
+    @DisplayName("Speech segment counts ignore GENERATING and FAILED audio assets")
     void testAssetStatusFilteringExcludesNonReadyAssets() throws Exception {
-        List<AudioAsset> allAssets = repository.findAssets(projectA);
-        long readyCount = allAssets.stream()
-            .filter(a -> a.getStatus() == AudioAssetStatus.READY)
-            .count();
-
         AudiobookSummaryResponse response = getListResponse();
         var amberSignal = response.items().stream()
             .filter(item -> item.title().equals("The Amber Signal"))
             .findFirst()
             .orElseThrow();
 
-        assertThat(amberSignal.speechSegmentCount()).isEqualTo((int) readyCount);
+        assertThat(amberSignal.speechSegmentCount()).isEqualTo(1);
         assertThat(amberSignal.audioAssets()).isNotNull();
     }
 
@@ -575,8 +569,8 @@ class AudiobookLibraryIntegrationTest {
             .findFirst()
             .orElseThrow();
 
-        assertThat(voicesUnbound.speechSegmentCount()).isEqualTo(4);
-        assertThat(voicesUnbound.speakerCount()).isEqualTo(3);
+        assertThat(voicesUnbound.speechSegmentCount()).isEqualTo(1);
+        assertThat(voicesUnbound.speakerCount()).isEqualTo(2);
         assertThat(voicesUnbound.totalDurationSeconds()).isEqualTo(55);
     }
 

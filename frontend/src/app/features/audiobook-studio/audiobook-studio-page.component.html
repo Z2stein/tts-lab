@@ -16,9 +16,13 @@
   <div class="workflow-shell" aria-label="Audiobook production workflow">
     <app-workflow-progress
       [steps]="workflowSteps"
-      [currentTask]="currentTask"
       (scrollTo)="scrollToSection($event)"
     ></app-workflow-progress>
+
+    <app-workflow-current-task
+      [currentTask]="currentTask"
+      (scrollTo)="scrollToSection($event)"
+    ></app-workflow-current-task>
 
     <app-project-title-editor
       [projectTitleControl]="projectTitleControl"
