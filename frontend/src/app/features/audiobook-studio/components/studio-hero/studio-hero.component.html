@@ -56,18 +56,18 @@
       </div>
 
       <!-- Cast Card -->
-      <article class="grid gap-[0.8rem] rounded-[1rem] p-4 border border-[rgba(195,204,255,0.16)] bg-[rgba(12,14,25,0.6)]">
-        <div class="flex items-center gap-[0.6rem]">
-          <span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[rgba(240,173,93,0.16)] text-[#ffd591] text-sm font-black" aria-hidden="true">
+      <article class="grid gap-[0.8rem] rounded-[1rem] p-4 border border-[rgba(195,204,255,0.16)] bg-[rgba(12,14,25,0.6)] min-w-0">
+        <div class="flex items-center gap-[0.6rem] min-w-0">
+          <span class="inline-flex items-center justify-center flex-none w-8 h-8 rounded-md bg-[rgba(240,173,93,0.16)] text-[#ffd591] text-sm font-black" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
               <path d="M5 10.5v3c0 .83.67 1.5 1.5 1.5H9l4 3V6L9 9H6.5A1.5 1.5 0 0 0 5 10.5Z" />
               <path d="M15.5 9.5a3.5 3.5 0 0 1 0 5" />
               <path d="M17.8 7.2a6.5 6.5 0 0 1 0 9.2" />
             </svg>
           </span>
-          <h2 class="m-0 font-black text-[#fff8ec]">Detected cast</h2>
+          <h2 class="m-0 font-black text-[#fff8ec] min-w-0 overflow-hidden text-ellipsis">Detected cast</h2>
         </div>
-        <div class="flex flex-col gap-2">
+        <div class="flex flex-col gap-2 min-w-0">
           <div *ngFor="let member of heroCast" class="flex items-center gap-2 text-sm" [ngStyle]="speakerStyleFn(member.name)">
             <div class="flex-none w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-[rgba(240,173,93,0.16)] flex-shrink-0">
               <img *ngIf="member.imageUrl"
