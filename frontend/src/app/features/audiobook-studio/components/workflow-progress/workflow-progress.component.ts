@@ -7,7 +7,7 @@ import { WorkflowStep } from '../../models/audiobook-studio.types';
   standalone: true,
   imports: [CommonModule],
   templateUrl: './workflow-progress.component.html',
-  styleUrl: './workflow-progress.component.css'
+  host: { class: 'contents' }
 })
 export class WorkflowProgressComponent implements AfterViewInit, OnDestroy {
   @Input() steps: WorkflowStep[] = [];

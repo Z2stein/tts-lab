@@ -1,97 +1,103 @@
-<section class="studio-hero" aria-labelledby="audiobook-studio-title" data-testid="studio-hero">
-  <div class="hero-copy">
-    <p class="hero-badge">AI Audiobook Studio</p>
-    <h1 id="audiobook-studio-title">Give every character in your story <span>a voice.</span></h1>
-    <p class="hero-subheadline">
+<section class="grid gap-8 md:grid-cols-2 md:items-start mb-12" aria-labelledby="audiobook-studio-title" data-testid="studio-hero">
+  <!-- Hero Copy (Left Column) -->
+  <div class="flex flex-col gap-4">
+    <p class="m-0 border border-[rgba(240,173,93,0.32)] rounded-full bg-[rgba(240,173,93,0.08)] text-[#ffd591] text-xs font-black tracking-[0.08em] px-4 py-2 w-fit uppercase">AI Audiobook Studio</p>
+    <h1 id="audiobook-studio-title" class="m-0 text-5xl font-black text-[#f8efe5] leading-[1.1]">Give every character in your story <span class="text-[#ffd591]">a voice.</span></h1>
+    <p class="m-0 text-base text-[#c4c4d1] leading-relaxed">
       Paste a novel chapter. AI detects the narrator, discovers the cast, assigns voices, and turns it into multi-speaker audio.
     </p>
-    <div class="hero-actions" aria-label="Audiobook studio actions">
+    <div class="flex gap-3 flex-wrap" aria-label="Audiobook studio actions">
       <button
         #ctaBtn
         type="button"
-        class="primary-button hero-primary"
+        class="primary-button"
         (click)="focusStoryInput.emit($event)"
       >Create audio story</button>
       <button
         type="button"
-        class="secondary-button hero-secondary"
+        class="secondary-button flex items-center gap-2"
         [class.is-playing]="demoPlaying"
         (click)="playDemo($event)"
       >
-        <span class="play-dot" aria-hidden="true"></span>
+        <span class="play-icon" aria-hidden="true"></span>
         {{ demoPlaying ? 'Pause demo' : 'Listen to demo' }}
       </button>
     </div>
-    <div class="benefit-chips" aria-label="Studio benefits">
-      <span *ngFor="let chip of benefitChips">{{ chip }}</span>
+    <div class="flex flex-wrap gap-4 text-sm text-[#9aa3bc]" aria-label="Studio benefits">
+      <span *ngFor="let chip of benefitChips" class="whitespace-nowrap">{{ chip }}</span>
     </div>
   </div>
 
-  <div class="hero-demo" aria-label="Story to cast audio preview">
-    <div class="demo-flow">
-      <article class="demo-card story-demo-card">
-        <div class="demo-card-title">
-          <span class="demo-icon" aria-hidden="true">S</span>
-          <h2>Your story</h2>
+  <!-- Hero Demo (Right Column) -->
+  <div class="flex flex-col gap-6" aria-label="Story to cast audio preview">
+    <!-- Demo Flow: Story → Arrow → Cast -->
+    <div class="grid gap-4 mb-4">
+      <!-- Story Card -->
+      <article class="border border-[rgba(195,204,255,0.16)] rounded-lg bg-[rgba(12,14,25,0.6)] p-4">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="inline-flex w-8 h-8 items-center justify-center rounded-md bg-[rgba(240,173,93,0.16)] text-[#ffd591] text-sm font-black">S</span>
+          <h2 class="m-0 text-[#fff8ec] font-black">Your story</h2>
         </div>
-        <p>The rain tapped against the train window as Mara clutched the letter.</p>
-        <p>Jonas leaned forward. "Are you sure this is the right place?"</p>
-        <p>The old station keeper looked up from his ledger and smiled.</p>
+        <p class="m-0 text-sm text-[#9aa3bc] leading-relaxed">The rain tapped against the train window as Mara clutched the letter.</p>
       </article>
 
-      <div class="flow-arrow" aria-hidden="true">
-        <svg viewBox="0 0 92 24" role="img">
-          <path d="M2 12H82" />
-          <path d="M72 3L82 12L72 21" />
+      <!-- Vertical Arrow (visible on large screens) -->
+      <div class="hidden md:flex justify-center -my-2" aria-hidden="true">
+        <svg class="w-8 h-8 text-[#ffd591]" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M12 5v14M19 12l-7 7-7-7" />
         </svg>
       </div>
 
-      <article class="demo-card cast-demo-card">
-        <div class="demo-card-title">
-          <span class="demo-spark" aria-hidden="true">*</span>
-          <h2>Detected cast</h2>
+      <!-- Cast Card -->
+      <article class="border border-[rgba(195,204,255,0.16)] rounded-lg bg-[rgba(12,14,25,0.6)] p-4 min-w-0">
+        <div class="flex items-center gap-2 mb-3">
+          <span class="text-[#ffd591] text-lg">*</span>
+          <h2 class="m-0 text-[#fff8ec] font-black">Detected cast</h2>
         </div>
-        <div class="hero-cast-list">
-          <div *ngFor="let member of heroCast" class="hero-cast-row" [ngStyle]="speakerStyleFn(member.name)">
-            <div class="hero-avatar-container">
+        <div class="flex flex-col gap-2 min-w-0">
+          <div *ngFor="let member of heroCast" class="flex items-center gap-2 min-w-0 text-sm" [ngStyle]="speakerStyleFn(member.name)">
+            <div class="flex-none w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-gradient-to-br from-[rgba(240,173,93,0.4)] to-[rgba(240,173,93,0.2)] flex-shrink-0">
               <img *ngIf="member.imageUrl"
                    [src]="member.imageUrl"
                    [alt]="member.name"
-                   class="hero-avatar-image" />
-              <span *ngIf="!member.imageUrl" class="hero-avatar">{{ member.initials }}</span>
+                   class="w-full h-full object-cover" />
+              <span *ngIf="!member.imageUrl" class="font-black text-xs">{{ member.initials }}</span>
             </div>
-            <span class="cast-info">
-              <strong>{{ member.name }}</strong>
-              <small>{{ member.tone }}</small>
-            </span>
+            <div class="flex-1 min-w-0 overflow-hidden">
+              <div class="font-bold text-[#fff8ec] truncate">{{ member.name }}</div>
+              <div class="text-xs text-[#9aa3bc] truncate">{{ member.tone }}</div>
+            </div>
             <button
               type="button"
+              class="flex-none w-6 h-6 flex items-center justify-center rounded-full border border-[rgba(240,173,93,0.4)] hover:bg-[rgba(240,173,93,0.1)] transition-all"
               [class.is-playing]="isVoiceSamplePlaying(member.name)"
               (click)="onPlayVoiceSample(member.name, $event)"
               [attr.aria-label]="isVoiceSamplePlaying(member.name) ? 'Pause voice for ' + member.name : 'Preview voice for ' + member.name"
             >
-              <span class="play-icon" aria-hidden="true"></span>
+              <span class="play-icon text-[#ffd591] text-xs" aria-hidden="true"></span>
             </button>
           </div>
         </div>
       </article>
     </div>
 
-    <div class="waveform-preview framework-player" aria-label="Audio preview player">
+    <!-- Waveform Preview -->
+    <div class="flex items-center gap-3 border border-[rgba(195,204,255,0.16)] rounded-lg bg-[rgba(12,14,25,0.6)] p-4" aria-label="Audio preview player">
       <button
         type="button"
+        class="flex-none w-8 h-8 flex items-center justify-center rounded-full border border-[rgba(240,173,93,0.4)] hover:bg-[rgba(240,173,93,0.1)] transition-all"
         [class.is-playing]="demoPlaying"
         [attr.aria-label]="demoPlaying ? 'Pause audio preview' : 'Play audio preview'"
         (click)="playDemo($event)"
       >
-        <span class="play-icon" aria-hidden="true"></span>
+        <span class="play-icon text-[#ffd591] text-xs" aria-hidden="true"></span>
       </button>
-      <div class="player-copy">
-        <strong>{{ demoPlaying ? 'Playing demo' : 'Demo preview' }}</strong>
-        <span>Multi-speaker sample</span>
+      <div class="flex-1 min-w-0">
+        <div class="font-bold text-sm text-[#fff8ec]">{{ demoPlaying ? 'Playing demo' : 'Demo preview' }}</div>
+        <div class="text-xs text-[#9aa3bc]">Multi-speaker sample</div>
       </div>
-      <div #demoWaveform class="waveform-canvas" aria-hidden="true"></div>
-      <span class="wave-time">00:00 / 02:45</span>
+      <div #demoWaveform class="flex-1 h-10 min-w-[100px]" aria-hidden="true"></div>
+      <span class="flex-none text-xs text-[#9aa3bc] whitespace-nowrap">00:00 / 02:45</span>
     </div>
   </div>
 </section>
