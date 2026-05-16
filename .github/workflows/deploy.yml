@@ -360,9 +360,7 @@ jobs:
                     all_ready=false
                     break
                   fi
-                done <<EOF
-                  $pod_state
-                  EOF
+                done <<< "$pod_state"
 
                 if [ "$all_ready" = true ]; then
                   return 0
