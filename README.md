@@ -148,7 +148,7 @@ Ablauf bei Push:
 9. Wenn `TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64` gesetzt ist, die Google-TTS-Credentials vor dem Helm-Upgrade als Kubernetes Secret anlegen/aktualisieren; der Chat-Provider `gemini` funktioniert auch ohne dieses optionale TTS-Secret
 10. `helm upgrade --install --wait --timeout 5m` ausführen
 11. Backend- und Frontend-Deployments per `kubectl rollout status` abwarten
-12. Backend- und Frontend-Pods per `kubectl wait --for=condition=Ready pod -l ...` abwarten
+12. Backend- und Frontend-Pods per Live-Selector-Readiness-Check abwarten, der die aktuellen Pods wiederholt per Label neu abfragt und nur auf tatsächlich vorhandene Pods wartet
 13. Deployment-URL veröffentlichen; parallel zum Deployment-Pfad führt der separate Job `e2e-local` die mandatory Playwright-E2E-Tests lokal im GitHub-Actions-Runner mit Playwright-Webservern aus, inklusive realem Frontend-Backend-Check ohne Mock für die geprüfte Backend-Route
 
 Die Pipeline schlägt fehl, wenn Rollout/Pod-Readiness nicht erreicht wird oder wenn der separate `e2e-local`-Job fehlschlägt. Feste Sleep-Zeiten sind nicht der primäre Synchronisationsmechanismus; die Pipeline nutzt Kubernetes-Readiness und die Helm-Chart-Probes (`GET /health` im Backend, `GET /` im Frontend).

@@ -35,13 +35,6 @@ describe('StudioHeroComponent', () => {
     expect(fixture.nativeElement.querySelector('h1')).not.toBeNull();
   });
 
-  it('renders benefit chips', () => {
-    component.benefitChips = ['Multi-voice', 'MP3 export'];
-    fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Multi-voice');
-    expect(fixture.nativeElement.textContent).toContain('MP3 export');
-  });
-
   it('renders cast rows for each hero cast member', () => {
     component.heroCast = [
       { name: 'Mara', initials: 'M', tone: 'Warm alto' },

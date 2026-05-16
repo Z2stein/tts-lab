@@ -70,6 +70,33 @@ test('audiobook studio fills the story textarea with sample content', async ({ c
   await expect(storyText).toHaveValue(/Station Keeper/);
 });
 
+test('audiobook studio keeps journey step icons beside the copy on mobile widths', async ({ context, page }) => {
+  await authenticate(context, page);
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  await page.goto('/audiobook-studio');
+
+  const journeyTitle = page.getByRole('heading', { name: 'From plain text to performed story' });
+  const card = page.getByTestId('journey-card').first();
+  const icon = card.locator('.journey-icon-container');
+  const title = card.locator('h3');
+
+  await expect(journeyTitle).toBeVisible();
+  await expect(card).toBeVisible();
+  await expect(icon).toBeVisible();
+  await expect(title).toBeVisible();
+
+  const journeyTitleFontSize = await journeyTitle.evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize));
+  const [iconBox, titleBox] = await Promise.all([icon.boundingBox(), title.boundingBox()]);
+  const fontSize = await title.evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize));
+  expect(journeyTitleFontSize).toBeLessThan(18);
+  expect(iconBox).not.toBeNull();
+  expect(titleBox).not.toBeNull();
+  expect(fontSize).toBeLessThan(24);
+  expect(Math.abs((iconBox!.y ?? 0) - (titleBox!.y ?? 0))).toBeLessThan(14);
+  expect(titleBox!.x).toBeGreaterThan((iconBox!.x ?? 0) + (iconBox!.width ?? 0) * 0.5);
+});
+
 test('audiobook studio shows cast cards after story analysis succeeds', async ({ context, page }) => {
   await authenticate(context, page);
   await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {

@@ -327,10 +327,61 @@ jobs:
             echo "Waiting for frontend rollout: deployment/$FRONTEND_DEPLOYMENT"
             kubectl -n "$NAMESPACE" rollout status "deployment/$FRONTEND_DEPLOYMENT" --timeout=5m
 
+            wait_for_ready_pods() {
+              local selector="$1"
+              local description="$2"
+              local deadline=$((SECONDS + 300))
+
+              while true; do
+                local pod_state
+                pod_state="$(
+                  kubectl -n "$NAMESPACE" get pods -l "$selector" -o jsonpath='{range .items[*]}{.metadata.name}{" "}{.status.phase}{" "}{range .status.conditions[?(@.type=="Ready")]}{.status}{end}{"\n"}{end}'
+                )"
+
+                if [ -z "$pod_state" ]; then
+                  if [ "$SECONDS" -ge "$deadline" ]; then
+                    echo "::error title=Pod readiness timeout::Timed out waiting for $description pods to appear and become Ready."
+                    exit 1
+                  fi
+                  sleep 5
+                  continue
+                fi
+
+                local all_ready=true
+                while IFS= read -r line; do
+                  [ -n "$line" ] || continue
+                  local pod_name pod_phase pod_ready
+                  pod_name="${line%% *}"
+                  line="${line#* }"
+                  pod_phase="${line%% *}"
+                  pod_ready="${line##* }"
+
+                  if [ "$pod_phase" != "Running" ] || [ "$pod_ready" != "True" ]; then
+                    all_ready=false
+                    break
+                  fi
+                done <<EOF
+$pod_state
+EOF
+
+                if [ "$all_ready" = true ]; then
+                  return 0
+                fi
+
+                if [ "$SECONDS" -ge "$deadline" ]; then
+                  echo "::error title=Pod readiness timeout::Timed out waiting for $description pods to become Ready."
+                  kubectl -n "$NAMESPACE" get pods -l "$selector" -o wide
+                  exit 1
+                fi
+
+                sleep 5
+              done
+            }
+
             echo "Waiting for backend pods to be Ready with selector: $BACKEND_SELECTOR"
-            kubectl -n "$NAMESPACE" wait --for=condition=Ready pod -l "$BACKEND_SELECTOR" --timeout=5m
+            wait_for_ready_pods "$BACKEND_SELECTOR" "backend"
             echo "Waiting for frontend pods to be Ready with selector: $FRONTEND_SELECTOR"
-            kubectl -n "$NAMESPACE" wait --for=condition=Ready pod -l "$FRONTEND_SELECTOR" --timeout=5m
+            wait_for_ready_pods "$FRONTEND_SELECTOR" "frontend"
 
             kubectl -n "$NAMESPACE" get deployments,pods -l "app.kubernetes.io/instance=$RELEASE_NAME" -o wide
           EOF

@@ -11,8 +11,10 @@
       <div class="journey-icon-container">
         <span class="journey-step-icon" aria-hidden="true" [innerHTML]="getStepIcon(step.stepIcon)"></span>
       </div>
-      <h3>{{ step.icon }}. {{ step.title }}</h3>
-      <p>{{ step.description }}</p>
+      <div class="journey-copy">
+        <h3>{{ step.icon }}. {{ step.title }}</h3>
+        <p>{{ step.description }}</p>
+      </div>
     </button>
   </div>
 </section>

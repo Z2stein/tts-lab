@@ -22,7 +22,6 @@ import { CurrentTaskPanelComponent } from './components/current-task-panel/curre
 import { WaveformPlayerComponent } from './components/waveform-player/waveform-player.component';
 import { WorkflowProgressComponent } from './components/workflow-progress/workflow-progress.component';
 import {
-  BENEFIT_CHIPS,
   HERO_CAST,
   JOURNEY_STEPS,
   LANGUAGE_CODE_OPTIONS,
@@ -93,7 +92,6 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   readonly speakerStyleFn = (name: string | null | undefined) => this.speakerStyle(name);
 
-  readonly benefitChips = BENEFIT_CHIPS;
   readonly heroCast: readonly HeroCastMember[] = HERO_CAST;
   readonly journeySteps = JOURNEY_STEPS;
   readonly speakerAccents: readonly SpeakerAccent[] = SPEAKER_ACCENTS;

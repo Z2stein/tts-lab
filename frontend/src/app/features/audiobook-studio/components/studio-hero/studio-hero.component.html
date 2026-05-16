@@ -17,13 +17,10 @@
         class="secondary-button hero-secondary"
         [class.is-playing]="demoPlaying"
         (click)="playDemo($event)"
-      >
+        >
         <span class="play-dot" aria-hidden="true"></span>
         {{ demoPlaying ? 'Pause demo' : 'Listen to demo' }}
       </button>
-    </div>
-    <div class="benefit-chips" aria-label="Studio benefits">
-      <span *ngFor="let chip of benefitChips">{{ chip }}</span>
     </div>
   </div>
 
