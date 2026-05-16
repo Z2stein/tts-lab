@@ -302,7 +302,7 @@
   .studio {
     position: relative;
     display: grid;
-    gap: 1.5rem;
+    gap: 2.5rem;
     overflow: visible;
     border: 1px solid rgba(240, 173, 93, 0.16);
     border-radius: 1.25rem;
