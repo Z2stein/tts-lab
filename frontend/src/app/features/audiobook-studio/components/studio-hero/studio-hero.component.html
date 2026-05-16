@@ -68,7 +68,7 @@
           <h2 class="m-0 font-black text-[#fff8ec] min-w-0 overflow-hidden text-ellipsis">Detected cast</h2>
         </div>
         <div class="flex flex-col gap-2 min-w-0">
-          <div *ngFor="let member of heroCast" class="flex items-center gap-2 text-sm" [ngStyle]="speakerStyleFn(member.name)">
+          <div *ngFor="let member of heroCast" class="flex items-center gap-2 text-sm border-l-4 rounded-l pl-3 py-2" [ngStyle]="speakerStyleFn(member.name)" [style.borderLeftColor]="'var(--speaker-accent, #f0ad5d)'" [style.backgroundColor]="'color-mix(in srgb, var(--speaker-accent, #f0ad5d) 8%, transparent)'">
             <div class="flex-none w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-[rgba(240,173,93,0.16)] flex-shrink-0">
               <img *ngIf="member.imageUrl"
                    [src]="member.imageUrl"
