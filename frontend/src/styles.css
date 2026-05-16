@@ -327,6 +327,13 @@
     margin-top: 0;
   }
 
+  /* Workflow shell container for step sections */
+  .workflow-shell {
+    display: flex;
+    flex-direction: column;
+    gap: 2.5rem;
+  }
+
   /* Studio page texture overlay (::before pseudo-element) */
   .studio::before {
     content: '';
