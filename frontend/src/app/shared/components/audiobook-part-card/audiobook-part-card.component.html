@@ -1,13 +1,13 @@
-<article class="render-request" [ngStyle]="{ borderLeftColor: 'var(--speaker-accent)' }">
+<article class="rounded-[0.9rem] border-2 border-transparent border-l-4 bg-[rgba(5,9,20,0.44)] p-4 grid gap-4 shadow-[0_8px_32px_rgba(0,0,0,0.3)]" [ngStyle]="{ borderLeftColor: 'var(--speaker-accent, #f0ad5d)' }" [ngClass]="getSpeakerAccentClass(partNumber)">
   <!-- Speaker Identity Section -->
-  <div class="render-identity">
-    <span class="cast-avatar part-avatar" [ngClass]="getSpeakerAccentClass(partNumber)" aria-hidden="true">
+  <div class="grid grid-cols-[auto_1fr] items-start gap-4">
+    <span class="w-16 h-16 rounded-full flex items-center justify-center font-black text-2xl text-[#fff8ec] flex-shrink-0" [ngClass]="getSpeakerAccentClass(partNumber)" style="background: linear-gradient(135deg, var(--speaker-accent, #f0ad5d), rgba(0, 0, 0, 0.2)); box-shadow: 0 0 24px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.34))" aria-hidden="true">
       {{ (part.speakerName || 'P') | slice:0:1 | uppercase }}
     </span>
     <div>
-      <span class="badge">Part {{ partNumber }} of {{ totalParts }}</span>
-      <h3>{{ part.speakerName || 'Generated Part' }}</h3>
-      <p class="part-meta" *ngIf="part.speakerRole || part.voiceName">
+      <span class="inline-block bg-[rgba(255,213,145,0.15)] border border-[rgba(255,213,145,0.42)] rounded-full px-[0.65rem] py-[0.35rem] text-[0.75rem] font-bold text-[#ffd591] uppercase tracking-[0.05em] mb-[0.35rem]">Part {{ partNumber }} of {{ totalParts }}</span>
+      <h3 class="m-0 text-[1.35rem] font-black text-[#fff8ec] leading-[1.2]">{{ part.speakerName || 'Generated Part' }}</h3>
+      <p class="m-0 mt-1 text-[0.95rem] text-[#c9d1e8] leading-[1.4]" *ngIf="part.speakerRole || part.voiceName">
         <span *ngIf="part.speakerRole">{{ part.speakerRole }}</span>
         <span *ngIf="part.voiceName">{{ part.speakerRole ? '• ' : '' }}{{ part.voiceName }}</span>
       </p>
@@ -15,29 +15,29 @@
   </div>
 
   <!-- Original Script Text -->
-  <p class="original-text" *ngIf="part.originalText">
+  <p class="m-0 text-[0.95rem] text-[#d5d9e8] italic px-3 py-3 bg-[rgba(0,0,0,0.2)] rounded-[0.5rem] border-l-[3px]" [style.borderLeftColor]="'var(--speaker-accent, #f0ad5d)'" *ngIf="part.originalText">
     {{ part.originalText }}
   </p>
 
   <!-- Emotion & Direction Tags -->
-  <div class="emotion-tags" *ngIf="part.emotionTags?.length">
-    <span *ngFor="let tag of part.emotionTags" [ngClass]="isDirectionTag(tag) ? 'tag direction-tag' : 'tag emotion-tag'">
+  <div class="flex flex-wrap gap-2 m-0" *ngIf="part.emotionTags?.length">
+    <span *ngFor="let tag of part.emotionTags" [ngClass]="isDirectionTag(tag) ? 'inline-block text-sm font-semibold px-[0.65rem] py-[0.4rem] rounded-[0.35rem] border border-[rgba(201,209,232,0.25)] bg-transparent text-[#c9d1e8] italic' : 'inline-block text-sm font-semibold px-[0.65rem] py-[0.4rem] rounded-[0.35rem] bg-[rgba(255,213,145,0.15)] border border-[rgba(255,213,145,0.42)] text-[#ffd591]'">
       [{{ tag }}]
     </span>
   </div>
 
   <!-- Status Badge -->
-  <p class="part-status" [ngClass]="'part-status-' + getStatusClass(part.status)">
+  <p class="part-status m-0 inline-block rounded-full px-3.2 py-2.2 text-sm font-semibold border bg-[rgba(255,255,255,0.06)] text-[#d5d9e8] border-transparent" [ngClass]="'part-status-' + getStatusClass(part.status)">
     {{ getStatusLabel(part.status) }}
   </p>
 
   <!-- Action Buttons (Library Mode = Download Only) -->
-  <button class="download-btn" *ngIf="readonly && part.readyAssetId" (click)="downloadAsset(part.readyAssetId)">
+  <button class="inline-block px-[1.2rem] py-[0.6rem] rounded-[0.6rem] border border-[rgba(255,213,145,0.42)] bg-[rgba(255,213,145,0.1)] text-[#ffd591] text-sm font-semibold cursor-pointer transition-all hover:bg-[rgba(255,213,145,0.2)] hover:border-[rgba(255,213,145,0.6)]" *ngIf="readonly && part.readyAssetId" (click)="downloadAsset(part.readyAssetId)">
     Download part
   </button>
 
   <!-- Error Message (Studio Mode) -->
-  <p class="error" *ngIf="!readonly && part.error">
+  <p class="m-2 px-[0.65rem] py-[0.65rem] bg-[rgba(255,180,168,0.1)] border border-[rgba(255,180,168,0.42)] rounded-[0.5rem] text-[#ffb4a8] text-sm" *ngIf="!readonly && part.error">
     {{ part.error }}
   </p>
 
@@ -48,6 +48,7 @@
     [src]="part.audioUrl"
     [playing]="playing"
     (playingChange)="playing = $event"
+    class="grid grid-cols-[auto_minmax(12rem,1fr)_auto_auto] items-center gap-[0.85rem] rounded-[0.9rem] bg-[rgba(5,9,20,0.44)] px-2 py-2 border border-white/5"
     [ariaLabel]="'Part ' + partNumber + ': ' + (part.speakerName || 'Generated')">
   </app-waveform-player>
 </article>

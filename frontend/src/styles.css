@@ -266,6 +266,22 @@
     border-color: color-mix(in srgb, var(--speaker-accent, #f0ad5d) 80%, transparent);
   }
 
+  /* Audiobook part card status variants */
+  .part-status-ready {
+    border-color: rgba(143, 231, 189, 0.42);
+    color: #8fe7bd;
+  }
+
+  .part-status-approved {
+    border-color: rgba(143, 231, 189, 0.42);
+    color: #8fe7bd;
+  }
+
+  .part-status-failed {
+    border-color: rgba(255, 180, 168, 0.42);
+    color: #ffb4a8;
+  }
+
   /* Studio page texture overlay (::before pseudo-element) */
   .studio::before {
     content: '';

@@ -25,7 +25,6 @@ export interface AudiobookPartCard {
   imports: [CommonModule, WaveformPlayerComponent],
   providers: [VoiceSampleService],
   templateUrl: './audiobook-part-card.component.html',
-  styleUrl: './audiobook-part-card.component.css',
 })
 export class AudiobookPartCardComponent {
   @Input({ required: true }) part!: AudiobookPartCard;
