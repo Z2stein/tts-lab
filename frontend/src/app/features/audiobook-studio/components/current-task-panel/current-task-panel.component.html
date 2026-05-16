@@ -1,5 +1,5 @@
 <aside aria-live="polite">
-  <button type="button" class="current-task w-full mt-4 px-4 py-4 border border-[rgba(240,173,93,0.2)] rounded-[1rem] cursor-pointer text-left" data-testid="current-task" (click)="onTaskClick($event)">
+  <button type="button" class="current-task w-full mt-4 px-4 py-4 border border-[rgba(240,173,93,0.2)] rounded-2xl cursor-pointer text-left" data-testid="current-task" (click)="onTaskClick($event)">
     <span class="inline-flex mb-[0.45rem] text-[#ffd591] text-xs font-black tracking-[0.08em] uppercase">You are here</span>
     <h2 class="m-0 mb-[0.35rem] text-[#fff8ec] text-[clamp(1.25rem,2vw,1.55rem)] leading-[1.1]" style="font-family: Georgia, 'Times New Roman', serif">{{ currentTask.title }}</h2>
     <p class="m-0 mb-[0.65rem] text-[#c9d1e8] leading-[1.55]">{{ currentTask.body }}</p>
