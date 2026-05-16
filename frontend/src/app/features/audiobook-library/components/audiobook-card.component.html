@@ -1,0 +1,49 @@
+<article class="grid gap-5 rounded-lg border border-studio-line bg-studio-panel/85 p-5 shadow-[0_24px_80px_rgba(0,0,0,0.3)] backdrop-blur" data-testid="audiobook-card">
+  <div class="flex items-start justify-between gap-4">
+    <div>
+      <span class="badge">{{ statusLabel(project.status) }}</span>
+      <h2 class="mb-1 mt-3 text-2xl font-black text-studio-text">{{ project.title }}</h2>
+      <p class="m-0 text-sm text-studio-muted">Updated {{ updatedLabel(project.updatedAt) }}</p>
+    </div>
+    <div class="hidden h-16 w-20 items-end gap-1 rounded-md border border-studio-line bg-[#0b0910] p-2 sm:flex" aria-hidden="true">
+      <span *ngFor="let bar of bars" class="w-full rounded-t bg-gradient-to-t from-studio-accent to-[#7a74ff]" [style.height.%]="bar"></span>
+    </div>
+  </div>
+
+  <dl class="grid grid-cols-3 gap-2 text-sm">
+    <div class="rounded-md border border-studio-line bg-studio-field p-3">
+      <dt class="text-studio-muted">Speech segments</dt>
+      <dd class="m-0 text-lg font-extrabold" data-testid="speech-segment-count">{{ project.speechSegmentCount }}</dd>
+    </div>
+    <div class="rounded-md border border-studio-line bg-studio-field p-3">
+      <dt class="text-studio-muted">Speakers</dt>
+      <dd class="m-0 text-lg font-extrabold" data-testid="speaker-count">{{ project.speakerCount ?? 0 }}</dd>
+    </div>
+    <div class="rounded-md border border-studio-line bg-studio-field p-3">
+      <dt class="text-studio-muted">Duration</dt>
+      <dd class="m-0 text-lg font-extrabold">{{ durationLabel(project.totalDurationSeconds) }}</dd>
+    </div>
+  </dl>
+
+  <div class="flex flex-wrap gap-2">
+    <a class="primary-button" [routerLink]="['/audiobook-studio', project.id]" data-testid="continue-studio">Continue</a>
+    <button
+      type="button"
+      class="secondary-button"
+      [disabled]="!previewAsset"
+      (click)="onPlayPreview()"
+      data-testid="play-preview"
+    >
+      Play preview
+    </button>
+    <button
+      type="button"
+      class="secondary-button"
+      [disabled]="!previewAsset"
+      (click)="onDownloadPreview()"
+      data-testid="download-preview"
+    >
+      Download
+    </button>
+  </div>
+</article>

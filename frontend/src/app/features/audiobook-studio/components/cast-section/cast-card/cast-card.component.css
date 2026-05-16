@@ -108,7 +108,7 @@
 
 /* ── Voice column ───────────────────────────────────────────────────────── */
 .cast-card-voice {
-  flex: 0 0 clamp(15rem, 40%, 22rem);
+  flex: 1 0 clamp(15rem, 40%, 22rem);
   position: relative;
   display: flex;
   flex-direction: column;

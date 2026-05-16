@@ -16,6 +16,7 @@ import com.example.ttslab.audiobooks.repository.AudiobookRepository;
 import com.example.ttslab.audiobooks.repository.AudiobookSpeechSegmentRepository;
 import com.example.ttslab.audiobooks.service.AudiobookMetadataCalculator;
 import com.example.ttslab.audiobooks.service.AudiobookLibraryService;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.audiobooks.workflow.TtsAudioFile;
@@ -38,6 +39,7 @@ class AudiobookLibraryServiceTest {
         AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
         AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
         AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = Mockito.mock(SpeakerCharacterRepository.class);
         FileStorageService storage = Mockito.mock(FileStorageService.class);
         AudiobookLibraryService service = new AudiobookLibraryService(
             repository,
@@ -46,7 +48,8 @@ class AudiobookLibraryServiceTest {
             assetRepository,
             storage,
             new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
-            new AudiobookMetadataCalculator(repository)
+            new AudiobookMetadataCalculator(repository),
+            speakerCharacterRepository
         );
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
@@ -63,6 +66,7 @@ class AudiobookLibraryServiceTest {
         AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
         AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
         AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = Mockito.mock(SpeakerCharacterRepository.class);
         FileStorageService storage = Mockito.mock(FileStorageService.class);
         AudiobookLibraryService service = new AudiobookLibraryService(
             repository,
@@ -71,7 +75,8 @@ class AudiobookLibraryServiceTest {
             assetRepository,
             storage,
             new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
-            new AudiobookMetadataCalculator(repository)
+            new AudiobookMetadataCalculator(repository),
+            speakerCharacterRepository
         );
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
         AudioAsset asset = new AudioAsset("asset-1", "project-1", null, AudioAssetType.PREVIEW_MP3, 1, "key", "a.mp3", "audio/mpeg", 3, null, AudioAssetStatus.GENERATING, Instant.now());
@@ -84,12 +89,13 @@ class AudiobookLibraryServiceTest {
     }
 
     @Test
-    void listComputesMetadataFromAudioAssets() {
-        // Test that list() calls the metadata calculator instead of reading persisted values
+    void listComputesMetadataFromProjectSegmentsAndCharacters() {
+        // Test that list() uses project speech segments and assigned characters instead of audio assets
         AudiobookRepository repository = Mockito.mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
         AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
         AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = Mockito.mock(SpeakerCharacterRepository.class);
         FileStorageService storage = Mockito.mock(FileStorageService.class);
         AudiobookLibraryService service = new AudiobookLibraryService(
             repository,
@@ -98,7 +104,8 @@ class AudiobookLibraryServiceTest {
             assetRepository,
             storage,
             new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
-            new AudiobookMetadataCalculator(repository)
+            new AudiobookMetadataCalculator(repository),
+            speakerCharacterRepository
         );
         CurrentUser user = new CurrentUser("user-1", "user@example.com", "User", List.of("USER"), "mock");
 
@@ -116,7 +123,54 @@ class AudiobookLibraryServiceTest {
             Instant.now()
         );
 
-        // Create 3 assets with 2 unique speakers and 19s total duration
+        SpeakerCharacter narrator = new SpeakerCharacter(
+            "character-1",
+            "proj-1",
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
+        SpeakerCharacter mara = new SpeakerCharacter(
+            "character-2",
+            "proj-1",
+            1,
+            "Mara",
+            null,
+            SpeakerVoice.KORE,
+            Instant.now()
+        );
+        List<AudiobookSpeechSegment> previewSegments = List.of(
+            new AudiobookSpeechSegment(
+                "segment-1",
+                project,
+                0,
+                "Speech segment 1",
+                AudiobookSpeechSegmentReviewStatus.PENDING,
+                6,
+                Instant.now(),
+                Instant.now(),
+                "Hello",
+                null,
+                narrator
+            ),
+            new AudiobookSpeechSegment(
+                "segment-2",
+                project,
+                1,
+                "Speech segment 2",
+                AudiobookSpeechSegmentReviewStatus.PENDING,
+                5,
+                Instant.now(),
+                Instant.now(),
+                "Hi",
+                null,
+                mara
+            )
+        );
+
+        // Create 3 assets, but the counts should ignore them
         List<AudioAsset> assets = List.of(
             new AudioAsset("asset-1", "proj-1", "speech-segment-1", AudioAssetType.PREVIEW_MP3, 1, "key-1", "segment-1-narrator.mp3", "audio/mpeg", 1000L, 6, AudioAssetStatus.READY, Instant.now()),
             new AudioAsset("asset-2", "proj-1", "speech-segment-2", AudioAssetType.PREVIEW_MP3, 1, "key-2", "segment-2-mara.mp3", "audio/mpeg", 1000L, 5, AudioAssetStatus.READY, Instant.now()),
@@ -124,16 +178,18 @@ class AudiobookLibraryServiceTest {
         );
 
         when(repository.findProjectsForUser("user-1")).thenReturn(List.of(project));
+        when(repository.findPreviewSpeechSegments("proj-1")).thenReturn(previewSegments);
         when(repository.findAssets("proj-1")).thenReturn(assets);
+        when(speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc("proj-1")).thenReturn(List.of(narrator, mara));
 
         AudiobookSummaryResponse response = service.list(user);
 
         assertEquals(1, response.items().size());
         AudiobookSummaryResponse.AudiobookSummaryItem item = response.items().get(0);
 
-        // Verify metadata was calculated from assets, not read from project
-        assertEquals(3, item.speechSegmentCount(), "Should calculate 3 segments from 3 ready assets");
-        assertEquals(2, item.speakerCount(), "Should calculate 2 unique speakers (narrator, mara)");
+        // Verify metadata was calculated from project segments and assigned characters
+        assertEquals(2, item.speechSegmentCount(), "Should calculate 2 segments from project speech segments");
+        assertEquals(2, item.speakerCount(), "Should calculate 2 assigned speakers (narrator, mara)");
         assertEquals(19, item.totalDurationSeconds(), "Should calculate 19 seconds total (6+5+8)");
     }
 
@@ -145,6 +201,7 @@ class AudiobookLibraryServiceTest {
         AudiobookProjectRepository projectRepository = Mockito.mock(AudiobookProjectRepository.class);
         AudiobookSpeechSegmentRepository segmentRepository = Mockito.mock(AudiobookSpeechSegmentRepository.class);
         AudioAssetRepository assetRepository = Mockito.mock(AudioAssetRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = Mockito.mock(SpeakerCharacterRepository.class);
         FileStorageService storage = Mockito.mock(FileStorageService.class);
         AudiobookLibraryService service = new AudiobookLibraryService(
             repository,
@@ -153,7 +210,8 @@ class AudiobookLibraryServiceTest {
             assetRepository,
             storage,
             new StorageKeyBuilder(new StorageProperties("./data", "app", "feature", "branch")),
-            new AudiobookMetadataCalculator(repository)
+            new AudiobookMetadataCalculator(repository),
+            speakerCharacterRepository
         );
         AudiobookProject project = new AudiobookProject(
             "proj-1",
