@@ -296,6 +296,37 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
   }
 
+  /* ── Studio page container ──────────────────────────────────────── */
+
+  /* Main studio container with grid layout and decorative background */
+  .studio {
+    position: relative;
+    display: grid;
+    gap: 1.5rem;
+    overflow: visible;
+    border: 1px solid rgba(240, 173, 93, 0.16);
+    border-radius: 1.25rem;
+    background:
+      radial-gradient(circle at 80% 6%, rgba(105, 88, 255, 0.18), transparent 28rem),
+      radial-gradient(circle at 16% 0%, rgba(240, 173, 93, 0.18), transparent 24rem),
+      linear-gradient(180deg, #050914 0%, #0b0f1d 36%, #100d14 100%);
+    color: #f8efe5;
+    margin-left: calc((100% - min(1180px, calc(100vw - 4rem))) / 2);
+    padding: clamp(1rem, 2.5vw, 2rem);
+    width: min(1180px, calc(100vw - 4rem));
+  }
+
+  .studio > * {
+    position: relative;
+  }
+
+  .studio h1,
+  .studio h2,
+  .studio h3,
+  .studio p {
+    margin-top: 0;
+  }
+
   /* Studio page texture overlay (::before pseudo-element) */
   .studio::before {
     content: '';
