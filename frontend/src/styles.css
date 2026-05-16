@@ -345,6 +345,285 @@
     font-weight: 900;
   }
 
+  /* ── Studio page section styles ──────────────────────────────────────── */
+
+  /* Anchor section for scroll-to functionality */
+  .anchor-section {
+    scroll-margin-top: 7rem;
+  }
+
+  /* Step heading with number badge and title */
+  .step-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+  }
+
+  .step-heading h2 {
+    margin: 0 0 0.2rem 0;
+    color: #fff8ec;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    line-height: 1.1;
+  }
+
+  .step-heading p {
+    margin: 0;
+    color: #c9d1e8;
+    line-height: 1.6;
+  }
+
+  /* Step number circular badge */
+  .step-number {
+    display: inline-flex;
+    width: 2.35rem;
+    height: 2.35rem;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #ffe2a7, #f0ad5d);
+    box-shadow: 0 0 28px rgba(240, 173, 93, 0.25);
+    color: #140f14;
+    font-size: 1.2rem;
+    font-weight: 900;
+  }
+
+  /* Audio promise section with three-column layout */
+  .audio-promise {
+    border: 1px solid rgba(240, 173, 93, 0.2);
+    border-radius: 1rem;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(240, 173, 93, 0.14), transparent 18rem),
+      rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: minmax(13rem, 1fr) auto minmax(12rem, 0.8fr);
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .audio-promise ul {
+    display: grid;
+    gap: 0.35rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .audio-promise li {
+    color: #d5d9e8;
+    font-weight: 800;
+  }
+
+  .audio-promise li::before {
+    content: '+';
+    margin-right: 0.5rem;
+    color: #8fe7bd;
+  }
+
+  .audio-promise h3 {
+    margin: 0 0 0.35rem 0;
+    color: #fff8ec;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.25rem, 2vw, 1.55rem);
+  }
+
+  /* Task label (uppercase badge) */
+  .task-label {
+    display: inline-flex;
+    margin-bottom: 0.45rem;
+    color: #ffd591;
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  /* Mini waveform bars visualization */
+  .mini-waveform {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.22rem;
+    min-height: 3.8rem;
+  }
+
+  .mini-waveform span {
+    width: 0.34rem;
+    border-radius: 999px;
+    background: linear-gradient(180deg, #ffe2a7, #f0ad5d 48%, #9868ff);
+    box-shadow: 0 0 16px rgba(240, 173, 93, 0.35);
+  }
+
+  /* Audiobook production plan summary grid */
+  .plan-summary {
+    display: grid;
+    gap: 0.85rem;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  }
+
+  .plan-summary-status {
+    grid-column: 1 / -1;
+    display: grid !important;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .plan-summary div {
+    display: grid;
+    gap: 0.3rem;
+    border: 1px solid rgba(195, 204, 255, 0.16);
+    border-radius: 0.9rem;
+    background: rgba(5, 9, 20, 0.58);
+    padding: 1rem;
+  }
+
+  .plan-summary span {
+    color: #c9d1e8;
+    font-size: 0.86rem;
+  }
+
+  .plan-summary strong {
+    color: #ffd591;
+    font-size: 1.35rem;
+    font-weight: 900;
+  }
+
+  .plan-summary-status strong {
+    font-size: 1.1rem;
+  }
+
+  /* Generated audio player section */
+  .generated-audio-player {
+    border: 1px solid rgba(240, 173, 93, 0.2);
+    border-radius: 1rem;
+    background:
+      radial-gradient(circle at 15% 0%, rgba(240, 173, 93, 0.14), transparent 18rem),
+      rgba(255, 255, 255, 0.045);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    padding: 1rem;
+    display: grid;
+    grid-template-columns: minmax(12rem, 0.65fr) auto minmax(16rem, 1fr) auto auto;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .generated-audio-player h3 {
+    margin: 0 0 0.35rem 0;
+    color: #fff8ec;
+    font-family: Georgia, 'Times New Roman', serif;
+    font-size: clamp(1.25rem, 2vw, 1.55rem);
+  }
+
+  .generated-audio-player p {
+    margin: 0 0 0.65rem 0;
+    color: #d5d9e8;
+    line-height: 1.55;
+  }
+
+  /* Audio parts details section */
+  .audio-parts-details {
+    border: 1px solid rgba(195, 204, 255, 0.16);
+    border-radius: 1rem;
+    background: rgba(5, 9, 20, 0.5);
+    padding: 1rem;
+  }
+
+  .audio-parts-details summary {
+    color: #ffd591;
+    cursor: pointer;
+    font-weight: 900;
+  }
+
+  /* Generation guidance informational box */
+  .generation-guidance {
+    display: grid;
+    gap: 0.35rem;
+    border: 1px solid rgba(240, 173, 93, 0.3);
+    border-radius: 1rem;
+    background: rgba(240, 173, 93, 0.08);
+    padding: 0.9rem 1rem;
+  }
+
+  .generation-guidance strong {
+    color: #ffd591;
+    font-size: 1rem;
+    font-weight: 900;
+  }
+
+  .generation-guidance p {
+    margin: 0;
+    color: #d5d9e8;
+    line-height: 1.55;
+  }
+
+  /* Render request card with left accent border */
+  .render-request {
+    display: grid;
+    gap: 0.8rem;
+    grid-template-columns: minmax(12rem, 1fr) auto auto;
+    align-items: center;
+    border: 1px solid rgba(195, 204, 255, 0.18);
+    border-left: 4px solid var(--speaker-accent, #f0ad5d);
+    border-radius: 1rem;
+    background:
+      radial-gradient(circle at 12% 0%, color-mix(in srgb, var(--speaker-accent, #f0ad5d) 16%, transparent), transparent 16rem),
+      rgba(255, 255, 255, 0.045);
+    padding: 1rem;
+  }
+
+  .render-request h3 {
+    margin: 0;
+    color: #fff8ec;
+    font-size: 1.35rem;
+  }
+
+  .render-request audio,
+  .render-request .error,
+  .render-request .render-player {
+    grid-column: 1 / -1;
+  }
+
+  /* Render identity section (avatar + name/info) */
+  .render-identity {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.9rem;
+    min-width: 0;
+  }
+
+  /* Part avatar image styling */
+  .part-avatar {
+    width: 4rem;
+    height: 4rem;
+    box-shadow: 0 0 34px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.34));
+  }
+
+  /* Part metadata text */
+  .part-meta {
+    margin: 0.25rem 0 0;
+    color: #c9d1e8;
+    font-size: 0.88rem;
+  }
+
+  /* Part status badge */
+  .part-status {
+    justify-self: end;
+    min-width: 9.5rem;
+    margin: 0;
+    border: 1px solid rgba(195, 204, 255, 0.16);
+    border-radius: 999px;
+    background: rgba(5, 9, 20, 0.6);
+    padding: 0.4rem 0.9rem;
+    text-align: center;
+    font-size: 0.82rem;
+    font-weight: 900;
+  }
+
   /* Ensure [hidden] attribute beats display values */
   [hidden] {
     display: none !important;
