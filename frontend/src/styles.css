@@ -282,6 +282,12 @@
     color: #ffb4a8;
   }
 
+  /* App header navigation active state */
+  .main-nav a.active {
+    background: #2a2025;
+    color: #f0ad5d;
+  }
+
   /* Studio page texture overlay (::before pseudo-element) */
   .studio::before {
     content: '';

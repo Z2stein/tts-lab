@@ -3,44 +3,44 @@
 </ng-container>
 
 <ng-template #authenticatedAppShell>
-<div class="app-shell">
-  <header class="app-header">
-    <a class="brand" routerLink="/" aria-label="TTS Lab home">TTS Lab</a>
+<div class="bg-[#120f14] text-[#f8efe5] min-h-screen">
+  <header class="flex items-center justify-between gap-4 bg-[#17131a] border-b border-[#392d36] shadow-[0_12px_36px_rgba(0,0,0,0.28)] px-[clamp(1rem,4vw,2rem)] py-[0.85rem] relative z-50 max-[720px]:flex-col max-[720px]:items-stretch">
+    <a class="text-[#f8efe5] text-[1.2rem] font-black no-underline whitespace-nowrap" routerLink="/" aria-label="TTS Lab home">TTS Lab</a>
 
-    <nav class="main-nav" aria-label="Primary navigation">
-      <a routerLink="/audiobook-studio" routerLinkActive="active">Audiobook Studio</a>
-      <a routerLink="/audiobook-library" routerLinkActive="active">My Audiobooks</a>
-      <a routerLink="/cv-audiobook-demo" routerLinkActive="active">Demo</a>
-      <a *ngIf="currentUser?.email === 'christiophthurn0@gmail.com'" routerLink="/prompt-history" routerLinkActive="active">Prompt History</a>
+    <nav class="flex flex-wrap gap-[0.35rem] justify-center max-[720px]:justify-start" aria-label="Primary navigation">
+      <a routerLink="/audiobook-studio" routerLinkActive="active" class="rounded-full text-[#cbbdb0] font-bold px-[0.8rem] py-[0.45rem] no-underline hover:bg-[#2a2025] hover:text-[#f0ad5d]">Audiobook Studio</a>
+      <a routerLink="/audiobook-library" routerLinkActive="active" class="rounded-full text-[#cbbdb0] font-bold px-[0.8rem] py-[0.45rem] no-underline hover:bg-[#2a2025] hover:text-[#f0ad5d]">My Audiobooks</a>
+      <a routerLink="/cv-audiobook-demo" routerLinkActive="active" class="rounded-full text-[#cbbdb0] font-bold px-[0.8rem] py-[0.45rem] no-underline hover:bg-[#2a2025] hover:text-[#f0ad5d]">Demo</a>
+      <a *ngIf="currentUser?.email === 'christiophthurn0@gmail.com'" routerLink="/prompt-history" routerLinkActive="active" class="rounded-full text-[#cbbdb0] font-bold px-[0.8rem] py-[0.45rem] no-underline hover:bg-[#2a2025] hover:text-[#f0ad5d]">Prompt History</a>
     </nav>
 
-    <div class="auth-summary" aria-live="polite">
-      <span *ngIf="authStatus === 'loading'">Loading...</span>
+    <div class="flex flex-wrap gap-2 items-center justify-end min-w-[11rem] max-[720px]:justify-start" aria-live="polite">
+      <span class="text-[#cbbdb0] text-sm" *ngIf="authStatus === 'loading'">Loading...</span>
       <ng-container *ngIf="authStatus === 'authenticated' && currentUser">
-        <div class="limit-summary" aria-label="Remaining usage">
-          <span>Speech {{ formatRemaining(limitFor('SPEECH_MODEL')) }}</span>
-          <span>Text {{ formatRemaining(limitFor('TEXT_MODEL')) }}</span>
+        <div class="flex flex-wrap gap-[0.35rem] items-center justify-end" aria-label="Remaining usage">
+          <span class="bg-[#2a2025] border border-[#57414a] rounded-full text-[#f4c78e] text-xs font-black px-[0.55rem] py-1 whitespace-nowrap">Speech {{ formatRemaining(limitFor('SPEECH_MODEL')) }}</span>
+          <span class="bg-[#2a2025] border border-[#57414a] rounded-full text-[#f4c78e] text-xs font-black px-[0.55rem] py-1 whitespace-nowrap">Text {{ formatRemaining(limitFor('TEXT_MODEL')) }}</span>
         </div>
-        <span>Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</span>
-        <button type="button" (click)="logout()">Logout</button>
+        <span class="text-[#cbbdb0] text-sm">Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</span>
+        <button type="button" (click)="logout()" class="bg-[#f0ad5d] border-0 rounded-full text-[#100d12] cursor-pointer font-bold px-4 py-[0.55rem] hover:bg-[#f4c78e]">Logout</button>
       </ng-container>
     </div>
   </header>
 
-  <main class="app-main">
+  <main class="mx-auto max-w-[1280px] px-[clamp(1rem,4vw,2rem)]">
     <ng-container *ngIf="authStatus === 'loading'">
-      <section class="status-card">
-        <h1>Loading TTS Lab</h1>
+      <section class="bg-[#1a161d] border border-[#392d36] rounded-[12px] my-8 mx-auto max-w-[36rem] px-8 py-8 text-center">
+        <h1 class="mt-0">Loading TTS Lab</h1>
         <p>Checking your session...</p>
       </section>
     </ng-container>
 
     <ng-container *ngIf="authStatus === 'unauthenticated'">
-      <section class="status-card">
-        <h1>Sign in to use TTS Lab</h1>
+      <section class="bg-[#1a161d] border border-[#392d36] rounded-[12px] my-8 mx-auto max-w-[36rem] px-8 py-8 text-center">
+        <h1 class="mt-0">Sign in to use TTS Lab</h1>
         <p *ngIf="authError" class="error">{{ authError }}</p>
         <p>Please sign in to access the learning app features.</p>
-        <button type="button" (click)="loginWithGoogle()">Sign in with Google</button>
+        <button type="button" (click)="loginWithGoogle()" class="bg-[#f0ad5d] border-0 rounded-full text-[#100d12] cursor-pointer font-bold px-4 py-[0.55rem] hover:bg-[#f4c78e]">Sign in with Google</button>
       </section>
     </ng-container>
 

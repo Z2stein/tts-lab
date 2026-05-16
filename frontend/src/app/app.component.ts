@@ -12,7 +12,7 @@ import { LoggerService } from './logger.service';
   standalone: true,
   imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ChatbotWidgetComponent],
   templateUrl: './app.component.html',
-  styleUrl: './app.component.css'
+  host: { class: 'block min-h-screen' }
 })
 export class AppComponent implements OnInit, OnDestroy {
   authStatus: 'loading' | 'authenticated' | 'unauthenticated' = 'loading';
