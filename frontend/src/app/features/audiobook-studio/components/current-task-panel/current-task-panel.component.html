@@ -1,0 +1,8 @@
+<aside aria-live="polite">
+  <button type="button" class="current-task helper-jump" data-testid="current-task" (click)="onTaskClick($event)">
+    <span class="task-label">You are here</span>
+    <h2>{{ currentTask.title }}</h2>
+    <p>{{ currentTask.body }}</p>
+    <strong>{{ currentTask.nextAction }}</strong>
+  </button>
+</aside>

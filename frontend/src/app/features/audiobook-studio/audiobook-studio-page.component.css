@@ -2,7 +2,7 @@
   position: relative;
   display: grid;
   gap: 1.5rem;
-  overflow: hidden;
+  overflow: visible;
   border: 1px solid rgba(240, 173, 93, 0.16);
   border-radius: 1.25rem;
   background:
@@ -417,7 +417,8 @@ h1 span {
 }
 
 .workflow-shell {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 1.25rem;
   border-top: 1px solid rgba(240, 173, 93, 0.14);
   margin-top: 0.5rem;

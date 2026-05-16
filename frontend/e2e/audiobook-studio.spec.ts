@@ -87,7 +87,7 @@ test('audiobook studio shows cast cards after story analysis succeeds', async ({
 
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
   await expect(page.getByTestId('studio-hero')).toHaveCount(0);
-  await expect(page.getByText('Detected character')).toHaveCount(2);
+  await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
   await expect(page.getByRole('heading', { name: 'Mara' })).toBeVisible();
   await expect(page.getByText('KORE')).toBeVisible();
   await expect(page.getByText('The Hidden Signal')).toBeVisible();
@@ -155,7 +155,7 @@ test('audiobook studio shows script preview turns after cast analysis continues'
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
-  await expect(page.getByText('Detected character')).toHaveCount(2);
+  await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
   await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
 
   await expect(page.locator('h2', { hasText: 'Review script' })).toBeVisible();
@@ -318,6 +318,34 @@ test('audiobook studio resume route keeps a single studio shell and renders styl
   await expect(page.getByTestId('current-task')).toContainText('Choose your voices');
 });
 
+test('audiobook studio keeps the workflow progress bar sticky while scrolling through the workflow', async ({ context, page }) => {
+  await authenticate(context, page);
+  await mockWorkflowSnapshot(page);
+
+  await page.goto(`/audiobook-studio/${testProjectId}`);
+
+  const workflowProgress = page.getByTestId('workflow-progress');
+  const currentTask = page.getByTestId('current-task');
+  const audioSection = page.getByTestId('audio-section');
+
+  const beforeScroll = await workflowProgress.boundingBox();
+  expect(beforeScroll?.y ?? 0).toBeGreaterThan(0);
+
+  const audioSectionTop = await audioSection.evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
+  await page.evaluate((scrollTop) => {
+    window.scrollTo(0, Math.max(0, scrollTop - 140));
+  }, audioSectionTop);
+  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
+
+  await expect(workflowProgress).toBeVisible();
+
+  const afterScroll = await workflowProgress.boundingBox();
+  const afterTask = await currentTask.boundingBox();
+  expect(afterScroll?.y ?? 0).toBeGreaterThanOrEqual(8);
+  expect(afterScroll?.y ?? 0).toBeLessThanOrEqual(48);
+  expect(afterTask?.y ?? 0).toBeLessThan(0);
+});
+
 test('audiobook studio edits a script preview turn without freezing the app', async ({ context, page }) => {
   await authenticate(context, page);
   let performanceReady = false;
@@ -383,7 +411,7 @@ test('audiobook studio edits a script preview turn without freezing the app', as
   await page.getByRole('button', { name: 'Use sample story' }).click();
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
-  await expect(page.getByText('Detected character')).toHaveCount(2);
+  await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
   await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
 
   await page.getByTestId('script-turn-edit-0').click();
@@ -481,7 +509,7 @@ test('audiobook studio shows the waveform player after page reload when mergedAu
 
   const audioSection = page.getByTestId('audio-section');
   await expect(audioSection.locator('.generated-audio-player')).toBeVisible();
-  await expect(audioSection.getByText('Audiobook preview')).toBeVisible();
+  await expect(audioSection.getByRole('heading', { name: 'Audiobook preview', exact: true })).toBeVisible();
   await expect(audioSection.getByRole('button', { name: 'Download MP3' })).toBeVisible();
 });
 

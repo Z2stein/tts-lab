@@ -18,6 +18,7 @@ import { ScriptReviewComponent } from './components/script-review/script-review.
 import { ProjectTitleEditorComponent } from './components/project-title-editor/project-title-editor.component';
 import { StoryInputComponent } from './components/story-input/story-input.component';
 import { StudioHeroComponent } from './components/studio-hero/studio-hero.component';
+import { CurrentTaskPanelComponent } from './components/current-task-panel/current-task-panel.component';
 import { WaveformPlayerComponent } from './components/waveform-player/waveform-player.component';
 import { WorkflowProgressComponent } from './components/workflow-progress/workflow-progress.component';
 import {
@@ -70,6 +71,7 @@ export { formatSpeakerDisplayName };
     CastSectionComponent,
     ScriptReviewComponent,
     PerformanceNotesComponent,
+    CurrentTaskPanelComponent,
     VoicePickerModalComponent,
   ],
   providers: [

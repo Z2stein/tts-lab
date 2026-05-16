@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { CurrentTask, WorkflowStep } from '../../models/audiobook-studio.types';
+import { WorkflowStep } from '../../models/audiobook-studio.types';
 
 @Component({
   selector: 'app-workflow-progress',
@@ -11,7 +11,6 @@ import { CurrentTask, WorkflowStep } from '../../models/audiobook-studio.types';
 })
 export class WorkflowProgressComponent {
   @Input() steps: WorkflowStep[] = [];
-  @Input() currentTask!: CurrentTask;
   @Output() scrollTo = new EventEmitter<string>();
 
   onStepClick(sectionId: string, event: Event): void {
