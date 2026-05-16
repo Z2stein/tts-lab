@@ -46,6 +46,9 @@ test('frontend loads the authenticated shell from the real backend', async ({ pa
   await page.goto('/');
 
   await expect(page.getByRole('link', { name: 'TTS Lab home' })).toBeVisible();
-  await expect(page.getByText(/Signed in as .* \(mock\)/)).toBeVisible();
+  await expect(page.getByTestId('account-menu-trigger')).toBeVisible();
+  await page.getByTestId('account-menu-trigger').click();
+  await expect(page.getByTestId('account-menu-panel')).toBeVisible();
+  await expect(page.getByTestId('account-menu-panel')).toContainText('Signed in with Mock');
   await expect(page.getByLabel('Remaining usage')).toBeVisible();
 });

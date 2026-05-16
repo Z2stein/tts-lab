@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnDestroy, OnInit } from '@angular/core';
 import { NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { Subscription, filter } from 'rxjs';
+import { AccountMenuComponent } from './account-menu.component';
 import { ChatbotWidgetComponent } from './chatbot/chatbot-widget.component';
 import { CurrentUserService } from './current-user.service';
 import { CurrentUser, RequestRateLimitSummary, RequestRateLimitSummaryItem } from './shared/api-contract.generated';
@@ -10,7 +11,7 @@ import { LoggerService } from './logger.service';
 @Component({
   selector: 'app-root',
   standalone: true,
-  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ChatbotWidgetComponent],
+  imports: [CommonModule, RouterLink, RouterLinkActive, RouterOutlet, ChatbotWidgetComponent, AccountMenuComponent],
   templateUrl: './app.component.html',
   host: { class: 'block min-h-screen' }
 })
