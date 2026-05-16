@@ -59,6 +59,19 @@ export class WorkflowProgressComponent implements AfterViewInit, OnDestroy {
     return this.steps;
   }
 
+  getGridColumns(): string {
+    // Option 1: Sticky + small screen => 2 columns (current + next side-by-side)
+    if (this.isMobileSticky) {
+      return 'repeat(2, minmax(0, 1fr))';
+    }
+    // Option 2: Nonsticky + small screen => 1 column (all 5 stacked)
+    if (this.isNarrow && !this.isSticky) {
+      return 'repeat(1, minmax(0, 1fr))';
+    }
+    // Option 3 & 4: Regular screen (sticky or nonsticky) => 5 columns
+    return 'repeat(5, minmax(0, 1fr))';
+  }
+
   onStepClick(sectionId: string, event: Event): void {
     event.preventDefault();
     this.scrollTo.emit(sectionId);
