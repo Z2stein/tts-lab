@@ -47,13 +47,16 @@ export class WorkflowProgressComponent implements AfterViewInit, OnDestroy {
     this.narrowMq?.removeEventListener('change', this.narrowMqHandler);
   }
 
+  get isMobileSticky(): boolean {
+    return this.isSticky && this.isNarrow;
+  }
+
+  get currentStepIndex(): number {
+    return this.steps.findIndex(s => s.status === 'current' || s.status === 'warning');
+  }
+
   get visibleSteps(): WorkflowStep[] {
-    if (!this.isSticky || !this.isNarrow) return this.steps;
-    const currentIdx = this.steps.findIndex(s => s.status === 'current' || s.status === 'warning');
-    if (currentIdx === -1) return this.steps.slice(0, 2);
-    const result: WorkflowStep[] = [this.steps[currentIdx]];
-    if (currentIdx + 1 < this.steps.length) result.push(this.steps[currentIdx + 1]);
-    return result;
+    return this.steps;
   }
 
   onStepClick(sectionId: string, event: Event): void {
