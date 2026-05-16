@@ -15,13 +15,13 @@
       <img
         [src]="voiceAvatarPath || ''"
         [alt]="'Avatar for voice ' + (speaker.voiceSuggestion | uppercase)"
-        class="w-[6rem] h-[6rem] md:w-[8.5rem] md:h-[8.5rem] rounded-full object-cover border-2 shadow-[0_0_0_4px_rgba(14,11,18,0.8),0_0_40px_var(--speaker-accent-shadow,rgba(240,173,93,0.28))]"
+        class="w-[6rem] h-[6rem] md:w-[8.5rem] md:h-[8.5rem] rounded-full object-cover border-2 shadow-[0_0_0_4px_rgba(14,11,18,0.8),0_0_40px_var(--speaker-accent-shadow,rgba(240,173,93,0.28))] voice-avatar-img"
         [style.border-color]="'color-mix(in srgb, var(--speaker-accent, #f0ad5d) 32%, transparent)'"
         [hidden]="!voiceAvatarPath || avatarError"
         (error)="onAvatarError()"
       />
       <span
-        class="inline-flex w-[6rem] h-[6rem] md:w-[8.5rem] md:h-[8.5rem] items-center justify-center rounded-full text-[1.6rem] md:text-[2.2rem] flex-none font-[900] text-[#fff7ea]"
+        class="inline-flex w-[6rem] h-[6rem] md:w-[8.5rem] md:h-[8.5rem] items-center justify-center rounded-full text-[1.6rem] md:text-[2.2rem] flex-none font-[900] text-[#fff7ea] cast-avatar"
         [style.background]="'radial-gradient(circle at 35% 20%, var(--speaker-accent, #f0ad5d), rgba(255, 255, 255, 0.08) 42%, rgba(12, 9, 20, 0.96) 100%)'"
         [style.box-shadow]="'0 0 28px var(--speaker-accent-shadow, rgba(240, 173, 93, 0.24))'"
         aria-hidden="true"
