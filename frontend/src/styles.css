@@ -288,6 +288,187 @@
     color: #f0ad5d;
   }
 
+  /* ── Studio hero section styles ──────────────────────────────────────── */
+
+  /* Demo flow: 3-column grid with story card | arrow | cast card */
+  .demo-flow {
+    display: grid;
+    grid-template-columns: minmax(15rem, 1fr) 5rem minmax(16rem, 1fr);
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  /* Demo card base styling */
+  .demo-card {
+    display: grid;
+    gap: 0.8rem;
+    border-radius: 1rem;
+    padding: 1rem;
+    border: 1px solid rgba(195, 204, 255, 0.16);
+    background: rgba(12, 14, 25, 0.6);
+  }
+
+  /* Story card accent */
+  .story-demo-card {
+    border-color: rgba(240, 173, 93, 0.32);
+  }
+
+  /* Demo card title styling */
+  .demo-card-title {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin: 0;
+  }
+
+  .demo-card-title h2 {
+    margin: 0;
+    font-weight: 900;
+    color: #fff8ec;
+  }
+
+  /* Demo icons (story and cast) */
+  .demo-icon,
+  .demo-spark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 0.5rem;
+    background: rgba(240, 173, 93, 0.16);
+    color: #ffd591;
+    flex-shrink: 0;
+  }
+
+  .demo-icon svg,
+  .demo-spark svg {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Flow arrow between demo cards */
+  .flow-arrow {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #ffd591;
+  }
+
+  .flow-arrow svg {
+    width: 5rem;
+    height: 1.5rem;
+    stroke: currentColor;
+    stroke-width: 1.5;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+  }
+
+  /* Hero cast list container */
+  .hero-cast-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  /* Individual cast member row */
+  .hero-cast-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.875rem;
+  }
+
+  .hero-cast-row .hero-avatar-container {
+    flex: 0 0 auto;
+    width: 2rem;
+    height: 2rem;
+    border-radius: 9999px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(240, 173, 93, 0.16);
+  }
+
+  .hero-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  /* Cast info: name and tone */
+  .cast-info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .cast-info strong {
+    font-weight: 900;
+    color: #fff8ec;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cast-info small {
+    font-size: 0.75rem;
+    color: #9aa3bc;
+    display: block;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Waveform preview player */
+  .waveform-preview {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    border: 1px solid rgba(195, 204, 255, 0.16);
+    border-radius: 1rem;
+    background: rgba(12, 14, 25, 0.6);
+    padding: 1rem;
+  }
+
+  .waveform-preview.framework-player {
+    /* Player-specific styling if needed */
+  }
+
+  .player-copy {
+    flex: 0 0 auto;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .player-copy strong {
+    font-weight: 900;
+    color: #fff8ec;
+    display: block;
+  }
+
+  .player-copy span {
+    font-size: 0.875rem;
+    color: #9aa3bc;
+    display: block;
+  }
+
+  .waveform-canvas {
+    flex: 1;
+    min-width: 100px;
+  }
+
+  .wave-time {
+    flex: 0 0 auto;
+    font-size: 0.75rem;
+    color: #9aa3bc;
+    white-space: nowrap;
+  }
+
   /* Current task panel background gradient */
   .current-task {
     background:
