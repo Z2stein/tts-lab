@@ -108,6 +108,10 @@ audiobookWorkflow:
   googleCredentialsSecretName: ""
   googleCredentialsChecksum: ""
 
+demoToken:
+  enabled: false
+  signingSecretName: ""
+
 chatbot:
   rateLimit:
     enabled: true

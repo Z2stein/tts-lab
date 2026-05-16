@@ -218,13 +218,14 @@ jobs:
           CHAT_PROVIDER: ${{ needs.prepare-build.outputs.chat_provider }}
           CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES: ${{ vars.CHAT_REAL_PROVIDER_ON_FEATURE_BRANCHES }}
           APP_SLUG: ${{ needs.prepare-build.outputs.app_slug }}
+          TTS_LAB_DEMO_TOKEN_SIGNING_SECRET: ${{ secrets.TTS_LAB_DEMO_TOKEN_SIGNING_SECRET }}
         run: |
           set -euo pipefail
           REMOTE_APP_DIR="/opt/${APP_SLUG}"
           ssh "$USER@$HOST" "mkdir -p '$REMOTE_APP_DIR/charts'"
           scp -r charts/tts-lab "$USER@$HOST:$REMOTE_APP_DIR/charts/"
 
-          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "$CHAT_PROVIDER" "$REMOTE_APP_DIR" "$TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64" <<'EOF'
+          ssh "$USER@$HOST" bash -s -- "$NAMESPACE" "$RELEASE_NAME" "$APP_HOST" "$IMAGE_TAG" "$GHCR_USERNAME" "$GHCR_PASSWORD" "$GHCR_OWNER" "$FRONTEND_IMAGE_NAME" "$BACKEND_IMAGE_NAME" "$DEPLOY_TYPE" "$GOOGLE_CLIENT_ID" "$GOOGLE_CLIENT_SECRET" "$GEMINI_API_KEY" "$CHAT_PROVIDER" "$REMOTE_APP_DIR" "$TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64" "$TTS_LAB_DEMO_TOKEN_SIGNING_SECRET" <<'EOF'
             set -euo pipefail
             NAMESPACE="$1"
             RELEASE_NAME="$2"
@@ -242,6 +243,7 @@ jobs:
             CHAT_PROVIDER="${14}"
             REMOTE_APP_DIR="${15}"
             TTS_GOOGLE_SERVICE_ACCOUNT_JSON_B64="${16}"
+            TTS_LAB_DEMO_TOKEN_SIGNING_SECRET="${17}"
 
             if [ "$DEPLOY_TYPE" = "main" ] || [ "$DEPLOY_TYPE" = "develop" ]; then
               AUTH_MODE="google"
@@ -267,6 +269,10 @@ jobs:
 
             kubectl -n "$NAMESPACE" create secret generic gemini-api \
               --from-literal=api-key="${GEMINI_API_KEY:-}" \
+              --dry-run=client -o yaml | kubectl apply -f -
+
+            kubectl -n "$NAMESPACE" create secret generic demo-token-signing \
+              --from-literal=signing-secret="${TTS_LAB_DEMO_TOKEN_SIGNING_SECRET:-}" \
               --dry-run=client -o yaml | kubectl apply -f -
 
             TTS_GOOGLE_CREDENTIALS_CHECKSUM=""
@@ -307,7 +313,9 @@ jobs:
               --set chat.provider="$CHAT_PROVIDER" \
               --set audiobookWorkflow.googleCredentialsSecretName="$TTS_GOOGLE_CREDENTIALS_SECRET_NAME" \
               --set audiobookWorkflow.googleCredentialsChecksum="$TTS_GOOGLE_CREDENTIALS_CHECKSUM" \
-              --set chat.realProviderOnFeatureBranches="$([ "$CHAT_PROVIDER" = "gemini" ] && echo true || echo false)"
+              --set chat.realProviderOnFeatureBranches="$([ "$CHAT_PROVIDER" = "gemini" ] && echo true || echo false)" \
+              --set demoToken.enabled=true \
+              --set demoToken.signingSecretName="demo-token-signing"
 
             BACKEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-backend"
             FRONTEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-frontend"

@@ -126,6 +126,15 @@ spec:
                   key: service-account-json-b64
                   optional: true
             {{- end }}
+            - name: DEMO_TOKEN_ENABLED
+              value: {{ .Values.demoToken.enabled | quote }}
+            {{- if .Values.demoToken.signingSecretName }}
+            - name: TTS_LAB_DEMO_TOKEN_SIGNING_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ .Values.demoToken.signingSecretName }}
+                  key: signing-secret
+            {{- end }}
             {{- if eq .Values.auth.mode "google" }}
             - name: GOOGLE_CLIENT_ID
               valueFrom:
