@@ -64,6 +64,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -232,6 +233,56 @@ class AudiobookWorkflowControllerTest {
 
         verify(audiobookLibraryService).getProjectForUser(eq("project-1"), any(CurrentUser.class));
         verify(speakerSplitPersistenceService).splitAndPersist(eq(testProject), eq("A: Hello"), anyList());
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void castUpdateReturnsWorkflowSnapshot() throws Exception {
+        when(audiobookWorkflowStateService.updateCast(any(CurrentUser.class), eq("project-1"), anyList()))
+            .thenReturn(readWorkflowSnapshot("audiobook-workflow/workflow-snapshot/cast-review/response.json"));
+
+        MvcResult result = mockMvc.perform(patch("/api/audiobooks/workflow/projects/project-1/cast")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "speakers": [
+                        {"speakerName": "Mara", "roleDescription": "Lead", "voiceSuggestion": "KORE"}
+                      ]
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.projectId").value("project-1"))
+            .andExpect(jsonPath("$.workflowStage").value("CAST_REVIEW"))
+            .andReturn();
+
+        verify(audiobookWorkflowStateService).updateCast(any(CurrentUser.class), eq("project-1"), eq(List.of(
+            new SpeakerVoiceAnalysisItem("Mara", "Lead", SpeakerVoice.KORE)
+        )));
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
+    void castUpdateRejectsWhenScriptAlreadyExists() throws Exception {
+        when(audiobookWorkflowStateService.updateCast(any(CurrentUser.class), eq("project-1"), anyList()))
+            .thenThrow(new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "AUDIOBOOK_WORKFLOW_CAST_EDIT_NOT_ALLOWED",
+                "The cast can only be edited before the script preview exists."
+            ));
+
+        MvcResult result = mockMvc.perform(patch("/api/audiobooks/workflow/projects/project-1/cast")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("""
+                    {
+                      "speakers": [
+                        {"speakerName": "Mara", "roleDescription": "Lead", "voiceSuggestion": "KORE"}
+                      ]
+                    }
+                    """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("AUDIOBOOK_WORKFLOW_CAST_EDIT_NOT_ALLOWED"))
+            .andReturn();
+
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 

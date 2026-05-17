@@ -43,6 +43,7 @@
     <!-- Voice section -->
     <div class="w-full flex-1 flex flex-col gap-[0.2rem] items-stretch pt-[0.15rem]">
       <button
+        *ngIf="castEditable"
         type="button"
         class="absolute top-[-0.25rem] right-[-0.5rem] flex items-center justify-center w-[2rem] h-[2rem] border-none rounded-full bg-transparent text-[#5a6380] cursor-pointer text-[1.1rem] leading-none transition-[background,color] duration-150 hover:bg-white/[0.07] hover:text-[#fff8ec]"
         (click)="startEdit.emit()"
@@ -91,6 +92,7 @@
           {{ isPlaying ? 'Pause' : 'Preview' }}
         </button>
         <button
+          *ngIf="castEditable"
           type="button"
           class="change-voice-button flex-1 flex items-center justify-center rounded-full cursor-pointer text-[0.84rem] font-[900] p-[0.5rem_0.9rem] transition-[background,border-color] duration-150"
           [style.border]="'1px solid color-mix(in srgb, var(--speaker-accent, #f0ad5d) 55%, transparent)'"

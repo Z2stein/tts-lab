@@ -125,6 +125,16 @@ public class AudiobookWorkflowController {
         return audiobookWorkflowStateService.approveCast(user, projectId);
     }
 
+    @PatchMapping("/projects/{projectId}/cast")
+    public AudiobookWorkflowSnapshotResponse updateCast(
+        @PathVariable String projectId,
+        @Valid @RequestBody AudiobookWorkflowCastUpdateRequest request,
+        Authentication authentication
+    ) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        return audiobookWorkflowStateService.updateCast(user, projectId, request.speakers());
+    }
+
     @PostMapping("/speaker-split-analysis")
     public SpeakerSplitAnalysisResponse splitDialogue(@Valid @RequestBody SpeakerSplitAnalysisRequest request, Authentication authentication) {
         CurrentUser user = currentUserResolver.resolve(authentication);

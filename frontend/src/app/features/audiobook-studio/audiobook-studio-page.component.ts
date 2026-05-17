@@ -207,6 +207,10 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   get audioProductionPlanJson(): string { return this.facade.audioProductionPlan() ? JSON.stringify(this.facade.audioProductionPlan(), null, 2) : ''; }
   get workflowSteps(): WorkflowStep[] { return buildWorkflowSteps(this.workflowState()); }
   get currentTask(): CurrentTask { return buildCurrentTask(this.workflowState()); }
+  get castEditable(): boolean {
+    const workflowStage = this.facade.workflowStage();
+    return this.scriptTurns.length === 0 && (workflowStage === null || workflowStage === 'CAST_REVIEW' || workflowStage === 'CAST_APPROVED');
+  }
 
   // ── User actions ──────────────────────────────────────────────────────────
 
@@ -416,11 +420,21 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     this.projectTitleEditing = false;
   }
 
-  startCastEdit(index: number): void { this.facade.startCastEdit(index); }
-  saveCastEdit(index: number): void { this.facade.saveCastEdit(index); }
+  startCastEdit(index: number): void {
+    if (!this.castEditable) {
+      return;
+    }
+    this.facade.startCastEdit(index);
+  }
+  async saveCastEdit(index: number): Promise<void> { await this.facade.saveCastEdit(index); }
   cancelCastEdit(): void { this.facade.cancelCastEdit(); }
 
-  openVoicePicker(index: number): void { this.voicePickerOpenForIndex = index; }
+  openVoicePicker(index: number): void {
+    if (!this.castEditable) {
+      return;
+    }
+    this.voicePickerOpenForIndex = index;
+  }
   closeVoicePicker(): void { this.voicePickerOpenForIndex = null; }
 
   voicePickerSpeakerName(): string {
@@ -433,15 +447,9 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     return (this.facade.cast()[this.voicePickerOpenForIndex]?.voiceSuggestion ?? '').toLowerCase();
   }
 
-  applyVoiceSelection(voice: SpeakerVoiceCatalogItem): void {
+  async applyVoiceSelection(voice: SpeakerVoiceCatalogItem): Promise<void> {
     if (this.voicePickerOpenForIndex === null) return;
-    const cast = this.facade.cast();
-    const speaker = cast[this.voicePickerOpenForIndex];
-    if (!speaker) return;
-    const updated: SpeakerVoiceAnalysisItem = { ...speaker, voiceSuggestion: voice.id.toUpperCase() };
-    const newCast = cast.map((s, i) => (i === this.voicePickerOpenForIndex ? updated : s));
-    this.facade.setCast(newCast);
-    this.facade.setPerformanceNotesStale(true);
+    await this.facade.saveCastVoice(this.voicePickerOpenForIndex, voice.id.toUpperCase());
   }
 
   startScriptTurnEdit(index: number): void { this.facade.startScriptTurnEdit(index); }

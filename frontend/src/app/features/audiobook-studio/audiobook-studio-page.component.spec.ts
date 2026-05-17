@@ -16,6 +16,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
   beforeEach(async () => {
     audiobookWorkflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
       'analyzeSpeakers',
+      'saveCast',
       'approveCast',
       'splitDialogue',
       'saveScriptPreview',
@@ -50,6 +51,25 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       projectId: null,
       projectTitle: ''
     });
+    audiobookWorkflowService.saveCast.and.callFake(async (_projectId, request) => ({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'Mara: We go now.',
+      workflowStage: 'CAST_REVIEW',
+      speakers: request.speakers,
+      scriptTurns: [],
+      annotatedTurns: [],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      audioAssetsCurrent: false,
+      performanceNotesStale: false,
+      mergedAudioUrl: null
+    } as never));
     audiobookWorkflowService.markAudioGenerated.and.resolveTo({
       projectId: 'project-1',
       title: 'The Hidden Signal',
@@ -168,6 +188,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     component.cast = [
       { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }
     ];
+    (component as any).facade.setCurrentProjectId('project-1');
     fixture.detectChanges();
 
     getByTestId('cast-edit-0').click();
@@ -175,10 +196,12 @@ describe('AudiobookStudioWorkspaceComponent', () => {
 
     setInputValue('#cast-speaker-name-0', 'Captain Mara');
     clickButton('Save');
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Captain Mara');
     expect(component.cast[0].speakerName).toBe('Captain Mara');
+    expect(audiobookWorkflowService.saveCast).toHaveBeenCalled();
   });
 
   it('formats compact speaker names for display', () => {
@@ -224,6 +247,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     setInputValue('#cast-role-description-0', 'Caretaker of the midnight platform');
     setInputValue('#cast-voice-suggestion-0', 'Warm gravelly voice');
     clickButton('Save');
+    await fixture.whenStable();
     fixture.detectChanges();
 
     audiobookWorkflowService.splitDialogue.and.resolveTo([
@@ -883,27 +907,41 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     });
 
     it('updates voiceSuggestion when a voice is selected', fakeAsync(() => {
+      (component as any).facade.setCurrentProjectId('project-1');
       component.openVoicePicker(0);
       fixture.detectChanges();
 
-      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
+      void component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
+      flushMicrotasks();
       fixture.detectChanges();
 
       expect(component.cast[0].voiceSuggestion).toBe('PUCK');
+      expect(audiobookWorkflowService.saveCast).toHaveBeenCalled();
       flush();
     }));
 
     it('shows the updated voice on the cast card immediately after selection', fakeAsync(() => {
+      (component as any).facade.setCurrentProjectId('project-1');
       component.openVoicePicker(0);
       fixture.detectChanges();
 
-      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
+      void component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
+      flushMicrotasks();
       fixture.detectChanges();
 
       const voiceBadge = fixture.nativeElement.querySelector('.voice-name-display');
       expect(voiceBadge.textContent.trim()).toBe('PUCK');
       flush();
     }));
+
+    it('hides cast mutation controls once script preview exists', () => {
+      component.scriptTurns = [{ speaker: 'Mara', text: 'We go now.' }];
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('[data-testid="cast-change-voice-0"]')).toBeNull();
+      expect(fixture.nativeElement.querySelector('[data-testid="cast-edit-0"]')).toBeNull();
+      expect(fixture.nativeElement.textContent).toContain('Cast edits are locked after script preview begins.');
+    });
 
     it('closes the voice picker when closeVoicePicker is called', () => {
       component.openVoicePicker(0);

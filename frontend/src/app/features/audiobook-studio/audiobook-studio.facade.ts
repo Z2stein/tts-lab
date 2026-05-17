@@ -258,11 +258,43 @@ export class AudiobookStudioFacade {
     this._castEditDraft.set({ ...this._cast()[index] });
   }
 
-  saveCastEdit(index: number): void {
-    const draft = this._castEditDraft();
-    if (!draft) return;
-    this._cast.update((cast) => cast.map((s, i) => (i === index ? { ...draft } : s)));
-    this.cancelCastEdit();
+  async saveCastEdit(index: number): Promise<void> {
+    await this.runStep('cast-edit', async () => {
+      const draft = this._castEditDraft();
+      const projectId = this._currentProjectId();
+      if (!draft) return;
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+
+      const speakers = this._cast().map((speaker, speakerIndex) => (
+        speakerIndex === index ? { ...draft } : { ...speaker }
+      ));
+      const snapshot = await this.audiobookWorkflowService.saveCast(projectId, { speakers });
+      this.cancelCastEdit();
+      this.applyWorkflowSnapshot(snapshot);
+      this.resetAudio();
+    }, 'Cast save failed.');
+  }
+
+  async saveCastVoice(index: number, voiceSuggestion: string): Promise<void> {
+    await this.runStep('cast-edit', async () => {
+      const projectId = this._currentProjectId();
+      const speaker = this._cast()[index];
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      if (!speaker) {
+        return;
+      }
+
+      const speakers = this._cast().map((castSpeaker, speakerIndex) => (
+        speakerIndex === index ? { ...speaker, voiceSuggestion } : { ...castSpeaker }
+      ));
+      const snapshot = await this.audiobookWorkflowService.saveCast(projectId, { speakers });
+      this.applyWorkflowSnapshot(snapshot);
+      this.resetAudio();
+    }, 'Cast save failed.');
   }
 
   cancelCastEdit(): void {

@@ -18,7 +18,7 @@ describe('AudiobookStudioFacade', () => {
   beforeEach(() => {
     workflow = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
       'analyzeSpeakers', 'approveCast', 'splitDialogue', 'annotateEmotions',
-      'saveScriptPreview', 'saveProductionSettings', 'approveScript',
+      'saveCast', 'saveScriptPreview', 'saveProductionSettings', 'approveScript',
       'generateFinalJson', 'planSingleSpeakerRenderRequests',
       'markAudioGenerated',
     ]);
@@ -380,20 +380,51 @@ describe('AudiobookStudioFacade', () => {
   });
 
   describe('saveCastEdit', () => {
-    it('updates cast array and resets downstream pipeline', () => {
+    it('persists cast changes and hydrates from the backend snapshot', async () => {
       facade.setCast([maraItem, jonasItem]);
+      facade.setCurrentProjectId('project-1');
+      facade.setCastReviewed(true);
       facade.startCastEdit(0);
 
       const draft = facade.castEditDraft()!;
       draft.speakerName = 'Mara Updated';
+      workflow.saveCast.and.resolveTo({
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'CAST_REVIEW',
+        speakers: [
+          { speakerName: 'Mara Updated', roleDescription: 'Bold traveler', voiceSuggestion: 'Kore' },
+          jonasItem
+        ],
+        scriptTurns: [],
+        annotatedTurns: [],
+        audioAssets: [],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        audioAssetsCurrent: false,
+        performanceNotesStale: false
+      } as never);
 
-      facade.saveCastEdit(0);
+      const promise = facade.saveCastEdit(0);
+      expect(facade.loadingAction()).toBe('cast-edit');
+      await promise;
 
+      expect(workflow.saveCast).toHaveBeenCalledWith('project-1', {
+        speakers: [
+          { speakerName: 'Mara Updated', roleDescription: 'Bold traveler', voiceSuggestion: 'Kore' },
+          jonasItem
+        ]
+      });
       expect(facade.cast()[0].speakerName).toBe('Mara Updated');
       expect(facade.editingCastIndex()).toBeNull();
       expect(facade.castEditDraft()).toBeNull();
-
       expect(facade.castReviewed()).toBeFalse();
+      expect(renderSvc.abortAll).toHaveBeenCalled();
     });
   });
 

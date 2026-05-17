@@ -17,6 +17,7 @@
     [accentClass]="accentClass(i)"
     [editing]="editingCastIndex === i"
     [editDraft]="editingCastIndex === i ? castEditDraft : null"
+    [castEditable]="castEditable"
     [speakerStyleFn]="speakerStyleFn"
     (startEdit)="startCastEdit.emit(i)"
     (saveEdit)="saveCastEdit.emit(i)"
@@ -25,6 +26,7 @@
   ></app-cast-card>
 </div>
 
+<p *ngIf="cast.length > 0 && !castEditable" class="m-0 text-[#c9d1e8] leading-[1.6]">Cast edits are locked after script preview begins.</p>
 <button type="button" class="primary-button" (click)="createScriptPreview.emit()" [disabled]="loadingAction !== null || cast.length === 0">
   {{ isLoading('script') ? 'Creating script preview...' : 'Approve voices & continue' }}
 </button>
