@@ -458,7 +458,10 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   async applyVoiceSelection(voice: SpeakerVoiceCatalogItem): Promise<void> {
     if (this.voicePickerOpenForIndex === null) return;
-    await this.facade.saveCastVoice(this.voicePickerOpenForIndex, voice.id.toUpperCase());
+    const voiceKey = voice.id.toUpperCase();
+    this.cast[this.voicePickerOpenForIndex].voiceSuggestion = voiceKey;
+    await this.facade.saveCastVoice(this.voicePickerOpenForIndex, voiceKey);
+    this.closeVoicePicker();
   }
 
   startScriptTurnEdit(index: number): void { this.facade.startScriptTurnEdit(index); }

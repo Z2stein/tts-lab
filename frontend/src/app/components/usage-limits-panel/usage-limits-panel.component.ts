@@ -34,11 +34,9 @@ export class UsageLimitsPanelComponent implements OnInit, OnDestroy {
     if (!this.limitSummary?.limits || this.limitSummary.limits.length === 0) {
       return 0;
     }
-    const maxPercent = this.limitSummary.limits.reduce((max, limit) => {
-      const percent = Math.round((limit.used / limit.limit) * 100);
-      return Math.max(max, percent);
-    }, 0);
-    return maxPercent;
+    const totalUsed = this.limitSummary.limits.reduce((sum, limit) => sum + limit.used, 0);
+    const totalLimit = this.limitSummary.limits.reduce((sum, limit) => sum + limit.limit, 0);
+    return Math.round((totalUsed / totalLimit) * 100);
   }
 
   getProgressPercent(limit: RequestRateLimitSummaryItem): number {

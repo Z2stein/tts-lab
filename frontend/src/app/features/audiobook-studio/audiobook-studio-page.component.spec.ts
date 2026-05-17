@@ -17,6 +17,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     audiobookWorkflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
       'analyzeSpeakers',
       'approveCast',
+      'saveCast',
       'splitDialogue',
       'saveScriptPreview',
       'annotateEmotions',
@@ -45,6 +46,25 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       filename: 'tts-render-request-1.mp3'
     }));
     audiobookWorkflowService.saveScriptPreview.and.callFake(async (_projectId, turns) => turns);
+    audiobookWorkflowService.saveCast.and.callFake(async (_projectId, payload: any) => ({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      sourceLanguageCode: 'en-US',
+      storyText: 'Mara: We go now.',
+      workflowStage: 'CAST_REVIEW',
+      speakers: payload.speakers,
+      scriptTurns: [],
+      annotatedTurns: [],
+      audioAssets: [],
+      audioAssetsCurrent: false,
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      performanceNotesStale: false
+    }));
     audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
       speakers: [],
       projectId: null,
@@ -179,9 +199,14 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     getByTestId('cast-edit-0').click();
     fixture.detectChanges();
 
-    setInputValue('#cast-speaker-name-0', 'Captain Mara');
-    clickButton('Save');
+    const input = fixture.nativeElement.querySelector('#cast-speaker-name-0') as HTMLInputElement;
+    input.value = 'Captain Mara';
+    input.dispatchEvent(new Event('input'));
+
+    const saveButton = buttonByText('Save');
+    saveButton.click();
     fixture.detectChanges();
+    await fixture.whenStable();
 
     expect(fixture.nativeElement.textContent).toContain('Captain Mara');
     expect(component.cast[0].speakerName).toBe('Captain Mara');
