@@ -968,7 +968,7 @@ components:
 
     SpeakerVoiceAnalysisResponse:
       type: object
-      required: [speakers, projectId, projectTitle]
+      required: [speakers, projectId, projectTitle, languageCode]
       properties:
         speakers:
           type: array
@@ -978,6 +978,8 @@ components:
           type: string
           nullable: true
         projectTitle:
+          type: string
+        languageCode:
           type: string
       additionalProperties: false
 

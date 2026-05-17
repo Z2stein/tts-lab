@@ -521,6 +521,7 @@ export type components = {
             speakers: components["schemas"]["SpeakerVoiceAnalysisItem"][];
             projectId: string | null;
             projectTitle: string;
+            languageCode: string;
         };
         SpeakerSplitTurn: {
             speaker: string;

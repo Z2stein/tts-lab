@@ -4,6 +4,7 @@ import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.AudiobookProjectStatus;
 import com.example.ttslab.audiobooks.model.SpeakerCharacter;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
+import com.example.ttslab.chat.ChatResponse;
 import com.example.ttslab.chat.ChatService;
 import com.example.ttslab.audiobooks.workflow.DefaultAudiobookWorkflowPromptProvider;
 import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
@@ -16,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -61,6 +63,7 @@ class SpeakerVoiceAnalysisServiceTest {
 
         assertThat(response.projectId()).isEqualTo(projectId);
         assertThat(response.projectTitle()).isEqualTo("Hello");
+        assertThat(response.languageCode()).isEqualTo("en-US");
         assertThat(response.speakers()).extracting(SpeakerVoiceAnalysisItem::speakerName).containsExactly("Alice", "Bob");
 
         @SuppressWarnings("unchecked")
@@ -100,8 +103,58 @@ class SpeakerVoiceAnalysisServiceTest {
 
         assertThat(response.projectId()).isNull();
         assertThat(response.projectTitle()).isEqualTo("Hello");
+        assertThat(response.languageCode()).isEqualTo("en-US");
         verify(speakerCharacterRepository, org.mockito.Mockito.never()).saveAll(anyList());
         verify(speakerCharacterRepository, org.mockito.Mockito.never()).deleteByProjectId(anyString());
+    }
+
+    @Test
+    void analyzeFallbackDetectsSupportedLanguageCode() {
+        ChatService chatService = mock(ChatService.class);
+        AudiobookProjectRepository audiobookProjectRepository = mock(AudiobookProjectRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
+        DeterministicAudiobookWorkflowFallbackService fallbackService = new DeterministicAudiobookWorkflowFallbackService();
+        DefaultAudiobookWorkflowPromptProvider promptProvider = new DefaultAudiobookWorkflowPromptProvider(objectMapper);
+        SpeakerVoiceAnalysisService service = new SpeakerVoiceAnalysisService(
+            chatService,
+            objectMapper,
+            promptProvider,
+            fallbackService,
+            audiobookProjectRepository,
+            speakerCharacterRepository,
+            "mock"
+        );
+
+        SpeakerVoiceAnalysisResponse response = service.analyze("Mara: Hallo zusammen.");
+
+        assertThat(response.languageCode()).isEqualTo("de-DE");
+    }
+
+    @Test
+    void analyzeNormalizesProviderLanguageCodeToSupportedValue() {
+        ChatService chatService = mock(ChatService.class);
+        AudiobookProjectRepository audiobookProjectRepository = mock(AudiobookProjectRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
+        DeterministicAudiobookWorkflowFallbackService fallbackService = new DeterministicAudiobookWorkflowFallbackService();
+        DefaultAudiobookWorkflowPromptProvider promptProvider = new DefaultAudiobookWorkflowPromptProvider(objectMapper);
+        SpeakerVoiceAnalysisService service = new SpeakerVoiceAnalysisService(
+            chatService,
+            objectMapper,
+            promptProvider,
+            fallbackService,
+            audiobookProjectRepository,
+            speakerCharacterRepository,
+            "gemini"
+        );
+        when(chatService.ask(any())).thenReturn(new ChatResponse("""
+            {"projectTitle":"Die Verborgene Spur","languageCode":"de","speakers":[{"speakerName":"Mara","roleDescription":"Entschlossene Reisende","voiceSuggestion":"ZEPHYR"}]}
+            """, null));
+
+        SpeakerVoiceAnalysisResponse response = service.analyze("Mara: Hallo zusammen.");
+
+        assertThat(response.projectTitle()).isEqualTo("Die Verborgene Spur");
+        assertThat(response.languageCode()).isEqualTo("de-DE");
+        assertThat(response.speakers()).extracting(SpeakerVoiceAnalysisItem::speakerName).containsExactly("Mara");
     }
 }
 
