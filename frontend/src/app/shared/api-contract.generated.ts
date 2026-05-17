@@ -608,6 +608,8 @@ export type components = {
             description: string;
             imageUrl: string;
             demoMp3Url: string;
+            /** @enum {string} */
+            gender: "MALE" | "FEMALE";
         };
     };
     responses: {

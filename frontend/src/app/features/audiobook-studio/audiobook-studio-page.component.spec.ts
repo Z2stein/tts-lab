@@ -37,8 +37,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     audiobookLibraryService = jasmine.createSpyObj<AudiobookLibraryService>('AudiobookLibraryService', ['updateTitle']);
     voicePickerService = jasmine.createSpyObj<VoicePickerService>('VoicePickerService', ['getVoiceCatalog']);
     voicePickerService.getVoiceCatalog.and.resolveTo([
-      { id: 'zephyr', providerVoiceName: 'Zephyr', displayName: 'Zephyr', description: 'Bright.', imageUrl: '/assets/voices/zephyr/avatar.png', demoMp3Url: '/assets/voices/zephyr/demo.mp3' },
-      { id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '/assets/voices/puck/avatar.png', demoMp3Url: '/assets/voices/puck/demo.mp3' },
+      { id: 'zephyr', providerVoiceName: 'Zephyr', displayName: 'Zephyr', description: 'Bright.', imageUrl: '/assets/voices/zephyr/avatar.png', demoMp3Url: '/assets/voices/zephyr/demo.mp3', gender: 'MALE' },
+      { id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '/assets/voices/puck/avatar.png', demoMp3Url: '/assets/voices/puck/demo.mp3', gender: 'MALE' },
     ]);
     audiobookApiService.createAudioForRenderRequest.and.callFake(async () => ({
       blob: new Blob(['generated'], { type: 'audio/mpeg' }),
@@ -886,7 +886,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       component.openVoicePicker(0);
       fixture.detectChanges();
 
-      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
+      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '', gender: 'MALE' });
       fixture.detectChanges();
 
       expect(component.cast[0].voiceSuggestion).toBe('PUCK');
@@ -897,7 +897,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       component.openVoicePicker(0);
       fixture.detectChanges();
 
-      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
+      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '', gender: 'MALE' });
       fixture.detectChanges();
 
       const voiceBadge = fixture.nativeElement.querySelector('.voice-name-display');

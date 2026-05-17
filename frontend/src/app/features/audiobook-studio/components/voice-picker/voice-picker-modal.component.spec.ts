@@ -10,6 +10,7 @@ const ZEPHYR: SpeakerVoiceCatalogItem = {
   description: 'Bright and airy.',
   imageUrl: '/assets/voices/zephyr/avatar.png',
   demoMp3Url: '/assets/voices/zephyr/demo.mp3',
+  gender: 'MALE',
 };
 
 const PUCK: SpeakerVoiceCatalogItem = {
@@ -19,6 +20,7 @@ const PUCK: SpeakerVoiceCatalogItem = {
   description: 'Playful and quick.',
   imageUrl: '/assets/voices/puck/avatar.png',
   demoMp3Url: '/assets/voices/puck/demo.mp3',
+  gender: 'MALE',
 };
 
 describe('VoicePickerModalComponent', () => {
