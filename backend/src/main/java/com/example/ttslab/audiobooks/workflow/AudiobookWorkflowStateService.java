@@ -168,6 +168,7 @@ public class AudiobookWorkflowStateService {
             project.getId(),
             project.getTitle(),
             project.getStoryText(),
+            defaultString(project.getSourceLanguageCode(), SupportedLanguageCodes.DEFAULT_PRODUCTION_LANGUAGE_CODE),
             workflowStage,
             speakers,
             scriptTurns,

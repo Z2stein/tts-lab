@@ -131,6 +131,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   get audioAssets() { return this.facade.audioAssets(); }
   get productionSettings() { return this.facade.productionSettings(); }
+  get sourceLanguageCode(): string { return this.facade.sourceLanguageCode(); }
 
   get castReviewed(): boolean { return this.facade.castReviewed(); }
   set castReviewed(value: boolean) { this.facade.setCastReviewed(value); }
@@ -279,7 +280,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     this.projectTitleEditing = false;
     await this.facade.analyzeStory(this.storyTextControl.value);
     this.projectTitleControl.setValue(this.facade.projectTitle());
-    this.languageCodeControl.setValue(this.facade.detectedLanguageCode());
+    this.languageCodeControl.setValue(this.facade.productionSettings()?.languageCode ?? 'en-US');
     this.projectTitleEditing = false;
     this.lastKnownProjectId = this.facade.currentProjectId();
     const projectId = this.facade.currentProjectId();
@@ -388,6 +389,13 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     await this.facade.approveScript();
   }
 
+  displayLanguageCode(languageCode: string | null | undefined): string {
+    if (!languageCode) {
+      return 'Unknown';
+    }
+    return this.languageCodeOptions.find((option) => option.value === languageCode)?.label ?? languageCode;
+  }
+
   private workflowState(): StudioWorkflowState {
     return {
       storyText: this.storyTextControl.value,
@@ -450,7 +458,10 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   async applyVoiceSelection(voice: SpeakerVoiceCatalogItem): Promise<void> {
     if (this.voicePickerOpenForIndex === null) return;
-    await this.facade.saveCastVoice(this.voicePickerOpenForIndex, voice.id.toUpperCase());
+    const voiceKey = voice.id.toUpperCase();
+    this.cast[this.voicePickerOpenForIndex].voiceSuggestion = voiceKey;
+    await this.facade.saveCastVoice(this.voicePickerOpenForIndex, voiceKey);
+    this.closeVoicePicker();
   }
 
   startScriptTurnEdit(index: number): void { this.facade.startScriptTurnEdit(index); }

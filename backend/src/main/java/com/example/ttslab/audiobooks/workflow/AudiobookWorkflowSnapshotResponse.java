@@ -8,6 +8,7 @@ public record AudiobookWorkflowSnapshotResponse(
     String projectId,
     String title,
     String storyText,
+    String sourceLanguageCode,
     AudiobookWorkflowStage workflowStage,
     List<SpeakerVoiceAnalysisItem> speakers,
     List<SpeakerSplitTurn> scriptTurns,

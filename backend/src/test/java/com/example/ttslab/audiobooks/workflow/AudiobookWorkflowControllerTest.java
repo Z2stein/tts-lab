@@ -199,8 +199,9 @@ class AudiobookWorkflowControllerTest {
     void speakerVoiceAnalysisReturnsSuggestedVoices() throws Exception {
         when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
             new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)
-        ), null, "The Hidden Signal", "de-DE"));
-        when(audiobookProjectCreationService.createProject("u1", "The Hidden Signal", "Alice: Hello", "de-DE")).thenReturn(testProject);
+        ), null, "The Hidden Signal", "de-DE", "de-DE"));
+        when(audiobookProjectCreationService.createProjectWithSpeakers("u1", "The Hidden Signal", "Alice: Hello", "de-DE", "de-DE",
+            List.of(new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)))).thenReturn(testProject);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -211,8 +212,8 @@ class AudiobookWorkflowControllerTest {
 
         InOrder inOrder = org.mockito.Mockito.inOrder(speakerVoiceAnalysisService, audiobookProjectCreationService);
         inOrder.verify(speakerVoiceAnalysisService).analyze("Alice: Hello");
-        inOrder.verify(audiobookProjectCreationService).createProject("u1", "The Hidden Signal", "Alice: Hello", "de-DE");
-        verify(speakerVoiceAnalysisService).syncProjectCharacters("project-1", List.of(new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)));
+        inOrder.verify(audiobookProjectCreationService).createProjectWithSpeakers("u1", "The Hidden Signal", "Alice: Hello", "de-DE", "de-DE",
+            List.of(new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)));
         verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq("mock"), eq("Alice: Hello"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }

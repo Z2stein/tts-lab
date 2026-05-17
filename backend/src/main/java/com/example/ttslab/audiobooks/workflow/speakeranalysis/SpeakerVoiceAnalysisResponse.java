@@ -6,7 +6,8 @@ public record SpeakerVoiceAnalysisResponse(
     List<SpeakerVoiceAnalysisItem> speakers,
     String projectId,
     String projectTitle,
-    String languageCode
+    String sourceLanguageCode,
+    String productionLanguageCode
 ) {
 }
 

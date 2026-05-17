@@ -507,6 +507,7 @@ export type components = {
             projectId: string;
             title: string;
             storyText?: string | null;
+            sourceLanguageCode: string;
             workflowStage: components["schemas"]["AudiobookWorkflowStage"];
             speakers: components["schemas"]["SpeakerVoiceAnalysisItem"][];
             scriptTurns: components["schemas"]["SpeakerSplitTurn"][];
@@ -540,7 +541,8 @@ export type components = {
             speakers: components["schemas"]["SpeakerVoiceAnalysisItem"][];
             projectId: string | null;
             projectTitle: string;
-            languageCode: string;
+            sourceLanguageCode: string;
+            productionLanguageCode: string;
         };
         SpeakerSplitTurn: {
             speaker: string;

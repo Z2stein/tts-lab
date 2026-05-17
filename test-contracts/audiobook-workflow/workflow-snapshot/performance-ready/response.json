@@ -2,6 +2,7 @@
   "projectId": "project-1",
   "title": "The Hidden Signal",
   "storyText": "Mara: We go now.\nJonas: Together.",
+  "sourceLanguageCode": "en-US",
   "workflowStage": "PERFORMANCE_READY",
   "speakers": [
     {

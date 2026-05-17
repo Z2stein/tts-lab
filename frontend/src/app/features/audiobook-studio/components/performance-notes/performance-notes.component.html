@@ -26,6 +26,9 @@
 <details class="border border-[rgba(195,204,255,0.16)] rounded-2xl bg-[rgba(5,9,20,0.5)] p-4">
   <summary class="text-[#ffd591] cursor-pointer font-[900]">Advanced production settings</summary>
   <div class="grid gap-[0.65rem_0.9rem] grid-cols-[minmax(8rem,auto)_1fr] items-center mt-4">
+    <span class="font-[900]">Detected source</span>
+    <span class="text-[#c9d1e8]">{{ displayLanguageLabel(sourceLanguageCode) }}</span>
+
     <label for="studio-language-code" class="font-[900]">Language code</label>
     <select id="studio-language-code" class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)]" [formControl]="languageCodeControl">
       <option *ngFor="let language of languageCodeOptions" [value]="language.value">{{ language.label }}</option>
