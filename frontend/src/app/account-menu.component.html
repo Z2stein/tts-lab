@@ -1,0 +1,37 @@
+<div class="account-menu">
+  <button
+    type="button"
+    class="account-menu-trigger"
+    data-testid="account-menu-trigger"
+    aria-haspopup="menu"
+    [attr.aria-expanded]="isOpen"
+    aria-controls="account-menu-panel"
+    (click)="toggleMenu()">
+    <span class="account-menu-trigger__initials">{{ initials }}</span>
+    <svg class="account-menu-trigger__chevron" viewBox="0 0 12 12" aria-hidden="true">
+      <path d="M3 4.5L6 7.5L9 4.5" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"></path>
+    </svg>
+  </button>
+
+  <div
+    *ngIf="isOpen"
+    id="account-menu-panel"
+    class="account-menu-panel"
+    data-testid="account-menu-panel"
+    role="menu"
+    aria-label="Account menu">
+    <div class="account-menu-panel__identity">
+      <p class="account-menu-panel__name">{{ currentUser.name }}</p>
+      <p class="account-menu-panel__provider">{{ providerLabel }}</p>
+    </div>
+
+    <button
+      type="button"
+      class="account-menu-panel__logout"
+      data-testid="account-menu-logout"
+      role="menuitem"
+      (click)="onLogout()">
+      Logout
+    </button>
+  </div>
+</div>

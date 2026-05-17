@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, effect } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
+import { AppErrorBannerService } from '../../shared/services/app-error-banner.service';
 import { AudiobookWorkflowSnapshotResponse, SpeakerVoiceCatalogItem } from '../../shared/api-contract.generated';
 import {
   AnnotatedSpeakerTurn,
@@ -174,7 +175,27 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     private readonly fullAudioGenerationService: FullAudioGenerationService,
     private readonly scrollService: ScrollService,
     private readonly liveAnnouncer: LiveAnnouncer,
-  ) {}
+    private readonly errorBannerService: AppErrorBannerService,
+  ) {
+    effect(() => {
+      const error = this.facade.error();
+      if (error) {
+        this.errorBannerService.showError(error);
+      }
+    });
+
+    effect(() => {
+      const requests = this.facade.audioProductionPlan()?.renderRequests ?? [];
+      const cast = this.facade.cast();
+      for (let i = 0; i < requests.length; i++) {
+        const state = this.renderRequestAudioService.getState(i, requests[i], cast);
+        if (state.error) {
+          this.errorBannerService.showError(state.error);
+          return;
+        }
+      }
+    });
+  }
 
   // ── Computed from facade signals ──────────────────────────────────────────
 
