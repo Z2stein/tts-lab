@@ -8,5 +8,6 @@
   ],
   "projectId": "project-1",
   "projectTitle": "The Hidden Signal",
-  "languageCode": "de-DE"
+  "sourceLanguageCode": "de-DE",
+  "productionLanguageCode": "de-DE"
 }

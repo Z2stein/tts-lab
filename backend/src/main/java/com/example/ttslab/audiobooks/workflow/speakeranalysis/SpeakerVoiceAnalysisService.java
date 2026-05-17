@@ -6,6 +6,7 @@ import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowJson;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowPromptProvider;
 import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
+import com.example.ttslab.audiobooks.workflow.SupportedLanguageCodes;
 import com.example.ttslab.audiobooks.workflow.service.DeterministicAudiobookWorkflowFallbackService;
 import com.example.ttslab.chat.ChatRequest;
 import com.example.ttslab.chat.ChatService;
@@ -15,10 +16,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
-import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -31,7 +29,6 @@ import org.springframework.transaction.annotation.Transactional;
 public class SpeakerVoiceAnalysisService {
     private static final String PROVIDER_GEMINI = "gemini";
     private static final Logger log = LoggerFactory.getLogger(SpeakerVoiceAnalysisService.class);
-    private static final Map<String, String> SUPPORTED_LANGUAGE_CODE_ALIASES = supportedLanguageCodeAliases();
 
     private final ChatService chatService;
     private final ObjectMapper objectMapper;
@@ -89,29 +86,40 @@ public class SpeakerVoiceAnalysisService {
         SpeakerVoiceAnalysisResponse response = analyzeInternal(rawDialogue);
         if (projectId != null && !projectId.isBlank()) {
             syncProjectCharacters(projectId, response.speakers());
-            return new SpeakerVoiceAnalysisResponse(response.speakers(), projectId, response.projectTitle(), response.languageCode());
+            return new SpeakerVoiceAnalysisResponse(
+                response.speakers(),
+                projectId,
+                response.projectTitle(),
+                response.sourceLanguageCode(),
+                response.productionLanguageCode()
+            );
         }
         return response;
     }
 
     private SpeakerVoiceAnalysisResponse analyzeInternal(String rawDialogue) {
+        String fallbackSourceLanguageCode = fallbackService.detectLanguageCode(rawDialogue);
+        String fallbackProductionLanguageCode = SupportedLanguageCodes.initialProductionLanguageCode(fallbackSourceLanguageCode);
+
         if (rawDialogue == null || rawDialogue.isBlank()) {
-            log.debug("chatbotProvider:" + chatbotProvider);
+            log.debug("chatbotProvider:{}", chatbotProvider);
             return new SpeakerVoiceAnalysisResponse(
                 List.of(),
                 null,
                 fallbackService.suggestProjectTitle(rawDialogue),
-                fallbackService.detectLanguageCode(rawDialogue)
+                fallbackSourceLanguageCode,
+                fallbackProductionLanguageCode
             );
         }
 
         if (!PROVIDER_GEMINI.equals(chatbotProvider)) {
-            log.debug("chatbotProvider:" + chatbotProvider);
+            log.debug("chatbotProvider:{}", chatbotProvider);
             return new SpeakerVoiceAnalysisResponse(
                 fallbackService.analyzeSpeakers(rawDialogue),
                 null,
                 fallbackService.suggestProjectTitle(rawDialogue),
-                fallbackService.detectLanguageCode(rawDialogue)
+                fallbackSourceLanguageCode,
+                fallbackProductionLanguageCode
             );
         }
 
@@ -132,7 +140,7 @@ public class SpeakerVoiceAnalysisService {
     }
 
     private SpeakerVoiceAnalysisResponse parseProviderAnswer(String answer, String rawDialogue) {
-        log.debug("start parsing answer:\n " + answer);
+        log.debug("start parsing answer:\n{}", answer);
 
         if (answer == null || answer.isBlank()) {
             throw invalidProviderResponse(null);
@@ -157,9 +165,11 @@ public class SpeakerVoiceAnalysisService {
             if (items.isEmpty()) {
                 throw invalidProviderResponse(null);
             }
+
             String projectTitle = normalizeProjectTitle(root.path("projectTitle").asText(null), rawDialogue);
-            String languageCode = normalizeLanguageCode(root.path("languageCode").asText(null), rawDialogue);
-            return new SpeakerVoiceAnalysisResponse(items, null, projectTitle, languageCode);
+            String sourceLanguageCode = normalizeSourceLanguageCode(root.path("sourceLanguageCode").asText(null), rawDialogue);
+            String productionLanguageCode = SupportedLanguageCodes.initialProductionLanguageCode(sourceLanguageCode);
+            return new SpeakerVoiceAnalysisResponse(items, null, projectTitle, sourceLanguageCode, productionLanguageCode);
         } catch (ApiException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -177,17 +187,18 @@ public class SpeakerVoiceAnalysisService {
         return fallbackService.suggestProjectTitle(rawDialogue);
     }
 
-    private String normalizeLanguageCode(String detectedLanguageCode, String rawDialogue) {
-        if (detectedLanguageCode != null) {
-            String normalizedKey = detectedLanguageCode.trim().toLowerCase(Locale.ROOT);
-            if (!normalizedKey.isBlank()) {
-                String mappedLanguageCode = SUPPORTED_LANGUAGE_CODE_ALIASES.get(normalizedKey);
-                if (mappedLanguageCode != null) {
-                    return mappedLanguageCode;
-                }
-            }
+    private String normalizeSourceLanguageCode(String detectedLanguageCode, String rawDialogue) {
+        String fallbackLanguageCode = fallbackService.detectLanguageCode(rawDialogue);
+        if (detectedLanguageCode == null || detectedLanguageCode.isBlank()) {
+            return fallbackLanguageCode;
         }
-        return fallbackService.detectLanguageCode(rawDialogue);
+
+        String normalizedLanguageCode = SupportedLanguageCodes.normalizeSourceLanguageCode(detectedLanguageCode);
+        if (SupportedLanguageCodes.DEFAULT_PRODUCTION_LANGUAGE_CODE.equals(normalizedLanguageCode)
+            && !SupportedLanguageCodes.DEFAULT_PRODUCTION_LANGUAGE_CODE.equalsIgnoreCase(detectedLanguageCode.trim())) {
+            return fallbackLanguageCode;
+        }
+        return normalizedLanguageCode;
     }
 
     public List<SpeakerCharacter> syncProjectCharacters(String projectId, List<SpeakerVoiceAnalysisItem> speakers) {
@@ -234,35 +245,5 @@ public class SpeakerVoiceAnalysisService {
             null,
             cause
         );
-    }
-
-    private static Map<String, String> supportedLanguageCodeAliases() {
-        Map<String, String> aliases = new LinkedHashMap<>();
-        aliases.put("en-us", "en-US");
-        aliases.put("en", "en-US");
-        aliases.put("english", "en-US");
-        aliases.put("english (us)", "en-US");
-        aliases.put("english/us", "en-US");
-        aliases.put("de-de", "de-DE");
-        aliases.put("de", "de-DE");
-        aliases.put("german", "de-DE");
-        aliases.put("german (germany)", "de-DE");
-        aliases.put("deutsch", "de-DE");
-        aliases.put("fr-fr", "fr-FR");
-        aliases.put("fr", "fr-FR");
-        aliases.put("french", "fr-FR");
-        aliases.put("french (france)", "fr-FR");
-        aliases.put("français", "fr-FR");
-        aliases.put("es-es", "es-ES");
-        aliases.put("es", "es-ES");
-        aliases.put("spanish", "es-ES");
-        aliases.put("spanish (spain)", "es-ES");
-        aliases.put("español", "es-ES");
-        aliases.put("ja-jp", "ja-JP");
-        aliases.put("ja", "ja-JP");
-        aliases.put("japanese", "ja-JP");
-        aliases.put("japanese (japan)", "ja-JP");
-        aliases.put("日本語", "ja-JP");
-        return Map.copyOf(aliases);
     }
 }

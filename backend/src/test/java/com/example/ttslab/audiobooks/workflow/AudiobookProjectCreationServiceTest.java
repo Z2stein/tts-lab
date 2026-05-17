@@ -11,14 +11,15 @@ import static org.mockito.Mockito.verify;
 
 class AudiobookProjectCreationServiceTest {
     @Test
-    void createProjectPersistsDetectedLanguageCode() {
+    void createProjectPersistsSourceAndProductionLanguageCode() {
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
         AudiobookProjectCreationService service = new AudiobookProjectCreationService(projectRepository);
 
-        service.createProject("user-1", "German Story", "Hallo zusammen", "de-DE");
+        service.createProject("user-1", "German Story", "Hallo zusammen", "de-DE", "de-DE");
 
         var projectCaptor = forClass(AudiobookProject.class);
         verify(projectRepository).save(projectCaptor.capture());
         assertThat(projectCaptor.getValue().getProductionLanguageCode()).isEqualTo("de-DE");
+        assertThat(projectCaptor.getValue().getSourceLanguageCode()).isEqualTo("de-DE");
     }
 }

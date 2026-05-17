@@ -40,6 +40,9 @@ public class AudiobookProject {
     @Column(name = "production_language_code")
     private String productionLanguageCode;
 
+    @Column(name = "source_language_code")
+    private String sourceLanguageCode;
+
     @Column(name = "production_model_name")
     private String productionModelName;
 
@@ -172,6 +175,14 @@ public class AudiobookProject {
 
     public void setProductionLanguageCode(String productionLanguageCode) {
         this.productionLanguageCode = productionLanguageCode;
+    }
+
+    public String getSourceLanguageCode() {
+        return sourceLanguageCode;
+    }
+
+    public void setSourceLanguageCode(String sourceLanguageCode) {
+        this.sourceLanguageCode = sourceLanguageCode;
     }
 
     public String getProductionModelName() {

@@ -79,7 +79,7 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                 Analyze this prose/dialogue text for the audiobook workflow.
                 
                 Return only JSON with this shape:
-                {"projectTitle":"...","languageCode":"...","speakers":[{"speakerName":"...","roleDescription":"...","voiceSuggestion":"..."}]}
+                {"projectTitle":"...","sourceLanguageCode":"...","speakers":[{"speakerName":"...","roleDescription":"...","voiceSuggestion":"..."}]}
 
                 Project title rules:
                 - Generate a short, compelling audiobook project title.
@@ -88,10 +88,11 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                 - Do not wrap the title in quotes.
                 - Do not repeat the full story text.
 
-                Language code rules:
+                Source language rules:
                 - Detect the primary spoken/written language of the text.
-                - Return exactly one of these codes: en-US, de-DE, fr-FR, es-ES, ja-JP.
-                - Choose the closest matching code from that list.
+                - Return only the detected source language as sourceLanguageCode.
+                - Use a BCP-47 language code when possible, for example en-US, de-DE, pl-PL, fr-FR, es-ES, ja-JP.
+                - Do not infer, choose, or mention any production language or TTS language.
                 
                 Important:
                 - If the text contains narration, descriptions, action beats, dialogue attribution, or non-quoted prose, you MUST include a speaker named "Narrator".

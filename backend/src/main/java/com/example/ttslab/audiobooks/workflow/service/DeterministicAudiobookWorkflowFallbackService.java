@@ -3,6 +3,7 @@ package com.example.ttslab.audiobooks.workflow.service;
 import com.example.ttslab.audiobooks.workflow.AnnotatedSpeakerTurn;
 import com.example.ttslab.audiobooks.workflow.SpeakerSplitTurn;
 import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
+import com.example.ttslab.audiobooks.workflow.SupportedLanguageCodes;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisItem;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -17,6 +18,11 @@ public class DeterministicAudiobookWorkflowFallbackService {
     private static final Pattern SPEAKER_LINE = Pattern.compile("^\\s*([\\p{L}][\\p{L}0-9 ._'-]{0,40})\\s*[:：-]\\s+(.+)\\s*$");
     private static final Pattern LEADING_NON_TITLE_CHARS = Pattern.compile("^[^\\p{L}\\p{N}]+");
     private static final Pattern JAPANESE_SCRIPT = Pattern.compile("[\\p{IsHiragana}\\p{IsKatakana}\\p{IsHan}]");
+    private static final Pattern KOREAN_SCRIPT = Pattern.compile("[\\p{IsHangul}]");
+    private static final Pattern CYRILLIC_SCRIPT = Pattern.compile("[\\p{IsCyrillic}]");
+    private static final Pattern ARABIC_SCRIPT = Pattern.compile("[\\p{IsArabic}]");
+    private static final Pattern DEVANAGARI_SCRIPT = Pattern.compile("[\\p{IsDevanagari}]");
+    private static final Pattern THAI_SCRIPT = Pattern.compile("[\\p{IsThai}]");
     private static final List<SpeakerVoice> MOCK_VOICES = List.of(SpeakerVoice.values());
 
     public List<SpeakerVoiceAnalysisItem> analyzeSpeakers(String rawDialogue) {
@@ -48,7 +54,7 @@ public class DeterministicAudiobookWorkflowFallbackService {
 
     public String detectLanguageCode(String rawDialogue) {
         if (rawDialogue == null || rawDialogue.isBlank()) {
-            return "en-US";
+            return SupportedLanguageCodes.DEFAULT_PRODUCTION_LANGUAGE_CODE;
         }
 
         String text = rawDialogue.trim();
@@ -57,16 +63,64 @@ public class DeterministicAudiobookWorkflowFallbackService {
         if (JAPANESE_SCRIPT.matcher(text).find()) {
             return "ja-JP";
         }
-        if (containsAny(lower, " der ", " die ", " das ", " und ", " nicht ", " ich ", " wir ", " zusammen ", "straße", "schon", "über")) {
+        if (KOREAN_SCRIPT.matcher(text).find()) {
+            return "ko-KR";
+        }
+        if (THAI_SCRIPT.matcher(text).find()) {
+            return "th-TH";
+        }
+        if (ARABIC_SCRIPT.matcher(text).find()) {
+            return "ar-EG";
+        }
+        if (DEVANAGARI_SCRIPT.matcher(text).find()) {
+            if (containsAny(lower, " काय ", " आहे ", " नाही ", " मला ", " मराठी ")) {
+                return "mr-IN";
+            }
+            return "hi-IN";
+        }
+        if (CYRILLIC_SCRIPT.matcher(text).find()) {
+            if (containsAny(lower, " і ", " та ", " це ", " україн")) {
+                return "uk-UA";
+            }
+            return "ru-RU";
+        }
+        if (containsAny(lower, " szukam ", " meble ", " komody ", " minimalistycznego ", " polski ", " są ", " swojego ")) {
+            return "pl-PL";
+        }
+        if (containsAny(lower, " der ", " die ", " das ", " und ", " nicht ", " ich ", " wir ", " zusammen ", " straße ", " schon ", " über ")) {
             return "de-DE";
         }
-        if (containsAny(lower, " le ", " les ", " je ", " vous ", " avec ", " bonjour ", "être", "où", "ç")) {
+        if (containsAny(lower, " le ", " les ", " je ", " vous ", " avec ", " bonjour ", " être ", " où ", " français ")) {
             return "fr-FR";
         }
-        if (containsAny(lower, " el ", " los ", " las ", " hola ", " gracias ", " juntos ", "¿", "¡", "ñ")) {
+        if (containsAny(lower, " el ", " los ", " las ", " hola ", " gracias ", " juntos ", " español ")) {
             return "es-ES";
         }
-        return "en-US";
+        if (containsAny(lower, " ciao ", " grazie ", " buongiorno ", " italiano ")) {
+            return "it-IT";
+        }
+        if (containsAny(lower, " olá ", " obrigado ", " portuguesa ", " português ")) {
+            return "pt-BR";
+        }
+        if (containsAny(lower, " merhaba ", " türkçe ")) {
+            return "tr-TR";
+        }
+        if (containsAny(lower, " xin chào ", " tiếng việt ")) {
+            return "vi-VN";
+        }
+        if (containsAny(lower, " selamat ", " indonesia ", " bahasa ")) {
+            return "id-ID";
+        }
+        if (containsAny(lower, " welkom ", " nederland ", " nederlands ")) {
+            return "nl-NL";
+        }
+        if (containsAny(lower, " தமிழ் ")) {
+            return "ta-IN";
+        }
+        if (containsAny(lower, " తెలుగు ")) {
+            return "te-IN";
+        }
+        return SupportedLanguageCodes.DEFAULT_PRODUCTION_LANGUAGE_CODE;
     }
 
     public String suggestProjectTitle(String rawDialogue) {

@@ -18,6 +18,7 @@ export class PerformanceNotesComponent {
   @Input() performanceReady = false;
   @Input() promptControl!: FormControl<string>;
   @Input() languageCodeControl!: FormControl<string>;
+  @Input() sourceLanguageCode: string | null = null;
   @Input() modelNameControl!: FormControl<string>;
   @Input() audioEncodingControl!: FormControl<string>;
   @Input() loadingAction: string | null = null;
@@ -36,5 +37,12 @@ export class PerformanceNotesComponent {
 
   isLoading(action: string): boolean {
     return this.loadingAction === action;
+  }
+
+  displayLanguageLabel(languageCode: string | null | undefined): string {
+    if (!languageCode) {
+      return 'Unknown';
+    }
+    return this.languageCodeOptions.find((option) => option.value === languageCode)?.label ?? languageCode;
   }
 }

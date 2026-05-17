@@ -885,7 +885,7 @@ components:
 
     AudiobookWorkflowSnapshotResponse:
       type: object
-      required: [projectId, title, workflowStage, speakers, scriptTurns, annotatedTurns, productionSettings, audioAssets, audioAssetsCurrent, performanceNotesStale]
+      required: [projectId, title, sourceLanguageCode, workflowStage, speakers, scriptTurns, annotatedTurns, productionSettings, audioAssets, audioAssetsCurrent, performanceNotesStale]
       properties:
         projectId:
           type: string
@@ -894,6 +894,8 @@ components:
         storyText:
           type: string
           nullable: true
+        sourceLanguageCode:
+          type: string
         workflowStage:
           $ref: '#/components/schemas/AudiobookWorkflowStage'
         speakers:
@@ -968,7 +970,7 @@ components:
 
     SpeakerVoiceAnalysisResponse:
       type: object
-      required: [speakers, projectId, projectTitle, languageCode]
+      required: [speakers, projectId, projectTitle, sourceLanguageCode, productionLanguageCode]
       properties:
         speakers:
           type: array
@@ -979,7 +981,9 @@ components:
           nullable: true
         projectTitle:
           type: string
-        languageCode:
+        sourceLanguageCode:
+          type: string
+        productionLanguageCode:
           type: string
       additionalProperties: false
 
