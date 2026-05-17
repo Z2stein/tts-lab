@@ -122,7 +122,7 @@ test('audiobook studio shows cast cards after story analysis succeeds', async ({
   await expect(page.locator('app-cast-card')).toHaveCount(2);
   await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
   await expect(page.getByRole('heading', { name: 'Mara' })).toBeVisible();
-  await expect(page.getByText('KORE')).toBeVisible();
+  await expect(page.getByTestId('cast-section').getByText('KORE')).toBeVisible();
   await expect(page.getByText('The Hidden Signal')).toBeVisible();
 });
 
