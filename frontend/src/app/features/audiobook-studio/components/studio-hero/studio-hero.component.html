@@ -10,12 +10,12 @@
       <button
         #ctaBtn
         type="button"
-        class="primary-button"
+        class="primary-button hero-primary"
         (click)="focusStoryInput.emit($event)"
       >Create audio story</button>
       <button
         type="button"
-        class="secondary-button flex items-center gap-2"
+        class="secondary-button hero-secondary flex items-center gap-2"
         [class.is-playing]="demoPlaying"
         (click)="playDemo($event)"
       >
@@ -32,7 +32,7 @@
       <!-- Story Card -->
       <article class="grid gap-[0.8rem] rounded-2xl p-4 border border-[rgba(240,173,93,0.32)] bg-[rgba(12,14,25,0.6)]">
         <div class="flex items-center gap-[0.6rem]">
-          <span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[rgba(240,173,93,0.16)] text-[#ffd591] text-sm font-black" aria-hidden="true">
+          <span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[rgba(240,173,93,0.16)] text-[#ffd591] text-sm font-black" data-testid="story-demo-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
               <path d="M12 20h7" />
               <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4 10.5-10.5Z" />
@@ -57,7 +57,7 @@
       <!-- Cast Card -->
       <article class="grid gap-[0.8rem] rounded-2xl p-4 border border-[rgba(195,204,255,0.16)] bg-[rgba(12,14,25,0.6)] min-w-0">
         <div class="flex items-center gap-[0.6rem] min-w-0">
-          <span class="inline-flex items-center justify-center flex-none w-8 h-8 rounded-md bg-[rgba(240,173,93,0.16)] text-[#ffd591] text-sm font-black" aria-hidden="true">
+          <span class="inline-flex items-center justify-center flex-none w-8 h-8 rounded-md bg-[rgba(240,173,93,0.16)] text-[#ffd591] text-sm font-black" data-testid="cast-demo-icon" aria-hidden="true">
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
               <path d="M5 10.5v3c0 .83.67 1.5 1.5 1.5H9l4 3V6L9 9H6.5A1.5 1.5 0 0 0 5 10.5Z" />
               <path d="M15.5 9.5a3.5 3.5 0 0 1 0 5" />
@@ -67,7 +67,7 @@
           <h2 class="m-0 font-black text-[#fff8ec] min-w-0 overflow-hidden text-ellipsis">Detected cast</h2>
         </div>
         <div class="flex flex-col gap-2 min-w-0">
-          <div *ngFor="let member of heroCast" class="flex items-center gap-2 text-sm border-l-4 rounded-l pl-3 py-2" [ngStyle]="speakerStyleFn(member.name)" [style.borderLeftColor]="'var(--speaker-accent, #f0ad5d)'" [style.backgroundColor]="'color-mix(in srgb, var(--speaker-accent, #f0ad5d) 8%, transparent)'">
+          <div *ngFor="let member of heroCast" class="hero-cast-row flex items-center gap-2 text-sm border-l-4 rounded-l pl-3 py-2" [ngStyle]="speakerStyleFn(member.name)" [style.borderLeftColor]="'var(--speaker-accent, #f0ad5d)'" [style.backgroundColor]="'color-mix(in srgb, var(--speaker-accent, #f0ad5d) 8%, transparent)'">
             <div class="flex-none w-8 h-8 rounded-full overflow-hidden flex items-center justify-center bg-[rgba(240,173,93,0.16)] flex-shrink-0">
               <img *ngIf="member.imageUrl"
                    [src]="member.imageUrl"

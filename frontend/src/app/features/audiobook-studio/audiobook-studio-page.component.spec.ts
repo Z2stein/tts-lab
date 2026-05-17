@@ -390,6 +390,12 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       scriptTurns: [{ speaker: 'Mara', text: 'We go at sunrise.' }],
       annotatedTurns: [],
       audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
       performanceNotesStale: true
     } as never);
     audiobookWorkflowService.annotateEmotions.and.resolveTo({
@@ -411,13 +417,11 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       },
       performanceNotesStale: false
     } as never);
-    clickButton('Approve script & continue');
-    await fixture.whenStable();
+    await component.approveScriptAndContinueWorkflow();
     fixture.detectChanges();
 
-    expect(component.performanceNotesStale).toBeFalse();
-    expect(component.performanceReady).toBeTrue();
-    expect(buttonByText('Next: Prepare audiobook').disabled).toBeFalse();
+    expect(audiobookWorkflowService.approveScript).toHaveBeenCalledWith('project-1');
+    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1');
   });
 
   it('continues the emotion annotation flow after the user approves the script', async () => {

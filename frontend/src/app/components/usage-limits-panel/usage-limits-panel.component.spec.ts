@@ -67,7 +67,7 @@ describe('UsageLimitsPanelComponent', () => {
 
   it('should clean up countdown interval on destroy', () => {
     component.ngOnInit();
-    const intervalId = component['countdownInterval'];
+    const intervalId = component['countdownInterval'] as number;
     expect(intervalId).not.toBeNull();
     spyOn(window, 'clearInterval');
     component.ngOnDestroy();
