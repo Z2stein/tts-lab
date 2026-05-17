@@ -81,21 +81,6 @@ public class SpeakerVoiceAnalysisService {
         return analyzeInternal(rawDialogue);
     }
 
-    @Transactional
-    public SpeakerVoiceAnalysisResponse analyze(String rawDialogue, String projectId) {
-        SpeakerVoiceAnalysisResponse response = analyzeInternal(rawDialogue);
-        if (projectId != null && !projectId.isBlank()) {
-            syncProjectCharacters(projectId, response.speakers());
-            return new SpeakerVoiceAnalysisResponse(
-                response.speakers(),
-                projectId,
-                response.projectTitle(),
-                response.sourceLanguageCode(),
-                response.productionLanguageCode()
-            );
-        }
-        return response;
-    }
 
     private SpeakerVoiceAnalysisResponse analyzeInternal(String rawDialogue) {
         String fallbackSourceLanguageCode = fallbackService.detectLanguageCode(rawDialogue);

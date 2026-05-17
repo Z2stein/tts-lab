@@ -109,14 +109,14 @@ public class AudiobookWorkflowController {
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
             SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue());
-            var project = audiobookProjectCreationService.createProject(
+            var project = audiobookProjectCreationService.createProjectWithSpeakers(
                 user.id(),
                 analysisResponse.projectTitle(),
                 request.rawDialogue(),
                 analysisResponse.sourceLanguageCode(),
-                analysisResponse.productionLanguageCode()
+                analysisResponse.productionLanguageCode(),
+                analysisResponse.speakers()
             );
-            speakerVoiceAnalysisService.syncProjectCharacters(project.getId(), analysisResponse.speakers());
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return new SpeakerVoiceAnalysisResponse(
                 analysisResponse.speakers(),

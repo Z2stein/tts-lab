@@ -2,6 +2,7 @@ package com.example.ttslab.audiobooks.workflow;
 
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
 import org.junit.jupiter.api.Test;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -13,7 +14,8 @@ class AudiobookProjectCreationServiceTest {
     @Test
     void createProjectPersistsSourceAndProductionLanguageCode() {
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
-        AudiobookProjectCreationService service = new AudiobookProjectCreationService(projectRepository);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
+        AudiobookProjectCreationService service = new AudiobookProjectCreationService(projectRepository, speakerCharacterRepository);
 
         service.createProject("user-1", "German Story", "Hallo zusammen", "de-DE", "de-DE");
 

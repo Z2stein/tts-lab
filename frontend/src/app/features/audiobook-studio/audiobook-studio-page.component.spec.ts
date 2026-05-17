@@ -49,11 +49,13 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       speakers: [],
       projectId: null,
       projectTitle: '',
-      languageCode: 'en-US'
+      sourceLanguageCode: 'en-US',
+      productionLanguageCode: 'en-US'
     });
     audiobookWorkflowService.markAudioGenerated.and.resolveTo({
       projectId: 'project-1',
       title: 'The Hidden Signal',
+      sourceLanguageCode: 'en-US',
       storyText: 'Mara: We go now.',
       workflowStage: 'AUDIO_GENERATED',
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
@@ -111,7 +113,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
       projectId: 'project-1',
       projectTitle: 'The Hidden Signal',
-      languageCode: 'de-DE'
+      sourceLanguageCode: 'de-DE',
+      productionLanguageCode: 'de-DE'
     });
     component.storyTextControl.setValue('Mara: We go now.');
 
@@ -131,7 +134,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
       projectId: 'project-1',
       projectTitle: 'The Hidden Signal',
-      languageCode: 'de-DE'
+      sourceLanguageCode: 'de-DE',
+      productionLanguageCode: 'de-DE'
     });
     component.storyTextControl.setValue('Mara: Hallo zusammen.');
 
@@ -147,7 +151,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
       projectId: 'project-1',
       projectTitle: 'The Hidden Signal',
-      languageCode: 'en-US'
+      sourceLanguageCode: 'en-US', productionLanguageCode: 'en-US'
     });
     component.storyTextControl.setValue('Mara: We go now.');
 
@@ -214,7 +218,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       ],
       projectId: 'project-1',
       projectTitle: 'The Hidden Signal',
-      languageCode: 'en-US'
+      sourceLanguageCode: 'en-US', productionLanguageCode: 'en-US'
     });
     await component.analyzeStory();
     fixture.detectChanges();
@@ -272,7 +276,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       ],
       projectId: 'project-1',
       projectTitle: 'The Hidden Signal',
-      languageCode: 'en-US'
+      sourceLanguageCode: 'en-US', productionLanguageCode: 'en-US'
     });
     await component.analyzeStory();
     fixture.detectChanges();
@@ -783,6 +787,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     component.hydrateFromSnapshot({
       projectId: 'project-1',
       title: 'The Hidden Signal',
+      sourceLanguageCode: 'en-US',
       storyText: 'Mara: We go now.',
       workflowStage: 'AUDIO_GENERATED',
       speakers: [],
@@ -807,6 +812,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     component.hydrateFromSnapshot({
       projectId: 'project-1',
       title: 'The Hidden Signal',
+      sourceLanguageCode: 'en-US',
       storyText: 'Mara: We go now.',
       workflowStage: 'AUDIO_GENERATED',
       speakers: [],

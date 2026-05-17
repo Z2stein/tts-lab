@@ -2,18 +2,31 @@ package com.example.ttslab.audiobooks.workflow;
 
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.AudiobookProjectStatus;
+import com.example.ttslab.audiobooks.model.SpeakerCharacter;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisItem;
+import com.example.ttslab.error.ApiException;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 @Service
 public class AudiobookProjectCreationService {
 
     private final AudiobookProjectRepository audiobookProjectRepository;
+    private final SpeakerCharacterRepository speakerCharacterRepository;
 
-    public AudiobookProjectCreationService(AudiobookProjectRepository audiobookProjectRepository) {
+    public AudiobookProjectCreationService(
+        AudiobookProjectRepository audiobookProjectRepository,
+        SpeakerCharacterRepository speakerCharacterRepository
+    ) {
         this.audiobookProjectRepository = audiobookProjectRepository;
+        this.speakerCharacterRepository = speakerCharacterRepository;
     }
 
     public AudiobookProject createProject(String userId) {
@@ -30,6 +43,20 @@ public class AudiobookProjectCreationService {
 
     public AudiobookProject createProject(String userId, String title, String storyText, String languageCode) {
         return createProject(userId, title, storyText, languageCode, languageCode);
+    }
+
+    @Transactional
+    public AudiobookProject createProjectWithSpeakers(
+        String userId,
+        String title,
+        String storyText,
+        String sourceLanguageCode,
+        String productionLanguageCode,
+        List<SpeakerVoiceAnalysisItem> speakers
+    ) {
+        AudiobookProject project = createProject(userId, title, storyText, sourceLanguageCode, productionLanguageCode);
+        persistSpeakerCharacters(project.getId(), speakers);
+        return project;
     }
 
     public AudiobookProject createProject(String userId, String title, String storyText, String sourceLanguageCode, String productionLanguageCode) {
@@ -64,6 +91,42 @@ public class AudiobookProjectCreationService {
 
         audiobookProjectRepository.save(project);
         return project;
+    }
+
+    private void persistSpeakerCharacters(String projectId, List<SpeakerVoiceAnalysisItem> speakers) {
+        List<SpeakerVoiceAnalysisItem> safeSpeakers = speakers == null ? List.of() : speakers;
+
+        AudiobookProject project = audiobookProjectRepository.findById(projectId)
+            .orElseThrow(() -> new ApiException(
+                HttpStatus.NOT_FOUND,
+                "AUDIOBOOK_NOT_FOUND",
+                "The audiobook project was not found."
+            ));
+
+        speakerCharacterRepository.deleteByProjectId(projectId);
+
+        Instant now = Instant.now();
+        List<SpeakerCharacter> characters = new ArrayList<>();
+        for (int index = 0; index < safeSpeakers.size(); index++) {
+            SpeakerVoiceAnalysisItem speaker = safeSpeakers.get(index);
+            characters.add(new SpeakerCharacter(
+                UUID.randomUUID().toString(),
+                projectId,
+                index,
+                speaker.speakerName(),
+                speaker.roleDescription(),
+                speaker.voiceSuggestion(),
+                now
+            ));
+        }
+
+        if (!characters.isEmpty()) {
+            speakerCharacterRepository.saveAll(characters);
+        }
+
+        project.setSpeakerCount(safeSpeakers.size());
+        project.setUpdatedAt(now);
+        audiobookProjectRepository.save(project);
     }
 }
 
