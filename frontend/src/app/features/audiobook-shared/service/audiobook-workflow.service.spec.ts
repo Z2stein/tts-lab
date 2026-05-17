@@ -9,7 +9,7 @@ describe('AudiobookWorkflowService', () => {
 
   beforeEach(() => {
     audiobookApiServiceSpy = jasmine.createSpyObj<AudiobookApiService>('AudiobookApiService', [
-      'post', 'createAudio', 'createAudioForRenderRequest'
+      'post', 'patchJsonResponse', 'getJsonResponse', 'createAudio', 'createAudioForRenderRequest'
     ]);
 
     TestBed.configureTestingModule({
@@ -62,6 +62,43 @@ describe('AudiobookWorkflowService', () => {
       'Speaker split analysis failed'
     );
     expect(turns[0].text).toBe('Hello');
+  });
+
+  it('patches cast updates to the cast endpoint', async () => {
+    audiobookApiServiceSpy.patchJsonResponse.and.resolveTo({
+      body: {
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'CAST_REVIEW',
+        speakers: [{ speakerName: 'Captain Mara', roleDescription: 'Lead', voiceSuggestion: 'PUCK' }],
+        scriptTurns: [],
+        annotatedTurns: [],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        audioAssets: [],
+        audioAssetsCurrent: false,
+        performanceNotesStale: false,
+        mergedAudioUrl: null
+      }
+    } as never);
+
+    const snapshot = await service.saveCast('project-1', {
+      speakers: [{ speakerName: 'Captain Mara', roleDescription: 'Lead', voiceSuggestion: 'PUCK' }]
+    });
+
+    expect(audiobookApiServiceSpy.patchJsonResponse).toHaveBeenCalledWith(
+      '/api/audiobooks/workflow/projects/project-1/cast',
+      {
+        speakers: [{ speakerName: 'Captain Mara', roleDescription: 'Lead', voiceSuggestion: 'PUCK' }]
+      },
+      'Cast save failed'
+    );
+    expect(snapshot.speakers[0].speakerName).toBe('Captain Mara');
   });
 
   it('posts script preview turns to the save endpoint', async () => {

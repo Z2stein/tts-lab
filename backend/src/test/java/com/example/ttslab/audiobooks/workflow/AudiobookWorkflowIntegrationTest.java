@@ -255,6 +255,68 @@ class AudiobookWorkflowIntegrationTest {
     }
 
     @Test
+    void castUpdatePersistsCharactersAndResetsStageToCastReview() throws Exception {
+        String projectId = UUID.randomUUID().toString();
+        AudiobookProject project = buildProject(projectId, AudiobookWorkflowStage.CAST_APPROVED);
+        project = audiobookProjectRepository.save(project);
+
+        SpeakerCharacter mara = buildCharacter(UUID.randomUUID().toString(), projectId, 0, "Mara", "Bold traveler", SpeakerVoice.KORE);
+        speakerCharacterRepository.save(mara);
+
+        MvcResult result = mockMvc.perform(patch("/api/audiobooks/workflow/projects/{projectId}/cast", projectId)
+                .contentType("application/json")
+                .content("""
+                    {
+                      "speakers": [
+                        {"speakerName": "Captain Mara", "roleDescription": "Storm pilot", "voiceSuggestion": "PUCK"}
+                      ]
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.workflowStage").value("CAST_REVIEW"))
+            .andExpect(jsonPath("$.speakers.length()").value(1))
+            .andExpect(jsonPath("$.speakers[0].speakerName").value("Captain Mara"))
+            .andExpect(jsonPath("$.speakers[0].roleDescription").value("Storm pilot"))
+            .andExpect(jsonPath("$.speakers[0].voiceSuggestion").value("PUCK"))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+
+        AudiobookProject saved = audiobookProjectRepository.findById(projectId).orElseThrow();
+        assertThat(saved.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.CAST_REVIEW);
+        List<SpeakerCharacter> characters = speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc(projectId);
+        assertThat(characters).hasSize(1);
+        assertThat(characters.getFirst().getSpeakerName()).isEqualTo("Captain Mara");
+        assertThat(characters.getFirst().getRoleDescription()).isEqualTo("Storm pilot");
+        assertThat(characters.getFirst().getVoiceSuggestion()).isEqualTo(SpeakerVoice.PUCK);
+    }
+
+    @Test
+    void castUpdateIsRejectedAfterScriptPreviewExists() throws Exception {
+        String projectId = UUID.randomUUID().toString();
+        AudiobookProject project = buildProject(projectId, AudiobookWorkflowStage.SCRIPT_REVIEW);
+        project = audiobookProjectRepository.save(project);
+
+        SpeakerCharacter mara = buildCharacter(UUID.randomUUID().toString(), projectId, 0, "Mara", "Bold traveler", SpeakerVoice.KORE);
+        speakerCharacterRepository.save(mara);
+
+        MvcResult result = mockMvc.perform(patch("/api/audiobooks/workflow/projects/{projectId}/cast", projectId)
+                .contentType("application/json")
+                .content("""
+                    {
+                      "speakers": [
+                        {"speakerName": "Captain Mara", "roleDescription": "Storm pilot", "voiceSuggestion": "PUCK"}
+                      ]
+                    }
+                    """))
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.code").value("AUDIOBOOK_WORKFLOW_CAST_EDIT_NOT_ALLOWED"))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+    }
+
+    @Test
     void splitDialoguePersistsScriptTurns() throws Exception {
         String projectId = UUID.randomUUID().toString();
         AudiobookProject project = buildProject(projectId, AudiobookWorkflowStage.CAST_APPROVED);

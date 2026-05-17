@@ -14,6 +14,7 @@ export class CastSectionComponent {
   @Input() castReviewed = false;
   @Input() editingCastIndex: number | null = null;
   @Input() castEditDraft: SpeakerVoiceAnalysisItem | null = null;
+  @Input() castEditable = true;
   @Input() loadingAction: string | null = null;
   @Input() speakerStyleFn!: (name: string | null | undefined) => Record<string, string>;
   @Output() startCastEdit = new EventEmitter<number>();

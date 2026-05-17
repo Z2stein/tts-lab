@@ -28,7 +28,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
-public class SpeakerVoiceAnalysisService {
+public class SpeakerVoiceAnalysisService implements SpeakerVoiceAnalysisUpdateService {
     private static final String PROVIDER_GEMINI = "gemini";
     private static final Logger log = LoggerFactory.getLogger(SpeakerVoiceAnalysisService.class);
     private static final Map<String, String> SUPPORTED_LANGUAGE_CODE_ALIASES = supportedLanguageCodeAliases();

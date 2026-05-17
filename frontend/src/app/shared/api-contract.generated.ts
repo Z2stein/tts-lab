@@ -308,6 +308,22 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/audiobooks/workflow/projects/{projectId}/cast": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["updateAudiobookWorkflowCast"];
+        trace?: never;
+    };
     "/api/audiobooks/workflow/projects/{projectId}/script-approval": {
         parameters: {
             query?: never;
@@ -500,6 +516,9 @@ export type components = {
             audioAssetsCurrent: boolean;
             performanceNotesStale: boolean;
             mergedAudioUrl?: string | null;
+        };
+        AudiobookWorkflowCastUpdateRequest: {
+            speakers: components["schemas"]["SpeakerVoiceAnalysisItem"][];
         };
         ChatRequest: {
             message: string;
@@ -701,6 +720,7 @@ export type AudiobookWorkflowStage = components['schemas']['AudiobookWorkflowSta
 export type AudiobookWorkflowProductionSettings = components['schemas']['AudiobookWorkflowProductionSettings'];
 export type AudiobookWorkflowProductionSettingsRequest = components['schemas']['AudiobookWorkflowProductionSettingsRequest'];
 export type AudiobookWorkflowSnapshotResponse = components['schemas']['AudiobookWorkflowSnapshotResponse'];
+export type AudiobookWorkflowCastUpdateRequest = components['schemas']['AudiobookWorkflowCastUpdateRequest'];
 export type ChatRequest = components['schemas']['ChatRequest'];
 export type ChatResponse = components['schemas']['ChatResponse'];
 export type SpeakerVoiceAnalysisItem = components['schemas']['SpeakerVoiceAnalysisItem'];
@@ -1203,6 +1223,34 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description Updated audiobook workflow snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AudiobookWorkflowSnapshotResponse"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            404: components["responses"]["NotFoundError"];
+        };
+    };
+    updateAudiobookWorkflowCast: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                projectId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AudiobookWorkflowCastUpdateRequest"];
+            };
+        };
         responses: {
             /** @description Updated audiobook workflow snapshot */
             200: {
