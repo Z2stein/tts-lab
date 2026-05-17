@@ -19,7 +19,10 @@ module.exports = {
           danger: '#ffd7d7',
           dangerBg: '#3a1618',
           dangerLine: '#834047',
-          success: '#8fe7bd'
+          success: '#8fe7bd',
+          baseBg: '#0C101E',
+          cardGradientFrom: 'rgba(80,60,140,0.3)',
+          cardGradientTo: '#0C101E'
         }
       },
       fontFamily: {
