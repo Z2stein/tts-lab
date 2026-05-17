@@ -36,8 +36,12 @@ describe('StudioHeroComponent', () => {
   });
 
   it('renders icon badges with svg artwork for the story and cast cards', () => {
-    expect(fixture.nativeElement.querySelector('[data-testid="story-demo-icon"] svg')).not.toBeNull();
-    expect(fixture.nativeElement.querySelector('[data-testid="cast-demo-icon"] svg')).not.toBeNull();
+    const cards = Array.from(fixture.nativeElement.querySelectorAll('article')) as HTMLElement[];
+    const storyCard = cards.find((card) => card.textContent?.includes('Your story'));
+    const castCard = cards.find((card) => card.textContent?.includes('Detected cast'));
+
+    expect(storyCard?.querySelector('svg')).not.toBeNull();
+    expect(castCard?.querySelector('svg')).not.toBeNull();
   });
 
   it('renders cast rows for each hero cast member', () => {
@@ -53,7 +57,7 @@ describe('StudioHeroComponent', () => {
   it('emits focusStoryInput when the CTA is clicked', () => {
     const spy = jasmine.createSpy('focusStoryInput');
     component.focusStoryInput.subscribe(spy);
-    const cta = fixture.nativeElement.querySelector('.hero-primary') as HTMLButtonElement;
+    const cta = fixture.nativeElement.querySelector('.primary-button') as HTMLButtonElement;
     cta.click();
     expect(spy).toHaveBeenCalledTimes(1);
   });
@@ -63,7 +67,7 @@ describe('StudioHeroComponent', () => {
     fixture.detectChanges();
     const spy = jasmine.createSpy('playVoiceSample');
     component.playVoiceSample.subscribe(spy);
-    const castBtn = fixture.nativeElement.querySelector('.hero-cast-row button') as HTMLButtonElement;
+    const castBtn = fixture.nativeElement.querySelector('[aria-label="Preview voice for Mara"]') as HTMLButtonElement;
     castBtn.click();
     expect(spy).toHaveBeenCalledOnceWith(jasmine.objectContaining({ name: 'Mara' }));
   });
@@ -81,7 +85,7 @@ describe('StudioHeroComponent', () => {
   it('toggles is-playing class on the demo button when demoPlaying changes', () => {
     component.demoPlaying = true;
     fixture.detectChanges();
-    const btn = fixture.nativeElement.querySelector('.hero-secondary') as HTMLButtonElement;
+    const btn = fixture.nativeElement.querySelector('.secondary-button') as HTMLButtonElement;
     expect(btn.classList).toContain('is-playing');
   });
 
@@ -89,7 +93,7 @@ describe('StudioHeroComponent', () => {
     component.heroCast = [{ name: 'Mara', initials: 'M', tone: 'Warm' }];
     component.activeSampleKey = 'voice:Mara';
     fixture.detectChanges();
-    const castBtn = fixture.nativeElement.querySelector('.hero-cast-row button') as HTMLButtonElement;
+    const castBtn = fixture.nativeElement.querySelector('[aria-label="Pause voice for Mara"]') as HTMLButtonElement;
     expect(castBtn.classList).toContain('is-playing');
   });
 });

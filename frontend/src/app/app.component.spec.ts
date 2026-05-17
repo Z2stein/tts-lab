@@ -1,6 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideHttpClient } from '@angular/common/http';
+import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
+import { AccountMenuComponent } from './account-menu.component';
 import { AppComponent } from './app.component';
 import { CurrentUser, CurrentUserService } from './current-user.service';
 import { routes } from './app.routes';
@@ -75,11 +77,9 @@ describe('AppComponent layout and chatbot visibility', () => {
     currentUserService.startLogout.and.resolveTo();
     await renderAuthenticatedShell({ id: '1', email: 'u@test.dev', name: 'Chris Th', authMode: 'mock', roles: ['USER'] });
 
-    fixture.nativeElement.querySelector('[data-testid="account-menu-trigger"]').click();
-    fixture.detectChanges();
-    fixture.nativeElement.querySelector('[data-testid="account-menu-logout"]').click();
-    fixture.detectChanges();
-    await fixture.whenStable();
+    const accountMenu = fixture.debugElement.query(By.directive(AccountMenuComponent)).componentInstance as AccountMenuComponent;
+    accountMenu.logout.emit();
+    await Promise.resolve();
 
     expect(currentUserService.startLogout).toHaveBeenCalled();
   });

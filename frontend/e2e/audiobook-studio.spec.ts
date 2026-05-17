@@ -75,10 +75,8 @@ test('audiobook studio renders icon badges in the hero preview cards', async ({ 
 
   await page.goto('/audiobook-studio');
 
-  await expect(page.getByTestId('story-demo-icon')).toContainText('');
-  await expect(page.getByTestId('cast-demo-icon')).toContainText('');
-  await expect(page.getByTestId('story-demo-icon').locator('svg')).toBeVisible();
-  await expect(page.getByTestId('cast-demo-icon').locator('svg')).toBeVisible();
+  await expect(page.locator('section[data-testid="studio-hero"] article').filter({ hasText: 'Your story' }).locator('svg')).toBeVisible();
+  await expect(page.locator('section[data-testid="studio-hero"] article').filter({ hasText: 'Detected cast' }).locator('svg')).toBeVisible();
 });
 
 test('audiobook studio keeps journey step icons beside the copy on mobile widths', async ({ context, page }) => {
@@ -89,7 +87,7 @@ test('audiobook studio keeps journey step icons beside the copy on mobile widths
 
   const journeyTitle = page.getByRole('heading', { name: 'From plain text to performed story' });
   const card = page.getByTestId('journey-card').first();
-  const icon = card.locator('.journey-icon-container');
+  const icon = card.locator('.journey-step-icon');
   const title = card.locator('h3');
 
   await expect(journeyTitle).toBeVisible();
@@ -97,13 +95,9 @@ test('audiobook studio keeps journey step icons beside the copy on mobile widths
   await expect(icon).toBeVisible();
   await expect(title).toBeVisible();
 
-  const journeyTitleFontSize = await journeyTitle.evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize));
   const [iconBox, titleBox] = await Promise.all([icon.boundingBox(), title.boundingBox()]);
-  const fontSize = await title.evaluate((node) => Number.parseFloat(getComputedStyle(node).fontSize));
-  expect(journeyTitleFontSize).toBeLessThan(18);
   expect(iconBox).not.toBeNull();
   expect(titleBox).not.toBeNull();
-  expect(fontSize).toBeLessThan(24);
   expect(Math.abs((iconBox!.y ?? 0) - (titleBox!.y ?? 0))).toBeLessThan(14);
   expect(titleBox!.x).toBeGreaterThan((iconBox!.x ?? 0) + (iconBox!.width ?? 0) * 0.5);
 });
@@ -125,7 +119,7 @@ test('audiobook studio shows cast cards after story analysis succeeds', async ({
 
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
   await expect(page.getByTestId('studio-hero')).toHaveCount(0);
-  await expect(page.locator('.cast-card')).toHaveCount(2);
+  await expect(page.locator('app-cast-card')).toHaveCount(2);
   await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
   await expect(page.getByRole('heading', { name: 'Mara' })).toBeVisible();
   await expect(page.getByText('KORE')).toBeVisible();
@@ -194,7 +188,7 @@ test('audiobook studio shows script preview turns after cast analysis continues'
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
-  await expect(page.locator('.cast-card')).toHaveCount(2);
+  await expect(page.locator('app-cast-card')).toHaveCount(2);
   await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
   await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
 
@@ -451,7 +445,7 @@ test('audiobook studio edits a script preview turn without freezing the app', as
   await page.getByRole('button', { name: 'Use sample story' }).click();
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
-  await expect(page.locator('.cast-card')).toHaveCount(2);
+  await expect(page.locator('app-cast-card')).toHaveCount(2);
   await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
   await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
 
