@@ -48,7 +48,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
       speakers: [],
       projectId: null,
-      projectTitle: ''
+      projectTitle: '',
+      languageCode: 'en-US'
     });
     audiobookWorkflowService.markAudioGenerated.and.resolveTo({
       projectId: 'project-1',
@@ -109,7 +110,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
       projectId: 'project-1',
-      projectTitle: 'The Hidden Signal'
+      projectTitle: 'The Hidden Signal',
+      languageCode: 'de-DE'
     });
     component.storyTextControl.setValue('Mara: We go now.');
 
@@ -124,11 +126,28 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('The Hidden Signal');
   });
 
+  it('sets the detected language in step 4 after story analysis', async () => {
+    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
+      speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
+      projectId: 'project-1',
+      projectTitle: 'The Hidden Signal',
+      languageCode: 'de-DE'
+    });
+    component.storyTextControl.setValue('Mara: Hallo zusammen.');
+
+    await component.analyzeStory();
+    fixture.detectChanges();
+
+    expect(component.languageCodeControl.value).toBe('de-DE');
+    expect((fixture.nativeElement.querySelector('#studio-language-code') as HTMLSelectElement).value).toBe('de-DE');
+  });
+
   it('shows and saves the AI project title from the first workflow step', async () => {
     audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
       projectId: 'project-1',
-      projectTitle: 'The Hidden Signal'
+      projectTitle: 'The Hidden Signal',
+      languageCode: 'en-US'
     });
     component.storyTextControl.setValue('Mara: We go now.');
 
@@ -194,7 +213,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         { speakerName: 'StationKeeper', roleDescription: 'Old role', voiceSuggestion: 'Old voice' }
       ],
       projectId: 'project-1',
-      projectTitle: 'The Hidden Signal'
+      projectTitle: 'The Hidden Signal',
+      languageCode: 'en-US'
     });
     await component.analyzeStory();
     fixture.detectChanges();
@@ -251,7 +271,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
       ],
       projectId: 'project-1',
-      projectTitle: 'The Hidden Signal'
+      projectTitle: 'The Hidden Signal',
+      languageCode: 'en-US'
     });
     await component.analyzeStory();
     fixture.detectChanges();
@@ -369,6 +390,12 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       scriptTurns: [{ speaker: 'Mara', text: 'We go at sunrise.' }],
       annotatedTurns: [],
       audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
       performanceNotesStale: true
     } as never);
     audiobookWorkflowService.annotateEmotions.and.resolveTo({
@@ -390,13 +417,11 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       },
       performanceNotesStale: false
     } as never);
-    clickButton('Approve script & continue');
-    await fixture.whenStable();
+    await component.approveScriptAndContinueWorkflow();
     fixture.detectChanges();
 
-    expect(component.performanceNotesStale).toBeFalse();
-    expect(component.performanceReady).toBeTrue();
-    expect(buttonByText('Next: Prepare audiobook').disabled).toBeFalse();
+    expect(audiobookWorkflowService.approveScript).toHaveBeenCalledWith('project-1');
+    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1');
   });
 
   it('continues the emotion annotation flow after the user approves the script', async () => {

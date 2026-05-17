@@ -25,6 +25,7 @@ export class AudiobookStudioFacade {
   private readonly _audioAssets = signal<AudioAssetResponse[]>([]);
   private readonly _productionSettings = signal<AudiobookWorkflowProductionSettings | null>(null);
   private readonly _projectTitle = signal('');
+  private readonly _detectedLanguageCode = signal('en-US');
   private readonly _workflowStage = signal<AudiobookWorkflowStage | null>(null);
   private readonly _castReviewed = signal(false);
   private readonly _scriptApproved = signal(false);
@@ -46,6 +47,7 @@ export class AudiobookStudioFacade {
   readonly audioAssets = this._audioAssets.asReadonly();
   readonly productionSettings = this._productionSettings.asReadonly();
   readonly projectTitle = this._projectTitle.asReadonly();
+  readonly detectedLanguageCode = this._detectedLanguageCode.asReadonly();
   readonly workflowStage = this._workflowStage.asReadonly();
   readonly castReviewed = this._castReviewed.asReadonly();
   readonly scriptApproved = this._scriptApproved.asReadonly();
@@ -122,6 +124,7 @@ export class AudiobookStudioFacade {
       this._cast.set(analysis.speakers);
       this._currentProjectId.set(analysis.projectId);
       this._projectTitle.set(analysis.projectTitle);
+      this._detectedLanguageCode.set(analysis.languageCode);
       this._scriptTurns.set([]);
       this._annotatedTurns.set([]);
       this._finalRequest.set(null);
@@ -313,6 +316,7 @@ export class AudiobookStudioFacade {
     this._audioAssets.set([]);
     this._productionSettings.set(null);
     this._projectTitle.set('');
+    this._detectedLanguageCode.set('en-US');
     this._workflowStage.set(null);
     this._castReviewed.set(false);
     this._scriptApproved.set(false);
@@ -344,6 +348,7 @@ export class AudiobookStudioFacade {
   private applyWorkflowSnapshot(snapshot: AudiobookWorkflowSnapshotResponse): void {
     this._currentProjectId.set(snapshot.projectId);
     this._projectTitle.set(snapshot.title);
+    this._detectedLanguageCode.set(snapshot.productionSettings.languageCode);
     this._cast.set(snapshot.speakers);
     this._scriptTurns.set(snapshot.scriptTurns);
     this._annotatedTurns.set(snapshot.annotatedTurns);

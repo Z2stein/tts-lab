@@ -14,8 +14,9 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class DeterministicAudiobookWorkflowFallbackService {
-    private static final Pattern SPEAKER_LINE = Pattern.compile("^\\s*([\\p{L}][\\p{L}0-9 ._'â€™-]{0,40})\\s*[:ï¼š-]\\s+(.+)\\s*$");
+    private static final Pattern SPEAKER_LINE = Pattern.compile("^\\s*([\\p{L}][\\p{L}0-9 ._'-]{0,40})\\s*[:：-]\\s+(.+)\\s*$");
     private static final Pattern LEADING_NON_TITLE_CHARS = Pattern.compile("^[^\\p{L}\\p{N}]+");
+    private static final Pattern JAPANESE_SCRIPT = Pattern.compile("[\\p{IsHiragana}\\p{IsKatakana}\\p{IsHan}]");
     private static final List<SpeakerVoice> MOCK_VOICES = List.of(SpeakerVoice.values());
 
     public List<SpeakerVoiceAnalysisItem> analyzeSpeakers(String rawDialogue) {
@@ -43,6 +44,29 @@ public class DeterministicAudiobookWorkflowFallbackService {
             MOCK_VOICES.get(index % MOCK_VOICES.size())
         )));
         return items;
+    }
+
+    public String detectLanguageCode(String rawDialogue) {
+        if (rawDialogue == null || rawDialogue.isBlank()) {
+            return "en-US";
+        }
+
+        String text = rawDialogue.trim();
+        String lower = " " + text.toLowerCase().replaceAll("[^\\p{L}\\p{N}]+", " ") + " ";
+
+        if (JAPANESE_SCRIPT.matcher(text).find()) {
+            return "ja-JP";
+        }
+        if (containsAny(lower, " der ", " die ", " das ", " und ", " nicht ", " ich ", " wir ", " zusammen ", "straße", "schon", "über")) {
+            return "de-DE";
+        }
+        if (containsAny(lower, " le ", " les ", " je ", " vous ", " avec ", " bonjour ", "être", "où", "ç")) {
+            return "fr-FR";
+        }
+        if (containsAny(lower, " el ", " los ", " las ", " hola ", " gracias ", " juntos ", "¿", "¡", "ñ")) {
+            return "es-ES";
+        }
+        return "en-US";
     }
 
     public String suggestProjectTitle(String rawDialogue) {
@@ -169,5 +193,14 @@ public class DeterministicAudiobookWorkflowFallbackService {
             .map(line -> LEADING_NON_TITLE_CHARS.matcher(line).replaceFirst(""))
             .findFirst()
             .orElse("");
+    }
+
+    private boolean containsAny(String text, String... tokens) {
+        for (String token : tokens) {
+            if (text.contains(token)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

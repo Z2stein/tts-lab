@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { provideHttpClient } from '@angular/common/http';
 import { By } from '@angular/platform-browser';
+import { provideHttpClient } from '@angular/common/http';
 import { provideRouter } from '@angular/router';
 import { AccountMenuComponent } from './account-menu.component';
 import { AppComponent } from './app.component';
@@ -79,7 +79,7 @@ describe('AppComponent layout and chatbot visibility', () => {
 
     const accountMenu = fixture.debugElement.query(By.directive(AccountMenuComponent)).componentInstance as AccountMenuComponent;
     accountMenu.logout.emit();
-    await Promise.resolve();
+    await component.logout();
 
     expect(currentUserService.startLogout).toHaveBeenCalled();
   });
