@@ -36,12 +36,12 @@ describe('UsageLimitsPanelComponent', () => {
       windowSeconds: 3600,
       limits: [
         { modelType: 'SPEECH_MODEL', used: 300, limit: 600, remaining: 300, unit: 'WORDS' },
-        { modelType: 'TEXT_MODEL', used: 264, limit: 600, remaining: 336, unit: 'WORDS' }
+        { modelType: 'TEXT_MODEL', used: 264, limit: 1800, remaining: 1536, unit: 'WORDS' }
       ]
     };
 
     component.limitSummary = mockSummary;
-    expect(component.getOverallUsagePercent()).toBe(50);
+    expect(component.getOverallUsagePercent()).toBe(24);
   });
 
   it('should return 0% when no limits', () => {
@@ -71,7 +71,7 @@ describe('UsageLimitsPanelComponent', () => {
     expect(intervalId).not.toBeNull();
     spyOn(window, 'clearInterval');
     component.ngOnDestroy();
-    expect(window.clearInterval).toHaveBeenCalledWith(intervalId);
+    expect(window.clearInterval).toHaveBeenCalledWith(intervalId as number);
   });
 
   it('should update countdown with hours and minutes', () => {
