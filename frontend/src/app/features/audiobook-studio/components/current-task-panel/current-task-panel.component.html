@@ -1,8 +1,29 @@
 <aside aria-live="polite">
-  <button type="button" class="current-task w-full mt-4 px-4 py-4 border border-[rgba(240,173,93,0.2)] rounded-2xl cursor-pointer text-left" data-testid="current-task" (click)="onTaskClick($event)">
-    <span class="inline-flex mb-[0.45rem] text-[#ffd591] text-xs font-black tracking-[0.08em] uppercase">You are here</span>
-    <h2 class="m-0 mb-[0.35rem] text-[#fff8ec] text-[clamp(1.25rem,2vw,1.55rem)] leading-[1.1]" style="font-family: Georgia, 'Times New Roman', serif">{{ currentTask.title }}</h2>
-    <p class="m-0 mb-[0.65rem] text-[#c9d1e8] leading-[1.55]">{{ currentTask.body }}</p>
-    <strong class="text-[#ffd591]">{{ currentTask.nextAction }}</strong>
+  <button type="button" class="current-task w-full mt-4 relative border border-[rgba(240,173,93,0.2)] rounded-2xl cursor-pointer text-left overflow-hidden" data-testid="current-task" (click)="onTaskClick($event)">
+    <!-- Background gradient with subtle glow -->
+    <div class="absolute inset-0 bg-gradient-to-br from-studio-cardGradientFrom to-studio-cardGradientTo" aria-hidden="true"></div>
+
+    <!-- Content wrapper with relative positioning for image overlay -->
+    <div class="relative z-10 px-4 py-4 md:px-6 md:py-6">
+      <!-- Left column: text content -->
+      <div class="current-task-copy flex flex-col justify-center relative z-20">
+        <span class="inline-flex mb-[0.45rem] w-fit text-[#ffd591] text-xs font-black tracking-[0.08em] uppercase">You are here</span>
+        <h2 class="m-0 mb-[0.35rem] text-[#fff8ec] text-[clamp(1.25rem,2vw,1.55rem)] leading-[1.1]" style="font-family: Georgia, 'Times New Roman', serif">{{ currentTask.title }}</h2>
+        <p class="m-0 mb-[0.65rem] text-[#c9d1e8] leading-[1.55]">{{ currentTask.body }}</p>
+        <strong class="text-[#ffd591]">{{ currentTask.nextAction }}</strong>
+      </div>
+
+      <!-- Right column: decorative image (absolutely positioned, hidden on mobile) -->
+      <div class="current-task-visual hidden md:block absolute top-0 right-0 w-96 h-full z-0 pointer-events-none" aria-hidden="true">
+        <img
+          src="assets/audiobook-studio/current-task-story.webp"
+          alt=""
+          width="640"
+          height="260"
+          class="h-full object-cover"
+          style="mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 25%, black 50%); -webkit-mask-image: linear-gradient(to right, transparent 0%, rgba(0,0,0,0.4) 25%, black 50%);"
+        />
+      </div>
+    </div>
   </button>
 </aside>
