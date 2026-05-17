@@ -204,6 +204,26 @@ test('audiobook studio persists a step-1 voice change across reload', async ({ c
   await expect(page.locator('.voice-name-display').first()).toHaveText('PUCK');
 });
 
+test('audiobook studio shows the detected language in advanced production settings after step 1', async ({ context, page }) => {
+  await authenticate(context, page);
+  await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-voice-analysis/cast-analysis/response.json'))
+    });
+  });
+  await mockWorkflowSnapshot(page, 'cast-review');
+
+  await page.goto('/audiobook-studio');
+  await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: Hallo zusammen.');
+  await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
+  await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
+
+  await page.locator('#performance-section details').click();
+  await expect(page.locator('#studio-language-code')).toHaveValue('de-DE');
+});
+
 test('audiobook studio shows script preview turns after cast analysis continues', async ({ context, page }) => {
   await authenticate(context, page);
   await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {

@@ -3,19 +3,22 @@ package com.example.ttslab.audiobooks.workflow.speakeranalysis;
 import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.SpeakerCharacter;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
-import com.example.ttslab.chat.ChatRequest;
-import com.example.ttslab.chat.ChatService;
-import com.example.ttslab.error.ApiException;
-import com.example.ttslab.config.ChatbotProperties;
-import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowJson;
 import com.example.ttslab.audiobooks.workflow.AudiobookWorkflowPromptProvider;
+import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.audiobooks.workflow.service.DeterministicAudiobookWorkflowFallbackService;
+import com.example.ttslab.chat.ChatRequest;
+import com.example.ttslab.chat.ChatService;
+import com.example.ttslab.config.ChatbotProperties;
+import com.example.ttslab.error.ApiException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +31,7 @@ import org.springframework.transaction.annotation.Transactional;
 public class SpeakerVoiceAnalysisService implements SpeakerVoiceAnalysisUpdateService {
     private static final String PROVIDER_GEMINI = "gemini";
     private static final Logger log = LoggerFactory.getLogger(SpeakerVoiceAnalysisService.class);
+    private static final Map<String, String> SUPPORTED_LANGUAGE_CODE_ALIASES = supportedLanguageCodeAliases();
 
     private final ChatService chatService;
     private final ObjectMapper objectMapper;
@@ -85,7 +89,7 @@ public class SpeakerVoiceAnalysisService implements SpeakerVoiceAnalysisUpdateSe
         SpeakerVoiceAnalysisResponse response = analyzeInternal(rawDialogue);
         if (projectId != null && !projectId.isBlank()) {
             syncProjectCharacters(projectId, response.speakers());
-            return new SpeakerVoiceAnalysisResponse(response.speakers(), projectId, response.projectTitle());
+            return new SpeakerVoiceAnalysisResponse(response.speakers(), projectId, response.projectTitle(), response.languageCode());
         }
         return response;
     }
@@ -93,7 +97,12 @@ public class SpeakerVoiceAnalysisService implements SpeakerVoiceAnalysisUpdateSe
     private SpeakerVoiceAnalysisResponse analyzeInternal(String rawDialogue) {
         if (rawDialogue == null || rawDialogue.isBlank()) {
             log.debug("chatbotProvider:" + chatbotProvider);
-            return new SpeakerVoiceAnalysisResponse(List.of(), null, fallbackService.suggestProjectTitle(rawDialogue));
+            return new SpeakerVoiceAnalysisResponse(
+                List.of(),
+                null,
+                fallbackService.suggestProjectTitle(rawDialogue),
+                fallbackService.detectLanguageCode(rawDialogue)
+            );
         }
 
         if (!PROVIDER_GEMINI.equals(chatbotProvider)) {
@@ -101,7 +110,8 @@ public class SpeakerVoiceAnalysisService implements SpeakerVoiceAnalysisUpdateSe
             return new SpeakerVoiceAnalysisResponse(
                 fallbackService.analyzeSpeakers(rawDialogue),
                 null,
-                fallbackService.suggestProjectTitle(rawDialogue)
+                fallbackService.suggestProjectTitle(rawDialogue),
+                fallbackService.detectLanguageCode(rawDialogue)
             );
         }
 
@@ -148,7 +158,8 @@ public class SpeakerVoiceAnalysisService implements SpeakerVoiceAnalysisUpdateSe
                 throw invalidProviderResponse(null);
             }
             String projectTitle = normalizeProjectTitle(root.path("projectTitle").asText(null), rawDialogue);
-            return new SpeakerVoiceAnalysisResponse(items, null, projectTitle);
+            String languageCode = normalizeLanguageCode(root.path("languageCode").asText(null), rawDialogue);
+            return new SpeakerVoiceAnalysisResponse(items, null, projectTitle, languageCode);
         } catch (ApiException ex) {
             throw ex;
         } catch (Exception ex) {
@@ -164,6 +175,19 @@ public class SpeakerVoiceAnalysisService implements SpeakerVoiceAnalysisUpdateSe
             }
         }
         return fallbackService.suggestProjectTitle(rawDialogue);
+    }
+
+    private String normalizeLanguageCode(String detectedLanguageCode, String rawDialogue) {
+        if (detectedLanguageCode != null) {
+            String normalizedKey = detectedLanguageCode.trim().toLowerCase(Locale.ROOT);
+            if (!normalizedKey.isBlank()) {
+                String mappedLanguageCode = SUPPORTED_LANGUAGE_CODE_ALIASES.get(normalizedKey);
+                if (mappedLanguageCode != null) {
+                    return mappedLanguageCode;
+                }
+            }
+        }
+        return fallbackService.detectLanguageCode(rawDialogue);
     }
 
     public List<SpeakerCharacter> syncProjectCharacters(String projectId, List<SpeakerVoiceAnalysisItem> speakers) {
@@ -211,6 +235,34 @@ public class SpeakerVoiceAnalysisService implements SpeakerVoiceAnalysisUpdateSe
             cause
         );
     }
+
+    private static Map<String, String> supportedLanguageCodeAliases() {
+        Map<String, String> aliases = new LinkedHashMap<>();
+        aliases.put("en-us", "en-US");
+        aliases.put("en", "en-US");
+        aliases.put("english", "en-US");
+        aliases.put("english (us)", "en-US");
+        aliases.put("english/us", "en-US");
+        aliases.put("de-de", "de-DE");
+        aliases.put("de", "de-DE");
+        aliases.put("german", "de-DE");
+        aliases.put("german (germany)", "de-DE");
+        aliases.put("deutsch", "de-DE");
+        aliases.put("fr-fr", "fr-FR");
+        aliases.put("fr", "fr-FR");
+        aliases.put("french", "fr-FR");
+        aliases.put("french (france)", "fr-FR");
+        aliases.put("français", "fr-FR");
+        aliases.put("es-es", "es-ES");
+        aliases.put("es", "es-ES");
+        aliases.put("spanish", "es-ES");
+        aliases.put("spanish (spain)", "es-ES");
+        aliases.put("español", "es-ES");
+        aliases.put("ja-jp", "ja-JP");
+        aliases.put("ja", "ja-JP");
+        aliases.put("japanese", "ja-JP");
+        aliases.put("japanese (japan)", "ja-JP");
+        aliases.put("日本語", "ja-JP");
+        return Map.copyOf(aliases);
+    }
 }
-
-

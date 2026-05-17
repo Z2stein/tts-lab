@@ -109,10 +109,10 @@ public class AudiobookWorkflowController {
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
             SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue());
-            var project = audiobookProjectCreationService.createProject(user.id(), analysisResponse.projectTitle(), request.rawDialogue());
+            var project = audiobookProjectCreationService.createProject(user.id(), analysisResponse.projectTitle(), request.rawDialogue(), analysisResponse.languageCode());
             speakerVoiceAnalysisService.syncProjectCharacters(project.getId(), analysisResponse.speakers());
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
-            return new SpeakerVoiceAnalysisResponse(analysisResponse.speakers(), project.getId(), analysisResponse.projectTitle());
+            return new SpeakerVoiceAnalysisResponse(analysisResponse.speakers(), project.getId(), analysisResponse.projectTitle(), analysisResponse.languageCode());
         } catch (RuntimeException ex) {
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.FAILED);
             throw ex;

@@ -41,7 +41,7 @@ describe('AudiobookStudioFacade', () => {
 
   describe('analyzeStory', () => {
     it('sets loadingAction, calls AudiobookWorkflowService, updates cast, and clears error on success', async () => {
-      workflow.analyzeSpeakers.and.resolveTo({ speakers: [maraItem], projectId: 'project-1', projectTitle: 'The Hidden Signal' });
+      workflow.analyzeSpeakers.and.resolveTo({ speakers: [maraItem], projectId: 'project-1', projectTitle: 'The Hidden Signal', languageCode: 'de-DE' });
 
       const promise = facade.analyzeStory('story text');
       expect(facade.loadingAction()).toBe('cast');
@@ -52,6 +52,7 @@ describe('AudiobookStudioFacade', () => {
       expect(facade.cast()).toEqual([maraItem]);
       expect(facade.currentProjectId()).toBe('project-1');
       expect(facade.projectTitle()).toBe('The Hidden Signal');
+      expect(facade.detectedLanguageCode()).toBe('de-DE');
       expect(facade.loadingAction()).toBeNull();
       expect(facade.error()).toBeNull();
     });
@@ -76,12 +77,13 @@ describe('AudiobookStudioFacade', () => {
       facade.setScriptApproved(true);
       facade.setPerformanceNotesStale(false);
 
-      workflow.analyzeSpeakers.and.resolveTo({ speakers: [maraItem], projectId: 'project-1', projectTitle: 'The Hidden Signal' });
+      workflow.analyzeSpeakers.and.resolveTo({ speakers: [maraItem], projectId: 'project-1', projectTitle: 'The Hidden Signal', languageCode: 'de-DE' });
       await facade.analyzeStory('new story');
 
       expect(facade.cast()).toEqual([maraItem]);
       expect(facade.currentProjectId()).toBe('project-1');
       expect(facade.projectTitle()).toBe('The Hidden Signal');
+      expect(facade.detectedLanguageCode()).toBe('de-DE');
       expect(facade.scriptTurns()).toEqual([]);
       expect(facade.annotatedTurns()).toEqual([]);
       expect(facade.finalRequest()).toBeNull();

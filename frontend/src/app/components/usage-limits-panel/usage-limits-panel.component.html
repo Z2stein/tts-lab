@@ -4,7 +4,7 @@
     class="usage-limits-trigger"
     (click)="toggleExpanded()"
     [attr.aria-expanded]="isExpanded"
-    aria-label="Show usage details"
+    aria-label="Remaining usage"
   >
     <span>Usage {{ getOverallUsagePercent() }}%</span>
     <span class="usage-limits-trigger__chevron" [class.rotate-180]="isExpanded">▼</span>

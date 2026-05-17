@@ -279,6 +279,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     this.projectTitleEditing = false;
     await this.facade.analyzeStory(this.storyTextControl.value);
     this.projectTitleControl.setValue(this.facade.projectTitle());
+    this.languageCodeControl.setValue(this.facade.detectedLanguageCode());
     this.projectTitleEditing = false;
     this.lastKnownProjectId = this.facade.currentProjectId();
     const projectId = this.facade.currentProjectId();

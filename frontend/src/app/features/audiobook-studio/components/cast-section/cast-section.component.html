@@ -10,7 +10,7 @@
 <p *ngIf="cast.length === 0" class="m-0 text-[#c9d1e8] leading-[1.6]">Speakers will appear after story analysis.</p>
 <div *ngIf="cast.length > 0" class="grid gap-[0.3rem] grid-cols-1" aria-label="Cast">
   <app-cast-card
-    class="cast-card-container"
+    class="cast-card cast-card-container"
     *ngFor="let speaker of cast; let i = index; trackBy: trackCastByIndex"
     [speaker]="speaker"
     [index]="i"

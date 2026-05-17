@@ -1,5 +1,5 @@
 <section class="grid gap-[1.15rem] px-[clamp(0.25rem,2vw,1.5rem)] pb-4 pt-0" aria-labelledby="journey-title" data-testid="journey-grid">
-  <h2 id="journey-title" class="m-0 text-center text-[#fff8ec] text-[clamp(1.85rem,4vw,3rem)] leading-[1.08]" style="font-family: Georgia, 'Times New Roman', serif">From plain text to performed story</h2>
+  <h2 id="journey-title" class="m-0 text-center text-[#fff8ec] text-[clamp(1rem,3.6vw,3rem)] leading-[1.08]" style="font-family: Georgia, 'Times New Roman', serif">From plain text to performed story</h2>
   <div class="grid grid-cols-5 gap-4 max-[820px]:grid-cols-1">
     <button
       *ngFor="let step of steps"
@@ -8,7 +8,7 @@
       data-testid="journey-card"
       (click)="onStepClick(step.sectionId, $event)"
     >
-      <div class="flex items-center justify-center bg-[rgba(12,14,25,0.8)] border-none rounded-[0.85rem] -mx-[1.1rem] -mt-[1.1rem] mb-2 px-[1.1rem] py-2 min-h-[4rem] max-[820px]:m-0 max-[820px]:px-[0.8rem] max-[820px]:py-[0.6rem] max-[820px]:min-h-[3.2rem] max-[820px]:min-w-[3.2rem] max-[820px]:flex-shrink-0">
+      <div class="journey-icon-container flex items-center justify-center bg-[rgba(12,14,25,0.8)] border-none rounded-[0.85rem] -mx-[1.1rem] -mt-[1.1rem] mb-2 px-[1.1rem] py-2 min-h-[4rem] max-[820px]:m-0 max-[820px]:px-[0.8rem] max-[820px]:py-[0.6rem] max-[820px]:min-h-[3.2rem] max-[820px]:min-w-[3.2rem] max-[820px]:flex-shrink-0">
         <span class="journey-step-icon inline-flex items-center justify-center w-[2.2rem] h-[2.2rem] text-[#ffd591] flex-shrink-0" style="filter: drop-shadow(0 0 8px rgba(255, 213, 145, 0.6)) drop-shadow(0 0 12px rgba(240, 173, 93, 0.4))" aria-hidden="true" [innerHTML]="getStepIcon(step.stepIcon)"></span>
       </div>
       <div class="max-[820px]:flex-1 max-[820px]:min-w-0">

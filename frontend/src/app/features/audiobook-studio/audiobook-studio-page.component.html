@@ -10,6 +10,8 @@
 
   <app-journey-grid [steps]="journeySteps" (scrollTo)="scrollToSection($event)"></app-journey-grid>
 
+  <p *ngIf="error" class="error">{{ error }}</p>
+
   <div class="workflow-shell" aria-label="Audiobook production workflow">
     <app-workflow-progress
       [steps]="workflowSteps"
