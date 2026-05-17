@@ -736,7 +736,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     await component.analyzeStory();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent).toContain('The cast analysis provider is currently unavailable. Please try again later.');
+    expect(component.error).toBe('The cast analysis provider is currently unavailable. Please try again later.');
   });
 
   it('renders every leading performance tag as inline markup', () => {

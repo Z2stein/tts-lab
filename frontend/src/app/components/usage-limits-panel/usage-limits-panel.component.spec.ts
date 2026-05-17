@@ -69,6 +69,10 @@ describe('UsageLimitsPanelComponent', () => {
     component.ngOnInit();
     const intervalId = component['countdownInterval'];
     expect(intervalId).not.toBeNull();
+    if (intervalId === null) {
+      fail('Expected countdown interval to be initialized');
+      return;
+    }
     spyOn(window, 'clearInterval');
     component.ngOnDestroy();
     expect(window.clearInterval).toHaveBeenCalledWith(intervalId as number);
