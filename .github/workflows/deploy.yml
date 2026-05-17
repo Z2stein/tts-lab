@@ -291,7 +291,8 @@ jobs:
               --docker-password="$GHCR_PASSWORD" \
               --dry-run=client -o yaml | kubectl apply -f -
 
-            helm upgrade --install "$RELEASE_NAME" "$REMOTE_APP_DIR/charts/tts-lab" \
+            HELM_RECOVERY_REVISION="$(helm history "$RELEASE_NAME" -n "$NAMESPACE" -o json 2>/dev/null | python3 -c 'import json,sys; history=json.load(sys.stdin) if not sys.stdin.isatty() else []; ok=[str(item[\"revision\"]) for item in history if item.get(\"status\") in (\"deployed\",\"superseded\")]; print(ok[-1] if ok else \"\")' || true)"
+            if ! helm upgrade --install "$RELEASE_NAME" "$REMOTE_APP_DIR/charts/tts-lab" \
               --namespace "$NAMESPACE" \
               --values "$REMOTE_APP_DIR/charts/tts-lab/$VALUES_FILE" \
               --wait \
@@ -315,7 +316,38 @@ jobs:
               --set audiobookWorkflow.googleCredentialsChecksum="$TTS_GOOGLE_CREDENTIALS_CHECKSUM" \
               --set chat.realProviderOnFeatureBranches="$([ "$CHAT_PROVIDER" = "gemini" ] && echo true || echo false)" \
               --set demoToken.enabled=true \
-              --set demoToken.signingSecretName="demo-token-signing"
+              --set demoToken.signingSecretName="demo-token-signing"; then
+              if [ -n "$HELM_RECOVERY_REVISION" ]; then
+                helm rollback "$RELEASE_NAME" "$HELM_RECOVERY_REVISION" -n "$NAMESPACE" --wait --timeout 5m
+              else
+                helm uninstall "$RELEASE_NAME" -n "$NAMESPACE" || true
+              fi
+              helm upgrade --install "$RELEASE_NAME" "$REMOTE_APP_DIR/charts/tts-lab" \
+                --namespace "$NAMESPACE" \
+                --values "$REMOTE_APP_DIR/charts/tts-lab/$VALUES_FILE" \
+                --wait \
+                --timeout 5m \
+                --set ingress.host="$APP_HOST" \
+                --set ingress.tls.enabled=true \
+                --set ingress.tls.secretName="$RELEASE_NAME-tls" \
+                --set frontend.image.repository=ghcr.io/$GHCR_OWNER/$FRONTEND_IMAGE_NAME \
+                --set frontend.image.tag="$IMAGE_TAG" \
+                --set backend.image.repository=ghcr.io/$GHCR_OWNER/$BACKEND_IMAGE_NAME \
+                --set backend.image.tag="$IMAGE_TAG" \
+                --set imagePullSecrets[0].name=ghcr-pull-secret \
+                --set app.environment="$ENVIRONMENT" \
+                --set app.baseUrl="https://$APP_HOST" \
+                --set auth.mode="$AUTH_MODE" \
+                --set auth.googleSecretName="$AUTH_GOOGLE_SECRET_NAME" \
+                --set-string postgresql.auth.password="$POSTGRES_PASSWORD" \
+                --set chat.geminiSecretName="gemini-api" \
+                --set chat.provider="$CHAT_PROVIDER" \
+                --set audiobookWorkflow.googleCredentialsSecretName="$TTS_GOOGLE_CREDENTIALS_SECRET_NAME" \
+                --set audiobookWorkflow.googleCredentialsChecksum="$TTS_GOOGLE_CREDENTIALS_CHECKSUM" \
+                --set chat.realProviderOnFeatureBranches="$([ "$CHAT_PROVIDER" = "gemini" ] && echo true || echo false)" \
+                --set demoToken.enabled=true \
+                --set demoToken.signingSecretName="demo-token-signing"
+            fi
 
             BACKEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-backend"
             FRONTEND_DEPLOYMENT="$RELEASE_NAME-tts-lab-frontend"
