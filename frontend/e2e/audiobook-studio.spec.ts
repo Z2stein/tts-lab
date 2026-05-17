@@ -159,6 +159,51 @@ test('audiobook studio lets the user edit and persist the AI project title', asy
   await expect(page.getByTestId('project-title-display')).toHaveText('Updated Signal');
 });
 
+test('audiobook studio persists a step-1 voice change across reload', async ({ context, page }) => {
+  await authenticate(context, page);
+  let currentSnapshot = {
+    ...(await loadWorkflowSnapshotFixture('cast-review')),
+    speakers: [
+      { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'ZEPHYR' },
+      { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'PUCK' }
+    ]
+  };
+
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(currentSnapshot)
+    });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/cast`, async (route) => {
+    const body = route.request().postDataJSON() as {
+      speakers: Array<{ speakerName: string; roleDescription: string; voiceSuggestion: string }>;
+    };
+    expect(body.speakers[0].voiceSuggestion).toBe('PUCK');
+    currentSnapshot = {
+      ...currentSnapshot,
+      speakers: body.speakers,
+      workflowStage: 'CAST_REVIEW'
+    };
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(currentSnapshot)
+    });
+  });
+
+  await page.goto(`/audiobook-studio/${testProjectId}`);
+  await expect(page.locator('.voice-name-display').first()).toHaveText('ZEPHYR');
+  await page.getByTestId('cast-change-voice-0').click();
+  await page.locator('[data-testid="voice-option-card"][data-voice-id="puck"]').getByTestId('voice-use-button').click();
+  await page.getByTestId('voice-picker-done').click();
+  await expect(page.locator('.voice-name-display').first()).toHaveText('PUCK');
+
+  await page.reload();
+  await expect(page.locator('.voice-name-display').first()).toHaveText('PUCK');
+});
+
 test('audiobook studio shows the detected language in advanced production settings after step 1', async ({ context, page }) => {
   await authenticate(context, page);
   await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {

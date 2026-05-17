@@ -453,6 +453,34 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/audiobooks/workflow/projects/{projectId}/cast:
+    patch:
+      tags: [Audiobook Workflow]
+      operationId: updateAudiobookWorkflowCast
+      parameters:
+        - name: projectId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AudiobookWorkflowCastUpdateRequest'
+      responses:
+        '200':
+          description: Updated audiobook workflow snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AudiobookWorkflowSnapshotResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+
   /api/audiobooks/workflow/projects/{projectId}/script-approval:
     post:
       tags: [Audiobook Workflow]
@@ -925,6 +953,16 @@ components:
           nullable: true
       additionalProperties: false
 
+    AudiobookWorkflowCastUpdateRequest:
+      type: object
+      required: [speakers]
+      properties:
+        speakers:
+          type: array
+          items:
+            $ref: '#/components/schemas/SpeakerVoiceAnalysisItem'
+      additionalProperties: false
+
     ChatRequest:
       type: object
       required: [message]
@@ -1162,7 +1200,7 @@ components:
 
     SpeakerVoiceCatalogItem:
       type: object
-      required: [id, providerVoiceName, displayName, description, imageUrl, demoMp3Url]
+      required: [id, providerVoiceName, displayName, description, imageUrl, demoMp3Url, gender]
       properties:
         id:
           type: string
@@ -1176,6 +1214,9 @@ components:
           type: string
         demoMp3Url:
           type: string
+        gender:
+          type: string
+          enum: [MALE, FEMALE]
       additionalProperties: false
 
 

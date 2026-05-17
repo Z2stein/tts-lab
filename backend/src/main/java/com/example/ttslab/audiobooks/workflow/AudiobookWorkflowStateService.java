@@ -17,6 +17,7 @@ import com.example.ttslab.audiobooks.repository.AudiobookRepository;
 import com.example.ttslab.audiobooks.repository.AudioAssetResponse;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerCharacterRepository;
+import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisUpdateService;
 import com.example.ttslab.audiobooks.workflow.speakeranalysis.SpeakerVoiceAnalysisItem;
 import com.example.ttslab.auth.CurrentUser;
 import com.example.ttslab.error.ApiException;
@@ -31,17 +32,20 @@ public class AudiobookWorkflowStateService {
     private final AudiobookRepository repository;
     private final AudiobookProjectRepository projectRepository;
     private final SpeakerCharacterRepository speakerCharacterRepository;
+    private final SpeakerVoiceAnalysisUpdateService speakerVoiceAnalysisUpdateService;
     private final AudiobookLibraryService audiobookLibraryService;
 
     public AudiobookWorkflowStateService(
         AudiobookRepository repository,
         AudiobookProjectRepository projectRepository,
         SpeakerCharacterRepository speakerCharacterRepository,
+        SpeakerVoiceAnalysisUpdateService speakerVoiceAnalysisUpdateService,
         AudiobookLibraryService audiobookLibraryService
     ) {
         this.repository = repository;
         this.projectRepository = projectRepository;
         this.speakerCharacterRepository = speakerCharacterRepository;
+        this.speakerVoiceAnalysisUpdateService = speakerVoiceAnalysisUpdateService;
         this.audiobookLibraryService = audiobookLibraryService;
     }
 
@@ -71,6 +75,23 @@ public class AudiobookWorkflowStateService {
             throw new ApiException(HttpStatus.BAD_REQUEST, "AUDIOBOOK_WORKFLOW_SCRIPT_NOT_READY", "The script must be created before it can be approved.");
         }
         updateWorkflowState(project, AudiobookWorkflowStage.SCRIPT_APPROVED, false);
+        return snapshot(user, projectId);
+    }
+
+    @Transactional
+    public AudiobookWorkflowSnapshotResponse updateCast(CurrentUser user, String projectId, List<SpeakerVoiceAnalysisItem> speakers) {
+        AudiobookProject project = getProjectForUser(user, projectId);
+        AudiobookWorkflowStage currentStage = resolveCurrentWorkflowStage(project);
+        if (currentStage != AudiobookWorkflowStage.CAST_REVIEW && currentStage != AudiobookWorkflowStage.CAST_APPROVED) {
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "AUDIOBOOK_WORKFLOW_CAST_EDIT_NOT_ALLOWED",
+                "The cast can only be edited before the script preview exists."
+            );
+        }
+
+        speakerVoiceAnalysisUpdateService.syncProjectCharacters(projectId, speakers);
+        updateWorkflowState(project, AudiobookWorkflowStage.CAST_REVIEW, false);
         return snapshot(user, projectId);
     }
 

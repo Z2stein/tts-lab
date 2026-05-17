@@ -17,12 +17,12 @@ import org.mockito.Mockito;
 
 class RequestRateLimitServiceTest {
     @Test
-    void defaultTextModelLimitMatchesSpeechModelLimit() {
+    void defaultTextModelLimitIsThreeTimesSpeechModelLimit() {
         RequestRateLimitProperties properties = new RequestRateLimitProperties(
             true,
             Duration.ofHours(12),
             600,
-            1,
+            3,
             RequestRateLimitUnit.WORDS
         );
         RequestRateLimitRepository repository = Mockito.mock(RequestRateLimitRepository.class);
@@ -41,7 +41,7 @@ class RequestRateLimitServiceTest {
 
         RequestRateLimitSummaryResponse summary = service.summary(user);
 
-        assertThat(limit(summary, ModelType.TEXT_MODEL).limit()).isEqualTo(600L);
+        assertThat(limit(summary, ModelType.TEXT_MODEL).limit()).isEqualTo(1800L);
         assertThat(limit(summary, ModelType.SPEECH_MODEL).limit()).isEqualTo(600L);
     }
 

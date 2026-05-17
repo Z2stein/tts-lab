@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { AudiobookApiService } from './audiobook-api.service';
 import {
   AnnotatedSpeakerTurn,
+  AudiobookWorkflowCastUpdateRequest,
   AudiobookWorkflowProductionSettingsRequest,
   AudiobookWorkflowSnapshotResponse,
   FinalTtsRequestPreviewResponse,
@@ -16,6 +17,7 @@ import { CreatedAudioDownload, RequestOptions } from '../../../shared/api-client
 
 export type {
   AnnotatedSpeakerTurn,
+  AudiobookWorkflowCastUpdateRequest,
   AudiobookWorkflowProductionSettings,
   AudiobookWorkflowProductionSettingsRequest,
   AudiobookWorkflowSnapshotResponse,
@@ -60,6 +62,19 @@ export class AudiobookWorkflowService {
       undefined,
       'Cast approval failed'
     );
+  }
+
+  async saveCast(projectId: string, request: AudiobookWorkflowCastUpdateRequest): Promise<AudiobookWorkflowSnapshotResponse> {
+    return this.audiobookApiService.patchJsonResponse<AudiobookWorkflowSnapshotResponse>(
+      `/api/audiobooks/workflow/projects/${encodeURIComponent(projectId)}/cast`,
+      request,
+      'Cast save failed'
+    ).then((response) => {
+      if (!response.body) {
+        throw new Error('Cast save failed.');
+      }
+      return response.body;
+    });
   }
 
   async approveScript(projectId: string): Promise<AudiobookWorkflowSnapshotResponse> {

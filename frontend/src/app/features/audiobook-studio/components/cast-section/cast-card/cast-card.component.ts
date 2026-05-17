@@ -27,6 +27,7 @@ export class CastCardComponent {
   @Input() accentClass = '';
   @Input() editing = false;
   @Input() editDraft: SpeakerVoiceAnalysisItem | null = null;
+  @Input() castEditable = true;
   @Input() speakerStyleFn!: (name: string | null | undefined) => Record<string, string>;
   @Output() startEdit = new EventEmitter<void>();
   @Output() saveEdit = new EventEmitter<void>();

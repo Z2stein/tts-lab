@@ -3,6 +3,6 @@
   "windowSeconds": 43200,
   "limits": [
     { "modelType": "SPEECH_MODEL", "used": 0, "limit": 600, "remaining": 600, "unit": "WORDS" },
-    { "modelType": "TEXT_MODEL", "used": 0, "limit": 600, "remaining": 600, "unit": "WORDS" }
+    { "modelType": "TEXT_MODEL", "used": 0, "limit": 1800, "remaining": 1800, "unit": "WORDS" }
   ]
 }

@@ -72,12 +72,12 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
     public String getSpeakerVoiceAnalysisPrompt(String rawDialogue) {
 
         String availableVoices = Arrays.stream(SpeakerVoice.values())
-                .map(SpeakerVoice::toString)
+                .map(voice -> voice.getKey() + " (" + voice.getGender().name() + ")")
                 .collect(Collectors.joining(", "));
 
         return """
                 Analyze this prose/dialogue text for the audiobook workflow.
-                
+
                 Return only JSON with this shape:
                 {"projectTitle":"...","sourceLanguageCode":"...","speakers":[{"speakerName":"...","roleDescription":"...","voiceSuggestion":"..."}]}
 
@@ -93,20 +93,27 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                 - Return only the detected source language as sourceLanguageCode.
                 - Use a BCP-47 language code when possible, for example en-US, de-DE, pl-PL, fr-FR, es-ES, ja-JP.
                 - Do not infer, choose, or mention any production language or TTS language.
-                
+
                 Important:
                 - If the text contains narration, descriptions, action beats, dialogue attribution, or non-quoted prose, you MUST include a speaker named "Narrator".
                 - "Narrator" is a pseudo-speaker for all prose that is not directly spoken by a character.
                 - Character names should be used for quoted spoken dialogue.
                 - Keep descriptions and voice suggestions short and practical.
-                
+
                 speakerName cannot contain whitespace or non-alphanumeric characters.
-                
+
                 Constraint for 'voiceSuggestion':
                 You MUST use one of the uppercase keys from the list below.
                 Do not include the style description in the JSON value.
+
+                CRITICAL: Match speaker gender with voice gender:
+                - If a speaker is described as female or uses she/her pronouns, select a FEMALE voice.
+                - If a speaker is described as male or uses he/him pronouns, select a MALE voice.
+                - If a speaker's gender is unclear from the text, choose the voice that best fits the character description.
+                - Always select voices with the correct gender to avoid mismatches.
+
                 Available Voice Keys: %s
-                
+
                 Text:
                 %s
                 """.formatted(availableVoices, rawDialogue);
