@@ -5,7 +5,8 @@
     "displayName": "Zephyr",
     "description": "Bright, airy, youthful, and optimistic. Works well for fresh, energetic narration, uplifting audiobook passages, friendly introductions, and scenes with a light emotional tone.",
     "imageUrl": "/assets/voices/zephyr/avatar.png",
-    "demoMp3Url": "/assets/voices/zephyr/demo.mp3"
+    "demoMp3Url": "/assets/voices/zephyr/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "puck",
@@ -13,7 +14,8 @@
     "displayName": "Puck",
     "description": "Playful, quick, clever, and approachable. Suitable for casual explanations, humorous dialogue, lively characters, and narration that should feel friendly without becoming too serious.",
     "imageUrl": "/assets/voices/puck/avatar.png",
-    "demoMp3Url": "/assets/voices/puck/demo.mp3"
+    "demoMp3Url": "/assets/voices/puck/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "charon",
@@ -21,7 +23,8 @@
     "displayName": "Charon",
     "description": "Calm, steady, mature, and guiding. Works well for serious narration, explanations, reflective passages, documentaries, and audiobook sections that need trust and clarity.",
     "imageUrl": "/assets/voices/charon/avatar.png",
-    "demoMp3Url": "/assets/voices/charon/demo.mp3"
+    "demoMp3Url": "/assets/voices/charon/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "kore",
@@ -29,7 +32,8 @@
     "displayName": "Kore",
     "description": "Direct, focused, confident, and energetic. Suitable for assertive narration, decisive characters, instructional content, and passages that need clear emphasis.",
     "imageUrl": "/assets/voices/kore/avatar.png",
-    "demoMp3Url": "/assets/voices/kore/demo.mp3"
+    "demoMp3Url": "/assets/voices/kore/demo.mp3",
+    "gender": "FEMALE"
   },
   {
     "id": "fenrir",
@@ -37,7 +41,8 @@
     "displayName": "Fenrir",
     "description": "Dynamic, intense, adventurous, and expressive. Works well for action scenes, dramatic moments, fantasy characters, suspenseful narration, and emotionally charged passages.",
     "imageUrl": "/assets/voices/fenrir/avatar.png",
-    "demoMp3Url": "/assets/voices/fenrir/demo.mp3"
+    "demoMp3Url": "/assets/voices/fenrir/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "leda",
@@ -45,7 +50,8 @@
     "displayName": "Leda",
     "description": "Young, light, gentle, and expressive. Suitable for youthful characters, soft narration, coming-of-age stories, intimate dialogue, and emotionally delicate scenes.",
     "imageUrl": "/assets/voices/leda/avatar.png",
-    "demoMp3Url": "/assets/voices/leda/demo.mp3"
+    "demoMp3Url": "/assets/voices/leda/demo.mp3",
+    "gender": "FEMALE"
   },
   {
     "id": "orus",
@@ -53,7 +59,8 @@
     "displayName": "Orus",
     "description": "Grounded, authoritative, strong, and composed. Works well for mentor figures, leaders, serious narration, historical passages, and moments requiring weight and certainty.",
     "imageUrl": "/assets/voices/orus/avatar.png",
-    "demoMp3Url": "/assets/voices/orus/demo.mp3"
+    "demoMp3Url": "/assets/voices/orus/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "aoede",
@@ -61,7 +68,8 @@
     "displayName": "Aoede",
     "description": "Smooth, artistic, conversational, and relaxed. Suitable for storytelling, poetic narration, reflective audiobook passages, creative essays, and warm long-form listening.",
     "imageUrl": "/assets/voices/aoede/avatar.png",
-    "demoMp3Url": "/assets/voices/aoede/demo.mp3"
+    "demoMp3Url": "/assets/voices/aoede/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "callirrhoe",
@@ -69,7 +77,8 @@
     "displayName": "Callirrhoe",
     "description": "Relaxed, clear, calm, and approachable. Works well for friendly narration, everyday dialogue, lifestyle content, and scenes that should feel natural and effortless.",
     "imageUrl": "/assets/voices/callirrhoe/avatar.png",
-    "demoMp3Url": "/assets/voices/callirrhoe/demo.mp3"
+    "demoMp3Url": "/assets/voices/callirrhoe/demo.mp3",
+    "gender": "FEMALE"
   },
   {
     "id": "autonoe",
@@ -77,7 +86,8 @@
     "displayName": "Autonoe",
     "description": "Clear, intelligent, alert, and polished. Suitable for curious characters, educational narration, explanatory content, and passages that should feel smart and engaged.",
     "imageUrl": "/assets/voices/autonoe/avatar.png",
-    "demoMp3Url": "/assets/voices/autonoe/demo.mp3"
+    "demoMp3Url": "/assets/voices/autonoe/demo.mp3",
+    "gender": "FEMALE"
   },
   {
     "id": "enceladus",
@@ -85,7 +95,8 @@
     "displayName": "Enceladus",
     "description": "Soft, mysterious, intimate, and slightly ethereal. Works well for suspense, quiet dramatic moments, dreamy narration, secrets, and scenes with hidden tension.",
     "imageUrl": "/assets/voices/enceladus/avatar.png",
-    "demoMp3Url": "/assets/voices/enceladus/demo.mp3"
+    "demoMp3Url": "/assets/voices/enceladus/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "iapetus",
@@ -93,7 +104,8 @@
     "displayName": "Iapetus",
     "description": "Precise, neutral, balanced, and easy to understand. Suitable for straightforward narration, practical explanations, audiobook exposition, and content where clarity matters most.",
     "imageUrl": "/assets/voices/iapetus/avatar.png",
-    "demoMp3Url": "/assets/voices/iapetus/demo.mp3"
+    "demoMp3Url": "/assets/voices/iapetus/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "umbriel",
@@ -101,7 +113,8 @@
     "displayName": "Umbriel",
     "description": "Smooth, calm, slightly dark, and reflective. Works well for evening narration, thoughtful passages, quiet mystery, calm dialogue, and understated emotional scenes.",
     "imageUrl": "/assets/voices/umbriel/avatar.png",
-    "demoMp3Url": "/assets/voices/umbriel/demo.mp3"
+    "demoMp3Url": "/assets/voices/umbriel/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "algieba",
@@ -109,7 +122,8 @@
     "displayName": "Algieba",
     "description": "Polished, elegant, controlled, and warm. Suitable for refined narration, professional storytelling, calm confidence, and audiobook passages that should feel smooth and composed.",
     "imageUrl": "/assets/voices/algieba/avatar.png",
-    "demoMp3Url": "/assets/voices/algieba/demo.mp3"
+    "demoMp3Url": "/assets/voices/algieba/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "despina",
@@ -117,7 +131,8 @@
     "displayName": "Despina",
     "description": "Warm, welcoming, gentle, and graceful. Works well for comforting narration, hospitality-like introductions, emotional dialogue, and scenes with a soft human touch.",
     "imageUrl": "/assets/voices/despina/avatar.png",
-    "demoMp3Url": "/assets/voices/despina/demo.mp3"
+    "demoMp3Url": "/assets/voices/despina/demo.mp3",
+    "gender": "FEMALE"
   },
   {
     "id": "erinome",
@@ -125,7 +140,8 @@
     "displayName": "Erinome",
     "description": "Articulate, professional, organized, and focused. Suitable for educational sections, precise narration, formal explanations, and audiobook passages that need structure and clarity.",
     "imageUrl": "/assets/voices/erinome/avatar.png",
-    "demoMp3Url": "/assets/voices/erinome/demo.mp3"
+    "demoMp3Url": "/assets/voices/erinome/demo.mp3",
+    "gender": "FEMALE"
   },
   {
     "id": "algenib",
@@ -133,7 +149,8 @@
     "displayName": "Algenib",
     "description": "Textured, mature, grounded, and characterful. Works well for seasoned narrators, dramatic storytelling, noir-like passages, rugged characters, and emotionally worn voices.",
     "imageUrl": "/assets/voices/algenib/avatar.png",
-    "demoMp3Url": "/assets/voices/algenib/demo.mp3"
+    "demoMp3Url": "/assets/voices/algenib/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "rasalgethi",
@@ -141,7 +158,8 @@
     "displayName": "Rasalgethi",
     "description": "Curious, thoughtful, explanatory, and slightly distinctive. Suitable for investigative narration, documentary-style content, reflective questions, and intellectually engaging passages.",
     "imageUrl": "/assets/voices/rasalgethi/avatar.png",
-    "demoMp3Url": "/assets/voices/rasalgethi/demo.mp3"
+    "demoMp3Url": "/assets/voices/rasalgethi/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "laomedeia",
@@ -149,7 +167,8 @@
     "displayName": "Laomedeia",
     "description": "Friendly, animated, clear, and positive. Works well for lively narration, cheerful characters, learning content, and scenes that need accessible energy.",
     "imageUrl": "/assets/voices/laomedeia/avatar.png",
-    "demoMp3Url": "/assets/voices/laomedeia/demo.mp3"
+    "demoMp3Url": "/assets/voices/laomedeia/demo.mp3",
+    "gender": "FEMALE"
   },
   {
     "id": "achernar",
@@ -157,7 +176,8 @@
     "displayName": "Achernar",
     "description": "Gentle, calm, delicate, and soothing. Suitable for bedtime-style narration, meditation-like passages, emotional reflection, quiet dialogue, and peaceful scenes.",
     "imageUrl": "/assets/voices/achernar/avatar.png",
-    "demoMp3Url": "/assets/voices/achernar/demo.mp3"
+    "demoMp3Url": "/assets/voices/achernar/demo.mp3",
+    "gender": "FEMALE"
   },
   {
     "id": "alnilam",
@@ -165,7 +185,8 @@
     "displayName": "Alnilam",
     "description": "Commanding, energetic, confident, and forward-moving. Works well for motivational narration, leaders, announcements, decisive scenes, and passages with strong momentum.",
     "imageUrl": "/assets/voices/alnilam/avatar.png",
-    "demoMp3Url": "/assets/voices/alnilam/demo.mp3"
+    "demoMp3Url": "/assets/voices/alnilam/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "schedar",
@@ -173,7 +194,8 @@
     "displayName": "Schedar",
     "description": "Balanced, steady, neutral, and reliable. Suitable for long audiobook narration, calm explanations, grounded characters, and content that should not feel too dramatic.",
     "imageUrl": "/assets/voices/schedar/avatar.png",
-    "demoMp3Url": "/assets/voices/schedar/demo.mp3"
+    "demoMp3Url": "/assets/voices/schedar/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "gacrux",
@@ -181,7 +203,8 @@
     "displayName": "Gacrux",
     "description": "Experienced, calm, serious, and trustworthy. Works well for documentaries, historical narration, older characters, reflective nonfiction, and scenes with life experience.",
     "imageUrl": "/assets/voices/gacrux/avatar.png",
-    "demoMp3Url": "/assets/voices/gacrux/demo.mp3"
+    "demoMp3Url": "/assets/voices/gacrux/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "pulcherrima",
@@ -189,7 +212,8 @@
     "displayName": "Pulcherrima",
     "description": "Expressive, present, bright, and charismatic. Suitable for bold characters, energetic narration, promotional moments, and scenes that should immediately catch attention.",
     "imageUrl": "/assets/voices/pulcherrima/avatar.png",
-    "demoMp3Url": "/assets/voices/pulcherrima/demo.mp3"
+    "demoMp3Url": "/assets/voices/pulcherrima/demo.mp3",
+    "gender": "FEMALE"
   },
   {
     "id": "achird",
@@ -197,7 +221,8 @@
     "displayName": "Achird",
     "description": "Warm, approachable, helpful, and relaxed. Works well for assistant-like narration, friendly characters, simple explanations, and comforting conversational passages.",
     "imageUrl": "/assets/voices/achird/avatar.png",
-    "demoMp3Url": "/assets/voices/achird/demo.mp3"
+    "demoMp3Url": "/assets/voices/achird/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "zubenelgenubi",
@@ -205,7 +230,8 @@
     "displayName": "Zubenelgenubi",
     "description": "Informal, conversational, relaxed, and down-to-earth. Suitable for modern dialogue, casual narration, humorous scenes, and audiobook passages that should feel natural.",
     "imageUrl": "/assets/voices/zubenelgenubi/avatar.png",
-    "demoMp3Url": "/assets/voices/zubenelgenubi/demo.mp3"
+    "demoMp3Url": "/assets/voices/zubenelgenubi/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "vindemiatrix",
@@ -213,7 +239,8 @@
     "displayName": "Vindemiatrix",
     "description": "Soft, mature, reassuring, and peaceful. Works well for reflective narration, emotional support, calm characters, healing scenes, and slow intimate passages.",
     "imageUrl": "/assets/voices/vindemiatrix/avatar.png",
-    "demoMp3Url": "/assets/voices/vindemiatrix/demo.mp3"
+    "demoMp3Url": "/assets/voices/vindemiatrix/demo.mp3",
+    "gender": "FEMALE"
   },
   {
     "id": "sadachbia",
@@ -221,7 +248,8 @@
     "displayName": "Sadachbia",
     "description": "Animated, distinctive, theatrical, and expressive. Suitable for dramatic storytelling, colorful characters, energetic scenes, and narration with a strong personality.",
     "imageUrl": "/assets/voices/sadachbia/avatar.png",
-    "demoMp3Url": "/assets/voices/sadachbia/demo.mp3"
+    "demoMp3Url": "/assets/voices/sadachbia/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "sadaltager",
@@ -229,7 +257,8 @@
     "displayName": "Sadaltager",
     "description": "Wise, patient, explanatory, and composed. Works well for teacher-like narration, expert characters, thoughtful exposition, and passages that need calm authority.",
     "imageUrl": "/assets/voices/sadaltager/avatar.png",
-    "demoMp3Url": "/assets/voices/sadaltager/demo.mp3"
+    "demoMp3Url": "/assets/voices/sadaltager/demo.mp3",
+    "gender": "MALE"
   },
   {
     "id": "sulafat",
@@ -237,6 +266,7 @@
     "displayName": "Sulafat",
     "description": "Warm, confident, supportive, and persuasive. Suitable for mentoring voices, emotional narration, encouraging passages, and content that should feel human and reassuring.",
     "imageUrl": "/assets/voices/sulafat/avatar.png",
-    "demoMp3Url": "/assets/voices/sulafat/demo.mp3"
+    "demoMp3Url": "/assets/voices/sulafat/demo.mp3",
+    "gender": "FEMALE"
   }
 ]

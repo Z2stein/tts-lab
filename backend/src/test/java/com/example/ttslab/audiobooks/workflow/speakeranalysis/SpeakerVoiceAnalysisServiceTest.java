@@ -4,8 +4,9 @@ import com.example.ttslab.audiobooks.model.AudiobookProject;
 import com.example.ttslab.audiobooks.model.AudiobookProjectStatus;
 import com.example.ttslab.audiobooks.model.SpeakerCharacter;
 import com.example.ttslab.audiobooks.repository.AudiobookProjectRepository;
-import com.example.ttslab.chat.ChatResponse;
 import com.example.ttslab.chat.ChatService;
+import com.example.ttslab.chat.ChatRequest;
+import com.example.ttslab.chat.ChatResponse;
 import com.example.ttslab.audiobooks.workflow.DefaultAudiobookWorkflowPromptProvider;
 import com.example.ttslab.audiobooks.workflow.SpeakerVoice;
 import com.example.ttslab.audiobooks.workflow.service.DeterministicAudiobookWorkflowFallbackService;
@@ -17,9 +18,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -63,7 +64,6 @@ class SpeakerVoiceAnalysisServiceTest {
 
         assertThat(response.projectId()).isEqualTo(projectId);
         assertThat(response.projectTitle()).isEqualTo("Hello");
-        assertThat(response.languageCode()).isEqualTo("en-US");
         assertThat(response.speakers()).extracting(SpeakerVoiceAnalysisItem::speakerName).containsExactly("Alice", "Bob");
 
         @SuppressWarnings("unchecked")
@@ -103,35 +103,25 @@ class SpeakerVoiceAnalysisServiceTest {
 
         assertThat(response.projectId()).isNull();
         assertThat(response.projectTitle()).isEqualTo("Hello");
-        assertThat(response.languageCode()).isEqualTo("en-US");
         verify(speakerCharacterRepository, org.mockito.Mockito.never()).saveAll(anyList());
         verify(speakerCharacterRepository, org.mockito.Mockito.never()).deleteByProjectId(anyString());
     }
 
     @Test
-    void analyzeFallbackDetectsSupportedLanguageCode() {
-        ChatService chatService = mock(ChatService.class);
-        AudiobookProjectRepository audiobookProjectRepository = mock(AudiobookProjectRepository.class);
-        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
-        DeterministicAudiobookWorkflowFallbackService fallbackService = new DeterministicAudiobookWorkflowFallbackService();
+    void genderInformationIncludedInVoiceAnalysisPrompt() {
         DefaultAudiobookWorkflowPromptProvider promptProvider = new DefaultAudiobookWorkflowPromptProvider(objectMapper);
-        SpeakerVoiceAnalysisService service = new SpeakerVoiceAnalysisService(
-            chatService,
-            objectMapper,
-            promptProvider,
-            fallbackService,
-            audiobookProjectRepository,
-            speakerCharacterRepository,
-            "mock"
-        );
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Mara: Hallo zusammen.");
+        String prompt = promptProvider.getSpeakerVoiceAnalysisPrompt("sample dialogue");
 
-        assertThat(response.languageCode()).isEqualTo("de-DE");
+        assertThat(prompt).contains("MALE");
+        assertThat(prompt).contains("FEMALE");
+        assertThat(prompt).contains("Match speaker gender with voice gender");
+        assertThat(prompt).contains("female").contains("FEMALE voice");
+        assertThat(prompt).contains("male").contains("MALE voice");
     }
 
     @Test
-    void analyzeNormalizesProviderLanguageCodeToSupportedValue() {
+    void femaleCharacterGetsFemaleVoice() {
         ChatService chatService = mock(ChatService.class);
         AudiobookProjectRepository audiobookProjectRepository = mock(AudiobookProjectRepository.class);
         SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
@@ -146,15 +136,98 @@ class SpeakerVoiceAnalysisServiceTest {
             speakerCharacterRepository,
             "gemini"
         );
-        when(chatService.ask(any())).thenReturn(new ChatResponse("""
-            {"projectTitle":"Die Verborgene Spur","languageCode":"de","speakers":[{"speakerName":"Mara","roleDescription":"Entschlossene Reisende","voiceSuggestion":"ZEPHYR"}]}
-            """, null));
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Mara: Hallo zusammen.");
+        String projectId = "project-1";
+        AudiobookProject project = new AudiobookProject(
+            projectId,
+            "user-1",
+            "Gender test",
+            AudiobookProjectStatus.DRAFT,
+            "voice_analysis",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
+        when(audiobookProjectRepository.findById(projectId)).thenReturn(Optional.of(project));
 
-        assertThat(response.projectTitle()).isEqualTo("Die Verborgene Spur");
-        assertThat(response.languageCode()).isEqualTo("de-DE");
-        assertThat(response.speakers()).extracting(SpeakerVoiceAnalysisItem::speakerName).containsExactly("Mara");
+        String aiResponseText = """
+            {
+              "projectTitle": "Female Character Story",
+              "speakers": [
+                {
+                  "speakerName": "Elena",
+                  "roleDescription": "Female protagonist",
+                  "voiceSuggestion": "DESPINA"
+                }
+              ]
+            }
+            """;
+        when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse(aiResponseText, null));
+
+        SpeakerVoiceAnalysisResponse response = service.analyze("Elena: This is my story", projectId);
+
+        assertThat(response.speakers()).hasSize(1);
+        SpeakerVoiceAnalysisItem item = response.speakers().get(0);
+        assertThat(item.speakerName()).isEqualTo("Elena");
+        assertThat(item.voiceSuggestion()).isEqualTo(SpeakerVoice.DESPINA);
+        assertThat(SpeakerVoice.DESPINA.getGender()).isEqualTo(SpeakerVoice.Gender.FEMALE);
+    }
+
+    @Test
+    void maleCharacterGetsMaleVoice() {
+        ChatService chatService = mock(ChatService.class);
+        AudiobookProjectRepository audiobookProjectRepository = mock(AudiobookProjectRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
+        DeterministicAudiobookWorkflowFallbackService fallbackService = new DeterministicAudiobookWorkflowFallbackService();
+        DefaultAudiobookWorkflowPromptProvider promptProvider = new DefaultAudiobookWorkflowPromptProvider(objectMapper);
+        SpeakerVoiceAnalysisService service = new SpeakerVoiceAnalysisService(
+            chatService,
+            objectMapper,
+            promptProvider,
+            fallbackService,
+            audiobookProjectRepository,
+            speakerCharacterRepository,
+            "gemini"
+        );
+
+        String projectId = "project-2";
+        AudiobookProject project = new AudiobookProject(
+            projectId,
+            "user-1",
+            "Male character test",
+            AudiobookProjectStatus.DRAFT,
+            "voice_analysis",
+            0,
+            null,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
+        when(audiobookProjectRepository.findById(projectId)).thenReturn(Optional.of(project));
+
+        String aiResponseText = """
+            {
+              "projectTitle": "Male Character Story",
+              "speakers": [
+                {
+                  "speakerName": "Marcus",
+                  "roleDescription": "Male protagonist",
+                  "voiceSuggestion": "CHARON"
+                }
+              ]
+            }
+            """;
+        when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse(aiResponseText, null));
+
+        SpeakerVoiceAnalysisResponse response = service.analyze("Marcus: Hello there", projectId);
+
+        assertThat(response.speakers()).hasSize(1);
+        SpeakerVoiceAnalysisItem item = response.speakers().get(0);
+        assertThat(item.speakerName()).isEqualTo("Marcus");
+        assertThat(item.voiceSuggestion()).isEqualTo(SpeakerVoice.CHARON);
+        assertThat(SpeakerVoice.CHARON.getGender()).isEqualTo(SpeakerVoice.Gender.MALE);
     }
 }
 

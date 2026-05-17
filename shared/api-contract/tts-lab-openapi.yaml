@@ -1196,7 +1196,7 @@ components:
 
     SpeakerVoiceCatalogItem:
       type: object
-      required: [id, providerVoiceName, displayName, description, imageUrl, demoMp3Url]
+      required: [id, providerVoiceName, displayName, description, imageUrl, demoMp3Url, gender]
       properties:
         id:
           type: string
@@ -1210,6 +1210,9 @@ components:
           type: string
         demoMp3Url:
           type: string
+        gender:
+          type: string
+          enum: [MALE, FEMALE]
       additionalProperties: false
 
 

@@ -97,7 +97,7 @@ class AudiobookWorkflowIntegrationTest {
         when(requestRateLimitService.unit()).thenReturn(RequestRateLimitUnit.WORDS);
         when(requestUsageMeasurer.measure(anyString(), eq(RequestRateLimitUnit.WORDS))).thenReturn(1L);
         when(requestRateLimitService.checkAndConsume(any(), any(), eq(1L)))
-            .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, true, 1, 600, 599, 1, 0, 1, RequestRateLimitUnit.WORDS));
+            .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, true, 1, 1800, 1799, 1, 0, 1, RequestRateLimitUnit.WORDS));
     }
 
     @Test

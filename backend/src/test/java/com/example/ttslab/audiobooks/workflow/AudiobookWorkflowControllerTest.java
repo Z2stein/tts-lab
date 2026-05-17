@@ -131,7 +131,7 @@ class AudiobookWorkflowControllerTest {
         when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.SPEECH_MODEL), eq(1L)))
             .thenReturn(new RequestRateLimitResult(ModelType.SPEECH_MODEL, true, 1, 600, 599, 1, 0, 1, RequestRateLimitUnit.WORDS));
         when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.TEXT_MODEL), eq(1L)))
-            .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, true, 1, 600, 599, 1, 0, 1, RequestRateLimitUnit.WORDS));
+            .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, true, 1, 1800, 1799, 1, 0, 1, RequestRateLimitUnit.WORDS));
 
         // Mock audiobook library service
         testProject = new AudiobookProject(
@@ -492,7 +492,7 @@ class AudiobookWorkflowControllerTest {
     @Test
     void speakerVoiceAnalysisRateLimitedReturns429WithRetryAfter() throws Exception {
         when(requestRateLimitService.checkAndConsume(any(), eq(ModelType.TEXT_MODEL), eq(1L)))
-            .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, false, 600, 600, 0, 1, 42, 1, RequestRateLimitUnit.WORDS));
+            .thenReturn(new RequestRateLimitResult(ModelType.TEXT_MODEL, false, 1800, 1800, 0, 1, 42, 1, RequestRateLimitUnit.WORDS));
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)

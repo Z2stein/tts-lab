@@ -6,7 +6,8 @@ public record SpeakerVoiceCatalogItemResponse(
         String displayName,
         String description,
         String imageUrl,
-        String demoMp3Url
+        String demoMp3Url,
+        String gender
 ) {
     public static SpeakerVoiceCatalogItemResponse from(SpeakerVoice voice) {
         String id = voice.name().toLowerCase();
@@ -16,7 +17,8 @@ public record SpeakerVoiceCatalogItemResponse(
                 voice.getKey(),
                 voice.getStyleDescription(),
                 "/assets/voices/" + id + "/avatar.png",
-                "/assets/voices/" + id + "/demo.mp3"
+                "/assets/voices/" + id + "/demo.mp3",
+                voice.getGender().name()
         );
     }
 }

@@ -45,7 +45,7 @@ class RequestRateLimitControllerTest {
             Instant.parse("2026-05-09T12:00:00Z"),
             43200,
             List.of(
-                new RequestRateLimitSummaryItem(com.example.ttslab.prompts.ModelType.TEXT_MODEL, 10, 600, 590, RequestRateLimitUnit.WORDS),
+                new RequestRateLimitSummaryItem(com.example.ttslab.prompts.ModelType.TEXT_MODEL, 10, 1800, 1790, RequestRateLimitUnit.WORDS),
                 new RequestRateLimitSummaryItem(com.example.ttslab.prompts.ModelType.SPEECH_MODEL, 0, 600, 600, RequestRateLimitUnit.WORDS)
             )
         ));
@@ -53,7 +53,7 @@ class RequestRateLimitControllerTest {
         MvcResult result = mockMvc.perform(get("/api/request-limits/me"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.limits[0].modelType").value("TEXT_MODEL"))
-            .andExpect(jsonPath("$.limits[0].remaining").value(590))
+            .andExpect(jsonPath("$.limits[0].remaining").value(1790))
             .andReturn();
 
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());

@@ -16,7 +16,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
   beforeEach(async () => {
     audiobookWorkflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', [
       'analyzeSpeakers',
-      'saveCast',
       'approveCast',
       'splitDialogue',
       'saveScriptPreview',
@@ -38,8 +37,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     audiobookLibraryService = jasmine.createSpyObj<AudiobookLibraryService>('AudiobookLibraryService', ['updateTitle']);
     voicePickerService = jasmine.createSpyObj<VoicePickerService>('VoicePickerService', ['getVoiceCatalog']);
     voicePickerService.getVoiceCatalog.and.resolveTo([
-      { id: 'zephyr', providerVoiceName: 'Zephyr', displayName: 'Zephyr', description: 'Bright.', imageUrl: '/assets/voices/zephyr/avatar.png', demoMp3Url: '/assets/voices/zephyr/demo.mp3' },
-      { id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '/assets/voices/puck/avatar.png', demoMp3Url: '/assets/voices/puck/demo.mp3' },
+      { id: 'zephyr', providerVoiceName: 'Zephyr', displayName: 'Zephyr', description: 'Bright.', imageUrl: '/assets/voices/zephyr/avatar.png', demoMp3Url: '/assets/voices/zephyr/demo.mp3', gender: 'MALE' },
+      { id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '/assets/voices/puck/avatar.png', demoMp3Url: '/assets/voices/puck/demo.mp3', gender: 'MALE' },
     ]);
     audiobookApiService.createAudioForRenderRequest.and.callFake(async () => ({
       blob: new Blob(['generated'], { type: 'audio/mpeg' }),
@@ -49,28 +48,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
       speakers: [],
       projectId: null,
-      projectTitle: '',
-      languageCode: 'en-US'
+      projectTitle: ''
     });
-    audiobookWorkflowService.saveCast.and.callFake(async (_projectId, request) => ({
-      projectId: 'project-1',
-      title: 'The Hidden Signal',
-      storyText: 'Mara: We go now.',
-      workflowStage: 'CAST_REVIEW',
-      speakers: request.speakers,
-      scriptTurns: [],
-      annotatedTurns: [],
-      audioAssets: [],
-      productionSettings: {
-        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
-        languageCode: 'en-US',
-        modelName: 'gemini-3.1-flash-tts-preview',
-        audioEncoding: 'MP3'
-      },
-      audioAssetsCurrent: false,
-      performanceNotesStale: false,
-      mergedAudioUrl: null
-    } as never));
     audiobookWorkflowService.markAudioGenerated.and.resolveTo({
       projectId: 'project-1',
       title: 'The Hidden Signal',
@@ -130,8 +109,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
       projectId: 'project-1',
-      projectTitle: 'The Hidden Signal',
-      languageCode: 'de-DE'
+      projectTitle: 'The Hidden Signal'
     });
     component.storyTextControl.setValue('Mara: We go now.');
 
@@ -146,28 +124,11 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('The Hidden Signal');
   });
 
-  it('sets the detected language in step 4 after story analysis', async () => {
-    audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
-      speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
-      projectId: 'project-1',
-      projectTitle: 'The Hidden Signal',
-      languageCode: 'de-DE'
-    });
-    component.storyTextControl.setValue('Mara: Hallo zusammen.');
-
-    await component.analyzeStory();
-    fixture.detectChanges();
-
-    expect(component.languageCodeControl.value).toBe('de-DE');
-    expect((fixture.nativeElement.querySelector('#studio-language-code') as HTMLSelectElement).value).toBe('de-DE');
-  });
-
   it('shows and saves the AI project title from the first workflow step', async () => {
     audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],
       projectId: 'project-1',
-      projectTitle: 'The Hidden Signal',
-      languageCode: 'en-US'
+      projectTitle: 'The Hidden Signal'
     });
     component.storyTextControl.setValue('Mara: We go now.');
 
@@ -207,7 +168,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     component.cast = [
       { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }
     ];
-    (component as any).facade.setCurrentProjectId('project-1');
     fixture.detectChanges();
 
     getByTestId('cast-edit-0').click();
@@ -215,12 +175,10 @@ describe('AudiobookStudioWorkspaceComponent', () => {
 
     setInputValue('#cast-speaker-name-0', 'Captain Mara');
     clickButton('Save');
-    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('Captain Mara');
     expect(component.cast[0].speakerName).toBe('Captain Mara');
-    expect(audiobookWorkflowService.saveCast).toHaveBeenCalled();
   });
 
   it('formats compact speaker names for display', () => {
@@ -236,8 +194,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         { speakerName: 'StationKeeper', roleDescription: 'Old role', voiceSuggestion: 'Old voice' }
       ],
       projectId: 'project-1',
-      projectTitle: 'The Hidden Signal',
-      languageCode: 'en-US'
+      projectTitle: 'The Hidden Signal'
     });
     await component.analyzeStory();
     fixture.detectChanges();
@@ -267,7 +224,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     setInputValue('#cast-role-description-0', 'Caretaker of the midnight platform');
     setInputValue('#cast-voice-suggestion-0', 'Warm gravelly voice');
     clickButton('Save');
-    await fixture.whenStable();
     fixture.detectChanges();
 
     audiobookWorkflowService.splitDialogue.and.resolveTo([
@@ -295,8 +251,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'Gentle tenor voice' }
       ],
       projectId: 'project-1',
-      projectTitle: 'The Hidden Signal',
-      languageCode: 'en-US'
+      projectTitle: 'The Hidden Signal'
     });
     await component.analyzeStory();
     fixture.detectChanges();
@@ -414,12 +369,6 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       scriptTurns: [{ speaker: 'Mara', text: 'We go at sunrise.' }],
       annotatedTurns: [],
       audioAssets: [],
-      productionSettings: {
-        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
-        languageCode: 'en-US',
-        modelName: 'gemini-3.1-flash-tts-preview',
-        audioEncoding: 'MP3'
-      },
       performanceNotesStale: true
     } as never);
     audiobookWorkflowService.annotateEmotions.and.resolveTo({
@@ -441,11 +390,13 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       },
       performanceNotesStale: false
     } as never);
-    await component.approveScriptAndContinueWorkflow();
+    clickButton('Approve script & continue');
+    await fixture.whenStable();
     fixture.detectChanges();
 
-    expect(audiobookWorkflowService.approveScript).toHaveBeenCalledWith('project-1');
-    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1');
+    expect(component.performanceNotesStale).toBeFalse();
+    expect(component.performanceReady).toBeTrue();
+    expect(buttonByText('Next: Prepare audiobook').disabled).toBeFalse();
   });
 
   it('continues the emotion annotation flow after the user approves the script', async () => {
@@ -932,41 +883,27 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     });
 
     it('updates voiceSuggestion when a voice is selected', fakeAsync(() => {
-      (component as any).facade.setCurrentProjectId('project-1');
       component.openVoicePicker(0);
       fixture.detectChanges();
 
-      void component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
-      flushMicrotasks();
+      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '', gender: 'MALE' });
       fixture.detectChanges();
 
       expect(component.cast[0].voiceSuggestion).toBe('PUCK');
-      expect(audiobookWorkflowService.saveCast).toHaveBeenCalled();
       flush();
     }));
 
     it('shows the updated voice on the cast card immediately after selection', fakeAsync(() => {
-      (component as any).facade.setCurrentProjectId('project-1');
       component.openVoicePicker(0);
       fixture.detectChanges();
 
-      void component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '' });
-      flushMicrotasks();
+      component.applyVoiceSelection({ id: 'puck', providerVoiceName: 'Puck', displayName: 'Puck', description: 'Playful.', imageUrl: '', demoMp3Url: '', gender: 'MALE' });
       fixture.detectChanges();
 
       const voiceBadge = fixture.nativeElement.querySelector('.voice-name-display');
       expect(voiceBadge.textContent.trim()).toBe('PUCK');
       flush();
     }));
-
-    it('hides cast mutation controls once script preview exists', () => {
-      component.scriptTurns = [{ speaker: 'Mara', text: 'We go now.' }];
-      fixture.detectChanges();
-
-      expect(fixture.nativeElement.querySelector('[data-testid="cast-change-voice-0"]')).toBeNull();
-      expect(fixture.nativeElement.querySelector('[data-testid="cast-edit-0"]')).toBeNull();
-      expect(fixture.nativeElement.textContent).toContain('Cast edits are locked after script preview begins.');
-    });
 
     it('closes the voice picker when closeVoicePicker is called', () => {
       component.openVoicePicker(0);

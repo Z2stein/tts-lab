@@ -50,6 +50,6 @@ test('frontend loads the authenticated shell from the real backend', async ({ pa
   await page.getByTestId('account-menu-trigger').click();
   await expect(page.getByTestId('account-menu-panel')).toBeVisible();
   await expect(page.getByTestId('account-menu-panel')).toContainText('Signed in with Mock');
-  await page.getByLabel('Remaining usage').click();
+  await page.getByLabel('Show usage details').click();
   await expect(page.getByRole('heading', { name: 'Usage limits' })).toBeVisible();
 });
