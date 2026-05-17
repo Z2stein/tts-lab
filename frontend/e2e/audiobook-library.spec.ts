@@ -146,3 +146,16 @@ test('audiobook library integration with components is functional', async ({ con
   await page.goto('/audiobook-library');
   await expect(page.getByRole('heading', { name: 'Library' })).toBeVisible();
 });
+
+test('authenticated header account menu shows user details and logout action', async ({ context, page }) => {
+  await authenticate(context, page);
+  await routeAudiobookList(page, 'audiobooks/list/amber-signal/response.json');
+
+  await page.goto('/audiobook-library');
+
+  await expect(page.getByTestId('account-menu-trigger')).toContainText('L');
+  await page.getByTestId('account-menu-trigger').click();
+  await expect(page.getByTestId('account-menu-panel')).toContainText('Learner');
+  await expect(page.getByTestId('account-menu-panel')).toContainText('Signed in with Mock');
+  await expect(page.getByTestId('account-menu-logout')).toBeVisible();
+});

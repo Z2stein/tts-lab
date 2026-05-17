@@ -18,12 +18,8 @@
     <div class="flex flex-wrap gap-2 items-center justify-end min-w-[11rem] max-[720px]:justify-start" aria-live="polite">
       <span class="text-[#cbbdb0] text-sm" *ngIf="authStatus === 'loading'">Loading...</span>
       <ng-container *ngIf="authStatus === 'authenticated' && currentUser">
-        <div class="flex flex-wrap gap-[0.35rem] items-center justify-end" aria-label="Remaining usage">
-          <span class="bg-[#2a2025] border border-[#57414a] rounded-full text-[#f4c78e] text-xs font-black px-[0.55rem] py-1 whitespace-nowrap">Speech {{ formatRemaining(limitFor('SPEECH_MODEL')) }}</span>
-          <span class="bg-[#2a2025] border border-[#57414a] rounded-full text-[#f4c78e] text-xs font-black px-[0.55rem] py-1 whitespace-nowrap">Text {{ formatRemaining(limitFor('TEXT_MODEL')) }}</span>
-        </div>
-        <span class="text-[#cbbdb0] text-sm">Signed in as {{ currentUser.name }} ({{ currentUser.authMode }})</span>
-        <button type="button" (click)="logout()" class="bg-[#f0ad5d] border-0 rounded-full text-[#100d12] cursor-pointer font-bold px-4 py-[0.55rem] hover:bg-[#f4c78e]">Logout</button>
+        <app-usage-limits-panel [limitSummary]="requestLimitSummary"></app-usage-limits-panel>
+        <app-account-menu [currentUser]="currentUser" (logout)="logout()"></app-account-menu>
       </ng-container>
     </div>
   </header>
