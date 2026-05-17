@@ -160,24 +160,10 @@ class SpeakerVoiceAnalysisServiceTest {
             "gemini"
         );
 
-        String projectId = "project-1";
-        AudiobookProject project = new AudiobookProject(
-            projectId,
-            "user-1",
-            "Gender test",
-            AudiobookProjectStatus.DRAFT,
-            "voice_analysis",
-            0,
-            null,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z")
-        );
-        when(audiobookProjectRepository.findById(projectId)).thenReturn(Optional.of(project));
-
         String aiResponseText = """
             {
               "projectTitle": "Female Character Story",
+              "sourceLanguageCode": "en-US",
               "speakers": [
                 {
                   "speakerName": "Elena",
@@ -189,7 +175,7 @@ class SpeakerVoiceAnalysisServiceTest {
             """;
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse(aiResponseText, null));
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Elena: This is my story", projectId);
+        SpeakerVoiceAnalysisResponse response = service.analyze("Elena: This is my story");
 
         assertThat(response.speakers()).hasSize(1);
         SpeakerVoiceAnalysisItem item = response.speakers().get(0);
@@ -215,24 +201,10 @@ class SpeakerVoiceAnalysisServiceTest {
             "gemini"
         );
 
-        String projectId = "project-2";
-        AudiobookProject project = new AudiobookProject(
-            projectId,
-            "user-1",
-            "Male character test",
-            AudiobookProjectStatus.DRAFT,
-            "voice_analysis",
-            0,
-            null,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z")
-        );
-        when(audiobookProjectRepository.findById(projectId)).thenReturn(Optional.of(project));
-
         String aiResponseText = """
             {
               "projectTitle": "Male Character Story",
+              "sourceLanguageCode": "en-US",
               "speakers": [
                 {
                   "speakerName": "Marcus",
@@ -244,7 +216,7 @@ class SpeakerVoiceAnalysisServiceTest {
             """;
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse(aiResponseText, null));
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Marcus: Hello there", projectId);
+        SpeakerVoiceAnalysisResponse response = service.analyze("Marcus: Hello there");
 
         assertThat(response.speakers()).hasSize(1);
         SpeakerVoiceAnalysisItem item = response.speakers().get(0);

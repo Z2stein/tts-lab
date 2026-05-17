@@ -768,6 +768,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     component.hydrateFromSnapshot({
       projectId: 'project-1',
       title: 'The Hidden Signal',
+      sourceLanguageCode: 'en-US',
       storyText: 'Mara: We go now.',
       workflowStage: 'AUDIO_GENERATED',
       speakers: [],
@@ -792,6 +793,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     component.hydrateFromSnapshot({
       projectId: 'project-1',
       title: 'The Hidden Signal',
+      sourceLanguageCode: 'en-US',
       storyText: 'Mara: We go now.',
       workflowStage: 'AUDIO_GENERATED',
       speakers: [],
