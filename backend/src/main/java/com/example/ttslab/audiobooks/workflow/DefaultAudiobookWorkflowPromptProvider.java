@@ -69,13 +69,13 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
     }
 
     @Override
-    public String getSpeakerVoiceAnalysisPrompt(String rawDialogue) {
+    public String getSpeakerVoiceAnalysisPrompt(String rawDialogue, String customHint) {
 
         String availableVoices = Arrays.stream(SpeakerVoice.values())
                 .map(voice -> voice.getKey() + " (" + voice.getGender().name() + ")")
                 .collect(Collectors.joining(", "));
 
-        return """
+        String basePrompt = """
                 Analyze this prose/dialogue text for the audiobook workflow.
 
                 Return only JSON with this shape:
@@ -117,14 +117,15 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                 Text:
                 %s
                 """.formatted(availableVoices, rawDialogue);
+        return appendHint(basePrompt, customHint);
     }
 
     @Override
-    public String getSpeakerSplitPrompt(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers) {
+    public String getSpeakerSplitPrompt(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers, String customHint) {
         if (speakers == null || speakers.isEmpty()) {
             throw new IllegalArgumentException("speakers cannot be null or empty");
         }
-        return """
+        String basePrompt = """
             Split this audiobook text into ordered speaker turns.
     
             Return only JSON:
@@ -160,11 +161,12 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
             Text:
             %s
             """.formatted(toJson(speakers), rawDialogue);
+        return appendHint(basePrompt, customHint);
     }
 
     @Override
-    public String getEmotionAnnotationPrompt(List<SpeakerSplitTurn> turns) {
-        return """
+    public String getEmotionAnnotationPrompt(List<SpeakerSplitTurn> turns, String customHint) {
+        String basePrompt = """
                 Add expressive audiobook workflow markup to these speaker turns.
                 
                 Goal:
@@ -192,7 +194,14 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                 Turns:
                 %s
                 """.formatted(toKnownTtsMarkupStylesText(), toJson(turns));
+        return appendHint(basePrompt, customHint);
+    }
 
+    private String appendHint(String prompt, String customHint) {
+        if (customHint != null && !customHint.isBlank()) {
+            return prompt + "\nAdditional instruction:\n" + customHint.strip() + "\n";
+        }
+        return prompt;
     }
 
     private String toKnownTtsMarkupStylesText() {

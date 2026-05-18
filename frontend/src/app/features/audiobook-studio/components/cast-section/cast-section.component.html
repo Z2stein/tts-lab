@@ -27,6 +27,12 @@
 </div>
 
 <p *ngIf="cast.length > 0 && !castEditable" class="m-0 text-[#c9d1e8] leading-[1.6]">Cast edits are locked after script preview begins.</p>
+
+<app-ai-hint-panel
+  [control]="speakerSplitHintControl"
+  placeholder="e.g. remove all narrator parts"
+></app-ai-hint-panel>
+
 <button type="button" class="primary-button" (click)="createScriptPreview.emit()" [disabled]="loadingAction !== null || cast.length === 0">
   {{ isLoading('script') ? 'Creating script preview...' : 'Approve voices & continue' }}
 </button>

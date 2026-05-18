@@ -25,6 +25,11 @@
   </article>
 </div>
 
+<app-ai-hint-panel
+  [control]="emotionAnnotationHintControl"
+  placeholder="e.g. use only calm and serious tags"
+></app-ai-hint-panel>
+
 <button type="button" class="primary-button" (click)="approveScript.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || scriptApproved">
   Approve script & continue
 </button>

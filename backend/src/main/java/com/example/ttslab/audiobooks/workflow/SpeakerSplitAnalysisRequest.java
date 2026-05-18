@@ -7,7 +7,8 @@ import jakarta.validation.constraints.NotBlank;
 public record SpeakerSplitAnalysisRequest(
     String rawDialogue,
     List<SpeakerVoiceAnalysisItem> speakers,
-    @NotBlank String projectId
+    @NotBlank String projectId,
+    String customHint
 ) {
 }
 

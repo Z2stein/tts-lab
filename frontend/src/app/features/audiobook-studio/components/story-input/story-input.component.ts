@@ -1,15 +1,17 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { AiHintPanelComponent } from '../ai-hint-panel/ai-hint-panel.component';
 
 @Component({
   selector: 'app-story-input',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, AiHintPanelComponent],
   templateUrl: './story-input.component.html'
 })
 export class StoryInputComponent {
   @Input() storyControl!: FormControl<string>;
+  @Input() speakerAnalysisHintControl!: FormControl<string>;
   @Input() loadingAction: string | null = null;
   @Output() useSampleStory = new EventEmitter<void>();
   @Output() analyzeStory = new EventEmitter<void>();

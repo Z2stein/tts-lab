@@ -43,7 +43,7 @@ class SpeakerVoiceAnalysisServiceTest {
             "mock"
         );
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello\nBob: Hi");
+        SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello\nBob: Hi", null);
 
         assertThat(response.projectId()).isNull();
         assertThat(response.projectTitle()).isEqualTo("Hello");
@@ -69,7 +69,7 @@ class SpeakerVoiceAnalysisServiceTest {
             "mock"
         );
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello");
+        SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello", null);
 
         assertThat(response.projectId()).isNull();
         assertThat(response.projectTitle()).isEqualTo("Hello");
@@ -83,7 +83,7 @@ class SpeakerVoiceAnalysisServiceTest {
     void genderInformationIncludedInVoiceAnalysisPrompt() {
         DefaultAudiobookWorkflowPromptProvider promptProvider = new DefaultAudiobookWorkflowPromptProvider(objectMapper);
 
-        String prompt = promptProvider.getSpeakerVoiceAnalysisPrompt("sample dialogue");
+        String prompt = promptProvider.getSpeakerVoiceAnalysisPrompt("sample dialogue", null);
 
         assertThat(prompt).contains("MALE");
         assertThat(prompt).contains("FEMALE");
@@ -109,7 +109,7 @@ class SpeakerVoiceAnalysisServiceTest {
             "mock"
         );
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Szukam komody z serii IKEA Malm.");
+        SpeakerVoiceAnalysisResponse response = service.analyze("Szukam komody z serii IKEA Malm.", null);
 
         assertThat(response.sourceLanguageCode()).isEqualTo("pl-PL");
         assertThat(response.productionLanguageCode()).isEqualTo("pl-PL");
@@ -135,7 +135,7 @@ class SpeakerVoiceAnalysisServiceTest {
             {"projectTitle":"Die Verborgene Spur","sourceLanguageCode":"de","speakers":[{"speakerName":"Mara","roleDescription":"Entschlossene Reisende","voiceSuggestion":"ZEPHYR"}]}
             """, null));
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Mara: Hallo zusammen.");
+        SpeakerVoiceAnalysisResponse response = service.analyze("Mara: Hallo zusammen.", null);
 
         assertThat(response.projectTitle()).isEqualTo("Die Verborgene Spur");
         assertThat(response.sourceLanguageCode()).isEqualTo("de-DE");
@@ -175,7 +175,7 @@ class SpeakerVoiceAnalysisServiceTest {
             """;
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse(aiResponseText, null));
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Elena: This is my story");
+        SpeakerVoiceAnalysisResponse response = service.analyze("Elena: This is my story", null);
 
         assertThat(response.speakers()).hasSize(1);
         SpeakerVoiceAnalysisItem item = response.speakers().get(0);
@@ -216,7 +216,7 @@ class SpeakerVoiceAnalysisServiceTest {
             """;
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse(aiResponseText, null));
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Marcus: Hello there");
+        SpeakerVoiceAnalysisResponse response = service.analyze("Marcus: Hello there", null);
 
         assertThat(response.speakers()).hasSize(1);
         SpeakerVoiceAnalysisItem item = response.speakers().get(0);
@@ -245,7 +245,7 @@ class SpeakerVoiceAnalysisServiceTest {
             {"projectTitle":"Nordic Chronicle","sourceLanguageCode":"sv-SE","speakers":[{"speakerName":"Narrator","roleDescription":"Narration","voiceSuggestion":"IAPETUS"}]}
             """, null));
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Hej världen.");
+        SpeakerVoiceAnalysisResponse response = service.analyze("Hej världen.", null);
 
         assertThat(response.sourceLanguageCode()).isEqualTo("en-US");
         assertThat(response.productionLanguageCode()).isEqualTo("en-US");

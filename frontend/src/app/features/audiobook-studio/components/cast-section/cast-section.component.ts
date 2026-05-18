@@ -1,17 +1,20 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { SpeakerVoiceAnalysisItem } from '../../../audiobook-shared/service/audiobook-workflow.service';
+import { AiHintPanelComponent } from '../ai-hint-panel/ai-hint-panel.component';
 import { CastCardComponent } from './cast-card/cast-card.component';
 
 @Component({
   selector: 'app-cast-section',
   standalone: true,
-  imports: [CommonModule, CastCardComponent],
+  imports: [CommonModule, AiHintPanelComponent, CastCardComponent],
   templateUrl: './cast-section.component.html'
 })
 export class CastSectionComponent {
   @Input() cast: SpeakerVoiceAnalysisItem[] = [];
   @Input() castReviewed = false;
+  @Input() speakerSplitHintControl!: FormControl<string>;
   @Input() editingCastIndex: number | null = null;
   @Input() castEditDraft: SpeakerVoiceAnalysisItem | null = null;
   @Input() castEditable = true;

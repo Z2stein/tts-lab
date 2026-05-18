@@ -29,7 +29,7 @@ class AudiobookWorkflowServiceTest {
         ChatService chatService = mock(ChatService.class);
         AudiobookWorkflowService service = createService(chatService, "mock");
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello\nBob: Hi");
+        SpeakerVoiceAnalysisResponse response = service.analyze("Alice: Hello\nBob: Hi", null);
 
         assertEquals(2, response.speakers().size());
         assertEquals("Alice", response.speakers().get(0).speakerName());
@@ -42,7 +42,7 @@ class AudiobookWorkflowServiceTest {
         ChatService chatService = mock(ChatService.class);
         AudiobookWorkflowService service = createService(chatService, "mock");
 
-        SpeakerSplitAnalysisResponse response = service.split("A: First line\ncontinued\nB: Second line", List.of());
+        SpeakerSplitAnalysisResponse response = service.split("A: First line\ncontinued\nB: Second line", List.of(), null);
 
         assertEquals(List.of(
             new SpeakerSplitTurn("A", "First line continued"),
@@ -59,7 +59,7 @@ class AudiobookWorkflowServiceTest {
         EmotionAnnotationAnalysisResponse response = service.annotate(List.of(
             new SpeakerSplitTurn("A", "Yesterday was everything fine and now I cannot believe you did this!"),
             new SpeakerSplitTurn("B", "I know you are hurt. Please, let us just talk.")
-        ));
+        ), null);
 
         assertEquals("A", response.turns().get(0).speaker());
         assertTrue(response.turns().get(0).text().startsWith("[happy]"));
@@ -103,7 +103,7 @@ class AudiobookWorkflowServiceTest {
             """, "c-1"));
         AudiobookWorkflowService service = createService(chatService, "gemini");
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("Once upon a time");
+        SpeakerVoiceAnalysisResponse response = service.analyze("Once upon a time", null);
 
         assertEquals(1, response.speakers().size());
         assertEquals("Narrator", response.speakers().getFirst().speakerName());
@@ -116,7 +116,7 @@ class AudiobookWorkflowServiceTest {
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("not-json", "c-1"));
         AudiobookWorkflowService service = createService(chatService, "gemini");
 
-        ApiException exception = assertThrows(ApiException.class, () -> service.analyze("Alice: Hello"));
+        ApiException exception = assertThrows(ApiException.class, () -> service.analyze("Alice: Hello", null));
 
         assertEquals("AUDIOBOOK_WORKFLOW_PROVIDER_RESPONSE_INVALID", exception.code());
         assertEquals(502, exception.status().value());
@@ -130,7 +130,7 @@ class AudiobookWorkflowServiceTest {
 
         ApiException exception = assertThrows(ApiException.class, () -> service.split("A: Hello", List.of(
             new SpeakerVoiceAnalysisItem("A", "Speaker A", SpeakerVoice.FENRIR)
-        )));
+        ), null));
 
         assertEquals("AUDIOBOOK_WORKFLOW_PROVIDER_RESPONSE_INVALID", exception.code());
         assertEquals(502, exception.status().value());
@@ -142,7 +142,7 @@ class AudiobookWorkflowServiceTest {
         when(chatService.ask(any(ChatRequest.class))).thenReturn(new ChatResponse("not-json", "c-1"));
         AudiobookWorkflowService service = createService(chatService, "gemini");
 
-        ApiException exception = assertThrows(ApiException.class, () -> service.annotate(List.of(new SpeakerSplitTurn("A", "Please talk."))));
+        ApiException exception = assertThrows(ApiException.class, () -> service.annotate(List.of(new SpeakerSplitTurn("A", "Please talk.")), null));
 
         assertEquals("AUDIOBOOK_WORKFLOW_PROVIDER_RESPONSE_INVALID", exception.code());
         assertEquals(502, exception.status().value());
@@ -153,7 +153,7 @@ class AudiobookWorkflowServiceTest {
         ChatService chatService = mock(ChatService.class);
         AudiobookWorkflowService service = createService(chatService, "mock");
 
-        SpeakerVoiceAnalysisResponse response = service.analyze("   ");
+        SpeakerVoiceAnalysisResponse response = service.analyze("   ", null);
 
         assertEquals(0, response.speakers().size());
         verify(chatService, never()).ask(any(ChatRequest.class));

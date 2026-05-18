@@ -1004,6 +1004,8 @@ components:
       properties:
         rawDialogue:
           type: string
+        customHint:
+          type: string
       additionalProperties: false
 
     SpeakerVoiceAnalysisResponse:
@@ -1047,6 +1049,8 @@ components:
             $ref: '#/components/schemas/SpeakerVoiceAnalysisItem'
         projectId:
           type: string
+        customHint:
+          type: string
       additionalProperties: false
 
     SpeakerSplitAnalysisResponse:
@@ -1074,6 +1078,8 @@ components:
       required: [projectId]
       properties:
         projectId:
+          type: string
+        customHint:
           type: string
       additionalProperties: false
 

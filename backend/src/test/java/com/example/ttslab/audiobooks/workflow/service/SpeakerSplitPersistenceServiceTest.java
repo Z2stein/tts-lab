@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -65,19 +66,19 @@ class SpeakerSplitPersistenceServiceTest {
         );
 
         when(speakerVoiceAnalysisService.syncProjectCharacters(eq("project-1"), anyList())).thenReturn(characters);
-        when(splitAnalysisService.split(eq("Alice: Hello\nBob: Hi"), eq(speakers))).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
+        when(splitAnalysisService.split(eq("Alice: Hello\nBob: Hi"), eq(speakers), isNull())).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
             new SpeakerSplitTurn("Alice", "Hello"),
             new SpeakerSplitTurn("Bob", "Hi")
         )));
 
-        service.splitAndPersist(project, "Alice: Hello\nBob: Hi", speakers);
+        service.splitAndPersist(project, "Alice: Hello\nBob: Hi", speakers, null);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<AudiobookSpeechSegment>> segmentsCaptor = ArgumentCaptor.forClass((Class) List.class);
         InOrder inOrder = org.mockito.Mockito.inOrder(speechSegmentRepository, speakerVoiceAnalysisService, splitAnalysisService);
         inOrder.verify(speechSegmentRepository).deleteByProjectIdAndSegmentOrigin("project-1", AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         inOrder.verify(speakerVoiceAnalysisService).syncProjectCharacters(eq("project-1"), anyList());
-        inOrder.verify(splitAnalysisService).split(eq("Alice: Hello\nBob: Hi"), eq(speakers));
+        inOrder.verify(splitAnalysisService).split(eq("Alice: Hello\nBob: Hi"), eq(speakers), isNull());
         verify(speechSegmentRepository).saveAll(segmentsCaptor.capture());
 
         List<AudiobookSpeechSegment> segments = segmentsCaptor.getValue();
@@ -118,13 +119,13 @@ class SpeakerSplitPersistenceServiceTest {
         when(speakerVoiceAnalysisService.syncProjectCharacters(eq("project-1"), anyList())).thenReturn(List.of(
             new SpeakerCharacter("character-1", "project-1", 0, "Alice", "Lead", com.example.ttslab.audiobooks.workflow.SpeakerVoice.ACHIRD, Instant.parse("2026-05-12T10:00:00Z"))
         ));
-        when(splitAnalysisService.split(eq("Alice: Hello"), anyList())).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
+        when(splitAnalysisService.split(eq("Alice: Hello"), anyList(), isNull())).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
             new SpeakerSplitTurn("Bob", "Hello")
         )));
 
         assertThatThrownBy(() -> service.splitAndPersist(project, "Alice: Hello", List.of(
             new SpeakerVoiceAnalysisItem("Alice", "Lead", com.example.ttslab.audiobooks.workflow.SpeakerVoice.ACHIRD)
-        )))
+        ), null))
             .isInstanceOf(ApiException.class)
             .hasMessageContaining("The split dialogue referenced an unknown speaker.");
 
@@ -166,12 +167,12 @@ class SpeakerSplitPersistenceServiceTest {
         );
 
         when(speakerVoiceAnalysisService.syncProjectCharacters(eq("project-1"), anyList())).thenReturn(characters);
-        when(splitAnalysisService.split(anyString(), eq(speakers))).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
+        when(splitAnalysisService.split(anyString(), eq(speakers), isNull())).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
             new SpeakerSplitTurn("Narrator", "Once upon a time..."),
             new SpeakerSplitTurn("Alice", "Hello!")
         )));
 
-        service.splitAndPersist(project, "Once upon a time... Alice said Hello!", speakers);
+        service.splitAndPersist(project, "Once upon a time... Alice said Hello!", speakers, null);
 
         @SuppressWarnings("unchecked")
         ArgumentCaptor<List<AudiobookSpeechSegment>> segmentsCaptor = ArgumentCaptor.forClass((Class) List.class);

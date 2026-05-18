@@ -60,6 +60,7 @@ import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -197,7 +198,7 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void speakerVoiceAnalysisReturnsSuggestedVoices() throws Exception {
-        when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
+        when(speakerVoiceAnalysisService.analyze("Alice: Hello", null)).thenReturn(new SpeakerVoiceAnalysisResponse(List.of(
             new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)
         ), null, "The Hidden Signal", "de-DE", "de-DE"));
         when(audiobookProjectCreationService.createProjectWithSpeakers("u1", "The Hidden Signal", "Alice: Hello", "de-DE", "de-DE",
@@ -211,7 +212,7 @@ class AudiobookWorkflowControllerTest {
             .andReturn();
 
         InOrder inOrder = org.mockito.Mockito.inOrder(speakerVoiceAnalysisService, audiobookProjectCreationService);
-        inOrder.verify(speakerVoiceAnalysisService).analyze("Alice: Hello");
+        inOrder.verify(speakerVoiceAnalysisService).analyze("Alice: Hello", null);
         inOrder.verify(audiobookProjectCreationService).createProjectWithSpeakers("u1", "The Hidden Signal", "Alice: Hello", "de-DE", "de-DE",
             List.of(new SpeakerVoiceAnalysisItem("Alice", "Detected dialogue speaker", SpeakerVoice.ACHIRD)));
         verify(promptHistoryService).record(any(), eq(com.example.ttslab.prompts.ModelType.TEXT_MODEL), eq("mock"), eq("Alice: Hello"), eq(com.example.ttslab.prompts.PromptRequestStatus.SUCCESS));
@@ -221,7 +222,7 @@ class AudiobookWorkflowControllerTest {
     @Test
     void speakerSplitAnalysisReturnsTurns() throws Exception {
         testProject.setWorkflowStage(AudiobookWorkflowStage.CAST_APPROVED);
-        when(speakerSplitPersistenceService.splitAndPersist(eq(testProject), eq("A: Hello"), anyList())).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
+        when(speakerSplitPersistenceService.splitAndPersist(eq(testProject), eq("A: Hello"), anyList(), isNull())).thenReturn(new SpeakerSplitAnalysisResponse(List.of(
             new SpeakerSplitTurn("A", "Hello")
         )));
 
@@ -233,7 +234,7 @@ class AudiobookWorkflowControllerTest {
             .andReturn();
 
         verify(audiobookLibraryService).getProjectForUser(eq("project-1"), any(CurrentUser.class));
-        verify(speakerSplitPersistenceService).splitAndPersist(eq(testProject), eq("A: Hello"), anyList());
+        verify(speakerSplitPersistenceService).splitAndPersist(eq(testProject), eq("A: Hello"), anyList(), isNull());
         assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
@@ -293,7 +294,7 @@ class AudiobookWorkflowControllerTest {
         when(emotionAnnotationPersistenceService.loadScriptPreviewTurns(testProject)).thenReturn(List.of(
             new SpeakerSplitTurn("Narrator", "The lamps dimmed.")
         ));
-        when(audiobookWorkflowService.annotate(any())).thenReturn(new EmotionAnnotationAnalysisResponse(List.of(
+        when(audiobookWorkflowService.annotate(any(), isNull())).thenReturn(new EmotionAnnotationAnalysisResponse(List.of(
             new AnnotatedSpeakerTurn("Narrator", "[quiet] The lamps dimmed.")
         )));
         when(audiobookWorkflowStateService.snapshot(any(CurrentUser.class), eq("project-1")))
@@ -308,7 +309,7 @@ class AudiobookWorkflowControllerTest {
 
         verify(audiobookLibraryService).getProjectForUser(eq("project-1"), any(CurrentUser.class));
         verify(emotionAnnotationPersistenceService).loadScriptPreviewTurns(eq(testProject));
-        verify(audiobookWorkflowService).annotate(List.of(new SpeakerSplitTurn("Narrator", "The lamps dimmed.")));
+        verify(audiobookWorkflowService).annotate(List.of(new SpeakerSplitTurn("Narrator", "The lamps dimmed.")), null);
         verify(emotionAnnotationPersistenceService).persistStyledText(eq(testProject), anyList());
         verify(audiobookWorkflowStateService).markPerformanceReady(eq(testProject));
         verify(audiobookWorkflowStateService).snapshot(any(CurrentUser.class), eq("project-1"));
@@ -508,7 +509,7 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void apiExceptionReturnsStructuredErrorResponse() throws Exception {
-        when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenThrow(new ApiException(
+        when(speakerVoiceAnalysisService.analyze("Alice: Hello", null)).thenThrow(new ApiException(
             HttpStatus.BAD_GATEWAY,
             "AUDIOBOOK_WORKFLOW_PROVIDER_FAILED",
             "The speaker voice analysis provider is currently unavailable. Please try again later.",
@@ -532,7 +533,7 @@ class AudiobookWorkflowControllerTest {
 
     @Test
     void unexpectedExceptionReturnsSafeStructuredErrorResponse() throws Exception {
-        when(speakerVoiceAnalysisService.analyze("Alice: Hello")).thenThrow(new IllegalStateException("database-password=secret"));
+        when(speakerVoiceAnalysisService.analyze("Alice: Hello", null)).thenThrow(new IllegalStateException("database-password=secret"));
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/speaker-voice-analysis")
                 .contentType(MediaType.APPLICATION_JSON)

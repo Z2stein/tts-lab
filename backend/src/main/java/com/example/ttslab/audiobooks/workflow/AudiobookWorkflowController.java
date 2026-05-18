@@ -109,7 +109,7 @@ public class AudiobookWorkflowController {
         CurrentUser user = currentUserResolver.resolve(authentication);
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
-            SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue());
+            SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue(), request.customHint());
             var project = audiobookProjectCreationService.createProjectWithSpeakers(
                 user.id(),
                 analysisResponse.projectTitle(),
@@ -155,7 +155,7 @@ public class AudiobookWorkflowController {
         try {
             AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
             audiobookWorkflowStateService.ensureScriptReviewReady(project);
-            SpeakerSplitAnalysisResponse response = speakerSplitPersistenceService.splitAndPersist(project, request.rawDialogue(), request.speakers());
+            SpeakerSplitAnalysisResponse response = speakerSplitPersistenceService.splitAndPersist(project, request.rawDialogue(), request.speakers(), request.customHint());
             audiobookWorkflowStateService.markScriptReview(project);
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return response;
@@ -177,7 +177,7 @@ public class AudiobookWorkflowController {
         AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
         audiobookWorkflowStateService.ensurePerformanceNotesReady(project);
         var turns = emotionAnnotationPersistenceService.loadScriptPreviewTurns(project);
-        EmotionAnnotationAnalysisResponse response = audiobookWorkflowService.annotate(turns);
+        EmotionAnnotationAnalysisResponse response = audiobookWorkflowService.annotate(turns, request.customHint());
         emotionAnnotationPersistenceService.persistStyledText(project, response.turns());
         audiobookWorkflowStateService.markPerformanceReady(project);
         return audiobookWorkflowStateService.snapshot(user, request.projectId());

@@ -1,16 +1,19 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { IndexedSpeakerSplitTurn, ScriptGroup, SpeakerSplitTurn } from '../../models/audiobook-studio.types';
 import { formatSpeakerDisplayName } from '../../utils/speaker-name';
+import { AiHintPanelComponent } from '../ai-hint-panel/ai-hint-panel.component';
 import { ScriptTurnComponent } from './script-turn/script-turn.component';
 
 @Component({
   selector: 'app-script-review',
   standalone: true,
-  imports: [CommonModule, ScriptTurnComponent],
+  imports: [CommonModule, AiHintPanelComponent, ScriptTurnComponent],
   templateUrl: './script-review.component.html'
 })
 export class ScriptReviewComponent {
+  @Input() emotionAnnotationHintControl!: FormControl<string>;
   @Input() scriptTurns: SpeakerSplitTurn[] = [];
   @Input() scriptGroups: ScriptGroup[] = [];
   @Input() scriptApproved = false;

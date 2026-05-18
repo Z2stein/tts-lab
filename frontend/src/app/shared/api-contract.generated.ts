@@ -536,6 +536,7 @@ export type components = {
         };
         SpeakerVoiceAnalysisRequest: {
             rawDialogue: string;
+            customHint?: string;
         };
         SpeakerVoiceAnalysisResponse: {
             speakers: components["schemas"]["SpeakerVoiceAnalysisItem"][];
@@ -552,6 +553,7 @@ export type components = {
             rawDialogue: string;
             speakers: components["schemas"]["SpeakerVoiceAnalysisItem"][];
             projectId: string;
+            customHint?: string;
         };
         SpeakerSplitAnalysisResponse: {
             turns: components["schemas"]["SpeakerSplitTurn"][];
@@ -562,6 +564,7 @@ export type components = {
         };
         EmotionAnnotationAnalysisRequest: {
             projectId: string;
+            customHint?: string;
         };
         EmotionAnnotationAnalysisResponse: {
             turns: components["schemas"]["AnnotatedSpeakerTurn"][];

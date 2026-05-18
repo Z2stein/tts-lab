@@ -15,8 +15,8 @@ public class AudiobookCreationService {
         this.speakerVoiceAnalysisService = speakerVoiceAnalysisService;
     }
 
-    public SpeakerVoiceAnalysisResponse analyze(String rawDialogue) {
-        return speakerVoiceAnalysisService.analyze(rawDialogue);
+    public SpeakerVoiceAnalysisResponse analyze(String rawDialogue, String customHint) {
+        return speakerVoiceAnalysisService.analyze(rawDialogue, customHint);
     }
 }
 

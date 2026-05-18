@@ -52,7 +52,7 @@ public class SpeakerSplitAnalysisService {
         this.chatbotProvider = chatbotProvider == null ? "mock" : chatbotProvider.trim().toLowerCase();
     }
 
-    public SpeakerSplitAnalysisResponse split(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers) {
+    public SpeakerSplitAnalysisResponse split(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers, String customHint) {
         if (rawDialogue == null || rawDialogue.isBlank()) {
             return new SpeakerSplitAnalysisResponse(List.of());
         }
@@ -62,7 +62,7 @@ public class SpeakerSplitAnalysisService {
         }
 
         try {
-            String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerSplitPrompt(rawDialogue, speakers == null ? List.of() : speakers), null)).answer();
+            String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerSplitPrompt(rawDialogue, speakers == null ? List.of() : speakers, customHint), null)).answer();
             List<SpeakerSplitTurn> turns = parseProviderAnswer(answer);
             return new SpeakerSplitAnalysisResponse(turns);
         } catch (Exception ex) {
