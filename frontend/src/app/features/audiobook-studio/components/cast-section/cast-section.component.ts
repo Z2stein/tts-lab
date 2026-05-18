@@ -1,13 +1,14 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
-import { FormControl, ReactiveFormsModule } from '@angular/forms';
+import { FormControl } from '@angular/forms';
 import { SpeakerVoiceAnalysisItem } from '../../../audiobook-shared/service/audiobook-workflow.service';
+import { AiHintPanelComponent } from '../ai-hint-panel/ai-hint-panel.component';
 import { CastCardComponent } from './cast-card/cast-card.component';
 
 @Component({
   selector: 'app-cast-section',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CastCardComponent],
+  imports: [CommonModule, AiHintPanelComponent, CastCardComponent],
   templateUrl: './cast-section.component.html'
 })
 export class CastSectionComponent {
