@@ -117,6 +117,20 @@ export class AudiobookStudioFacade {
 
   // ── Pipeline operations ───────────────────────────────────────────────────
 
+  async generateStoryDraft(idea: string, enhancements: string[]): Promise<string> {
+    this._loadingAction.set('story-draft');
+    this._error.set(null);
+    try {
+      const response = await this.audiobookWorkflowService.generateStoryDraft({ idea, enhancements });
+      return response.storyDraft;
+    } catch (err) {
+      this._error.set(err instanceof Error ? err.message : 'Story generation failed.');
+      throw err;
+    } finally {
+      this._loadingAction.set(null);
+    }
+  }
+
   async analyzeStory(storyText: string, customHint?: string): Promise<void> {
     this._projectTitle.set('');
     await this.runStep('cast', async () => {

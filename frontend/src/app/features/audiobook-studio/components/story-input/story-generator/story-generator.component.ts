@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, Input, Output, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
-import { AudiobookWorkflowService } from '../../../../../features/audiobook-shared/service/audiobook-workflow.service';
+import { AudiobookStudioFacade } from '../../../audiobook-studio.facade';
 
 @Component({
   selector: 'app-story-generator',
@@ -28,7 +28,7 @@ export class StoryGeneratorComponent {
     return this.ideaControl.value.trim().length > 0 && !this.generating();
   }
 
-  constructor(private readonly workflowService: AudiobookWorkflowService) {}
+  constructor(private readonly facade: AudiobookStudioFacade) {}
 
   isChipSelected(chip: string): boolean {
     return this.selectedChips().has(chip);
@@ -52,11 +52,8 @@ export class StoryGeneratorComponent {
     this.error.set(null);
 
     try {
-      const response = await this.workflowService.generateStoryDraft({
-        idea,
-        enhancements: Array.from(this.selectedChips())
-      });
-      this.storyGenerated.emit(response.storyDraft);
+      const draft = await this.facade.generateStoryDraft(idea, Array.from(this.selectedChips()));
+      this.storyGenerated.emit(draft);
     } catch (err) {
       this.error.set(err instanceof Error ? err.message : 'Failed to generate story. Please try again.');
     } finally {
