@@ -48,7 +48,7 @@ describe('AudiobookStudioFacade', () => {
 
       await promise;
 
-      expect(workflow.analyzeSpeakers).toHaveBeenCalledWith('story text');
+      expect(workflow.analyzeSpeakers).toHaveBeenCalledWith('story text', undefined);
       expect(facade.cast()).toEqual([maraItem]);
       expect(facade.currentProjectId()).toBe('project-1');
       expect(facade.projectTitle()).toBe('The Hidden Signal');
@@ -109,7 +109,7 @@ describe('AudiobookStudioFacade', () => {
 
       await promise;
 
-      expect(workflow.splitDialogue).toHaveBeenCalledWith('story text', [maraItem], 'project-1');
+      expect(workflow.splitDialogue).toHaveBeenCalledWith('story text', [maraItem], 'project-1', undefined);
       expect(facade.scriptTurns()).toEqual([{ speaker: 'Mara', text: 'Hello' }]);
       expect(facade.loadingAction()).toBeNull();
       expect(facade.error()).toBeNull();
@@ -204,7 +204,7 @@ describe('AudiobookStudioFacade', () => {
 
       await facade.createPerformanceNotes();
 
-      expect(workflow.annotateEmotions).toHaveBeenCalledWith('project-1');
+      expect(workflow.annotateEmotions).toHaveBeenCalledWith('project-1', undefined);
       expect(facade.annotatedTurns()).toEqual([{ speaker: 'Mara', text: '<speak>Hello</speak>' }]);
       expect(facade.performanceNotesStale()).toBeFalse();
       expect(facade.performanceReady()).toBeTrue();

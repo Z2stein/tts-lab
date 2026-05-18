@@ -10,6 +10,7 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms';
 })
 export class StoryInputComponent {
   @Input() storyControl!: FormControl<string>;
+  @Input() speakerAnalysisHintControl!: FormControl<string>;
   @Input() loadingAction: string | null = null;
   @Output() useSampleStory = new EventEmitter<void>();
   @Output() analyzeStory = new EventEmitter<void>();

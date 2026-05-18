@@ -29,3 +29,17 @@
     </button>
   </div>
 </div>
+
+<details class="border border-[rgba(195,204,255,0.16)] rounded-2xl bg-[rgba(5,9,20,0.5)] p-4">
+  <summary class="text-[#ffd591] cursor-pointer font-[900]">Custom AI instruction (optional)</summary>
+  <div class="mt-4">
+    <label for="speaker-analysis-hint" class="block font-[900] mb-2">Instruction</label>
+    <textarea
+      id="speaker-analysis-hint"
+      rows="2"
+      class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)] resize-none"
+      placeholder="e.g. do not add a Narrator speaker"
+      [formControl]="speakerAnalysisHintControl"
+    ></textarea>
+  </div>
+</details>

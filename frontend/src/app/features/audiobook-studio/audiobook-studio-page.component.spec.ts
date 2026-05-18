@@ -140,7 +140,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     await component.analyzeStory();
     fixture.detectChanges();
 
-    expect(audiobookWorkflowService.analyzeSpeakers).toHaveBeenCalledWith('Mara: We go now.');
+    expect(audiobookWorkflowService.analyzeSpeakers).toHaveBeenCalledWith('Mara: We go now.', undefined);
     expect(fixture.nativeElement.textContent).toContain('Mara');
     expect(fixture.nativeElement.textContent).toContain('Dialogue speaker');
     expect(fixture.nativeElement.textContent).toContain('WARM ALTO VOICE');
@@ -269,7 +269,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         roleDescription: 'Caretaker of the midnight platform',
         voiceSuggestion: 'Warm gravelly voice'
       }
-    ], 'project-1');
+    ], 'project-1', undefined);
   });
 
   it('shows script preview turns after cast analysis continues', async () => {
@@ -316,7 +316,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     fixture.detectChanges();
 
     expect(audiobookWorkflowService.approveCast).toHaveBeenCalledWith('project-1');
-    expect(audiobookWorkflowService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast, 'project-1');
+    expect(audiobookWorkflowService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast, 'project-1', undefined);
     expect(fixture.nativeElement.textContent).toContain('Review script');
     expect(fixture.nativeElement.textContent).toContain('We go now.');
     expect(fixture.nativeElement.textContent).toContain('Together.');
@@ -476,7 +476,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     await component.createPerformanceNotes();
     fixture.detectChanges();
 
-    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1');
+    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1', undefined);
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
   });
 

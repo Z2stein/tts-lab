@@ -104,6 +104,9 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   languageCodeControl = new FormControl('en-US', { nonNullable: true });
   modelNameControl = new FormControl('gemini-3.1-flash-tts-preview', { nonNullable: true });
   audioEncodingControl = new FormControl('MP3', { nonNullable: true });
+  speakerAnalysisHintControl = new FormControl('', { nonNullable: true });
+  speakerSplitHintControl = new FormControl('', { nonNullable: true });
+  emotionAnnotationHintControl = new FormControl('', { nonNullable: true });
   projectTitleEditing = false;
   @Input() showHero = true;
   @Input() snapshot: AudiobookWorkflowSnapshotResponse | null = null;
@@ -278,7 +281,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   async analyzeStory(): Promise<void> {
     this.projectTitleControl.setValue('');
     this.projectTitleEditing = false;
-    await this.facade.analyzeStory(this.storyTextControl.value);
+    await this.facade.analyzeStory(this.storyTextControl.value, this.speakerAnalysisHintControl.value || undefined);
     this.projectTitleControl.setValue(this.facade.projectTitle());
     this.languageCodeControl.setValue(this.facade.productionSettings()?.languageCode ?? 'en-US');
     this.projectTitleEditing = false;
@@ -307,7 +310,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   }
 
   async createScriptPreview(): Promise<void> {
-    await this.facade.createScriptPreview(this.storyTextControl.value);
+    await this.facade.createScriptPreview(this.storyTextControl.value, this.speakerSplitHintControl.value || undefined);
     this.lastKnownProjectId = this.facade.currentProjectId();
     if (this.facade.scriptTurns().length > 0) {
       void this.liveAnnouncer.announce(`Script ready with ${this.facade.scriptTurns().length} turns`, 'polite');
@@ -320,7 +323,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     if (!this.facade.currentProjectId() && this.lastKnownProjectId) {
       this.facade.setCurrentProjectId(this.lastKnownProjectId);
     }
-    await this.facade.createPerformanceNotes();
+    await this.facade.createPerformanceNotes(this.emotionAnnotationHintControl.value || undefined);
     if (this.facade.annotatedTurns().length > 0) {
       void this.liveAnnouncer.announce('Performance notes added', 'polite');
     } else if (this.facade.error()) {

@@ -33,16 +33,16 @@ public class AudiobookWorkflowService {
         this.ttsAudioCreationService = ttsAudioCreationService;
     }
 
-    public SpeakerVoiceAnalysisResponse analyze(String rawDialogue) {
-        return speakerVoiceAnalysisService.analyze(rawDialogue);
+    public SpeakerVoiceAnalysisResponse analyze(String rawDialogue, String customHint) {
+        return speakerVoiceAnalysisService.analyze(rawDialogue, customHint);
     }
 
-    public SpeakerSplitAnalysisResponse split(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers) {
-        return speakerSplitAnalysisService.split(rawDialogue, speakers);
+    public SpeakerSplitAnalysisResponse split(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers, String customHint) {
+        return speakerSplitAnalysisService.split(rawDialogue, speakers, customHint);
     }
 
-    public EmotionAnnotationAnalysisResponse annotate(List<SpeakerSplitTurn> turns) {
-        return emotionAnnotationService.annotate(turns);
+    public EmotionAnnotationAnalysisResponse annotate(List<SpeakerSplitTurn> turns, String customHint) {
+        return emotionAnnotationService.annotate(turns, customHint);
     }
 
     public FinalTtsRequestPreviewResponse buildFinalRequest(FinalTtsRequestPreviewRequest request) {

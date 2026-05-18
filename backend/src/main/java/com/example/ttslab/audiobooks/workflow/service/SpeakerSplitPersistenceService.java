@@ -44,11 +44,12 @@ public class SpeakerSplitPersistenceService {
     public SpeakerSplitAnalysisResponse splitAndPersist(
         AudiobookProject project,
         String rawDialogue,
-        List<SpeakerVoiceAnalysisItem> speakers
+        List<SpeakerVoiceAnalysisItem> speakers,
+        String customHint
     ) {
         speechSegmentRepository.deleteByProjectIdAndSegmentOrigin(project.getId(), AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
         List<SpeakerCharacter> characters = speakerVoiceAnalysisService.syncProjectCharacters(project.getId(), speakers);
-        SpeakerSplitAnalysisResponse response = speakerSplitAnalysisService.split(rawDialogue, speakers);
+        SpeakerSplitAnalysisResponse response = speakerSplitAnalysisService.split(rawDialogue, speakers, customHint);
 
         Map<String, SpeakerCharacter> charactersByName = characters.stream()
             .collect(Collectors.toMap(

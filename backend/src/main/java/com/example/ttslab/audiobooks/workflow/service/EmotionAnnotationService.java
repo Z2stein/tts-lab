@@ -48,7 +48,7 @@ public class EmotionAnnotationService {
         this.chatbotProvider = chatbotProvider == null ? "mock" : chatbotProvider.trim().toLowerCase();
     }
 
-    public EmotionAnnotationAnalysisResponse annotate(List<SpeakerSplitTurn> turns) {
+    public EmotionAnnotationAnalysisResponse annotate(List<SpeakerSplitTurn> turns, String customHint) {
         if (turns == null || turns.isEmpty()) {
             return new EmotionAnnotationAnalysisResponse(List.of());
         }
@@ -58,7 +58,7 @@ public class EmotionAnnotationService {
         }
 
         try {
-            String answer = chatService.ask(new ChatRequest(promptProvider.getEmotionAnnotationPrompt(turns), null)).answer();
+            String answer = chatService.ask(new ChatRequest(promptProvider.getEmotionAnnotationPrompt(turns, customHint), null)).answer();
             return new EmotionAnnotationAnalysisResponse(parseProviderAnswer(answer));
         } catch (ApiException ex) {
             throw ex;
