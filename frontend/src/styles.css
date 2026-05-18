@@ -541,6 +541,17 @@
     font-weight: 900;
   }
 
+  @keyframes step-number-glow {
+    0%, 100% { box-shadow: 0 0 12px rgba(143, 231, 189, 0.5), 0 0 28px rgba(143, 231, 189, 0.22); }
+    50%       { box-shadow: 0 0 22px rgba(143, 231, 189, 0.85), 0 0 44px rgba(143, 231, 189, 0.4); }
+  }
+
+  .step-number-done {
+    background: linear-gradient(135deg, #a8f0d0, #8fe7bd);
+    color: #0a2e1a;
+    animation: step-number-glow 2s ease-in-out infinite;
+  }
+
   /* Audio promise section with three-column layout */
   .audio-promise {
     border: 1px solid rgba(240, 173, 93, 0.2);

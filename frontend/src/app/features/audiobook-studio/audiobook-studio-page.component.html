@@ -115,7 +115,7 @@
 
     <section id="audio-section" class="step-card anchor-section" data-testid="audio-section" aria-labelledby="generate-audio-title">
       <button type="button" class="step-heading" style="width:100%;text-align:left;background:transparent;border:0;padding:0;cursor:pointer;" (click)="toggleAudioSection()" [attr.aria-expanded]="!audioSectionCollapsed()">
-        <span class="step-number">5</span>
+        <span class="step-number" [class.step-number-done]="fullPlanAudioUrl && !fullPlanAudioStale">5</span>
         <div style="flex:1">
           <h2 id="generate-audio-title">Generate audio</h2>
           <p>Generate the full audiobook preview, or create individual voice parts when you need a focused take.</p>

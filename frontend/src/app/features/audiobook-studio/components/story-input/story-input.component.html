@@ -1,5 +1,5 @@
 <button type="button" class="flex items-center gap-[0.9rem] w-full text-left bg-transparent border-0 p-0 cursor-pointer" (click)="toggleCollapsed()" [attr.aria-expanded]="!collapsed()">
-  <span class="inline-flex w-[2.35rem] h-[2.35rem] items-center justify-center flex-none rounded-full bg-gradient-to-r from-[#ffe2a7] to-[#f0ad5d] shadow-[0_0_28px_rgba(240,173,93,0.25)] text-[#140f14] font-black">1</span>
+  <span class="step-number" [class.step-number-done]="isCompleted">1</span>
   <div class="flex-1">
     <h2 id="story-input-title" class="mb-[0.2rem] text-[#fff8ec] font-family-georgia text-[clamp(1.4rem,3vw,2rem)] leading-[1.1]">Story input</h2>
     <p class="m-0">Start with narration and character dialogue. The AI will find the narrator and characters for you.</p>
