@@ -1,8 +1,40 @@
-<section class="grid gap-8 md:grid-cols-2 md:items-start mb-12" aria-labelledby="audiobook-studio-title" data-testid="studio-hero">
+<style>
+  @media (min-width: 768px) {
+    [data-testid="studio-hero"] {
+      grid-template-columns: 40% 60% !important;
+    }
+  }
+
+  [data-testid="studio-hero"]::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    border-radius: inherit;
+    padding: 2px;
+    background: linear-gradient(135deg, rgba(110,40,210,0) 0%, rgba(240,173,93,0.8) 25%, rgba(110,40,210,0.8) 50%, rgba(110,40,210,0) 100%);
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    z-index: 1;
+  }
+</style>
+<section class="relative overflow-hidden grid gap-4 items-start py-12 md:py-24 bg-studio-baseBg px-4 md:px-8 rounded-3xl mx-4" style="grid-template-columns: 1fr; box-shadow: 40px -40px 80px rgba(240,173,93,0.3), -40px 40px 80px rgba(110,40,210,0.3), inset 40px -40px 60px rgba(240,173,93,0.05), inset -40px 40px 60px rgba(110,40,210,0.05);" aria-labelledby="audiobook-studio-title" data-testid="studio-hero">
+  <!-- Ambient glow overlays (decorative) -->
+  <div class="absolute inset-0 pointer-events-none" aria-hidden="true">
+    <!-- Amber/Red glow (left/bottom) - BALANCED -->
+    <div class="absolute -bottom-40 -left-32 w-[36rem] h-[26rem] blur-3xl rounded-full" style="background: radial-gradient(circle, rgba(240,140,60,0.65) 0%, rgba(200,100,30,0.4) 35%, rgba(150,60,10,0.15) 60%, transparent 85%)"></div>
+    <!-- Purple glow (right/top) - BALANCED -->
+    <div class="absolute -top-32 right-0 w-[75%] h-[150%] blur-2xl" style="background: radial-gradient(ellipse at right top, rgba(200,100,255,0.6) 0%, rgba(150,70,220,0.35) 35%, rgba(110,50,180,0.12) 60%, transparent 80%)"></div>
+  </div>
+
   <!-- Hero Copy (Left Column) -->
-  <div class="flex flex-col gap-4">
+  <div class="relative flex flex-col gap-4">
     <p class="m-0 border border-[rgba(240,173,93,0.32)] rounded-full bg-[rgba(240,173,93,0.08)] text-[#ffd591] text-xs font-black tracking-[0.08em] px-4 py-2 w-fit uppercase">AI Audiobook Studio</p>
-    <h1 id="audiobook-studio-title" class="m-0 text-5xl font-black text-[#f8efe5] leading-[1.1]">Give every character in your story <span class="text-[#ffd591]">a voice.</span></h1>
+    <h1 id="audiobook-studio-title" class="m-0 text-4xl md:text-5xl font-black text-[#f8efe5] leading-[0.95]" style="font-family: Georgia, 'Times New Roman', serif">Give every character in your story <span class="text-[#ffd591]">a voice.</span></h1>
     <p class="m-0 text-base text-[#c4c4d1] leading-relaxed">
       Paste a novel chapter. AI detects the narrator, discovers the cast, assigns voices, and turns it into multi-speaker audio.
     </p>
@@ -23,23 +55,65 @@
         {{ demoPlaying ? 'Pause demo' : 'Listen to demo' }}
       </button>
     </div>
+
+    <!-- Benefit chips -->
+    <div class="flex flex-wrap gap-3 mt-3">
+      <div class="flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg border border-[rgba(240,173,93,0.4)] bg-[rgba(25,20,45,0.7)]">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f0ad5d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mt-0.5 flex-none" aria-hidden="true">
+          <circle cx="9" cy="7" r="4"/>
+          <path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/>
+          <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          <path d="M21 21v-2a4 4 0 0 0-3-3.85"/>
+        </svg>
+        <div>
+          <div class="font-semibold text-sm text-[#f8efe5] leading-tight">AI cast detection</div>
+          <div class="text-xs text-[#9aa3bc] leading-tight">Find instantly</div>
+        </div>
+      </div>
+      <div class="flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg border border-[rgba(240,173,93,0.4)] bg-[rgba(25,20,45,0.7)]">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f0ad5d" stroke-width="2" stroke-linecap="round" class="w-5 h-5 mt-0.5 flex-none" aria-hidden="true">
+          <line x1="4" y1="12" x2="4" y2="16"/>
+          <line x1="8" y1="7" x2="8" y2="19"/>
+          <line x1="12" y1="4" x2="12" y2="20"/>
+          <line x1="16" y1="8" x2="16" y2="18"/>
+          <line x1="20" y1="11" x2="20" y2="15"/>
+        </svg>
+        <div>
+          <div class="font-semibold text-sm text-[#f8efe5] leading-tight">Multi-speaker</div>
+          <div class="text-xs text-[#9aa3bc] leading-tight">Expressive voices</div>
+        </div>
+      </div>
+      <div class="flex items-start gap-2.5 px-3.5 py-2.5 rounded-lg border border-[rgba(240,173,93,0.4)] bg-[rgba(25,20,45,0.7)]">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#f0ad5d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-5 h-5 mt-0.5 flex-none" aria-hidden="true">
+          <path d="M9 18V5l12-2v13"/>
+          <circle cx="6" cy="18" r="3"/>
+          <circle cx="18" cy="16" r="3"/>
+        </svg>
+        <div>
+          <div class="font-semibold text-sm text-[#f8efe5] leading-tight">Emotion &amp; pacing</div>
+          <div class="text-xs text-[#9aa3bc] leading-tight">Cinematic</div>
+        </div>
+      </div>
+    </div>
   </div>
 
-  <!-- Hero Demo (Right Column) -->
-  <div class="flex flex-col gap-6" aria-label="Story to cast audio preview">
-    <!-- Demo Flow: Story → Arrow → Cast (3-column grid on large screens, stacks on smaller) -->
+  <!-- Hero Demo (Right Column) — Unified Premium Panel -->
+  <div class="relative rounded-3xl   border border-[rgba(240,173,93,0.35)]  flex flex-col gap-4 p-5" style="background: rgba(10,8,22,0.85); box-shadow: 0 0 80px rgba(110,40,210,0.28), 0 0 40px rgba(240,173,93,0.25), 0 24px 80px rgba(0,0,0,0.6), inset 0 1px 0 rgba(255,255,255,0.08), 0 0 30px rgba(110,40,210,0.3), 0 0 60px rgba(240,173,93,0.2);" aria-label="Story to cast audio preview">
+    <!-- Demo Flow: Story → Arrow → Cast -->
     <div class="flex flex-col gap-3 lg:grid lg:items-center lg:gap-[0.4rem]" style="grid-template-columns: minmax(0, 1fr) clamp(3rem, 8vw, 5rem) minmax(0, 1fr)">
       <!-- Story Card -->
-      <article class="grid gap-[0.8rem] rounded-2xl p-4 border border-[rgba(240,173,93,0.32)] bg-[rgba(12,14,25,0.6)]">
-        <div class="flex items-center gap-[0.6rem]">
-          <span class="inline-flex items-center justify-center w-8 h-8 rounded-md bg-[rgba(240,173,93,0.16)] text-[#ffd591] text-sm font-black" data-testid="story-demo-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
-              <path d="M12 20h7" />
-              <path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L9 17l-4 1 1-4 10.5-10.5Z" />
-              <path d="M14 6l4 4" />
+      <article class="relative grid gap-[0.65rem] rounded-2xl p-4 bg-[rgba(12,14,25,0.8)]" style="box-shadow: 0 0 20px rgba(240,173,93,0.15), inset 0 1px 0 rgba(255,255,255,0.05);">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#f0ad5d" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 flex-none" aria-hidden="true">
+              <path d="M14 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V10z"/>
+              <path d="M14 4v6h6"/>
+              <path d="M8 13h8"/>
+              <path d="M8 17h5"/>
             </svg>
-          </span>
-          <h2 class="m-0 font-black text-[#fff8ec]">Your story</h2>
+            <h2 class="m-0 font-black text-sm text-[#fff8ec]">Your story</h2>
+          </div>
+          <span class="rounded-full text-[10px] font-bold px-3 py-1.5 text-[#f0ad5d] whitespace-nowrap flex-none" style="background: rgba(240,173,93,0.22); border: 1px solid rgba(240,173,93,0.5)" aria-hidden="true">AI analyzing...</span>
         </div>
         <p class="m-0 text-sm text-[#9aa3bc] leading-relaxed">The rain tapped against the train window as Mara clutched the letter.</p>
         <p class="m-0 text-sm text-[#9aa3bc] leading-relaxed">Jonas leaned forward. "Are you sure this is the right place?"</p>
@@ -47,24 +121,25 @@
       </article>
 
       <!-- Flow Arrow (horizontal, hidden on small screens) -->
-      <div class="hidden lg:flex justify-center items-center text-[#ffd591]" aria-hidden="true">
-        <svg viewBox="0 0 92 24" class="w-[5rem] h-6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none">
-          <path d="M2 12H82" />
-          <path d="M72 3L82 12L72 21" />
+      <div class="hidden lg:flex justify-center items-center text-[#c965ff]" aria-hidden="true">
+        <svg viewBox="0 0 24 24" class="w-[4.5rem] h-[4.5rem]" stroke="currentColor" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="filter: drop-shadow(0 0 8px rgba(201, 101, 255, 1)) drop-shadow(0 0 16px rgba(201, 101, 255, 1)) drop-shadow(0 0 32px rgba(201, 101, 255, 0.8)) drop-shadow(0 0 48px rgba(201, 101, 255, 0.5))">
+          <polyline points="9 18 15 12 9 6"></polyline>
         </svg>
       </div>
 
       <!-- Cast Card -->
-      <article class="grid gap-[0.8rem] rounded-2xl p-4 border border-[rgba(195,204,255,0.16)] bg-[rgba(12,14,25,0.6)] min-w-0">
-        <div class="flex items-center gap-[0.6rem] min-w-0">
-          <span class="inline-flex items-center justify-center flex-none w-8 h-8 rounded-md bg-[rgba(240,173,93,0.16)] text-[#ffd591] text-sm font-black" data-testid="cast-demo-icon" aria-hidden="true">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" class="w-full h-full">
-              <path d="M5 10.5v3c0 .83.67 1.5 1.5 1.5H9l4 3V6L9 9H6.5A1.5 1.5 0 0 0 5 10.5Z" />
-              <path d="M15.5 9.5a3.5 3.5 0 0 1 0 5" />
-              <path d="M17.8 7.2a6.5 6.5 0 0 1 0 9.2" />
+      <article class="relative grid gap-[0.65rem] rounded-2xl p-4 bg-[rgba(12,14,25,0.8)] min-w-0" style="box-shadow: 0 0 20px rgba(201,101,255,0.15), inset 0 1px 0 rgba(255,255,255,0.05);">
+        <div class="flex items-center justify-between gap-2">
+          <div class="flex items-center gap-2">
+            <svg viewBox="0 0 24 24" fill="none" stroke="#c965ff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="w-4 h-4 flex-none" aria-hidden="true">
+              <path d="M16 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2"/>
+              <circle cx="9.5" cy="7" r="4"/>
+              <path d="M22 21v-2a4 4 0 0 0-3-3.87"/>
+              <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
             </svg>
-          </span>
-          <h2 class="m-0 font-black text-[#fff8ec] min-w-0 overflow-hidden text-ellipsis">Detected cast</h2>
+            <h2 class="m-0 font-black text-[#fff8ec]">Detected cast</h2>
+          </div>
+          <span class="rounded-full text-[10px] font-bold px-3 py-1.5 text-[#c965ff] whitespace-nowrap flex-none" style="background: rgba(201,101,255,0.22); border: 1px solid rgba(201,101,255,0.5)" aria-hidden="true">Cast ready</span>
         </div>
         <div class="flex flex-col gap-2 min-w-0">
           <div *ngFor="let member of heroCast" class="hero-cast-row flex items-center gap-2 text-sm border-l-4 rounded-l pl-3 py-2" [ngStyle]="speakerStyleFn(member.name)" [style.borderLeftColor]="'var(--speaker-accent, #f0ad5d)'" [style.backgroundColor]="'color-mix(in srgb, var(--speaker-accent, #f0ad5d) 8%, transparent)'">
@@ -94,22 +169,24 @@
     </div>
 
     <!-- Waveform Preview -->
-    <div class="flex items-center gap-3 border-2 rounded-2xl bg-[rgba(12,14,25,0.6)] p-4" style="border-color: #bf80ff47" aria-label="Audio preview player">
-      <button
-        type="button"
-        class="flex-none w-8 h-8 flex items-center justify-center rounded-full border border-[rgba(240,173,93,0.4)] hover:bg-[rgba(240,173,93,0.1)] transition-all"
-        [class.is-playing]="demoPlaying"
-        [attr.aria-label]="demoPlaying ? 'Pause audio preview' : 'Play audio preview'"
-        (click)="playDemo($event)"
-      >
-        <span class="play-icon text-[#ffd591] text-xs" aria-hidden="true"></span>
-      </button>
-      <div class="flex-none flex flex-col">
-        <strong class="font-black text-sm text-[#fff8ec]">{{ demoPlaying ? 'Playing demo' : 'Demo preview' }}</strong>
-        <span class="text-xs text-[#9aa3bc]">Multi-speaker sample</span>
+    <div class="rounded-2xl flex flex-col gap-3 p-4" style="background: rgba(8,6,20,0.92); box-shadow: inset 0 0 24px rgba(110,40,210,0.12), 0 0 30px rgba(240,140,60,0.08), 0 0 20px rgba(147,51,234,0.15), inset 0 1px 0 rgba(255,255,255,0.05);" aria-label="Audio preview player">
+      <div class="flex items-center justify-between gap-2">
+        <h2 class="m-0 font-black text-sm text-[#fff8ec]">Your audiobook</h2>
+        <span class="rounded-full text-[10px] font-bold px-3 py-1.5 text-[#8fe7bd] whitespace-nowrap flex-none" style="background: rgba(143,231,189,0.22); border: 1px solid rgba(143,231,189,0.5)" aria-hidden="true">Ready to listen</span>
       </div>
-      <div #demoWaveform class="flex-1 min-w-0" aria-hidden="true"></div>
-      <span class="flex-none text-xs text-[#9aa3bc] whitespace-nowrap">00:00 / 02:45</span>
+      <div class="flex items-center gap-3">
+        <button
+          type="button"
+          class="flex-none w-8 h-8 flex items-center justify-center rounded-full border border-[rgba(240,173,93,0.4)] hover:bg-[rgba(240,173,93,0.1)] transition-all"
+          [class.is-playing]="demoPlaying"
+          [attr.aria-label]="demoPlaying ? 'Pause audio preview' : 'Play audio preview'"
+          (click)="playDemo($event)"
+        >
+          <span class="play-icon text-[#ffd591] text-xs" aria-hidden="true"></span>
+        </button>
+        <div #demoWaveform class="flex-1 min-w-0" aria-hidden="true"></div>
+        <span class="flex-none text-xs text-[#9aa3bc] whitespace-nowrap">00:00 / 02:45</span>
+      </div>
     </div>
   </div>
 </section>

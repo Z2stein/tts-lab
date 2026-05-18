@@ -3,7 +3,7 @@ import WaveSurfer from 'wavesurfer.js';
 
 export const WAVEFORM_VISUAL_OPTIONS = {
   height: 58,
-  waveColor: '#596174',
+  waveColor: '#8b6fa8',
   progressColor: '#f0ad5d',
   cursorColor: '#ffd591',
   cursorWidth: 2,
