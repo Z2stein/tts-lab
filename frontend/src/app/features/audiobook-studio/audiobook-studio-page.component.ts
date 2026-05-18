@@ -11,6 +11,7 @@ import {
   SingleSpeakerRenderPlanResponse,
   SingleSpeakerRenderRequest,
 } from '../audiobook-shared/service/audiobook-workflow.service';
+import { AiGenerationOverlayComponent } from '../../shared/components/ai-generation-overlay/ai-generation-overlay.component';
 import { CastSectionComponent } from './components/cast-section/cast-section.component';
 import { VoicePickerModalComponent } from './components/voice-picker/voice-picker-modal.component';
 import { JourneyGridComponent } from './components/journey-grid/journey-grid.component';
@@ -73,6 +74,7 @@ export { formatSpeakerDisplayName };
     PerformanceNotesComponent,
     CurrentTaskPanelComponent,
     VoicePickerModalComponent,
+    AiGenerationOverlayComponent,
   ],
   providers: [
     AudiobookStudioFacade,
