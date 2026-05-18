@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, effect } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, effect, signal } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { AppErrorBannerService } from '../../shared/services/app-error-banner.service';
@@ -11,6 +11,7 @@ import {
   SingleSpeakerRenderPlanResponse,
   SingleSpeakerRenderRequest,
 } from '../audiobook-shared/service/audiobook-workflow.service';
+import { AiGenerationOverlayComponent } from '../../shared/components/ai-generation-overlay/ai-generation-overlay.component';
 import { CastSectionComponent } from './components/cast-section/cast-section.component';
 import { VoicePickerModalComponent } from './components/voice-picker/voice-picker-modal.component';
 import { JourneyGridComponent } from './components/journey-grid/journey-grid.component';
@@ -73,6 +74,7 @@ export { formatSpeakerDisplayName };
     PerformanceNotesComponent,
     CurrentTaskPanelComponent,
     VoicePickerModalComponent,
+    AiGenerationOverlayComponent,
   ],
   providers: [
     AudiobookStudioFacade,
@@ -169,7 +171,12 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
   voicePickerOpenForIndex: number | null = null;
+  readonly audioSectionCollapsed = signal(false);
   private lastKnownProjectId: string | null = null;
+
+  toggleAudioSection(): void {
+    this.audioSectionCollapsed.update(v => !v);
+  }
 
   constructor(
     private readonly facade: AudiobookStudioFacade,

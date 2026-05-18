@@ -1,5 +1,7 @@
 import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks, discardPeriodicTasks, flush } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { AudiobookStudioWorkspaceComponent, formatSpeakerDisplayName } from './audiobook-studio-page.component';
+import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
 import { AudiobookApiService } from '../audiobook-shared/service/audiobook-api.service';
 import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
 import { AudiobookLibraryService } from '../audiobook-library/services/audiobook-library.service';
@@ -379,6 +381,15 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     (component as any).facade.setCurrentProjectId('project-1');
     fixture.detectChanges();
 
+    // Performance section auto-collapsed (performanceReady=true at start). Expand it now, before
+    // the save — ngOnChanges only auto-collapses (true→set), so the section stays open when
+    // isCompleted later transitions to false after the script edit makes performance notes stale.
+    (fixture.debugElement.query(By.directive(PerformanceNotesComponent)).componentInstance as PerformanceNotesComponent).collapsed.set(false);
+
+    // Script section auto-collapsed because scriptApproved=true; expand it before interacting.
+    (getByTestId('script-section').querySelector('button') as HTMLElement).click();
+    fixture.detectChanges();
+
     getByTestId('script-turn-edit-0').click();
     fixture.detectChanges();
     setInputValue('#script-text-0', 'We go at sunrise.');
@@ -423,7 +434,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       },
       performanceNotesStale: false
     } as never);
-    clickButton('Approve script & continue');
+    clickButton('Identify Emotions');
     await fixture.whenStable();
     fixture.detectChanges();
 

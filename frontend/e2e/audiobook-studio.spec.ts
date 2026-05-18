@@ -58,10 +58,16 @@ async function mockWorkflowSnapshot(
   });
 }
 
+async function selectPasteStoryTab(page: Page): Promise<void> {
+  await page.getByTestId('tab-paste').click();
+  await expect(page.getByRole('textbox', { name: 'Story text' })).toBeVisible();
+}
+
 test('audiobook studio fills the story textarea with sample content', async ({ context, page }) => {
   await authenticate(context, page);
 
   await page.goto('/audiobook-studio');
+  await selectPasteStoryTab(page);
   await page.getByRole('button', { name: 'Use sample story' }).click();
 
   const storyText = page.getByRole('textbox', { name: 'Story text' });
@@ -114,6 +120,7 @@ test('audiobook studio shows cast cards after story analysis succeeds', async ({
   await mockWorkflowSnapshot(page);
 
   await page.goto('/audiobook-studio');
+  await selectPasteStoryTab(page);
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
 
@@ -147,6 +154,7 @@ test('audiobook studio lets the user edit and persist the AI project title', asy
   });
 
   await page.goto('/audiobook-studio');
+  await selectPasteStoryTab(page);
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
@@ -216,6 +224,7 @@ test('audiobook studio shows the detected language in advanced production settin
   await mockWorkflowSnapshot(page, 'cast-review');
 
   await page.goto('/audiobook-studio');
+  await selectPasteStoryTab(page);
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: Hallo zusammen.');
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
@@ -226,6 +235,7 @@ test('audiobook studio shows the detected language in advanced production settin
 
 test('audiobook studio shows script preview turns after cast analysis continues', async ({ context, page }) => {
   await authenticate(context, page);
+  let currentSnapshot = await loadWorkflowSnapshotFixture('cast-review');
   await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {
     await route.fulfill({
       status: 200,
@@ -233,12 +243,19 @@ test('audiobook studio shows script preview turns after cast analysis continues'
       body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-voice-analysis/cast-analysis/response.json'))
     });
   });
-  await mockWorkflowSnapshot(page, 'cast-approved');
-  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/cast-approval`, async (route) => {
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}`, async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(await loadWorkflowSnapshotFixture('cast-approved'))
+      body: JSON.stringify(currentSnapshot)
+    });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/cast-approval`, async (route) => {
+    currentSnapshot = await loadWorkflowSnapshotFixture('cast-approved');
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(currentSnapshot)
     });
   });
   await page.route('**/api/audiobooks/workflow/speaker-split-analysis', async (route) => {
@@ -250,12 +267,13 @@ test('audiobook studio shows script preview turns after cast analysis continues'
   });
 
   await page.goto('/audiobook-studio');
+  await selectPasteStoryTab(page);
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
   await expect(page.locator('app-cast-card')).toHaveCount(2);
   await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
-  await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
+  await page.locator('#cast-section').getByRole('button', { name: 'Find Speech Segments' }).click();
 
   await expect(page.locator('h2', { hasText: 'Review script' })).toBeVisible();
   await expect(page.getByText('We go now.')).toBeVisible();
@@ -358,10 +376,11 @@ test('audiobook studio generates the final preview after the workflow reaches au
   });
 
   await page.goto('/audiobook-studio');
+  await selectPasteStoryTab(page);
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: We go now.\nJonas: Together.');
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
-  await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
+  await page.locator('#cast-section').getByRole('button', { name: 'Find Speech Segments' }).click();
   // Approve script and create performance notes (happens automatically via approveScriptAndContinueWorkflow)
   await Promise.all([
     page.waitForResponse((response) =>
@@ -372,8 +391,9 @@ test('audiobook studio generates the final preview after the workflow reaches au
       response.url().includes('/api/audiobooks/workflow/emotion-annotation-analysis') &&
       response.request().method() === 'POST'
     ),
-    page.locator('#script-section').getByRole('button', { name: 'Approve script & continue' }).click()
+    page.locator('#script-section').getByRole('button', { name: 'Identify Emotions' }).click()
   ]);
+  await page.getByTestId('performance-section').getByRole('button', { name: /Add emotion & pacing/ }).click();
   await expect(page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' })).toBeEnabled();
   await page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' }).click();
 
@@ -506,12 +526,13 @@ test('audiobook studio edits a script preview turn without freezing the app', as
   });
 
   await page.goto('/audiobook-studio');
+  await selectPasteStoryTab(page);
   await page.getByRole('button', { name: 'Use sample story' }).click();
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
   await page.waitForURL(`**/audiobook-studio/${testProjectId}`);
   await expect(page.locator('app-cast-card')).toHaveCount(2);
   await expect(page.getByText('Detected dialogue speaker')).toHaveCount(2);
-  await page.locator('#cast-section').getByRole('button', { name: 'Approve voices & continue' }).click();
+  await page.locator('#cast-section').getByRole('button', { name: 'Find Speech Segments' }).click();
 
   await page.getByTestId('script-turn-edit-0').click();
   await expect(page.getByLabel('Speaker')).toBeVisible();
@@ -531,7 +552,7 @@ test('audiobook studio edits a script preview turn without freezing the app', as
       response.url().includes(`/api/audiobooks/workflow/projects/${testProjectId}/script-approval`) &&
       response.request().method() === 'POST'
     ),
-    page.locator('#script-section').getByRole('button', { name: 'Approve script & continue' }).click()
+    page.locator('#script-section').getByRole('button', { name: 'Identify Emotions' }).click()
   ]);
   await expect(page.getByText('The last train had already left, and the station clock was wrong.')).toBeVisible();
 });
@@ -548,6 +569,7 @@ test('audiobook studio shows structured backend errors without internal details'
   });
 
   await page.goto('/audiobook-studio');
+  await selectPasteStoryTab(page);
   await page.getByRole('textbox', { name: 'Story text' }).fill('Mara: Hello');
   await page.locator('#story-section').getByRole('button', { name: 'Find narrator & characters' }).click();
 

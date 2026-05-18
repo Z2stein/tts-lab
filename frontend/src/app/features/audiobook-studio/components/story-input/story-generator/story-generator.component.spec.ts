@@ -1,13 +1,14 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { AudiobookWorkflowService, GenerateStoryDraftResponse } from '../../../../../features/audiobook-shared/service/audiobook-workflow.service';
+import { GenerateStoryDraftResponse } from '../../../../../features/audiobook-shared/service/audiobook-workflow.service';
 import { loadTestContractJson } from '../../../../../shared/test-contracts';
+import { AudiobookStudioFacade } from '../../../audiobook-studio.facade';
 import { StoryGeneratorComponent } from './story-generator.component';
 
 describe('StoryGeneratorComponent', () => {
   let fixture: ComponentFixture<StoryGeneratorComponent>;
   let component: StoryGeneratorComponent;
-  let workflowService: jasmine.SpyObj<AudiobookWorkflowService>;
+  let facade: jasmine.SpyObj<AudiobookStudioFacade>;
   let draftResponse: GenerateStoryDraftResponse;
 
   beforeEach(async () => {
@@ -15,11 +16,11 @@ describe('StoryGeneratorComponent', () => {
       'audiobook-workflow/generate-story-draft/default/response.json'
     );
 
-    workflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', ['generateStoryDraft']);
+    facade = jasmine.createSpyObj<AudiobookStudioFacade>('AudiobookStudioFacade', ['generateStoryDraft']);
 
     await TestBed.configureTestingModule({
       imports: [StoryGeneratorComponent],
-      providers: [{ provide: AudiobookWorkflowService, useValue: workflowService }],
+      providers: [{ provide: AudiobookStudioFacade, useValue: facade }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(StoryGeneratorComponent);
@@ -68,21 +69,21 @@ describe('StoryGeneratorComponent', () => {
   });
 
   describe('generateStory()', () => {
-    it('calls AudiobookWorkflowService.generateStoryDraft with the idea and selected enhancements', async () => {
-      workflowService.generateStoryDraft.and.resolveTo(draftResponse);
+    it('calls AudiobookStudioFacade.generateStoryDraft with the idea and selected enhancements', async () => {
+      facade.generateStoryDraft.and.resolveTo(draftResponse.storyDraft);
       component.ideaControl.setValue('A lonely lighthouse keeper');
       component.toggleChip('Make it dramatic');
 
       await component.generateStory();
 
-      expect(workflowService.generateStoryDraft).toHaveBeenCalledOnceWith({
-        idea: 'A lonely lighthouse keeper',
-        enhancements: ['Make it dramatic']
-      });
+      expect(facade.generateStoryDraft).toHaveBeenCalledOnceWith(
+        'A lonely lighthouse keeper',
+        ['Make it dramatic']
+      );
     });
 
     it('emits storyGenerated with storyDraft on success', async () => {
-      workflowService.generateStoryDraft.and.resolveTo(draftResponse);
+      facade.generateStoryDraft.and.resolveTo(draftResponse.storyDraft);
       component.ideaControl.setValue('An idea');
 
       const emitted: string[] = [];
@@ -94,7 +95,7 @@ describe('StoryGeneratorComponent', () => {
     });
 
     it('sets error signal and does not emit storyGenerated on failure', async () => {
-      workflowService.generateStoryDraft.and.rejectWith(new Error('API failed'));
+      facade.generateStoryDraft.and.rejectWith(new Error('API failed'));
       component.ideaControl.setValue('An idea');
 
       const emitted: string[] = [];
@@ -107,7 +108,7 @@ describe('StoryGeneratorComponent', () => {
     });
 
     it('resets generating to false after success', async () => {
-      workflowService.generateStoryDraft.and.resolveTo(draftResponse);
+      facade.generateStoryDraft.and.resolveTo(draftResponse.storyDraft);
       component.ideaControl.setValue('An idea');
 
       await component.generateStory();
@@ -116,7 +117,7 @@ describe('StoryGeneratorComponent', () => {
     });
 
     it('resets generating to false after failure', async () => {
-      workflowService.generateStoryDraft.and.rejectWith(new Error('fail'));
+      facade.generateStoryDraft.and.rejectWith(new Error('fail'));
       component.ideaControl.setValue('An idea');
 
       await component.generateStory();
@@ -126,7 +127,7 @@ describe('StoryGeneratorComponent', () => {
 
     it('clears error before a new generation attempt', async () => {
       component.error.set('Previous error');
-      workflowService.generateStoryDraft.and.resolveTo(draftResponse);
+      facade.generateStoryDraft.and.resolveTo(draftResponse.storyDraft);
       component.ideaControl.setValue('An idea');
 
       await component.generateStory();
@@ -137,7 +138,7 @@ describe('StoryGeneratorComponent', () => {
     it('does nothing when idea is empty', async () => {
       await component.generateStory();
 
-      expect(workflowService.generateStoryDraft).not.toHaveBeenCalled();
+      expect(facade.generateStoryDraft).not.toHaveBeenCalled();
     });
   });
 
