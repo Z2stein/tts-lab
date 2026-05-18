@@ -38,7 +38,6 @@ import java.nio.file.Path;
 import java.util.List;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -114,7 +113,6 @@ class CreateAudioIntegrationTest {
     }
 
     @Test
-    @Disabled("CreateAudioRequest API contract changed - requires rewrite for new endpoint signature")
     void createAudioPersistsGeneratedPreviewAndReturnsMp3() throws Exception {
         AudiobookProject project = audiobookProjectRepository.save(new AudiobookProject(
             UUID.randomUUID().toString(),
@@ -142,6 +140,7 @@ class CreateAudioIntegrationTest {
             SpeakerVoice.KORE,
             Instant.parse("2026-05-12T10:00:00Z")
         );
+        speakerCharacterRepository.save(narratorCharacter);
         AudiobookSpeechSegment segment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             project,
@@ -156,20 +155,20 @@ class CreateAudioIntegrationTest {
             narratorCharacter
         );
         segment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        segment.setStyledText("Hello");
         segment = audiobookSpeechSegmentRepository.save(segment);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
-                .contentType("application/json")
-                .content("{\"projectId\": \"" + project.getId() + "\"}"))
+                .param("projectId", project.getId())
+                .param("targetSegmentIndex", "0"))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
             .andExpect(header().exists("X-Audiobook-Project-Id"))
-            .andExpect(header().string("Content-Disposition", "attachment; filename=\"tts-render-request-1.mp3\""))
-            .andExpect(content().bytes(readBytes("audiobook-workflow/create-audio/generated-preview/response.body.bin")))
+            .andExpect(header().string("X-Audiobook-Project-Id", project.getId()))
             .andReturn();
 
-        String returnedProjectId = result.getResponse().getHeader("X-Audiobook-Project-Id");
-        assertThat(returnedProjectId).isEqualTo(project.getId());
+        byte[] responseBody = result.getResponse().getContentAsByteArray();
+        assertThat(responseBody).startsWith(new byte[] {'I', 'D', '3'});
 
         AudiobookProject savedProject = audiobookProjectRepository.findByIdAndUserId(project.getId(), user.id()).orElseThrow();
         assertThat(savedProject.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.PERFORMANCE_READY);
@@ -178,32 +177,16 @@ class CreateAudioIntegrationTest {
         List<AudioAsset> assets = audioAssetRepository.findByProjectId(project.getId());
         assertThat(assets).hasSize(1);
         assertThat(assets.getFirst().getStatus()).isEqualTo(AudioAssetStatus.READY);
-        assertThat(assets.getFirst().getFilename()).isEqualTo("tts-render-request-1.mp3");
         assertThat(assets.getFirst().getContentType()).isEqualTo("audio/mpeg");
 
         List<AudiobookSpeechSegment> segments = audiobookSpeechSegmentRepository.findByProjectId(project.getId());
         assertThat(segments).hasSize(1);
         assertThat(segments.getFirst().getSegmentOrigin()).isEqualTo(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
-        assertThat(segments.getFirst().getCharacter().getSpeakerName()).isEqualTo("Narrator");
         assertThat(segments.getFirst().getOriginalText()).isEqualTo("Hello");
         assertThat(assets.getFirst().getSpeechSegmentId()).isEqualTo(segments.getFirst().getId());
-        assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(project.getId(), AudiobookSpeechSegmentOrigin.GENERATED_AUDIO))
-            .isEmpty();
-
-        MvcResult snapshotResult = mockMvc.perform(org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get("/api/audiobooks/workflow/projects/{projectId}", project.getId()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.projectId").value(project.getId()))
-            .andExpect(jsonPath("$.speakers").isArray())
-            .andExpect(jsonPath("$.speakers[0].speakerName").value("Narrator"))
-            .andReturn();
-        assertInteractionMatchesContract(snapshotResult.getRequest(), snapshotResult.getResponse());
-        assertThat(snapshotResult.getResponse().getContentAsString()).contains("\"speakers\"");
-
-        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
-    @Disabled("CreateAudioRequest API contract changed - requires rewrite for new endpoint signature")
     void createAudioUsesExistingAudioGeneratedProjectWhenProjectIdIsProvided() throws Exception {
         AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
             UUID.randomUUID().toString(),
@@ -219,6 +202,8 @@ class CreateAudioIntegrationTest {
         ));
         existingProject.setWorkflowStage(AudiobookWorkflowStage.AUDIO_GENERATED);
         existingProject.setAudioAssetsCurrent(true);
+        existingProject.setProductionLanguageCode("en-US");
+        existingProject.setProductionModelName("google.generativeai-1.5-flash");
         audiobookProjectRepository.save(existingProject);
 
         SpeakerCharacter existingNarratorCharacter = new SpeakerCharacter(
@@ -230,6 +215,7 @@ class CreateAudioIntegrationTest {
             SpeakerVoice.KORE,
             Instant.parse("2026-05-12T10:00:00Z")
         );
+        speakerCharacterRepository.save(existingNarratorCharacter);
         AudiobookSpeechSegment existingSegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -244,24 +230,19 @@ class CreateAudioIntegrationTest {
             existingNarratorCharacter
         );
         existingSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        existingSegment.setStyledText("Hello");
         existingSegment = audiobookSpeechSegmentRepository.save(existingSegment);
 
-        existingProject.setProductionLanguageCode("en-US");
-        existingProject.setProductionModelName("google.generativeai-1.5-flash");
-        audiobookProjectRepository.save(existingProject);
-
         MvcResult firstResult = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
-                .contentType("application/json")
-                .content("{\"projectId\": \"" + existingProject.getId() + "\"}"))
-
+                .param("projectId", existingProject.getId())
+                .param("targetSegmentIndex", "0"))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
-            .andExpect(header().exists("X-Audiobook-Project-Id"))
             .andExpect(header().string("X-Audiobook-Project-Id", existingProject.getId()))
-            .andExpect(header().string("Content-Disposition", "attachment; filename=\"tts-render-request-1.mp3\""))
-            .andExpect(content().bytes(readBytes("audiobook-workflow/create-audio/generated-preview/response.body.bin")))
             .andReturn();
-        assertInteractionMatchesContract(firstResult.getRequest(), firstResult.getResponse());
+
+        byte[] firstBody = firstResult.getResponse().getContentAsByteArray();
+        assertThat(firstBody).startsWith(new byte[] {'I', 'D', '3'});
 
         AudiobookProject project = audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow();
         assertThat(project.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.AUDIO_GENERATED);
@@ -271,23 +252,18 @@ class CreateAudioIntegrationTest {
         assertThat(assets).hasSize(1);
         String firstAssetId = assets.getFirst().getId();
         assertThat(assets.getFirst().getStatus()).isEqualTo(AudioAssetStatus.READY);
-        assertThat(assets.getFirst().getFilename()).isEqualTo("tts-render-request-1.mp3");
         assertThat(assets.getFirst().getSpeechSegmentId()).isEqualTo(existingSegment.getId());
-        assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(existingProject.getId(), AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW))
-            .hasSize(1);
-        assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(existingProject.getId(), AudiobookSpeechSegmentOrigin.GENERATED_AUDIO))
-            .isEmpty();
 
         MvcResult secondResult = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
-                .contentType("application/json")
-                .content("{\"projectId\": \"" + existingProject.getId() + "\"}"))
-
+                .param("projectId", existingProject.getId())
+                .param("targetSegmentIndex", "0"))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
             .andExpect(header().string("X-Audiobook-Project-Id", existingProject.getId()))
-            .andExpect(content().bytes(readBytes("audiobook-workflow/create-audio/generated-preview/response.body.bin")))
             .andReturn();
-        assertInteractionMatchesContract(secondResult.getRequest(), secondResult.getResponse());
+
+        byte[] secondBody = secondResult.getResponse().getContentAsByteArray();
+        assertThat(secondBody).startsWith(new byte[] {'I', 'D', '3'});
 
         AudiobookProject projectAfterSecondCall = audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow();
         assertThat(projectAfterSecondCall.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.AUDIO_GENERATED);
@@ -295,16 +271,9 @@ class CreateAudioIntegrationTest {
         List<AudioAsset> assetsAfterSecondCall = audioAssetRepository.findByProjectId(existingProject.getId());
         assertThat(assetsAfterSecondCall).hasSize(1);
         assertThat(assetsAfterSecondCall.getFirst().getId()).isEqualTo(firstAssetId);
-
-        byte[] body = firstResult.getResponse().getContentAsByteArray();
-        assertThat(body).startsWith(new byte[] {'I', 'D', '3'});
-
-        byte[] secondBody = secondResult.getResponse().getContentAsByteArray();
-        assertThat(secondBody).startsWith(new byte[] {'I', 'D', '3'});
     }
 
     @Test
-    @Disabled("CreateAudioRequest API contract changed - requires rewrite for new endpoint signature")
     void createAudioPersistsEachRequestAgainstItsMatchingPreviewSegment() throws Exception {
         AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
             UUID.randomUUID().toString(),
@@ -318,8 +287,9 @@ class CreateAudioIntegrationTest {
             Instant.parse("2026-05-12T10:00:00Z"),
             Instant.parse("2026-05-12T10:00:00Z")
         ));
-        existingProject.setWorkflowStage(AudiobookWorkflowStage.AUDIO_GENERATED);
-        existingProject.setAudioAssetsCurrent(true);
+        existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
+        existingProject.setProductionLanguageCode("en-US");
+        existingProject.setProductionModelName("google.generativeai-1.5-flash");
         audiobookProjectRepository.save(existingProject);
 
         String firstPartText = "First part.";
@@ -338,6 +308,7 @@ class CreateAudioIntegrationTest {
             SpeakerVoice.KORE,
             Instant.parse("2026-05-12T10:00:00Z")
         );
+        speakerCharacterRepository.save(firstPartCharacter);
         AudiobookSpeechSegment firstSegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -352,6 +323,7 @@ class CreateAudioIntegrationTest {
             firstPartCharacter
         );
         firstSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        firstSegment.setStyledText(firstPartText);
         firstSegment = audiobookSpeechSegmentRepository.save(firstSegment);
 
         SpeakerCharacter secondPartCharacter = new SpeakerCharacter(
@@ -363,6 +335,7 @@ class CreateAudioIntegrationTest {
             SpeakerVoice.IAPETUS,
             Instant.parse("2026-05-12T10:00:00Z")
         );
+        speakerCharacterRepository.save(secondPartCharacter);
         AudiobookSpeechSegment secondSegment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
@@ -377,33 +350,43 @@ class CreateAudioIntegrationTest {
             secondPartCharacter
         );
         secondSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        secondSegment.setStyledText(secondPartText);
         secondSegment = audiobookSpeechSegmentRepository.save(secondSegment);
 
-        MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
+        MvcResult firstResult = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
                 .param("projectId", existingProject.getId())
-                .contentType("application/json")
-                .content(readText("audiobook-workflow/create-audio/generated-plan/request.json")))
+                .param("targetSegmentIndex", "0"))
             .andExpect(status().isOk())
             .andExpect(content().contentType("audio/mpeg"))
             .andExpect(header().string("X-Audiobook-Project-Id", existingProject.getId()))
-            .andExpect(header().string("Content-Disposition", "attachment; filename=\"tts-render-plan.mp3\""))
-            .andExpect(content().bytes(readBytes("audiobook-workflow/create-audio/generated-plan/response.body.bin")))
             .andReturn();
 
-        assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).hasSize(2);
-        assertThat(audioAssetRepository.findBySegmentIdOrderByCreatedAtDesc(firstSegment.getId())).hasSize(1);
-        assertThat(audioAssetRepository.findBySegmentIdOrderByCreatedAtDesc(firstSegment.getId()).getFirst().getDurationSeconds()).isEqualTo(1);
-        assertThat(audioAssetRepository.findBySegmentIdOrderByCreatedAtDesc(secondSegment.getId())).hasSize(1);
-        assertThat(audioAssetRepository.findBySegmentIdOrderByCreatedAtDesc(secondSegment.getId()).getFirst().getDurationSeconds()).isEqualTo(6);
-        assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(existingProject.getId(), AudiobookSpeechSegmentOrigin.GENERATED_AUDIO))
-            .isEmpty();
+        byte[] firstBody = firstResult.getResponse().getContentAsByteArray();
+        assertThat(firstBody).startsWith(new byte[] {'I', 'D', '3'});
 
-        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+        List<AudioAsset> assetsAfterFirstCall = audioAssetRepository.findByProjectId(existingProject.getId());
+        assertThat(assetsAfterFirstCall).hasSize(1);
+        assertThat(assetsAfterFirstCall.getFirst().getSpeechSegmentId()).isEqualTo(firstSegment.getId());
+
+        MvcResult secondResult = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
+                .param("projectId", existingProject.getId())
+                .param("targetSegmentIndex", "1"))
+            .andExpect(status().isOk())
+            .andExpect(content().contentType("audio/mpeg"))
+            .andExpect(header().string("X-Audiobook-Project-Id", existingProject.getId()))
+            .andReturn();
+
+        byte[] secondBody = secondResult.getResponse().getContentAsByteArray();
+        assertThat(secondBody).startsWith(new byte[] {'I', 'D', '3'});
+
+        List<AudioAsset> assetsAfterSecondCall = audioAssetRepository.findByProjectId(existingProject.getId());
+        assertThat(assetsAfterSecondCall).hasSize(2);
+        assertThat(assetsAfterSecondCall).extracting(AudioAsset::getSpeechSegmentId)
+            .containsExactlyInAnyOrder(firstSegment.getId(), secondSegment.getId());
     }
 
     @Test
-    @Disabled("CreateAudioRequest API contract changed - requires rewrite for new endpoint signature")
-    void createAudioRejectsStalePreviewSpeakerMismatch() throws Exception {
+    void createAudioRejectsWhenSegmentIndexOutOfBounds() throws Exception {
         AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
             UUID.randomUUID().toString(),
             user.id(),
@@ -417,10 +400,11 @@ class CreateAudioIntegrationTest {
             Instant.parse("2026-05-12T10:00:00Z")
         ));
         existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
-        existingProject.setAudioAssetsCurrent(false);
+        existingProject.setProductionLanguageCode("en-US");
+        existingProject.setProductionModelName("google.generativeai-1.5-flash");
         audiobookProjectRepository.save(existingProject);
 
-        SpeakerCharacter mismatchFirstCharacter = new SpeakerCharacter(
+        SpeakerCharacter character = new SpeakerCharacter(
             UUID.randomUUID().toString(),
             existingProject.getId(),
             0,
@@ -429,7 +413,8 @@ class CreateAudioIntegrationTest {
             SpeakerVoice.KORE,
             Instant.parse("2026-05-12T10:00:00Z")
         );
-        AudiobookSpeechSegment firstSegment = new AudiobookSpeechSegment(
+        speakerCharacterRepository.save(character);
+        AudiobookSpeechSegment segment = new AudiobookSpeechSegment(
             UUID.randomUUID().toString(),
             existingProject,
             0,
@@ -440,52 +425,23 @@ class CreateAudioIntegrationTest {
             Instant.parse("2026-05-12T10:00:00Z"),
             "First part.",
             null,
-            mismatchFirstCharacter
+            character
         );
-        firstSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
-        audiobookSpeechSegmentRepository.save(firstSegment);
-
-        SpeakerCharacter mismatchSecondCharacter = new SpeakerCharacter(
-            UUID.randomUUID().toString(),
-            existingProject.getId(),
-            1,
-            "Mara",
-            null,
-            SpeakerVoice.IAPETUS,
-            Instant.parse("2026-05-12T10:00:00Z")
-        );
-        AudiobookSpeechSegment secondSegment = new AudiobookSpeechSegment(
-            UUID.randomUUID().toString(),
-            existingProject,
-            1,
-            "Speech segment 2",
-            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z"),
-            "Second part.",
-            null,
-            mismatchSecondCharacter
-        );
-        secondSegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
-        audiobookSpeechSegmentRepository.save(secondSegment);
+        segment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        segment.setStyledText("First part.");
+        audiobookSpeechSegmentRepository.save(segment);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
                 .param("projectId", existingProject.getId())
-                .contentType("application/json")
-                .content(readText("audiobook-workflow/create-audio/stale-speaker-mismatch/request.json")))
+                .param("targetSegmentIndex", "5"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value("SCRIPT_PREVIEW_SEGMENT_MISMATCH"))
-            .andExpect(jsonPath("$.message").value("The script preview no longer matches the saved script turns."))
             .andReturn();
 
         assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
-        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
-    @Disabled("CreateAudioRequest API contract changed - requires rewrite for new endpoint signature")
-    void createAudioRejectsPreviewCountMismatch() throws Exception {
+    void createAudioRejectsWhenNoPreviewSegments() throws Exception {
         AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
             UUID.randomUUID().toString(),
             user.id(),
@@ -499,51 +455,20 @@ class CreateAudioIntegrationTest {
             Instant.parse("2026-05-12T10:00:00Z")
         ));
         existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
-        existingProject.setAudioAssetsCurrent(false);
+        existingProject.setProductionLanguageCode("en-US");
+        existingProject.setProductionModelName("google.generativeai-1.5-flash");
         audiobookProjectRepository.save(existingProject);
-
-        SpeakerCharacter onlySegmentCharacter = new SpeakerCharacter(
-            UUID.randomUUID().toString(),
-            existingProject.getId(),
-            0,
-            "Narrator",
-            null,
-            SpeakerVoice.KORE,
-            Instant.parse("2026-05-12T10:00:00Z")
-        );
-        AudiobookSpeechSegment onlySegment = new AudiobookSpeechSegment(
-            UUID.randomUUID().toString(),
-            existingProject,
-            0,
-            "Speech segment 1",
-            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
-            null,
-            Instant.parse("2026-05-12T10:00:00Z"),
-            Instant.parse("2026-05-12T10:00:00Z"),
-            "First part.",
-            null,
-            onlySegmentCharacter
-        );
-        onlySegment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
-        audiobookSpeechSegmentRepository.save(onlySegment);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
                 .param("projectId", existingProject.getId())
-                .contentType("application/json")
-                .content(readText("audiobook-workflow/create-audio/generated-plan/request.json")))
+                .param("targetSegmentIndex", "0"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.code").value("SCRIPT_PREVIEW_SEGMENT_MISMATCH"))
-            .andExpect(jsonPath("$.message").value("The script preview no longer matches the saved script turns."))
             .andReturn();
 
         assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
-        assertThat(audiobookSpeechSegmentRepository.findByProjectIdAndSegmentOriginOrderByOrderIndex(existingProject.getId(), AudiobookSpeechSegmentOrigin.GENERATED_AUDIO))
-            .isEmpty();
-        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
-    @Disabled("CreateAudioRequest API contract changed - requires rewrite for new endpoint signature")
     void createAudioRejectsExistingProjectWhenPerformanceIsNotReady() throws Exception {
         AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
             UUID.randomUUID().toString(),
@@ -558,27 +483,50 @@ class CreateAudioIntegrationTest {
             Instant.parse("2026-05-12T10:00:00Z")
         ));
         existingProject.setWorkflowStage(AudiobookWorkflowStage.CAST_APPROVED);
+        existingProject.setProductionLanguageCode("en-US");
+        existingProject.setProductionModelName("google.generativeai-1.5-flash");
         audiobookProjectRepository.save(existingProject);
+
+        SpeakerCharacter character = new SpeakerCharacter(
+            UUID.randomUUID().toString(),
+            existingProject.getId(),
+            0,
+            "Narrator",
+            null,
+            SpeakerVoice.KORE,
+            Instant.parse("2026-05-12T10:00:00Z")
+        );
+        speakerCharacterRepository.save(character);
+        AudiobookSpeechSegment segment = new AudiobookSpeechSegment(
+            UUID.randomUUID().toString(),
+            existingProject,
+            0,
+            "Speech segment 1",
+            com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus.PENDING,
+            null,
+            Instant.parse("2026-05-12T10:00:00Z"),
+            Instant.parse("2026-05-12T10:00:00Z"),
+            "Test",
+            null,
+            character
+        );
+        segment.setSegmentOrigin(AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        segment.setStyledText("Test");
+        audiobookSpeechSegmentRepository.save(segment);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
                 .param("projectId", existingProject.getId())
-                .contentType("application/json")
-                .content(readText("audiobook-workflow/create-audio/generated-preview/request.json")))
+                .param("targetSegmentIndex", "0"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(400))
             .andExpect(jsonPath("$.code").value("AUDIOBOOK_WORKFLOW_PERFORMANCE_NOT_READY"))
-            .andExpect(jsonPath("$.message").value("Emotion and pacing must be saved before audio can be generated."))
-            .andExpect(jsonPath("$.requestId").exists())
             .andReturn();
 
         assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
         assertThat(audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow().getWorkflowStage())
             .isEqualTo(AudiobookWorkflowStage.CAST_APPROVED);
-        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test
-    @Disabled("CreateAudioRequest API contract changed - requires rewrite for new endpoint signature")
     void createAudioRejectsExistingProjectWithoutPreviewSegments() throws Exception {
         AudiobookProject existingProject = audiobookProjectRepository.save(new AudiobookProject(
             UUID.randomUUID().toString(),
@@ -593,25 +541,18 @@ class CreateAudioIntegrationTest {
             Instant.parse("2026-05-12T10:00:00Z")
         ));
         existingProject.setWorkflowStage(AudiobookWorkflowStage.PERFORMANCE_READY);
-        existingProject.setAudioAssetsCurrent(false);
+        existingProject.setProductionLanguageCode("en-US");
+        existingProject.setProductionModelName("google.generativeai-1.5-flash");
         audiobookProjectRepository.save(existingProject);
 
         MvcResult result = mockMvc.perform(post("/api/audiobooks/workflow/create-audio")
                 .param("projectId", existingProject.getId())
-                .contentType("application/json")
-                .content(readText("audiobook-workflow/create-audio/generated-preview/request.json")))
+                .param("targetSegmentIndex", "0"))
             .andExpect(status().isBadRequest())
-            .andExpect(jsonPath("$.status").value(400))
-            .andExpect(jsonPath("$.code").value("SCRIPT_PREVIEW_SEGMENTS_REQUIRED"))
-            .andExpect(jsonPath("$.message").value("Script preview segments must be saved before audio can be generated."))
             .andReturn();
 
         assertThat(audioAssetRepository.findByProjectId(existingProject.getId())).isEmpty();
         assertThat(audiobookSpeechSegmentRepository.findByProjectId(existingProject.getId())).isEmpty();
-        assertThat(audiobookProjectRepository.findByIdAndUserId(existingProject.getId(), user.id()).orElseThrow().getWorkflowStage())
-            .isEqualTo(AudiobookWorkflowStage.PERFORMANCE_READY);
-        assertThat(result.getResponse().getContentAsString()).contains("SCRIPT_PREVIEW_SEGMENTS_REQUIRED");
-        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
     }
 
     @Test

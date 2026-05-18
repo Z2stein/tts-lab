@@ -32,6 +32,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -221,6 +222,13 @@ public class AudiobookWorkflowController {
         CurrentUser user = currentUserResolver.resolve(authentication);
 
         AudiobookProject project = renderPlanPersistenceService.loadProjectFromDatabase(projectId);
+        if (targetSegmentIndex < 0 || targetSegmentIndex >= project.getSpeechSegments().size()) {
+            throw new ApiException(
+                HttpStatus.BAD_REQUEST,
+                "INVALID_SEGMENT_INDEX",
+                "The requested segment index is out of bounds."
+            );
+        }
         enforceLimit(user, ModelType.SPEECH_MODEL, project,targetSegmentIndex);
         try {
             audiobookWorkflowStateService.ensureAudioGenerationReady(project);
