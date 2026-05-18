@@ -368,13 +368,12 @@ test('audiobook studio generates the final preview after the workflow reaches au
       response.url().includes(`/api/audiobooks/workflow/projects/${testProjectId}/script-approval`) &&
       response.request().method() === 'POST'
     ),
+    page.waitForResponse((response) =>
+      response.url().includes('/api/audiobooks/workflow/emotion-annotation-analysis') &&
+      response.request().method() === 'POST'
+    ),
     page.locator('#script-section').getByRole('button', { name: 'Approve script & continue' }).click()
   ]);
-  // Wait for emotion annotation to complete (triggered automatically by approveScriptAndContinueWorkflow)
-  await page.waitForResponse((response) =>
-    response.url().includes('/api/audiobooks/workflow/emotion-annotation-analysis') &&
-    response.request().method() === 'POST'
-  );
   await expect(page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' })).toBeEnabled();
   await page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' }).click();
 
