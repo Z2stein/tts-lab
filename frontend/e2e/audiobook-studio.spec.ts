@@ -612,5 +612,26 @@ test('audiobook studio shows the waveform player after page reload when mergedAu
   await expect(audioSection.getByRole('button', { name: 'Download MP3' })).toBeVisible();
 });
 
+test('audiobook studio generate-from-idea tab fills the story textarea with AI-generated text', async ({ context, page }) => {
+  await authenticate(context, page);
+
+  const chatResponse = await loadTestContractJson('chat/generate-story/response.json');
+  await page.route('**/api/chat', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(chatResponse)
+    });
+  });
+
+  await page.goto('/audiobook-studio');
+  await page.getByTestId('tab-generate').click();
+  await page.getByTestId('idea-input').fill('A lonely lighthouse keeper');
+  await page.getByTestId('create-story-draft').click();
+
+  const storyText = page.getByRole('textbox', { name: 'Story text' });
+  await expect(storyText).toHaveValue(/lighthouse/);
+});
+
 
 

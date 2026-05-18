@@ -1,0 +1,46 @@
+<div class="flex flex-col gap-[1.1rem]">
+  <div class="flex flex-col gap-[0.5rem]">
+    <label for="idea-input" class="font-bold">Describe your story idea</label>
+    <textarea
+      id="idea-input"
+      data-testid="idea-input"
+      rows="4"
+      maxlength="300"
+      class="form-control"
+      [formControl]="ideaControl"
+      placeholder='Example: "A lonely lighthouse keeper discovers a voice inside the storm..."'
+    ></textarea>
+    <div class="text-right text-[0.8rem] text-[#c9d1e8]">{{ charCount }} / 300 characters</div>
+  </div>
+
+  <div class="flex flex-col gap-[0.5rem]">
+    <span class="font-bold">Enhance your story (optional)</span>
+    <div class="flex flex-wrap gap-[0.5rem]">
+      @for (chip of chips; track chip) {
+        <button
+          type="button"
+          [attr.data-testid]="'chip-' + chip"
+          class="secondary-button"
+          [class.active]="isChipSelected(chip)"
+          (click)="toggleChip(chip)"
+        >
+          {{ isChipSelected(chip) ? '' : '+ ' }}{{ chip }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (error()) {
+    <div role="alert" class="text-[#ff7070] text-[0.9rem]">{{ error() }}</div>
+  }
+
+  <button
+    type="button"
+    data-testid="create-story-draft"
+    class="primary-button"
+    [disabled]="!canGenerate || disabled"
+    (click)="generateStory()"
+  >
+    {{ generating() ? 'Creating story draft...' : 'Create story draft' }}
+  </button>
+</div>
