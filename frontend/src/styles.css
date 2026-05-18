@@ -792,4 +792,22 @@
   [hidden] {
     display: none !important;
   }
+
+  /* Enhancement chip selected glow/pulse */
+  @keyframes chip-pulse {
+    0%, 100% {
+      box-shadow: 0 0 6px rgba(240, 173, 93, 0.5), 0 0 14px rgba(240, 173, 93, 0.25);
+      border-color: rgba(240, 173, 93, 0.7);
+    }
+    50% {
+      box-shadow: 0 0 10px rgba(240, 173, 93, 0.75), 0 0 22px rgba(240, 173, 93, 0.4);
+      border-color: rgba(240, 173, 93, 1);
+    }
+  }
+
+  .chip-lit {
+    animation: chip-pulse 1.8s ease-in-out infinite;
+    border-color: rgba(240, 173, 93, 0.7);
+    color: #f0ad5d;
+  }
 }

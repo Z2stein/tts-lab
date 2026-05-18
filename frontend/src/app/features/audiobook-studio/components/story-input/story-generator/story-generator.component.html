@@ -20,11 +20,11 @@
         <button
           type="button"
           [attr.data-testid]="'chip-' + chip"
-          class="secondary-button"
-          [class.active]="isChipSelected(chip)"
+          class="secondary-button px-3.5 py-1.5 text-sm"
+          [class.chip-lit]="isChipSelected(chip)"
           (click)="toggleChip(chip)"
         >
-          {{ isChipSelected(chip) ? '' : '+ ' }}{{ chip }}
+          + {{ chip }}
         </button>
       }
     </div>

@@ -17,7 +17,7 @@ export class StoryInputComponent {
   @Output() useSampleStory = new EventEmitter<void>();
   @Output() analyzeStory = new EventEmitter<void>();
 
-  readonly activeTab = signal<'paste' | 'generate'>('paste');
+  readonly activeTab = signal<'paste' | 'generate'>('generate');
 
   get wordCount(): number {
     return this.storyControl.value.trim().split(/\s+/).filter(Boolean).length;

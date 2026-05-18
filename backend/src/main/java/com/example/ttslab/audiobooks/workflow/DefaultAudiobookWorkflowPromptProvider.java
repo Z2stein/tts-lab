@@ -226,6 +226,15 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
         if (safeEnhancements.contains("Make it dramatic")) {
             sb.append("- Use a dramatic, suspenseful tone\n");
         }
+        if (safeEnhancements.contains("3+ characters")) {
+            sb.append("- Include 3 or more named characters\n");
+        }
+        if (safeEnhancements.contains("Make it poetic")) {
+            sb.append("- Use lyrical, poetic language with vivid imagery\n");
+        }
+        if (safeEnhancements.contains("Make it emotional")) {
+            sb.append("- Emphasize emotional depth and character feelings\n");
+        }
         if (safeEnhancements.contains("Suitable for voice acting")) {
             sb.append("- Write clear, distinct dialogue that sounds natural when spoken aloud\n");
         }

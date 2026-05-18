@@ -118,6 +118,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
   });
 
   it('fills the textarea when the sample story is selected', () => {
+    clickButton('Paste story');
+    fixture.detectChanges();
     clickButton('Use sample story');
     fixture.detectChanges();
 

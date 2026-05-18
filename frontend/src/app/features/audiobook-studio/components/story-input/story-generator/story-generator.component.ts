@@ -15,7 +15,7 @@ export class StoryGeneratorComponent {
 
   readonly ideaControl = new FormControl('', { nonNullable: true });
 
-  readonly chips = ['Add narrator', 'Add 2 characters', 'Make it dramatic', 'Suitable for voice acting'] as const;
+  readonly chips = ['Add narrator', 'Add 2 characters', '3+ characters', 'Make it dramatic', 'Make it poetic', 'Make it emotional', 'Suitable for voice acting'] as const;
   readonly selectedChips = signal(new Set<string>());
   readonly generating = signal(false);
   readonly error = signal<string | null>(null);
