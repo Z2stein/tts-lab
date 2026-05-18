@@ -9,6 +9,8 @@ public interface AudiobookWorkflowPromptProvider {
     String getSpeakerSplitPrompt(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers, String customHint);
 
     String getEmotionAnnotationPrompt(List<SpeakerSplitTurn> turns, String customHint);
+
+    String getStoryDraftPrompt(String idea, List<String> enhancements);
 }
 
 

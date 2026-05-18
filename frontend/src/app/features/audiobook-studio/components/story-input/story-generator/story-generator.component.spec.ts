@@ -1,24 +1,25 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { ChatbotService } from '../../../../../chatbot/chatbot.service';
-import { ChatResponse } from '../../../../../shared/api-contract.generated';
+import { AudiobookWorkflowService, GenerateStoryDraftResponse } from '../../../../../features/audiobook-shared/service/audiobook-workflow.service';
 import { loadTestContractJson } from '../../../../../shared/test-contracts';
 import { StoryGeneratorComponent } from './story-generator.component';
 
 describe('StoryGeneratorComponent', () => {
   let fixture: ComponentFixture<StoryGeneratorComponent>;
   let component: StoryGeneratorComponent;
-  let chatbotService: jasmine.SpyObj<ChatbotService>;
-  let chatResponse: ChatResponse;
+  let workflowService: jasmine.SpyObj<AudiobookWorkflowService>;
+  let draftResponse: GenerateStoryDraftResponse;
 
   beforeEach(async () => {
-    chatResponse = await loadTestContractJson<ChatResponse>('chat/generate-story/response.json');
+    draftResponse = await loadTestContractJson<GenerateStoryDraftResponse>(
+      'audiobook-workflow/generate-story-draft/default/response.json'
+    );
 
-    chatbotService = jasmine.createSpyObj<ChatbotService>('ChatbotService', ['sendMessage']);
+    workflowService = jasmine.createSpyObj<AudiobookWorkflowService>('AudiobookWorkflowService', ['generateStoryDraft']);
 
     await TestBed.configureTestingModule({
       imports: [StoryGeneratorComponent],
-      providers: [{ provide: ChatbotService, useValue: chatbotService }],
+      providers: [{ provide: AudiobookWorkflowService, useValue: workflowService }],
     }).compileComponents();
 
     fixture = TestBed.createComponent(StoryGeneratorComponent);
@@ -67,41 +68,21 @@ describe('StoryGeneratorComponent', () => {
   });
 
   describe('generateStory()', () => {
-    it('calls ChatbotService.sendMessage with a prompt containing the idea text', async () => {
-      chatbotService.sendMessage.and.resolveTo(chatResponse);
+    it('calls AudiobookWorkflowService.generateStoryDraft with the idea and selected enhancements', async () => {
+      workflowService.generateStoryDraft.and.resolveTo(draftResponse);
       component.ideaControl.setValue('A lonely lighthouse keeper');
-
-      await component.generateStory();
-
-      expect(chatbotService.sendMessage).toHaveBeenCalledOnceWith(
-        jasmine.stringContaining('A lonely lighthouse keeper'),
-        null
-      );
-    });
-
-    it('includes selected chip instructions in the prompt', async () => {
-      chatbotService.sendMessage.and.resolveTo(chatResponse);
-      component.ideaControl.setValue('An idea');
       component.toggleChip('Make it dramatic');
 
       await component.generateStory();
 
-      const [prompt] = chatbotService.sendMessage.calls.mostRecent().args;
-      expect(prompt).toContain('dramatic');
+      expect(workflowService.generateStoryDraft).toHaveBeenCalledOnceWith({
+        idea: 'A lonely lighthouse keeper',
+        enhancements: ['Make it dramatic']
+      });
     });
 
-    it('does not include unselected chip instructions in the prompt', async () => {
-      chatbotService.sendMessage.and.resolveTo(chatResponse);
-      component.ideaControl.setValue('An idea');
-
-      await component.generateStory();
-
-      const [prompt] = chatbotService.sendMessage.calls.mostRecent().args;
-      expect(prompt).not.toContain('narrator');
-    });
-
-    it('emits storyGenerated with the answer on success', async () => {
-      chatbotService.sendMessage.and.resolveTo(chatResponse);
+    it('emits storyGenerated with storyDraft on success', async () => {
+      workflowService.generateStoryDraft.and.resolveTo(draftResponse);
       component.ideaControl.setValue('An idea');
 
       const emitted: string[] = [];
@@ -109,11 +90,11 @@ describe('StoryGeneratorComponent', () => {
 
       await component.generateStory();
 
-      expect(emitted).toEqual([chatResponse.answer]);
+      expect(emitted).toEqual([draftResponse.storyDraft]);
     });
 
     it('sets error signal and does not emit storyGenerated on failure', async () => {
-      chatbotService.sendMessage.and.rejectWith(new Error('API failed'));
+      workflowService.generateStoryDraft.and.rejectWith(new Error('API failed'));
       component.ideaControl.setValue('An idea');
 
       const emitted: string[] = [];
@@ -126,7 +107,7 @@ describe('StoryGeneratorComponent', () => {
     });
 
     it('resets generating to false after success', async () => {
-      chatbotService.sendMessage.and.resolveTo(chatResponse);
+      workflowService.generateStoryDraft.and.resolveTo(draftResponse);
       component.ideaControl.setValue('An idea');
 
       await component.generateStory();
@@ -135,7 +116,7 @@ describe('StoryGeneratorComponent', () => {
     });
 
     it('resets generating to false after failure', async () => {
-      chatbotService.sendMessage.and.rejectWith(new Error('fail'));
+      workflowService.generateStoryDraft.and.rejectWith(new Error('fail'));
       component.ideaControl.setValue('An idea');
 
       await component.generateStory();
@@ -145,7 +126,7 @@ describe('StoryGeneratorComponent', () => {
 
     it('clears error before a new generation attempt', async () => {
       component.error.set('Previous error');
-      chatbotService.sendMessage.and.resolveTo(chatResponse);
+      workflowService.generateStoryDraft.and.resolveTo(draftResponse);
       component.ideaControl.setValue('An idea');
 
       await component.generateStory();
@@ -156,7 +137,7 @@ describe('StoryGeneratorComponent', () => {
     it('does nothing when idea is empty', async () => {
       await component.generateStory();
 
-      expect(chatbotService.sendMessage).not.toHaveBeenCalled();
+      expect(workflowService.generateStoryDraft).not.toHaveBeenCalled();
     });
   });
 

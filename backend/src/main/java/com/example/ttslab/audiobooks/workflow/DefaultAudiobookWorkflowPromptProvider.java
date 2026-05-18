@@ -209,6 +209,30 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
     }
 
 
+    @Override
+    public String getStoryDraftPrompt(String idea, List<String> enhancements) {
+        List<String> safeEnhancements = enhancements == null ? List.of() : enhancements;
+        StringBuilder sb = new StringBuilder();
+        sb.append("Write a short story suitable for audiobook production based on this idea: ").append(idea).append("\n\n");
+        sb.append("Requirements:\n");
+        sb.append("- Format each line with a speaker label and a colon (e.g. \"Narrator: ...\", \"Elena: ...\")\n");
+        sb.append("- Keep it between 250 and 500 words\n");
+        if (safeEnhancements.contains("Add narrator")) {
+            sb.append("- Include a narrator character\n");
+        }
+        if (safeEnhancements.contains("Add 2 characters")) {
+            sb.append("- Include 2 or more named characters\n");
+        }
+        if (safeEnhancements.contains("Make it dramatic")) {
+            sb.append("- Use a dramatic, suspenseful tone\n");
+        }
+        if (safeEnhancements.contains("Suitable for voice acting")) {
+            sb.append("- Write clear, distinct dialogue that sounds natural when spoken aloud\n");
+        }
+        sb.append("\nOutput only the story text with no preamble or explanation.");
+        return sb.toString();
+    }
+
     private String toJson(Object value) {
         try {
             return objectMapper.writeValueAsString(value);

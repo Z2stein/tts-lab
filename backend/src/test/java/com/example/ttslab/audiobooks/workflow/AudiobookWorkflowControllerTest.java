@@ -116,6 +116,9 @@ class AudiobookWorkflowControllerTest {
     private AudiobookWorkflowStateService audiobookWorkflowStateService;
 
     @MockBean
+    private StoryDraftService storyDraftService;
+
+    @MockBean
     private com.example.ttslab.audiobooks.workflow.service.RenderPlanPersistenceService renderPlanPersistenceService;
 
     @MockBean

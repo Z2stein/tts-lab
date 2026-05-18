@@ -340,6 +340,22 @@ export type paths = {
         patch?: never;
         trace?: never;
     };
+    "/api/audiobooks/workflow/generate-story-draft": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["generateStoryDraft"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/audiobooks/workflow/projects/{projectId}/production-settings": {
         parameters: {
             query?: never;
@@ -520,6 +536,13 @@ export type components = {
         };
         AudiobookWorkflowCastUpdateRequest: {
             speakers: components["schemas"]["SpeakerVoiceAnalysisItem"][];
+        };
+        GenerateStoryDraftRequest: {
+            idea: string;
+            enhancements?: string[];
+        };
+        GenerateStoryDraftResponse: {
+            storyDraft: string;
         };
         ChatRequest: {
             message: string;
@@ -728,6 +751,8 @@ export type AudiobookWorkflowProductionSettings = components['schemas']['Audiobo
 export type AudiobookWorkflowProductionSettingsRequest = components['schemas']['AudiobookWorkflowProductionSettingsRequest'];
 export type AudiobookWorkflowSnapshotResponse = components['schemas']['AudiobookWorkflowSnapshotResponse'];
 export type AudiobookWorkflowCastUpdateRequest = components['schemas']['AudiobookWorkflowCastUpdateRequest'];
+export type GenerateStoryDraftRequest = components['schemas']['GenerateStoryDraftRequest'];
+export type GenerateStoryDraftResponse = components['schemas']['GenerateStoryDraftResponse'];
 export type ChatRequest = components['schemas']['ChatRequest'];
 export type ChatResponse = components['schemas']['ChatResponse'];
 export type SpeakerVoiceAnalysisItem = components['schemas']['SpeakerVoiceAnalysisItem'];
@@ -1294,6 +1319,32 @@ export interface operations {
             };
             400: components["responses"]["ValidationError"];
             404: components["responses"]["NotFoundError"];
+        };
+    };
+    generateStoryDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GenerateStoryDraftRequest"];
+            };
+        };
+        responses: {
+            /** @description Generated story draft */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GenerateStoryDraftResponse"];
+                };
+            };
+            400: components["responses"]["ValidationError"];
+            429: components["responses"]["RateLimitedError"];
         };
     };
     updateAudiobookWorkflowProductionSettings: {

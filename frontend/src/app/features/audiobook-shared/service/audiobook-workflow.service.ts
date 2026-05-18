@@ -6,6 +6,8 @@ import {
   AudiobookWorkflowProductionSettingsRequest,
   AudiobookWorkflowSnapshotResponse,
   FinalTtsRequestPreviewResponse,
+  GenerateStoryDraftRequest,
+  GenerateStoryDraftResponse,
   SingleSpeakerRenderPlanResponse,
   SingleSpeakerRenderRequest,
   SpeakerSplitAnalysisResponse,
@@ -23,6 +25,8 @@ export type {
   AudiobookWorkflowSnapshotResponse,
   AudiobookWorkflowStage,
   FinalTtsRequestPreviewResponse,
+  GenerateStoryDraftRequest,
+  GenerateStoryDraftResponse,
   SingleSpeakerRenderPlanResponse,
   SingleSpeakerRenderRequest,
   SpeakerSplitAnalysisResponse,
@@ -35,6 +39,14 @@ export type { CreatedAudioDownload, RequestOptions } from '../../../shared/api-c
 @Injectable({ providedIn: 'root' })
 export class AudiobookWorkflowService {
   constructor(private readonly audiobookApiService: AudiobookApiService) {}
+
+  async generateStoryDraft(request: GenerateStoryDraftRequest): Promise<GenerateStoryDraftResponse> {
+    return this.audiobookApiService.post<GenerateStoryDraftResponse>(
+      '/api/audiobooks/workflow/generate-story-draft',
+      request,
+      'Story draft generation failed'
+    );
+  }
 
   async analyzeSpeakers(rawDialogue: string, customHint?: string): Promise<SpeakerVoiceAnalysisResponse> {
     return this.audiobookApiService.post<SpeakerVoiceAnalysisResponse>(

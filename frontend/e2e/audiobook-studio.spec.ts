@@ -615,12 +615,12 @@ test('audiobook studio shows the waveform player after page reload when mergedAu
 test('audiobook studio generate-from-idea tab fills the story textarea with AI-generated text', async ({ context, page }) => {
   await authenticate(context, page);
 
-  const chatResponse = await loadTestContractJson('chat/generate-story/response.json');
-  await page.route('**/api/chat', async (route) => {
+  const draftResponse = await loadTestContractJson('audiobook-workflow/generate-story-draft/default/response.json');
+  await page.route('**/api/audiobooks/workflow/generate-story-draft', async (route) => {
     await route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify(chatResponse)
+      body: JSON.stringify(draftResponse)
     });
   });
 
