@@ -810,4 +810,59 @@
     border-color: rgba(240, 173, 93, 0.7);
     color: #f0ad5d;
   }
+
+  /* AI generation overlay */
+  @keyframes ai-gen-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .ai-gen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    background: rgba(12, 9, 14, 0.82);
+    backdrop-filter: blur(2px);
+  }
+
+  .ai-gen-spinner-wrap {
+    position: relative;
+    width: 9rem;
+    height: 9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-gen-spinner-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 4px dotted #f0ad5d;
+    border-top-color: transparent;
+    animation: ai-gen-spin 1.8s linear infinite;
+  }
+
+  .ai-gen-robot {
+    width: 4rem;
+    height: 4rem;
+    color: #f0ad5d;
+    animation: icon-shimmer 2s ease-in-out infinite;
+  }
+
+  .ai-gen-robot svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .ai-gen-label {
+    color: #f8efe5;
+    font-size: 1.125rem;
+    font-weight: 500;
+    letter-spacing: 0.025em;
+  }
 }
