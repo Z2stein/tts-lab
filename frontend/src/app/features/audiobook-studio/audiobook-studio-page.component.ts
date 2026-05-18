@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, effect } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, effect, signal } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { AppErrorBannerService } from '../../shared/services/app-error-banner.service';
@@ -169,7 +169,12 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
   voicePickerOpenForIndex: number | null = null;
+  readonly audioSectionCollapsed = signal(false);
   private lastKnownProjectId: string | null = null;
+
+  toggleAudioSection(): void {
+    this.audioSectionCollapsed.update(v => !v);
+  }
 
   constructor(
     private readonly facade: AudiobookStudioFacade,

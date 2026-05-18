@@ -1,10 +1,13 @@
-<div class="flex items-center gap-[0.9rem]">
+<button type="button" class="flex items-center gap-[0.9rem] w-full text-left bg-transparent border-0 p-0 cursor-pointer" (click)="toggleCollapsed()" [attr.aria-expanded]="!collapsed()">
   <span class="inline-flex w-[2.35rem] h-[2.35rem] items-center justify-center flex-none rounded-full bg-gradient-to-r from-[#ffe2a7] to-[#f0ad5d] shadow-[0_0_28px_rgba(240,173,93,0.25)] text-[#140f14] font-black">4</span>
-  <div>
+  <div class="flex-1">
     <h2 id="performance-notes-title" class="m-0 mb-[0.2rem] text-[#fff8ec] font-family-georgia text-[clamp(1.4rem,3vw,2rem)] leading-[1.1]">Add emotion & pacing</h2>
     <p class="m-0 text-[#c9d1e8] leading-[1.6]">Fine-tune how each line should be spoken, for example calm, urgent, or whispered.</p>
   </div>
-</div>
+  <span class="text-[#c9d1e8] text-[1.2rem] flex-none ml-2" aria-hidden="true">{{ collapsed() ? '▸' : '▾' }}</span>
+</button>
+
+<ng-container *ngIf="!collapsed()">
 
 <p *ngIf="annotatedTurns.length === 0" class="m-0 text-[#c9d1e8] leading-[1.6]">Performance notes will appear after script approval.</p>
 <ol *ngIf="annotatedTurns.length > 0" class="grid gap-[0.75rem] m-0 p-0 list-none">
@@ -47,3 +50,5 @@
 <button type="button" class="primary-button" (click)="createAudioProductionPlan.emit()" [disabled]="loadingAction !== null || !performanceReady || performanceNotesStale">
   {{ isLoading('plan') ? 'Preparing audiobook...' : 'Next: Prepare audiobook' }}
 </button>
+
+</ng-container>

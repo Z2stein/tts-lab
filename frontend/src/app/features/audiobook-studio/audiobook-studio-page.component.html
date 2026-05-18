@@ -40,6 +40,7 @@
       [storyControl]="storyTextControl"
       [speakerAnalysisHintControl]="speakerAnalysisHintControl"
       [loadingAction]="loadingAction"
+      [isCompleted]="cast.length > 0"
       (useSampleStory)="useSampleStory()"
       (analyzeStory)="analyzeStoryAndScroll()"
     ></app-story-input>
@@ -50,6 +51,7 @@
       class="step-card anchor-section"
       [cast]="cast"
       [castReviewed]="castReviewed"
+      [isCompleted]="castReviewed"
       [speakerSplitHintControl]="speakerSplitHintControl"
       [editingCastIndex]="editingCastIndex"
       [castEditDraft]="castEditDraft"
@@ -79,6 +81,7 @@
       [scriptTurns]="scriptTurns"
       [scriptGroups]="scriptGroups"
       [scriptApproved]="scriptApproved"
+      [isCompleted]="scriptApproved"
       [editingScriptTurnIndex]="editingScriptTurnIndex"
       [scriptTurnEditDraft]="scriptTurnEditDraft"
       [speakerOptions]="speakerOptions"
@@ -97,6 +100,7 @@
       [annotatedTurns]="annotatedTurns"
       [performanceNotesStale]="performanceNotesStale"
       [performanceReady]="performanceReady"
+      [isCompleted]="performanceReady && !performanceNotesStale"
       [promptControl]="promptControl"
       [languageCodeControl]="languageCodeControl"
       [sourceLanguageCode]="sourceLanguageCode"
@@ -110,13 +114,16 @@
     ></app-performance-notes>
 
     <section id="audio-section" class="step-card anchor-section" data-testid="audio-section" aria-labelledby="generate-audio-title">
-      <div class="step-heading">
+      <button type="button" class="step-heading" style="width:100%;text-align:left;background:transparent;border:0;padding:0;cursor:pointer;" (click)="toggleAudioSection()" [attr.aria-expanded]="!audioSectionCollapsed()">
         <span class="step-number">5</span>
-        <div>
+        <div style="flex:1">
           <h2 id="generate-audio-title">Generate audio</h2>
           <p>Generate the full audiobook preview, or create individual voice parts when you need a focused take.</p>
         </div>
-      </div>
+        <span style="color:#c9d1e8;font-size:1.2rem;flex:none;margin-left:0.5rem" aria-hidden="true">{{ audioSectionCollapsed() ? '▸' : '▾' }}</span>
+      </button>
+
+      <ng-container *ngIf="!audioSectionCollapsed()">
 
       <div class="audio-promise" aria-label="Audiobook preview includes">
         <div>
@@ -327,6 +334,8 @@
           </article>
         </div>
       </details>
+
+      </ng-container>
     </section>
   </div>
 </section>

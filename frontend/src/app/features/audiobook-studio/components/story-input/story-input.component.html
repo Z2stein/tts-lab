@@ -1,10 +1,13 @@
-<div class="flex items-center gap-[0.9rem]">
+<button type="button" class="flex items-center gap-[0.9rem] w-full text-left bg-transparent border-0 p-0 cursor-pointer" (click)="toggleCollapsed()" [attr.aria-expanded]="!collapsed()">
   <span class="inline-flex w-[2.35rem] h-[2.35rem] items-center justify-center flex-none rounded-full bg-gradient-to-r from-[#ffe2a7] to-[#f0ad5d] shadow-[0_0_28px_rgba(240,173,93,0.25)] text-[#140f14] font-black">1</span>
-  <div>
+  <div class="flex-1">
     <h2 id="story-input-title" class="mb-[0.2rem] text-[#fff8ec] font-family-georgia text-[clamp(1.4rem,3vw,2rem)] leading-[1.1]">Story input</h2>
     <p class="m-0">Start with narration and character dialogue. The AI will find the narrator and characters for you.</p>
   </div>
-</div>
+  <span class="text-[#c9d1e8] text-[1.2rem] flex-none ml-2" aria-hidden="true">{{ collapsed() ? '▸' : '▾' }}</span>
+</button>
+
+<ng-container *ngIf="!collapsed()">
 
 <div role="tablist" class="flex gap-[0.25rem] border-b border-[rgba(195,204,255,0.16)] pb-0">
   <button
@@ -74,3 +77,5 @@
   [control]="speakerAnalysisHintControl"
   placeholder="e.g. do not add a Narrator speaker"
 ></app-ai-hint-panel>
+
+</ng-container>

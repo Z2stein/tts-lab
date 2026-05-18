@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 import { AnnotatedMarkup, AnnotatedSpeakerTurn } from '../../models/audiobook-studio.types';
 import { markupFor } from '../../utils/annotated-markup';
@@ -12,10 +12,11 @@ import { HighlightTagsPipe } from '../../pipes/highlight-tags.pipe';
   imports: [CommonModule, ReactiveFormsModule, HighlightTagsPipe],
   templateUrl: './performance-notes.component.html'
 })
-export class PerformanceNotesComponent {
+export class PerformanceNotesComponent implements OnChanges {
   @Input() annotatedTurns: AnnotatedSpeakerTurn[] = [];
   @Input() performanceNotesStale = false;
   @Input() performanceReady = false;
+  @Input() isCompleted = false;
   @Input() promptControl!: FormControl<string>;
   @Input() languageCodeControl!: FormControl<string>;
   @Input() sourceLanguageCode: string | null = null;
@@ -26,6 +27,20 @@ export class PerformanceNotesComponent {
   @Input() modelNameOptions: readonly string[] = [];
   @Input() speakerStyleFn!: (name: string | null | undefined) => Record<string, string>;
   @Output() createAudioProductionPlan = new EventEmitter<void>();
+
+  readonly collapsed = signal(false);
+  private _hasAutoCollapsed = false;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isCompleted']?.currentValue === true && !this._hasAutoCollapsed) {
+      this._hasAutoCollapsed = true;
+      this.collapsed.set(true);
+    }
+  }
+
+  toggleCollapsed(): void {
+    this.collapsed.update(v => !v);
+  }
 
   markupFor(turn: AnnotatedSpeakerTurn): AnnotatedMarkup {
     return markupFor(turn);
