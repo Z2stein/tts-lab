@@ -415,6 +415,35 @@ class AudiobookWorkflowIntegrationTest {
     }
 
     @Test
+    void annotateEmotionsCanBeReRunOnAProjectAlreadyAtPerformanceReady() throws Exception {
+        String projectId = UUID.randomUUID().toString();
+        AudiobookProject project = buildProject(projectId, AudiobookWorkflowStage.PERFORMANCE_READY);
+        project.setAudioAssetsCurrent(true);
+        project = audiobookProjectRepository.save(project);
+
+        SpeakerCharacter narrator = buildCharacter(UUID.randomUUID().toString(), projectId, 0, "Narrator", "Story voice", SpeakerVoice.IAPETUS);
+        speakerCharacterRepository.save(narrator);
+
+        AudiobookSpeechSegment seg = buildSegment(UUID.randomUUID().toString(), project, 0, "The lamps dimmed.", "[soft] old", narrator);
+        seg = audiobookSpeechSegmentRepository.save(seg);
+
+        mockMvc.perform(post("/api/audiobooks/workflow/emotion-annotation-analysis")
+                .contentType("application/json")
+                .content("{\"projectId\": \"%s\"}".formatted(projectId)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.workflowStage").value("PERFORMANCE_READY"))
+            .andExpect(jsonPath("$.annotatedTurns.length()").value(1));
+
+        List<AudiobookSpeechSegment> segments = audiobookSpeechSegmentRepository
+            .findByProjectIdAndSegmentOriginOrderByOrderIndex(projectId, AudiobookSpeechSegmentOrigin.SCRIPT_PREVIEW);
+        assertThat(segments.getFirst().getStyledText()).isEqualTo("[calm] The lamps dimmed.");
+        AudiobookProject saved = audiobookProjectRepository.findById(projectId).orElseThrow();
+        assertThat(saved.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.PERFORMANCE_READY);
+        // Re-annotating must invalidate any previously generated audio.
+        assertThat(saved.isAudioAssetsCurrent()).isFalse();
+    }
+
+    @Test
     void saveScriptPreviewPersistsTurns() throws Exception {
         String projectId = UUID.randomUUID().toString();
         AudiobookProject project = buildProject(projectId, AudiobookWorkflowStage.CAST_APPROVED);

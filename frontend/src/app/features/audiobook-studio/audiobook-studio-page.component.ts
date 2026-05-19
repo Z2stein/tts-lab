@@ -266,7 +266,13 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   }
 
     async approveScriptAndContinueWorkflow(): Promise<void> {
-    await this.approveScript();
+    // Only approve when the script is not already approved. Re-approving an
+    // already-approved project (e.g. reloaded at SCRIPT_APPROVED /
+    // PERFORMANCE_READY) regresses the backend state and makes the subsequent
+    // emotion annotation fail with "script must be approved".
+    if (!this.scriptApproved) {
+      await this.approveScript();
+    }
     if (this.scriptApproved) {
       await this.createPerformanceNotes();
       this.scrollService.scrollTo('performance-section');

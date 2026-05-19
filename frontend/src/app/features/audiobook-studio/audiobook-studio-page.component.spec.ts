@@ -494,6 +494,37 @@ describe('AudiobookStudioWorkspaceComponent', () => {
   });
 
 
+  it('skips re-approving the script when re-running emotion annotation on an already-approved project', async () => {
+    component.scriptTurns = [{ speaker: 'Narrator', text: 'The lamps dimmed.' }];
+    (component as any).facade.setCurrentProjectId('project-1');
+    (component as any).facade.setScriptApproved(true);
+    audiobookWorkflowService.annotateEmotions.and.resolveTo({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'The lamps dimmed.',
+      workflowStage: 'PERFORMANCE_READY',
+      speakers: [{ speakerName: 'Narrator', roleDescription: 'Story voice', voiceSuggestion: 'Clear narrator' }],
+      scriptTurns: [{ speaker: 'Narrator', text: 'The lamps dimmed.' }],
+      annotatedTurns: [{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      performanceNotesStale: false
+    } as never);
+    fixture.detectChanges();
+
+    await component.approveScriptAndContinueWorkflow();
+    fixture.detectChanges();
+
+    expect(audiobookWorkflowService.approveScript).not.toHaveBeenCalled();
+    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1', undefined);
+    expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
+  });
+
   it('cancels an in-flight part generation and keeps already generated parts', async () => {
     component.audioProductionPlan = {
       renderRequests: [
