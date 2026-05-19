@@ -1,4 +1,4 @@
-<section class="app-panel" data-testid="autopilot-setup" aria-labelledby="autopilot-setup-title">
+<section class="glow-card" data-testid="autopilot-setup" aria-labelledby="autopilot-setup-title">
   <header>
     <span class="task-label">Autopilot mode</span>
     <h2 id="autopilot-setup-title" class="mb-2 mt-1.5 text-2xl leading-tight text-studio-text">
@@ -20,16 +20,16 @@
   ></textarea>
   <p class="mb-0 mt-1.5 text-sm text-studio-muted">{{ characterCount }} characters</p>
 
-  <div class="my-5 grid gap-2">
-    <div class="flex justify-between gap-4 rounded-lg border border-studio-line bg-studio-field/50 px-4 py-3">
+  <div class="my-6 grid gap-2.5">
+    <div class="ap-setting">
       <span class="font-bold text-studio-text">Voice selection</span>
       <span class="font-extrabold text-studio-accent">Auto (Recommended)</span>
     </div>
-    <div class="flex justify-between gap-4 rounded-lg border border-studio-line bg-studio-field/50 px-4 py-3">
+    <div class="ap-setting">
       <span class="font-bold text-studio-text">Emotion style</span>
       <span class="font-extrabold text-studio-accent">Cinematic</span>
     </div>
-    <div class="flex justify-between gap-4 rounded-lg border border-studio-line bg-studio-field/50 px-4 py-3">
+    <div class="ap-setting">
       <span class="font-bold text-studio-text">Review before audio</span>
       <span class="font-extrabold text-studio-accent">Optional</span>
     </div>
@@ -37,7 +37,7 @@
 
   <button
     type="button"
-    class="primary-button w-full disabled:cursor-not-allowed disabled:opacity-50"
+    class="primary-button glow-cta w-full disabled:cursor-not-allowed"
     data-testid="start-autopilot-button"
     [disabled]="!canStart"
     (click)="onStart()"

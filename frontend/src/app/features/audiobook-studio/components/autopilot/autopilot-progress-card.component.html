@@ -1,4 +1,4 @@
-<section class="app-panel" data-testid="autopilot-progress" aria-labelledby="autopilot-progress-title">
+<section class="glow-card" data-testid="autopilot-progress" aria-labelledby="autopilot-progress-title">
   <header class="flex items-start justify-between gap-4">
     <div>
       <span class="task-label">Autopilot progress</span>
@@ -6,15 +6,8 @@
         TTS Lab is working through the steps automatically.
       </h2>
     </div>
-    <span
-      *ngIf="running"
-      class="flex-none rounded-full border border-studio-success/40 bg-studio-success/10 px-3 py-1 text-xs font-extrabold text-studio-success"
-      aria-live="polite"
-    >● Live</span>
-    <span
-      *ngIf="finished && !running"
-      class="flex-none rounded-full border border-studio-accent/40 bg-studio-accent/10 px-3 py-1 text-xs font-extrabold text-studio-accentSoft"
-    >✓ Finished</span>
+    <span *ngIf="running" class="ap-live" aria-live="polite">● Live</span>
+    <span *ngIf="finished && !running" class="ap-live is-done">✓ Finished</span>
   </header>
 
   <ol class="m-0 mt-5 grid list-none gap-2 p-0" aria-label="Autopilot steps">
