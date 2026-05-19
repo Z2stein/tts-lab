@@ -414,8 +414,23 @@ test('audiobook studio keeps Identify Emotions actionable after reloading a scri
   // Step 3 auto-collapses because the script is approved; expand it.
   await page.locator('#script-section').getByRole('button', { name: /Review script/ }).click();
 
-  // Emotion annotation has not run yet (no annotated turns), so the action must
-  // stay enabled even though the script is already approved.
+  // The action stays enabled even though the script is already approved.
+  await expect(
+    page.locator('#script-section').getByRole('button', { name: 'Identify Emotions' })
+  ).toBeEnabled();
+});
+
+test('audiobook studio allows re-running Identify Emotions after reloading a performance-ready project', async ({ context, page }) => {
+  await authenticate(context, page);
+  await mockWorkflowSnapshot(page, 'performance-ready');
+
+  await page.goto(`/audiobook-studio/${testProjectId}`);
+
+  // Step 3 auto-collapses (script approved); expand it.
+  await page.locator('#script-section').getByRole('button', { name: /Review script/ }).click();
+
+  // Emotions are already identified, but re-running must stay possible
+  // (e.g. after editing a script turn) — only loading / no turns blocks it.
   await expect(
     page.locator('#script-section').getByRole('button', { name: 'Identify Emotions' })
   ).toBeEnabled();
