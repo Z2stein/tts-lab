@@ -1,0 +1,48 @@
+<section class="app-panel" data-testid="autopilot-setup" aria-labelledby="autopilot-setup-title">
+  <header>
+    <span class="task-label">Autopilot mode</span>
+    <h2 id="autopilot-setup-title" class="mb-2 mt-1.5 text-2xl leading-tight text-studio-text">
+      Let TTS Lab turn your story into a ready-to-listen audiobook preview.
+    </h2>
+    <p class="m-0 leading-relaxed text-studio-muted">
+      We'll analyze your script, build the cast, assign voices, add emotion &amp; pacing, and generate a full preview — all automatically.
+    </p>
+  </header>
+
+  <label class="mb-2 mt-5 block font-extrabold text-studio-text" for="autopilot-story-text">Your story</label>
+  <textarea
+    id="autopilot-story-text"
+    class="form-control min-h-32 resize-y"
+    rows="6"
+    placeholder="Paste your story here…"
+    [formControl]="storyControl"
+    data-testid="autopilot-story-input"
+  ></textarea>
+  <p class="mb-0 mt-1.5 text-sm text-studio-muted">{{ characterCount }} characters</p>
+
+  <div class="my-5 grid gap-2">
+    <div class="flex justify-between gap-4 rounded-lg border border-studio-line bg-studio-field/50 px-4 py-3">
+      <span class="font-bold text-studio-text">Voice selection</span>
+      <span class="font-extrabold text-studio-accent">Auto (Recommended)</span>
+    </div>
+    <div class="flex justify-between gap-4 rounded-lg border border-studio-line bg-studio-field/50 px-4 py-3">
+      <span class="font-bold text-studio-text">Emotion style</span>
+      <span class="font-extrabold text-studio-accent">Cinematic</span>
+    </div>
+    <div class="flex justify-between gap-4 rounded-lg border border-studio-line bg-studio-field/50 px-4 py-3">
+      <span class="font-bold text-studio-text">Review before audio</span>
+      <span class="font-extrabold text-studio-accent">Optional</span>
+    </div>
+  </div>
+
+  <button
+    type="button"
+    class="primary-button w-full disabled:cursor-not-allowed disabled:opacity-50"
+    data-testid="start-autopilot-button"
+    [disabled]="!canStart"
+    (click)="onStart()"
+  >
+    {{ running ? 'Autopilot running…' : '▶ Start autopilot' }}
+  </button>
+  <p class="mb-0 mt-3 text-center text-sm text-studio-muted">Estimated time: 2–6 minutes for a standard chapter</p>
+</section>

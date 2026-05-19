@@ -11,6 +11,33 @@
   <p *ngIf="error" class="error">{{ error }}</p>
 
   <div class="workflow-shell" aria-label="Audiobook production workflow">
+    <app-autopilot-mode-toggle
+      [mode]="studioMode()"
+      (modeChange)="setStudioMode($event)"
+    ></app-autopilot-mode-toggle>
+
+    <ng-container *ngIf="studioMode() === 'autopilot'">
+      <div class="grid items-start gap-5 md:grid-cols-2">
+        <app-autopilot-setup-card
+          [storyControl]="storyTextControl"
+          [running]="autopilotRunning"
+          (start)="startAutopilot()"
+        ></app-autopilot-setup-card>
+
+        <app-autopilot-progress-card
+          [steps]="autopilotSteps"
+          [running]="autopilotRunning"
+          [finished]="autopilotFinished"
+          [audioUrl]="fullPlanAudioUrl"
+          [audioFilename]="fullPlanAudioFilename"
+          (openGuided)="openInGuidedWorkflow()"
+          (retry)="retryAutopilot()"
+          (download)="downloadFullPlanAudio()"
+        ></app-autopilot-progress-card>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="studioMode() === 'guided'">
     <app-workflow-stepper
       [steps]="workflowSteps"
       (scrollTo)="scrollToSection($event)"
@@ -335,6 +362,7 @@
 
       </ng-container>
     </section>
+    </ng-container>
   </div>
 
   <app-ai-generation-overlay [visible]="anyAudioLoading() || loadingAction !== null"></app-ai-generation-overlay>
