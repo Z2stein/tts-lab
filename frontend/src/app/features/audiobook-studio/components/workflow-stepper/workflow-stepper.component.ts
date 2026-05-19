@@ -14,6 +14,12 @@ import { WORKFLOW_STEPPER_CONTENT } from '../../data/studio-content';
 import { WorkflowStep, WorkflowStepKey } from '../../models/audiobook-studio.types';
 
 type StepperVisualState = 'completed' | 'current' | 'upcoming';
+export type StepperTier = 'wide' | 'compact';
+
+/** Below this panel width the stepper switches to the compact (badges-only)
+ *  tier and the detail surface becomes a bottom-sheet instead of a popover.
+ *  Kept in sync with the `@container` breakpoint in styles.css. */
+export const STEPPER_COMPACT_MAX_WIDTH = 560;
 
 export interface StepperStepView {
   key: WorkflowStepKey;
@@ -29,7 +35,9 @@ export interface StepperStepView {
 
 /**
  * Single compact, sticky workflow orientation component. Replaces the old
- * journey-grid card section and the workflow progress bar.
+ * journey-grid card section and the workflow progress bar. Density adapts to
+ * the available width via CSS `@container` tiers; this component only tracks a
+ * coarse `tier` (wide | compact) to decide popover vs. bottom-sheet.
  */
 @Component({
   selector: 'app-workflow-stepper',
@@ -43,28 +51,19 @@ export class WorkflowStepperComponent implements AfterViewInit, OnDestroy {
   @Output() scrollTo = new EventEmitter<string>();
 
   @ViewChild('sentinel') private sentinelRef!: ElementRef<HTMLElement>;
+  @ViewChild('panel') private panelRef!: ElementRef<HTMLElement>;
 
   isStuck = false;
-  isMobile = false;
+  tier: StepperTier = 'wide';
   activeDetailKey: WorkflowStepKey | null = null;
 
   private sentinelObserver: IntersectionObserver | null = null;
+  private resizeObserver: ResizeObserver | null = null;
   private closeTimer: ReturnType<typeof setTimeout> | null = null;
-  private mobileMq: MediaQueryList | null = null;
-  private readonly mobileMqHandler = (e: MediaQueryListEvent): void => {
-    this.ngZone.run(() => {
-      this.isMobile = e.matches;
-      this.activeDetailKey = null;
-    });
-  };
 
   constructor(private readonly ngZone: NgZone) {}
 
   ngAfterViewInit(): void {
-    this.mobileMq = window.matchMedia('(max-width: 640px)');
-    this.isMobile = this.mobileMq.matches;
-    this.mobileMq.addEventListener('change', this.mobileMqHandler);
-
     this.sentinelObserver = new IntersectionObserver(
       ([entry]) => {
         this.ngZone.run(() => {
@@ -74,12 +73,28 @@ export class WorkflowStepperComponent implements AfterViewInit, OnDestroy {
       { threshold: 0 }
     );
     this.sentinelObserver.observe(this.sentinelRef.nativeElement);
+
+    this.resizeObserver = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? 0;
+      const next: StepperTier = width > 0 && width < STEPPER_COMPACT_MAX_WIDTH ? 'compact' : 'wide';
+      if (next !== this.tier) {
+        this.ngZone.run(() => {
+          this.tier = next;
+          this.activeDetailKey = null;
+        });
+      }
+    });
+    this.resizeObserver.observe(this.panelRef.nativeElement);
   }
 
   ngOnDestroy(): void {
     this.sentinelObserver?.disconnect();
-    this.mobileMq?.removeEventListener('change', this.mobileMqHandler);
+    this.resizeObserver?.disconnect();
     this.clearCloseTimer();
+  }
+
+  get isCompact(): boolean {
+    return this.tier === 'compact';
   }
 
   get views(): StepperStepView[] {
@@ -98,6 +113,11 @@ export class WorkflowStepperComponent implements AfterViewInit, OnDestroy {
         isCurrent: visual === 'current'
       };
     });
+  }
+
+  /** Title of the active/current step, shown beneath the bar in compact tier. */
+  get currentStepTitle(): string {
+    return this.views.find((view) => view.isCurrent)?.title ?? '';
   }
 
   get activeDetail(): StepperStepView | null {
@@ -123,9 +143,9 @@ export class WorkflowStepperComponent implements AfterViewInit, OnDestroy {
   }
 
   /** Desktop hover-open: keep the detail pinned while the pointer is over the
-   *  step or its popover. */
+   *  step or its popover. No-op in the compact tier (tap opens a sheet). */
   openOnHover(key: WorkflowStepKey): void {
-    if (this.isMobile) {
+    if (this.isCompact) {
       return;
     }
     this.clearCloseTimer();
@@ -135,7 +155,7 @@ export class WorkflowStepperComponent implements AfterViewInit, OnDestroy {
   /** Desktop hover-out: delay the close so the pointer can travel across the
    *  small gap into the popover (so "Jump to step" stays clickable). */
   scheduleClose(): void {
-    if (this.isMobile) {
+    if (this.isCompact) {
       return;
     }
     this.clearCloseTimer();

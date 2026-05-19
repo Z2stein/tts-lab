@@ -853,6 +853,57 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Download MP3');
   });
 
+  it('keeps the performance step completed and collapsed after reload when only persisted audio assets exist', () => {
+    component.hydrateFromSnapshot({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      sourceLanguageCode: 'en-US',
+      storyText: 'Mara: We go now.',
+      workflowStage: 'AUDIO_GENERATED',
+      speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'KORE' }],
+      scriptTurns: [{ speaker: 'Mara', text: 'We go now.' }],
+      annotatedTurns: [{ speaker: 'Mara', text: '[urgent] We go now.' }],
+      audioAssets: [
+        {
+          id: 'asset-mara-1',
+          speechSegmentId: 'segment-mara-1',
+          type: 'PREVIEW_MP3',
+          version: 1,
+          filename: 'mara-part-1.mp3',
+          contentType: 'audio/mpeg',
+          sizeBytes: 42000,
+          durationSeconds: null,
+          status: 'READY',
+          createdAt: '2026-05-12T10:00:00Z',
+          downloadUrl: 'https://example.com/audio/download/mara-part-1.mp3',
+          streamUrl: 'https://example.com/audio/mara-part-1.mp3',
+          speakerName: 'Mara'
+        }
+      ],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      audioAssetsCurrent: true,
+      performanceNotesStale: false
+      // NOTE: no mergedAudioUrl and no regenerated production plan on reload.
+    });
+    fixture.detectChanges();
+
+    expect(component.performanceStepCompleted).toBeTrue();
+
+    const performanceSection = getByTestId('performance-section');
+    const stepNumber = performanceSection.querySelector('.step-number') as HTMLElement;
+    expect(stepNumber.classList).toContain('step-number-done');
+
+    const performanceNotes = fixture.debugElement.query(
+      By.directive(PerformanceNotesComponent)
+    ).componentInstance as PerformanceNotesComponent;
+    expect(performanceNotes.collapsed()).toBeTrue();
+  });
+
   function buttonByText(text: string, occurrence = 0): HTMLButtonElement {
     const buttons = Array.from(fixture.nativeElement.querySelectorAll('button')) as HTMLButtonElement[];
     const button = buttons.filter((candidate) => candidate.textContent?.trim() === text)[occurrence];

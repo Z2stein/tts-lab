@@ -145,11 +145,10 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   get performanceReady(): boolean { return this.facade.performanceReady(); }
 
-  // The performance step is only "done" once the audiobook production plan was
-  // created (the user clicked Next: Prepare audiobook) — identifying emotions
-  // alone must not collapse or mark the step complete.
+  // Single source of truth: the section card mirrors the compact stepper so the
+  // two can never disagree (and the step survives a reload — see workflowState).
   get performanceStepCompleted(): boolean {
-    return this.audioProductionPlan !== null && !this.performanceNotesStale;
+    return this.workflowSteps.find(step => step.key === 'performance')?.status === 'completed';
   }
 
   get loadingAction(): string | null { return this.facade.loadingAction(); }
@@ -421,6 +420,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
       performanceReady: this.facade.performanceReady(),
       audioProductionPlanReady: this.facade.audioProductionPlan() !== null,
       audioGenerated: this.fullPlanAudioUrl !== null && !this.fullPlanAudioStale,
+      audioAssetsCount: this.facade.audioAssets().length,
     };
   }
 

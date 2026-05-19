@@ -5,10 +5,13 @@
   aria-label="Audiobook workflow steps"
   data-testid="workflow-stepper"
 >
-  <div class="workflow-stepper-panel rounded-2xl border border-[rgba(195,204,255,0.16)] px-2 py-2 sm:px-5 sm:py-3">
+  <div
+    #panel
+    class="workflow-stepper-panel rounded-2xl border border-[rgba(195,204,255,0.16)] px-2 py-2 sm:px-5 sm:py-3"
+  >
     <ol class="m-0 flex list-none items-center gap-0 p-0">
       <ng-container *ngFor="let view of views; let i = index; let last = last; trackBy: trackByKey">
-        <li class="relative flex min-w-0 shrink-0">
+        <li class="relative flex min-w-0">
           <button
             type="button"
             class="workflow-stepper-step group flex min-w-0 items-center gap-1 rounded-xl px-1.5 py-1.5 text-left sm:gap-2 sm:px-2.5 sm:py-2"
@@ -16,8 +19,6 @@
             [class.is-completed]="view.visual === 'completed'"
             [class.is-current]="view.visual === 'current'"
             [class.is-upcoming]="view.visual === 'upcoming'"
-            [class.flex-col]="isMobile"
-            [class.text-center]="isMobile"
             [attr.aria-current]="view.isCurrent ? 'step' : null"
             [attr.aria-expanded]="activeDetailKey === view.key"
             [attr.aria-label]="'Step ' + view.number + ': ' + view.title + ' (' + view.statusLabel + ')'"
@@ -54,18 +55,14 @@
               <span *ngIf="view.visual !== 'completed'">{{ view.number }}</span>
             </span>
 
-            <span
-              class="min-w-0"
-              [class.hidden]="isMobile && !view.isCurrent"
-              [class.block]="!isMobile || view.isCurrent"
-            >
-              <strong class="block truncate text-[0.82rem] leading-tight">{{ view.title }}</strong>
-              <small class="hidden truncate text-[0.7rem] font-semibold text-studio-muted sm:block">{{ view.statusLabel }}</small>
+            <span class="ws-textwrap min-w-0">
+              <strong class="ws-label block truncate text-[0.82rem] leading-tight">{{ view.title }}</strong>
+              <small class="ws-status block truncate text-[0.7rem] font-semibold text-studio-muted">{{ view.statusLabel }}</small>
             </span>
           </button>
 
           <div
-            *ngIf="!isMobile && activeDetailKey === view.key"
+            *ngIf="!isCompact && activeDetailKey === view.key"
             class="workflow-stepper-popover absolute top-[calc(100%+0.5rem)] z-40 w-64 rounded-xl border border-[rgba(195,204,255,0.18)] p-4 text-left"
             [class.left-0]="!last"
             [class.right-0]="last"
@@ -97,11 +94,16 @@
         ></li>
       </ng-container>
     </ol>
+
+    <p
+      class="workflow-stepper-compact-label m-0 mt-1.5 text-center text-[0.8rem] font-semibold text-studio-accent"
+      aria-hidden="true"
+    >{{ currentStepTitle }}</p>
   </div>
 </nav>
 
 <div
-  *ngIf="isMobile && activeDetail as detail"
+  *ngIf="isCompact && activeDetail as detail"
   class="workflow-stepper-sheet-backdrop fixed inset-0 z-50 flex items-end"
   data-testid="workflow-stepper-sheet-backdrop"
   (click)="closeDetail()"

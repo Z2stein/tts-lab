@@ -11,6 +11,7 @@ export interface StudioWorkflowState {
   performanceReady: boolean;
   audioProductionPlanReady: boolean;
   audioGenerated: boolean;
+  audioAssetsCount: number;
 }
 
 export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
@@ -18,9 +19,12 @@ export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
   const scriptReady = state.scriptTurnCount > 0;
   const performanceReady = state.performanceReady && !state.performanceNotesStale;
   const audioReady = state.audioGenerated;
-  // The story step only counts as done once the narrator & characters have been
-  // detected — having story text alone (e.g. from a generated draft) is not enough.
-  const performanceDone = state.audioProductionPlanReady || audioReady;
+  // Performance is "done" once the user advanced past it: an in-session
+  // production plan, a (restored) merged preview, or persisted rendered parts.
+  // The persisted signals (audioGenerated via mergedAudioUrl, audioAssetsCount)
+  // survive a reload, so the step does not regress to gold after reopening.
+  const performanceDone =
+    state.audioProductionPlanReady || audioReady || state.audioAssetsCount > 0;
 
   return [
     {
