@@ -19,7 +19,8 @@ const base: StudioWorkflowState = {
   performanceNotesStale: false,
   performanceReady: false,
   audioProductionPlanReady: false,
-  audioGenerated: false
+  audioGenerated: false,
+  audioAssetsCount: 0
 };
 
 describe('buildWorkflowSteps', () => {
@@ -63,12 +64,49 @@ describe('buildWorkflowSteps', () => {
       performanceNotesStale: false,
       performanceReady: true,
       audioProductionPlanReady: false,
-      audioGenerated: true
+      audioGenerated: true,
+      audioAssetsCount: 2
     });
     expect(status.story).toBe('completed');
     expect(status.cast).toBe('completed');
     expect(status.script).toBe('completed');
     expect(status.performance).toBe('completed');
     expect(status.audio).toBe('completed');
+  });
+
+  it('keeps the performance step completed on reload when only persisted audio assets exist', () => {
+    // No regenerated plan, no merged preview URL — but rendered parts were
+    // persisted and restored from the snapshot.
+    const status = statusByKey({
+      storyText: 'Mara: We go now.',
+      castCount: 2,
+      castReviewed: true,
+      scriptTurnCount: 3,
+      scriptApproved: true,
+      annotatedTurnCount: 3,
+      performanceNotesStale: false,
+      performanceReady: true,
+      audioProductionPlanReady: false,
+      audioGenerated: false,
+      audioAssetsCount: 3
+    });
+    expect(status.performance).toBe('completed');
+    // Without a merged preview the audio step is still the active one.
+    expect(status.audio).toBe('current');
+  });
+
+  it('reopens the performance step when notes are stale even if audio assets exist', () => {
+    const status = statusByKey({
+      ...base,
+      storyText: 'Mara: We go now.',
+      castCount: 2,
+      castReviewed: true,
+      scriptTurnCount: 3,
+      scriptApproved: true,
+      annotatedTurnCount: 3,
+      performanceNotesStale: true,
+      audioAssetsCount: 3
+    });
+    expect(status.performance).toBe('warning');
   });
 });

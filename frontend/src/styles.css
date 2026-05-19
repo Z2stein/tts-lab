@@ -151,6 +151,36 @@
     box-shadow: 0 18px 60px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(16px);
     transition: background 0.2s ease, box-shadow 0.2s ease;
+    /* Drives the adaptive density tiers below (keeps the stepper from forcing
+       a minimum page width — it shrinks with its container instead). */
+    container-type: inline-size;
+  }
+
+  /* Adaptive density tiers. Default = Tier 2 (560–860px): badge + title only.
+     Kept in sync with STEPPER_COMPACT_MAX_WIDTH (560) in the component. */
+  .workflow-stepper-step .ws-status {
+    display: none;
+  }
+
+  .workflow-stepper-compact-label {
+    display: none;
+  }
+
+  @container (min-width: 860px) {
+    /* Tier 1 (wide): also show the per-step status label. */
+    .workflow-stepper-step .ws-status {
+      display: block;
+    }
+  }
+
+  @container (max-width: 559.98px) {
+    /* Tier 3 (compact): badges only, current step's title beneath the bar. */
+    .workflow-stepper-step .ws-label {
+      display: none;
+    }
+    .workflow-stepper-compact-label {
+      display: block;
+    }
   }
 
   .workflow-stepper-stuck .workflow-stepper-panel {

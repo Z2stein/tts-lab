@@ -24,7 +24,7 @@ describe('WorkflowStepperComponent', () => {
     fixture = TestBed.createComponent(WorkflowStepperComponent);
     component = fixture.componentInstance;
     component.steps = buildSteps();
-    component.isMobile = false;
+    component.tier = 'wide';
     fixture.detectChanges();
   });
 
@@ -56,10 +56,24 @@ describe('WorkflowStepperComponent', () => {
     expect(buttons[4].getAttribute('data-state')).toBe('upcoming');
   });
 
+  it('does not pin any step at a fixed width (no shrink-0)', () => {
+    for (const li of Array.from(
+      fixture.nativeElement.querySelectorAll('ol > li')
+    ) as HTMLElement[]) {
+      expect(li.className).not.toContain('shrink-0');
+    }
+  });
+
   it('shows a check icon for completed steps and a number for others', () => {
     const buttons = stepButtons();
     expect(buttons[0].querySelector('svg')).not.toBeNull();
     expect(buttons[2].textContent).toContain('3');
+  });
+
+  it('shows the current step title in the compact label for the compact tier', () => {
+    const label = fixture.nativeElement.querySelector('.workflow-stepper-compact-label') as HTMLElement;
+    expect(label).not.toBeNull();
+    expect(label.textContent?.trim()).toBe('Review script');
   });
 
   it('opens a desktop popover when a step is clicked and closes on second click', () => {
@@ -73,7 +87,7 @@ describe('WorkflowStepperComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).toBeNull();
   });
 
-  it('opens the popover on hover (desktop)', () => {
+  it('opens the popover on hover (wide tier)', () => {
     const buttons = stepButtons();
     buttons[3].dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
@@ -91,8 +105,6 @@ describe('WorkflowStepperComponent', () => {
       const popover = fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]');
       expect(popover).not.toBeNull();
 
-      // Leaving the step schedules a delayed close; entering the popover before
-      // the delay elapses must cancel it so "Jump to step" stays clickable.
       buttons[2].dispatchEvent(new MouseEvent('mouseleave'));
       popover.dispatchEvent(new MouseEvent('mouseenter'));
       jasmine.clock().tick(400);
@@ -141,7 +153,6 @@ describe('WorkflowStepperComponent', () => {
     fixture.detectChanges();
 
     expect(emitted).toEqual(['script-section']);
-    // Detail closes after jumping
     expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).toBeNull();
   });
 
@@ -156,8 +167,8 @@ describe('WorkflowStepperComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).toBeNull();
   });
 
-  it('renders a mobile bottom-sheet instead of a popover on mobile widths', () => {
-    component.isMobile = true;
+  it('renders a bottom-sheet instead of a popover in the compact tier', () => {
+    component.tier = 'compact';
     fixture.detectChanges();
 
     stepButtons()[2].click();
@@ -173,6 +184,15 @@ describe('WorkflowStepperComponent', () => {
     ) as HTMLButtonElement;
     close.click();
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-sheet"]')).toBeNull();
+  });
+
+  it('does not open a popover on hover in the compact tier', () => {
+    component.tier = 'compact';
+    fixture.detectChanges();
+    stepButtons()[3].dispatchEvent(new MouseEvent('mouseenter'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).toBeNull();
     expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-sheet"]')).toBeNull();
   });
 });

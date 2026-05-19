@@ -608,6 +608,14 @@ test('audiobook studio shows saved audio setup and previously generated audio af
 
   // Verify previously generated audio is inside a collapsible details section
   await expect(audioSection.locator('details.audio-parts-details summary')).toContainText('Previously generated audio');
+
+  // Reload regression: the Performance step must stay completed (green badge)
+  // and collapsed after reopening a fully-processed project.
+  const performanceSection = page.getByTestId('performance-section');
+  await expect(performanceSection.locator('.step-number.step-number-done')).toBeVisible();
+  await expect(
+    performanceSection.getByRole('button', { name: 'Next: Prepare audiobook' })
+  ).toHaveCount(0);
 });
 
 test('audiobook studio shows the waveform player after page reload when mergedAudioUrl is present in the snapshot', async ({ context, page }) => {
