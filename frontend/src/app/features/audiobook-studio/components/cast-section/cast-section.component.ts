@@ -1,17 +1,21 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { SpeakerVoiceAnalysisItem } from '../../../audiobook-shared/service/audiobook-workflow.service';
+import { AiHintPanelComponent } from '../ai-hint-panel/ai-hint-panel.component';
 import { CastCardComponent } from './cast-card/cast-card.component';
 
 @Component({
   selector: 'app-cast-section',
   standalone: true,
-  imports: [CommonModule, CastCardComponent],
+  imports: [CommonModule, AiHintPanelComponent, CastCardComponent],
   templateUrl: './cast-section.component.html'
 })
-export class CastSectionComponent {
+export class CastSectionComponent implements OnChanges {
   @Input() cast: SpeakerVoiceAnalysisItem[] = [];
   @Input() castReviewed = false;
+  @Input() isCompleted = false;
+  @Input() speakerSplitHintControl!: FormControl<string>;
   @Input() editingCastIndex: number | null = null;
   @Input() castEditDraft: SpeakerVoiceAnalysisItem | null = null;
   @Input() castEditable = true;
@@ -22,6 +26,20 @@ export class CastSectionComponent {
   @Output() cancelCastEdit = new EventEmitter<void>();
   @Output() createScriptPreview = new EventEmitter<void>();
   @Output() changeVoice = new EventEmitter<number>();
+
+  readonly collapsed = signal(false);
+  private _hasAutoCollapsed = false;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isCompleted']?.currentValue === true && !this._hasAutoCollapsed) {
+      this._hasAutoCollapsed = true;
+      this.collapsed.set(true);
+    }
+  }
+
+  toggleCollapsed(): void {
+    this.collapsed.update(v => !v);
+  }
 
   accentClass(index: number): string {
     return `cast-accent-${index % 6}`;

@@ -503,6 +503,28 @@ paths:
         '404':
           $ref: '#/components/responses/NotFoundError'
 
+  /api/audiobooks/workflow/generate-story-draft:
+    post:
+      tags: [Audiobook Workflow]
+      operationId: generateStoryDraft
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GenerateStoryDraftRequest'
+      responses:
+        '200':
+          description: Generated story draft
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GenerateStoryDraftResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '429':
+          $ref: '#/components/responses/RateLimitedError'
+
   /api/audiobooks/workflow/projects/{projectId}/production-settings:
     patch:
       tags: [Audiobook Workflow]
@@ -963,6 +985,28 @@ components:
             $ref: '#/components/schemas/SpeakerVoiceAnalysisItem'
       additionalProperties: false
 
+    GenerateStoryDraftRequest:
+      type: object
+      required: [idea]
+      properties:
+        idea:
+          type: string
+          minLength: 1
+          maxLength: 500
+        enhancements:
+          type: array
+          items:
+            type: string
+      additionalProperties: false
+
+    GenerateStoryDraftResponse:
+      type: object
+      required: [storyDraft]
+      properties:
+        storyDraft:
+          type: string
+      additionalProperties: false
+
     ChatRequest:
       type: object
       required: [message]
@@ -1003,6 +1047,8 @@ components:
       required: [rawDialogue]
       properties:
         rawDialogue:
+          type: string
+        customHint:
           type: string
       additionalProperties: false
 
@@ -1047,6 +1093,8 @@ components:
             $ref: '#/components/schemas/SpeakerVoiceAnalysisItem'
         projectId:
           type: string
+        customHint:
+          type: string
       additionalProperties: false
 
     SpeakerSplitAnalysisResponse:
@@ -1074,6 +1122,8 @@ components:
       required: [projectId]
       properties:
         projectId:
+          type: string
+        customHint:
           type: string
       additionalProperties: false
 

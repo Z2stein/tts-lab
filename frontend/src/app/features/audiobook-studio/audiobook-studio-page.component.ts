@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, effect } from '@angular/core';
+import { AfterViewInit, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, effect, signal } from '@angular/core';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { LiveAnnouncer } from '@angular/cdk/a11y';
 import { AppErrorBannerService } from '../../shared/services/app-error-banner.service';
@@ -11,9 +11,9 @@ import {
   SingleSpeakerRenderPlanResponse,
   SingleSpeakerRenderRequest,
 } from '../audiobook-shared/service/audiobook-workflow.service';
+import { AiGenerationOverlayComponent } from '../../shared/components/ai-generation-overlay/ai-generation-overlay.component';
 import { CastSectionComponent } from './components/cast-section/cast-section.component';
 import { VoicePickerModalComponent } from './components/voice-picker/voice-picker-modal.component';
-import { JourneyGridComponent } from './components/journey-grid/journey-grid.component';
 import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
 import { ScriptReviewComponent } from './components/script-review/script-review.component';
 import { ProjectTitleEditorComponent } from './components/project-title-editor/project-title-editor.component';
@@ -21,10 +21,9 @@ import { StoryInputComponent } from './components/story-input/story-input.compon
 import { StudioHeroComponent } from './components/studio-hero/studio-hero.component';
 import { CurrentTaskPanelComponent } from './components/current-task-panel/current-task-panel.component';
 import { WaveformPlayerComponent } from './components/waveform-player/waveform-player.component';
-import { WorkflowProgressComponent } from './components/workflow-progress/workflow-progress.component';
+import { WorkflowStepperComponent } from './components/workflow-stepper/workflow-stepper.component';
 import {
   HERO_CAST,
-  JOURNEY_STEPS,
   LANGUAGE_CODE_OPTIONS,
   MODEL_NAME_OPTIONS,
   SAMPLE_STORY,
@@ -64,8 +63,7 @@ export { formatSpeakerDisplayName };
     ReactiveFormsModule,
     StudioHeroComponent,
     WaveformPlayerComponent,
-    JourneyGridComponent,
-    WorkflowProgressComponent,
+    WorkflowStepperComponent,
     ProjectTitleEditorComponent,
     StoryInputComponent,
     CastSectionComponent,
@@ -73,6 +71,7 @@ export { formatSpeakerDisplayName };
     PerformanceNotesComponent,
     CurrentTaskPanelComponent,
     VoicePickerModalComponent,
+    AiGenerationOverlayComponent,
   ],
   providers: [
     AudiobookStudioFacade,
@@ -92,7 +91,6 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   readonly speakerStyleFn = (name: string | null | undefined) => this.speakerStyle(name);
 
   readonly heroCast: readonly HeroCastMember[] = HERO_CAST;
-  readonly journeySteps = JOURNEY_STEPS;
   readonly speakerAccents: readonly SpeakerAccent[] = SPEAKER_ACCENTS;
   readonly sampleStory = SAMPLE_STORY;
   readonly languageCodeOptions = LANGUAGE_CODE_OPTIONS;
@@ -104,6 +102,9 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   languageCodeControl = new FormControl('en-US', { nonNullable: true });
   modelNameControl = new FormControl('gemini-3.1-flash-tts-preview', { nonNullable: true });
   audioEncodingControl = new FormControl('MP3', { nonNullable: true });
+  speakerAnalysisHintControl = new FormControl('', { nonNullable: true });
+  speakerSplitHintControl = new FormControl('', { nonNullable: true });
+  emotionAnnotationHintControl = new FormControl('', { nonNullable: true });
   projectTitleEditing = false;
   @Input() showHero = true;
   @Input() snapshot: AudiobookWorkflowSnapshotResponse | null = null;
@@ -144,6 +145,12 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   get performanceReady(): boolean { return this.facade.performanceReady(); }
 
+  // Single source of truth: the section card mirrors the compact stepper so the
+  // two can never disagree (and the step survives a reload — see workflowState).
+  get performanceStepCompleted(): boolean {
+    return this.workflowSteps.find(step => step.key === 'performance')?.status === 'completed';
+  }
+
   get loadingAction(): string | null { return this.facade.loadingAction(); }
   get error(): string | null { return this.facade.error(); }
 
@@ -166,7 +173,12 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
   voicePickerOpenForIndex: number | null = null;
+  readonly audioSectionCollapsed = signal(false);
   private lastKnownProjectId: string | null = null;
+
+  toggleAudioSection(): void {
+    this.audioSectionCollapsed.update(v => !v);
+  }
 
   constructor(
     private readonly facade: AudiobookStudioFacade,
@@ -254,7 +266,13 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   }
 
     async approveScriptAndContinueWorkflow(): Promise<void> {
-    await this.approveScript();
+    // Only approve when the script is not already approved. Re-approving an
+    // already-approved project (e.g. reloaded at SCRIPT_APPROVED /
+    // PERFORMANCE_READY) regresses the backend state and makes the subsequent
+    // emotion annotation fail with "script must be approved".
+    if (!this.scriptApproved) {
+      await this.approveScript();
+    }
     if (this.scriptApproved) {
       await this.createPerformanceNotes();
       this.scrollService.scrollTo('performance-section');
@@ -278,7 +296,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   async analyzeStory(): Promise<void> {
     this.projectTitleControl.setValue('');
     this.projectTitleEditing = false;
-    await this.facade.analyzeStory(this.storyTextControl.value);
+    await this.facade.analyzeStory(this.storyTextControl.value, this.speakerAnalysisHintControl.value || undefined);
     this.projectTitleControl.setValue(this.facade.projectTitle());
     this.languageCodeControl.setValue(this.facade.productionSettings()?.languageCode ?? 'en-US');
     this.projectTitleEditing = false;
@@ -307,7 +325,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   }
 
   async createScriptPreview(): Promise<void> {
-    await this.facade.createScriptPreview(this.storyTextControl.value);
+    await this.facade.createScriptPreview(this.storyTextControl.value, this.speakerSplitHintControl.value || undefined);
     this.lastKnownProjectId = this.facade.currentProjectId();
     if (this.facade.scriptTurns().length > 0) {
       void this.liveAnnouncer.announce(`Script ready with ${this.facade.scriptTurns().length} turns`, 'polite');
@@ -320,7 +338,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     if (!this.facade.currentProjectId() && this.lastKnownProjectId) {
       this.facade.setCurrentProjectId(this.lastKnownProjectId);
     }
-    await this.facade.createPerformanceNotes();
+    await this.facade.createPerformanceNotes(this.emotionAnnotationHintControl.value || undefined);
     if (this.facade.annotatedTurns().length > 0) {
       void this.liveAnnouncer.announce('Performance notes added', 'polite');
     } else if (this.facade.error()) {
@@ -408,6 +426,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
       performanceReady: this.facade.performanceReady(),
       audioProductionPlanReady: this.facade.audioProductionPlan() !== null,
       audioGenerated: this.fullPlanAudioUrl !== null && !this.fullPlanAudioStale,
+      audioAssetsCount: this.facade.audioAssets().length,
     };
   }
 

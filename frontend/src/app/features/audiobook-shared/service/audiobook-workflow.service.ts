@@ -6,6 +6,8 @@ import {
   AudiobookWorkflowProductionSettingsRequest,
   AudiobookWorkflowSnapshotResponse,
   FinalTtsRequestPreviewResponse,
+  GenerateStoryDraftRequest,
+  GenerateStoryDraftResponse,
   SingleSpeakerRenderPlanResponse,
   SingleSpeakerRenderRequest,
   SpeakerSplitAnalysisResponse,
@@ -23,6 +25,8 @@ export type {
   AudiobookWorkflowSnapshotResponse,
   AudiobookWorkflowStage,
   FinalTtsRequestPreviewResponse,
+  GenerateStoryDraftRequest,
+  GenerateStoryDraftResponse,
   SingleSpeakerRenderPlanResponse,
   SingleSpeakerRenderRequest,
   SpeakerSplitAnalysisResponse,
@@ -36,10 +40,18 @@ export type { CreatedAudioDownload, RequestOptions } from '../../../shared/api-c
 export class AudiobookWorkflowService {
   constructor(private readonly audiobookApiService: AudiobookApiService) {}
 
-  async analyzeSpeakers(rawDialogue: string): Promise<SpeakerVoiceAnalysisResponse> {
+  async generateStoryDraft(request: GenerateStoryDraftRequest): Promise<GenerateStoryDraftResponse> {
+    return this.audiobookApiService.post<GenerateStoryDraftResponse>(
+      '/api/audiobooks/workflow/generate-story-draft',
+      request,
+      'Story draft generation failed'
+    );
+  }
+
+  async analyzeSpeakers(rawDialogue: string, customHint?: string): Promise<SpeakerVoiceAnalysisResponse> {
     return this.audiobookApiService.post<SpeakerVoiceAnalysisResponse>(
       '/api/audiobooks/workflow/speaker-voice-analysis',
-      { rawDialogue },
+      { rawDialogue, ...(customHint ? { customHint } : {}) },
       'Speaker voice analysis failed'
     );
   }
@@ -98,10 +110,10 @@ export class AudiobookWorkflowService {
     });
   }
 
-  async splitDialogue(rawDialogue: string, speakers: SpeakerVoiceAnalysisItem[], projectId: string): Promise<SpeakerSplitTurn[]> {
+  async splitDialogue(rawDialogue: string, speakers: SpeakerVoiceAnalysisItem[], projectId: string, customHint?: string): Promise<SpeakerSplitTurn[]> {
     const data = await this.audiobookApiService.post<SpeakerSplitAnalysisResponse>(
       '/api/audiobooks/workflow/speaker-split-analysis',
-      { rawDialogue, speakers, projectId },
+      { rawDialogue, speakers, projectId, ...(customHint ? { customHint } : {}) },
       'Speaker split analysis failed'
     );
     return data.turns;
@@ -116,10 +128,10 @@ export class AudiobookWorkflowService {
     return data.turns;
   }
 
-  async annotateEmotions(projectId: string): Promise<AudiobookWorkflowSnapshotResponse> {
+  async annotateEmotions(projectId: string, customHint?: string): Promise<AudiobookWorkflowSnapshotResponse> {
     return this.audiobookApiService.post<AudiobookWorkflowSnapshotResponse>(
       '/api/audiobooks/workflow/emotion-annotation-analysis',
-      { projectId },
+      { projectId, ...(customHint ? { customHint } : {}) },
       'Emotion annotation analysis failed'
     );
   }

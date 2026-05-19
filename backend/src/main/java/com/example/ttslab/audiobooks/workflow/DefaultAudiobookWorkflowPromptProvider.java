@@ -69,13 +69,13 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
     }
 
     @Override
-    public String getSpeakerVoiceAnalysisPrompt(String rawDialogue) {
+    public String getSpeakerVoiceAnalysisPrompt(String rawDialogue, String customHint) {
 
         String availableVoices = Arrays.stream(SpeakerVoice.values())
                 .map(voice -> voice.getKey() + " (" + voice.getGender().name() + ")")
                 .collect(Collectors.joining(", "));
 
-        return """
+        String basePrompt = """
                 Analyze this prose/dialogue text for the audiobook workflow.
 
                 Return only JSON with this shape:
@@ -117,14 +117,15 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                 Text:
                 %s
                 """.formatted(availableVoices, rawDialogue);
+        return appendHint(basePrompt, customHint);
     }
 
     @Override
-    public String getSpeakerSplitPrompt(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers) {
+    public String getSpeakerSplitPrompt(String rawDialogue, List<SpeakerVoiceAnalysisItem> speakers, String customHint) {
         if (speakers == null || speakers.isEmpty()) {
             throw new IllegalArgumentException("speakers cannot be null or empty");
         }
-        return """
+        String basePrompt = """
             Split this audiobook text into ordered speaker turns.
     
             Return only JSON:
@@ -160,11 +161,12 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
             Text:
             %s
             """.formatted(toJson(speakers), rawDialogue);
+        return appendHint(basePrompt, customHint);
     }
 
     @Override
-    public String getEmotionAnnotationPrompt(List<SpeakerSplitTurn> turns) {
-        return """
+    public String getEmotionAnnotationPrompt(List<SpeakerSplitTurn> turns, String customHint) {
+        String basePrompt = """
                 Add expressive audiobook workflow markup to these speaker turns.
                 
                 Goal:
@@ -192,13 +194,53 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                 Turns:
                 %s
                 """.formatted(toKnownTtsMarkupStylesText(), toJson(turns));
+        return appendHint(basePrompt, customHint);
+    }
 
+    private String appendHint(String prompt, String customHint) {
+        if (customHint != null && !customHint.isBlank()) {
+            return prompt + "\nAdditional instruction:\n" + customHint.strip() + "\n";
+        }
+        return prompt;
     }
 
     private String toKnownTtsMarkupStylesText() {
         return String.join(", ", KNOWN_TTS_MARKUP_STYLES);
     }
 
+
+    @Override
+    public String getStoryDraftPrompt(String idea, List<String> enhancements) {
+        List<String> safeEnhancements = enhancements == null ? List.of() : enhancements;
+        StringBuilder sb = new StringBuilder();
+        sb.append("Write a short story suitable for audiobook production based on this idea: ").append(idea).append("\n\n");
+        sb.append("Requirements:\n");
+        sb.append("- Format each line with a speaker label and a colon (e.g. \"Narrator: ...\", \"Elena: ...\")\n");
+        sb.append("- Keep it between 250 and 500 words\n");
+        if (safeEnhancements.contains("Add narrator")) {
+            sb.append("- Include a narrator character\n");
+        }
+        if (safeEnhancements.contains("Add 2 characters")) {
+            sb.append("- Include 2 or more named characters\n");
+        }
+        if (safeEnhancements.contains("Make it dramatic")) {
+            sb.append("- Use a dramatic, suspenseful tone\n");
+        }
+        if (safeEnhancements.contains("3+ characters")) {
+            sb.append("- Include 3 or more named characters\n");
+        }
+        if (safeEnhancements.contains("Make it poetic")) {
+            sb.append("- Use lyrical, poetic language with vivid imagery\n");
+        }
+        if (safeEnhancements.contains("Make it emotional")) {
+            sb.append("- Emphasize emotional depth and character feelings\n");
+        }
+        if (safeEnhancements.contains("Suitable for voice acting")) {
+            sb.append("- Write clear, distinct dialogue that sounds natural when spoken aloud\n");
+        }
+        sb.append("\nOutput only the story text with no preamble or explanation.");
+        return sb.toString();
+    }
 
     private String toJson(Object value) {
         try {

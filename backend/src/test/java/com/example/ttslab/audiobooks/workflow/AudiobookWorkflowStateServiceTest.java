@@ -158,6 +158,56 @@ class AudiobookWorkflowStateServiceTest {
     }
 
     @Test
+    void markPerformanceReadyAllowsReRunningEmotionAnnotationFromPerformanceReady() {
+        AudiobookRepository repository = mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
+        AudiobookWorkflowStateService service = service(repository, projectRepository, speakerCharacterRepository);
+
+        AudiobookProject project = project("project-6b", AudiobookWorkflowStage.PERFORMANCE_READY);
+
+        service.markPerformanceReady(project);
+
+        assertThat(project.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.PERFORMANCE_READY);
+        assertThat(project.isAudioAssetsCurrent()).isFalse();
+        verify(projectRepository).save(project);
+    }
+
+    @Test
+    void markPerformanceReadyRegressesAudioGeneratedProjectsWhenEmotionAnnotationIsReRun() {
+        AudiobookRepository repository = mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
+        AudiobookWorkflowStateService service = service(repository, projectRepository, speakerCharacterRepository);
+
+        AudiobookProject project = project("project-6c", AudiobookWorkflowStage.AUDIO_GENERATED);
+        project.setAudioAssetsCurrent(true);
+
+        service.markPerformanceReady(project);
+
+        assertThat(project.getWorkflowStage()).isEqualTo(AudiobookWorkflowStage.PERFORMANCE_READY);
+        assertThat(project.isAudioAssetsCurrent()).isFalse();
+        verify(projectRepository).save(project);
+    }
+
+    @Test
+    void ensurePerformanceNotesReadyAcceptsProjectsAtOrBeyondScriptApproved() {
+        AudiobookRepository repository = mock(AudiobookRepository.class);
+        AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);
+        SpeakerCharacterRepository speakerCharacterRepository = mock(SpeakerCharacterRepository.class);
+        AudiobookWorkflowStateService service = service(repository, projectRepository, speakerCharacterRepository);
+
+        service.ensurePerformanceNotesReady(project("p-sa", AudiobookWorkflowStage.SCRIPT_APPROVED));
+        service.ensurePerformanceNotesReady(project("p-pr", AudiobookWorkflowStage.PERFORMANCE_READY));
+        service.ensurePerformanceNotesReady(project("p-ag", AudiobookWorkflowStage.AUDIO_GENERATED));
+
+        assertThatThrownBy(() ->
+            service.ensurePerformanceNotesReady(project("p-ca", AudiobookWorkflowStage.CAST_APPROVED)))
+            .isInstanceOf(ApiException.class)
+            .hasMessageContaining("The script must be approved before emotion and pacing can be saved.");
+    }
+
+    @Test
     void markAudioGeneratedRejectsProjectsThatHaveNotPreparedPerformance() {
         AudiobookRepository repository = mock(AudiobookRepository.class);
         AudiobookProjectRepository projectRepository = mock(AudiobookProjectRepository.class);

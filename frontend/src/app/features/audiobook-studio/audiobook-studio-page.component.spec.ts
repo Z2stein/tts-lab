@@ -1,5 +1,7 @@
 import { ComponentFixture, fakeAsync, TestBed, tick, flushMicrotasks, discardPeriodicTasks, flush } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
 import { AudiobookStudioWorkspaceComponent, formatSpeakerDisplayName } from './audiobook-studio-page.component';
+import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
 import { AudiobookApiService } from '../audiobook-shared/service/audiobook-api.service';
 import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
 import { AudiobookLibraryService } from '../audiobook-library/services/audiobook-library.service';
@@ -118,6 +120,8 @@ describe('AudiobookStudioWorkspaceComponent', () => {
   });
 
   it('fills the textarea when the sample story is selected', () => {
+    clickButton('Paste story');
+    fixture.detectChanges();
     clickButton('Use sample story');
     fixture.detectChanges();
 
@@ -140,7 +144,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     await component.analyzeStory();
     fixture.detectChanges();
 
-    expect(audiobookWorkflowService.analyzeSpeakers).toHaveBeenCalledWith('Mara: We go now.');
+    expect(audiobookWorkflowService.analyzeSpeakers).toHaveBeenCalledWith('Mara: We go now.', undefined);
     expect(fixture.nativeElement.textContent).toContain('Mara');
     expect(fixture.nativeElement.textContent).toContain('Dialogue speaker');
     expect(fixture.nativeElement.textContent).toContain('WARM ALTO VOICE');
@@ -269,7 +273,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
         roleDescription: 'Caretaker of the midnight platform',
         voiceSuggestion: 'Warm gravelly voice'
       }
-    ], 'project-1');
+    ], 'project-1', undefined);
   });
 
   it('shows script preview turns after cast analysis continues', async () => {
@@ -316,7 +320,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     fixture.detectChanges();
 
     expect(audiobookWorkflowService.approveCast).toHaveBeenCalledWith('project-1');
-    expect(audiobookWorkflowService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast, 'project-1');
+    expect(audiobookWorkflowService.splitDialogue).toHaveBeenCalledWith(component.storyTextControl.value, component.cast, 'project-1', undefined);
     expect(fixture.nativeElement.textContent).toContain('Review script');
     expect(fixture.nativeElement.textContent).toContain('We go now.');
     expect(fixture.nativeElement.textContent).toContain('Together.');
@@ -377,6 +381,15 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     (component as any).facade.setCurrentProjectId('project-1');
     fixture.detectChanges();
 
+    // Keep the performance section expanded for the interaction below. It is not
+    // auto-collapsed here (no audio production plan yet, so isCompleted is false),
+    // but make the intent explicit and robust to ordering changes.
+    (fixture.debugElement.query(By.directive(PerformanceNotesComponent)).componentInstance as PerformanceNotesComponent).collapsed.set(false);
+
+    // Script section auto-collapsed because scriptApproved=true; expand it before interacting.
+    (getByTestId('script-section').querySelector('button') as HTMLElement).click();
+    fixture.detectChanges();
+
     getByTestId('script-turn-edit-0').click();
     fixture.detectChanges();
     setInputValue('#script-text-0', 'We go at sunrise.');
@@ -421,7 +434,7 @@ describe('AudiobookStudioWorkspaceComponent', () => {
       },
       performanceNotesStale: false
     } as never);
-    clickButton('Approve script & continue');
+    clickButton('Identify Emotions');
     await fixture.whenStable();
     fixture.detectChanges();
 
@@ -476,10 +489,41 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     await component.createPerformanceNotes();
     fixture.detectChanges();
 
-    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1');
+    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1', undefined);
     expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
   });
 
+
+  it('skips re-approving the script when re-running emotion annotation on an already-approved project', async () => {
+    component.scriptTurns = [{ speaker: 'Narrator', text: 'The lamps dimmed.' }];
+    (component as any).facade.setCurrentProjectId('project-1');
+    (component as any).facade.setScriptApproved(true);
+    audiobookWorkflowService.annotateEmotions.and.resolveTo({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      storyText: 'The lamps dimmed.',
+      workflowStage: 'PERFORMANCE_READY',
+      speakers: [{ speakerName: 'Narrator', roleDescription: 'Story voice', voiceSuggestion: 'Clear narrator' }],
+      scriptTurns: [{ speaker: 'Narrator', text: 'The lamps dimmed.' }],
+      annotatedTurns: [{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }],
+      audioAssets: [],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      performanceNotesStale: false
+    } as never);
+    fixture.detectChanges();
+
+    await component.approveScriptAndContinueWorkflow();
+    fixture.detectChanges();
+
+    expect(audiobookWorkflowService.approveScript).not.toHaveBeenCalled();
+    expect(audiobookWorkflowService.annotateEmotions).toHaveBeenCalledWith('project-1', undefined);
+    expect(component.annotatedTurns).toEqual([{ speaker: 'Narrator', text: '[quiet] The lamps dimmed.' }]);
+  });
 
   it('cancels an in-flight part generation and keeps already generated parts', async () => {
     component.audioProductionPlan = {
@@ -838,6 +882,57 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(player).not.toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Audiobook preview');
     expect(fixture.nativeElement.textContent).toContain('Download MP3');
+  });
+
+  it('keeps the performance step completed and collapsed after reload when only persisted audio assets exist', () => {
+    component.hydrateFromSnapshot({
+      projectId: 'project-1',
+      title: 'The Hidden Signal',
+      sourceLanguageCode: 'en-US',
+      storyText: 'Mara: We go now.',
+      workflowStage: 'AUDIO_GENERATED',
+      speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'KORE' }],
+      scriptTurns: [{ speaker: 'Mara', text: 'We go now.' }],
+      annotatedTurns: [{ speaker: 'Mara', text: '[urgent] We go now.' }],
+      audioAssets: [
+        {
+          id: 'asset-mara-1',
+          speechSegmentId: 'segment-mara-1',
+          type: 'PREVIEW_MP3',
+          version: 1,
+          filename: 'mara-part-1.mp3',
+          contentType: 'audio/mpeg',
+          sizeBytes: 42000,
+          durationSeconds: null,
+          status: 'READY',
+          createdAt: '2026-05-12T10:00:00Z',
+          downloadUrl: 'https://example.com/audio/download/mara-part-1.mp3',
+          streamUrl: 'https://example.com/audio/mara-part-1.mp3',
+          speakerName: 'Mara'
+        }
+      ],
+      productionSettings: {
+        prompt: 'An immersive audiobook performance with a clear narrator and distinct character voices.',
+        languageCode: 'en-US',
+        modelName: 'gemini-3.1-flash-tts-preview',
+        audioEncoding: 'MP3'
+      },
+      audioAssetsCurrent: true,
+      performanceNotesStale: false
+      // NOTE: no mergedAudioUrl and no regenerated production plan on reload.
+    });
+    fixture.detectChanges();
+
+    expect(component.performanceStepCompleted).toBeTrue();
+
+    const performanceSection = getByTestId('performance-section');
+    const stepNumber = performanceSection.querySelector('.step-number') as HTMLElement;
+    expect(stepNumber.classList).toContain('step-number-done');
+
+    const performanceNotes = fixture.debugElement.query(
+      By.directive(PerformanceNotesComponent)
+    ).componentInstance as PerformanceNotesComponent;
+    expect(performanceNotes.collapsed()).toBeTrue();
   });
 
   function buttonByText(text: string, occurrence = 0): HTMLButtonElement {

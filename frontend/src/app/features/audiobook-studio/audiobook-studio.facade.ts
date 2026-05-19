@@ -117,10 +117,24 @@ export class AudiobookStudioFacade {
 
   // ── Pipeline operations ───────────────────────────────────────────────────
 
-  async analyzeStory(storyText: string): Promise<void> {
+  async generateStoryDraft(idea: string, enhancements: string[]): Promise<string> {
+    this._loadingAction.set('story-draft');
+    this._error.set(null);
+    try {
+      const response = await this.audiobookWorkflowService.generateStoryDraft({ idea, enhancements });
+      return response.storyDraft;
+    } catch (err) {
+      this._error.set(err instanceof Error ? err.message : 'Story generation failed.');
+      throw err;
+    } finally {
+      this._loadingAction.set(null);
+    }
+  }
+
+  async analyzeStory(storyText: string, customHint?: string): Promise<void> {
     this._projectTitle.set('');
     await this.runStep('cast', async () => {
-      const analysis = await this.audiobookWorkflowService.analyzeSpeakers(storyText);
+      const analysis = await this.audiobookWorkflowService.analyzeSpeakers(storyText, customHint);
       this._cast.set(analysis.speakers);
       this._currentProjectId.set(analysis.projectId);
       this._projectTitle.set(analysis.projectTitle);
@@ -145,7 +159,7 @@ export class AudiobookStudioFacade {
     }, 'Story analysis failed.');
   }
 
-  async createScriptPreview(storyText: string): Promise<void> {
+  async createScriptPreview(storyText: string, customHint?: string): Promise<void> {
     await this.runStep('script', async () => {
       if (!this._castReviewed()) {
         throw new Error('Approve the cast before creating the script preview.');
@@ -154,7 +168,7 @@ export class AudiobookStudioFacade {
       if (!projectId) {
         throw new Error('Story analysis did not return a project id.');
       }
-      const scriptTurns = await this.audiobookWorkflowService.splitDialogue(storyText, this._cast(), projectId);
+      const scriptTurns = await this.audiobookWorkflowService.splitDialogue(storyText, this._cast(), projectId, customHint);
       this._scriptTurns.set(scriptTurns);
       this._annotatedTurns.set([]);
       this._finalRequest.set(null);
@@ -182,7 +196,7 @@ export class AudiobookStudioFacade {
     }, 'Cast approval failed.');
   }
 
-  async createPerformanceNotes(): Promise<void> {
+  async createPerformanceNotes(customHint?: string): Promise<void> {
     await this.runStep('notes', async () => {
       if (this._editingScriptTurnIndex() !== null) {
         throw new Error('Save or cancel the script edit before adding emotion and pacing.');
@@ -191,7 +205,7 @@ export class AudiobookStudioFacade {
       if (!projectId) {
         throw new Error('Story analysis did not return a project id.');
       }
-      const snapshot = await this.audiobookWorkflowService.annotateEmotions(projectId);
+      const snapshot = await this.audiobookWorkflowService.annotateEmotions(projectId, customHint);
       this.applyWorkflowSnapshot(snapshot);
       this._finalRequest.set(null);
       this._audioProductionPlan.set(null);

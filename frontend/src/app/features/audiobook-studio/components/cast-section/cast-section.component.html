@@ -1,10 +1,13 @@
-<div class="flex items-center gap-[0.9rem]">
-  <span class="inline-flex w-[2.35rem] h-[2.35rem] items-center justify-center flex-none rounded-full bg-gradient-to-r from-[#ffe2a7] to-[#f0ad5d] shadow-[0_0_28px_rgba(240,173,93,0.25)] text-[#140f14] font-black">2</span>
-  <div>
+<button type="button" class="flex items-center gap-[0.9rem] w-full text-left bg-transparent border-0 p-0 cursor-pointer" (click)="toggleCollapsed()" [attr.aria-expanded]="!collapsed()">
+  <span class="step-number" [class.step-number-done]="isCompleted">2</span>
+  <div class="flex-1">
     <h2 id="discover-cast-title" class="m-0 mb-[0.2rem] text-[#fff8ec] font-family-georgia text-[clamp(1.4rem,3vw,2rem)] leading-[1.1]">Choose voices</h2>
     <p class="m-0 text-[#c9d1e8] leading-[1.6]">We found the speakers in your story. Preview each voice or change it.</p>
   </div>
-</div>
+  <span class="text-[#c9d1e8] text-[1.2rem] flex-none ml-2" aria-hidden="true">{{ collapsed() ? '▸' : '▾' }}</span>
+</button>
+
+<ng-container *ngIf="!collapsed()">
 
 <p *ngIf="cast.length > 0 && !castReviewed" class="rounded-[0.8rem] border border-[rgba(240,173,93,0.5)] bg-[rgba(240,173,93,0.1)] text-[#ffd591] text-[0.92rem] font-[900] p-[0.7rem_0.85rem]">Please review and approve the voices</p>
 <p *ngIf="cast.length === 0" class="m-0 text-[#c9d1e8] leading-[1.6]">Speakers will appear after story analysis.</p>
@@ -27,6 +30,14 @@
 </div>
 
 <p *ngIf="cast.length > 0 && !castEditable" class="m-0 text-[#c9d1e8] leading-[1.6]">Cast edits are locked after script preview begins.</p>
+
+<app-ai-hint-panel
+  [control]="speakerSplitHintControl"
+  placeholder="e.g. remove all narrator parts"
+></app-ai-hint-panel>
+
 <button type="button" class="primary-button" (click)="createScriptPreview.emit()" [disabled]="loadingAction !== null || cast.length === 0">
-  {{ isLoading('script') ? 'Creating script preview...' : 'Approve voices & continue' }}
+  {{ isLoading('script') ? 'Creating script preview...' : 'Find Speech Segments' }}
 </button>
+
+</ng-container>

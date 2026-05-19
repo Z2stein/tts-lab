@@ -1,19 +1,23 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges, signal } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import { IndexedSpeakerSplitTurn, ScriptGroup, SpeakerSplitTurn } from '../../models/audiobook-studio.types';
 import { formatSpeakerDisplayName } from '../../utils/speaker-name';
+import { AiHintPanelComponent } from '../ai-hint-panel/ai-hint-panel.component';
 import { ScriptTurnComponent } from './script-turn/script-turn.component';
 
 @Component({
   selector: 'app-script-review',
   standalone: true,
-  imports: [CommonModule, ScriptTurnComponent],
+  imports: [CommonModule, AiHintPanelComponent, ScriptTurnComponent],
   templateUrl: './script-review.component.html'
 })
-export class ScriptReviewComponent {
+export class ScriptReviewComponent implements OnChanges {
+  @Input() emotionAnnotationHintControl!: FormControl<string>;
   @Input() scriptTurns: SpeakerSplitTurn[] = [];
   @Input() scriptGroups: ScriptGroup[] = [];
   @Input() scriptApproved = false;
+  @Input() isCompleted = false;
   @Input() editingScriptTurnIndex: number | null = null;
   @Input() scriptTurnEditDraft: SpeakerSplitTurn | null = null;
   @Input() speakerOptions: string[] = [];
@@ -23,6 +27,20 @@ export class ScriptReviewComponent {
   @Output() saveTurnEdit = new EventEmitter<number>();
   @Output() cancelTurnEdit = new EventEmitter<void>();
   @Output() approveScript = new EventEmitter<void>();
+
+  readonly collapsed = signal(false);
+  private _hasAutoCollapsed = false;
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isCompleted']?.currentValue === true && !this._hasAutoCollapsed) {
+      this._hasAutoCollapsed = true;
+      this.collapsed.set(true);
+    }
+  }
+
+  toggleCollapsed(): void {
+    this.collapsed.update(v => !v);
+  }
 
   displayName(name: string): string {
     return formatSpeakerDisplayName(name);

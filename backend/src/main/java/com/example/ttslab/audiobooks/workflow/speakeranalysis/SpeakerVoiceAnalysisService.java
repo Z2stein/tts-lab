@@ -77,12 +77,12 @@ public class SpeakerVoiceAnalysisService implements SpeakerVoiceAnalysisUpdateSe
         this.chatbotProvider = chatbotProvider == null ? "mock" : chatbotProvider.trim().toLowerCase();
     }
 
-    public SpeakerVoiceAnalysisResponse analyze(String rawDialogue) {
-        return analyzeInternal(rawDialogue);
+    public SpeakerVoiceAnalysisResponse analyze(String rawDialogue, String customHint) {
+        return analyzeInternal(rawDialogue, customHint);
     }
 
 
-    private SpeakerVoiceAnalysisResponse analyzeInternal(String rawDialogue) {
+    private SpeakerVoiceAnalysisResponse analyzeInternal(String rawDialogue, String customHint) {
         String fallbackSourceLanguageCode = fallbackService.detectLanguageCode(rawDialogue);
         String fallbackProductionLanguageCode = SupportedLanguageCodes.initialProductionLanguageCode(fallbackSourceLanguageCode);
 
@@ -109,7 +109,7 @@ public class SpeakerVoiceAnalysisService implements SpeakerVoiceAnalysisUpdateSe
         }
 
         try {
-            String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerVoiceAnalysisPrompt(rawDialogue), null)).answer();
+            String answer = chatService.ask(new ChatRequest(promptProvider.getSpeakerVoiceAnalysisPrompt(rawDialogue, customHint), null)).answer();
             return parseProviderAnswer(answer, rawDialogue);
         } catch (ApiException ex) {
             throw ex;

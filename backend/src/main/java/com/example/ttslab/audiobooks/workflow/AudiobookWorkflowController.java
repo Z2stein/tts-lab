@@ -50,6 +50,7 @@ public class AudiobookWorkflowController {
     private final ScriptPreviewWorkflowService scriptPreviewWorkflowService;
     private final AudiobookProjectCreationService audiobookProjectCreationService;
     private final AudiobookWorkflowStateService audiobookWorkflowStateService;
+    private final StoryDraftService storyDraftService;
     private final CurrentUserResolver currentUserResolver;
     private final PromptHistoryService promptHistoryService;
     private final RequestRateLimitService requestRateLimitService;
@@ -66,6 +67,7 @@ public class AudiobookWorkflowController {
         ScriptPreviewWorkflowService scriptPreviewWorkflowService,
         AudiobookProjectCreationService audiobookProjectCreationService,
         AudiobookWorkflowStateService audiobookWorkflowStateService,
+        StoryDraftService storyDraftService,
         CurrentUserResolver currentUserResolver,
         PromptHistoryService promptHistoryService,
         RequestRateLimitService requestRateLimitService,
@@ -82,6 +84,7 @@ public class AudiobookWorkflowController {
         this.scriptPreviewWorkflowService = scriptPreviewWorkflowService;
         this.audiobookProjectCreationService = audiobookProjectCreationService;
         this.audiobookWorkflowStateService = audiobookWorkflowStateService;
+        this.storyDraftService = storyDraftService;
         this.currentUserResolver = currentUserResolver;
         this.promptHistoryService = promptHistoryService;
         this.requestRateLimitService = requestRateLimitService;
@@ -109,7 +112,7 @@ public class AudiobookWorkflowController {
         CurrentUser user = currentUserResolver.resolve(authentication);
         enforceLimit(user, ModelType.TEXT_MODEL, request.rawDialogue(), analysisProviderModelName);
         try {
-            SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue());
+            SpeakerVoiceAnalysisResponse analysisResponse = speakerVoiceAnalysisService.analyze(request.rawDialogue(), request.customHint());
             var project = audiobookProjectCreationService.createProjectWithSpeakers(
                 user.id(),
                 analysisResponse.projectTitle(),
@@ -128,6 +131,20 @@ public class AudiobookWorkflowController {
             );
         } catch (RuntimeException ex) {
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.FAILED);
+            throw ex;
+        }
+    }
+
+    @PostMapping("/generate-story-draft")
+    public GenerateStoryDraftResponse generateStoryDraft(@Valid @RequestBody GenerateStoryDraftRequest request, Authentication authentication) {
+        CurrentUser user = currentUserResolver.resolve(authentication);
+        enforceLimit(user, ModelType.TEXT_MODEL, request.idea(), analysisProviderModelName);
+        try {
+            GenerateStoryDraftResponse response = storyDraftService.generate(request.idea(), request.enhancements());
+            promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.idea(), PromptRequestStatus.SUCCESS);
+            return response;
+        } catch (RuntimeException ex) {
+            promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.idea(), PromptRequestStatus.FAILED);
             throw ex;
         }
     }
@@ -155,7 +172,7 @@ public class AudiobookWorkflowController {
         try {
             AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
             audiobookWorkflowStateService.ensureScriptReviewReady(project);
-            SpeakerSplitAnalysisResponse response = speakerSplitPersistenceService.splitAndPersist(project, request.rawDialogue(), request.speakers());
+            SpeakerSplitAnalysisResponse response = speakerSplitPersistenceService.splitAndPersist(project, request.rawDialogue(), request.speakers(), request.customHint());
             audiobookWorkflowStateService.markScriptReview(project);
             promptHistoryService.record(user, ModelType.TEXT_MODEL, analysisProviderModelName, request.rawDialogue(), PromptRequestStatus.SUCCESS);
             return response;
@@ -177,7 +194,7 @@ public class AudiobookWorkflowController {
         AudiobookProject project = audiobookLibraryService.getProjectForUser(request.projectId(), user);
         audiobookWorkflowStateService.ensurePerformanceNotesReady(project);
         var turns = emotionAnnotationPersistenceService.loadScriptPreviewTurns(project);
-        EmotionAnnotationAnalysisResponse response = audiobookWorkflowService.annotate(turns);
+        EmotionAnnotationAnalysisResponse response = audiobookWorkflowService.annotate(turns, request.customHint());
         emotionAnnotationPersistenceService.persistStyledText(project, response.turns());
         audiobookWorkflowStateService.markPerformanceReady(project);
         return audiobookWorkflowStateService.snapshot(user, request.projectId());

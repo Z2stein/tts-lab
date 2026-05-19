@@ -114,7 +114,10 @@ public class AudiobookWorkflowStateService {
 
     @Transactional
     public void markPerformanceReady(AudiobookProject project) {
-        ensureStageEquals(project, AudiobookWorkflowStage.SCRIPT_APPROVED, "AUDIOBOOK_WORKFLOW_SCRIPT_NOT_READY", "The script must be approved before emotion and pacing can be saved.");
+        // Allow re-running emotion annotation once the script is approved, even
+        // if the project already progressed to PERFORMANCE_READY/AUDIO_GENERATED.
+        // Re-annotating invalidates any generated audio (audioAssetsCurrent=false).
+        ensureWorkflowProgressAtOrBeyond(project, AudiobookWorkflowStage.SCRIPT_APPROVED, "AUDIOBOOK_WORKFLOW_SCRIPT_NOT_READY", "The script must be approved before emotion and pacing can be saved.");
         updateWorkflowState(project, AudiobookWorkflowStage.PERFORMANCE_READY, false);
     }
 
@@ -216,7 +219,9 @@ public class AudiobookWorkflowStateService {
     }
 
     public void ensurePerformanceNotesReady(AudiobookProject project) {
-        ensureStageEquals(project, AudiobookWorkflowStage.SCRIPT_APPROVED, "AUDIOBOOK_WORKFLOW_SCRIPT_NOT_READY", "The script must be approved before emotion and pacing can be saved.");
+        // At-or-beyond SCRIPT_APPROVED so emotion annotation can be re-run on a
+        // project reloaded at PERFORMANCE_READY/AUDIO_GENERATED.
+        ensureWorkflowProgressAtOrBeyond(project, AudiobookWorkflowStage.SCRIPT_APPROVED, "AUDIOBOOK_WORKFLOW_SCRIPT_NOT_READY", "The script must be approved before emotion and pacing can be saved.");
     }
 
     public void ensureAudioGenerationReady(AudiobookProject project) {

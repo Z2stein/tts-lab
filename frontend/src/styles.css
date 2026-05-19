@@ -145,31 +145,129 @@
     --speaker-accent-shadow: rgba(125, 231, 212, 0.3);
   }
 
-  /* Journey card (complex background + shadow + backdrop-filter) */
-  .journey-card {
-    border: 1px solid rgba(195, 204, 255, 0.16);
-    background: linear-gradient(145deg, rgba(24, 28, 46, 0.76), rgba(12, 14, 25, 0.76));
-    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  /* ── Workflow stepper (single sticky workflow orientation component) ──── */
+  .workflow-stepper-panel {
+    background: rgba(12, 14, 25, 0.72);
+    box-shadow: 0 18px 60px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(16px);
+    transition: background 0.2s ease, box-shadow 0.2s ease;
+    /* Drives the adaptive density tiers below (keeps the stepper from forcing
+       a minimum page width — it shrinks with its container instead). */
+    container-type: inline-size;
+  }
+
+  /* Adaptive density tiers. Default = Tier 2 (560–860px): badge + title only.
+     Kept in sync with STEPPER_COMPACT_MAX_WIDTH (560) in the component. */
+  .workflow-stepper-step .ws-status {
+    display: none;
+  }
+
+  .workflow-stepper-compact-label {
+    display: none;
+  }
+
+  @container (min-width: 860px) {
+    /* Tier 1 (wide): also show the per-step status label. */
+    .workflow-stepper-step .ws-status {
+      display: block;
+    }
+  }
+
+  @container (max-width: 559.98px) {
+    /* Tier 3 (compact): badges only, current step's title beneath the bar. */
+    .workflow-stepper-step .ws-label {
+      display: none;
+    }
+    .workflow-stepper-compact-label {
+      display: block;
+    }
+  }
+
+  .workflow-stepper-stuck .workflow-stepper-panel {
+    background: rgba(8, 10, 19, 0.92);
+    box-shadow: 0 22px 70px rgba(0, 0, 0, 0.46), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  }
+
+  .workflow-stepper-step {
+    color: var(--studio-muted, #cbbdb0);
+    cursor: pointer;
+    transition: color 0.15s ease, background 0.15s ease;
+  }
+
+  .workflow-stepper-step:hover,
+  .workflow-stepper-step:focus-visible {
+    background: rgba(255, 255, 255, 0.04);
+    outline: none;
+  }
+
+  .workflow-stepper-step:focus-visible {
+    box-shadow: 0 0 0 2px rgba(240, 173, 93, 0.55);
+  }
+
+  .workflow-stepper-badge {
+    border: 2px solid rgba(201, 209, 232, 0.4);
+    color: #cbbdb0;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .workflow-stepper-step.is-upcoming {
+    color: #8c8479;
+  }
+
+  .workflow-stepper-step.is-completed {
+    color: #8fe7bd;
+  }
+
+  .workflow-stepper-step.is-completed .workflow-stepper-badge {
+    border-color: #8fe7bd;
+    background: #8fe7bd;
+    color: #07140e;
+    box-shadow: 0 0 16px rgba(143, 231, 189, 0.4);
+  }
+
+  .workflow-stepper-step.is-current {
+    color: #ffd591;
+  }
+
+  .workflow-stepper-step.is-current .workflow-stepper-badge,
+  .workflow-stepper-badge.is-current {
+    border-color: #ffd591;
+    background: linear-gradient(135deg, #f0ad5d, #ffd591);
+    color: #1a1206;
+    box-shadow: 0 0 0 4px rgba(240, 173, 93, 0.14), 0 0 18px rgba(240, 173, 93, 0.5);
+  }
+
+  .workflow-stepper-line {
+    background: rgba(195, 204, 255, 0.18);
+  }
+
+  .workflow-stepper-popover,
+  .workflow-stepper-sheet {
+    background: rgba(10, 12, 22, 0.97);
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(18px);
   }
 
-  .journey-card:hover {
-    border-color: rgba(240, 173, 93, 0.42);
-    box-shadow: 0 20px 70px rgba(240, 173, 93, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  .workflow-stepper-sheet-backdrop {
+    background: rgba(0, 0, 0, 0.55);
   }
 
-  /* Journey step icon shimmer animation */
-  @keyframes icon-shimmer {
-    0%, 100% {
-      filter: drop-shadow(0 0 8px rgba(255, 213, 145, 0.6)) drop-shadow(0 0 12px rgba(240, 173, 93, 0.4));
-    }
-    50% {
-      filter: drop-shadow(0 0 12px rgba(255, 213, 145, 0.8)) drop-shadow(0 0 18px rgba(240, 173, 93, 0.6));
-    }
+  .workflow-stepper-jump {
+    border: 1px solid rgba(240, 173, 93, 0.5);
+    background: rgba(240, 173, 93, 0.12);
+    color: #ffd591;
+    cursor: pointer;
+    transition: background 0.15s ease;
   }
 
-  .journey-step-icon {
-    animation: icon-shimmer 2s ease-in-out infinite;
+  .workflow-stepper-jump:hover {
+    background: rgba(240, 173, 93, 0.22);
+  }
+
+  .workflow-stepper-close {
+    border: 1px solid rgba(195, 204, 255, 0.18);
+    background: transparent;
+    cursor: pointer;
   }
 
   /* Container query host for cast cards */
@@ -185,44 +283,6 @@
       width: 100%;
       padding-top: 0;
     }
-  }
-
-  /* Workflow step state classes (arbitrary colors + box-shadow variants) */
-  .step-completed {
-    border-color: rgba(143, 231, 189, 0.38) !important;
-    background: rgba(143, 231, 189, 0.08) !important;
-  }
-
-  .step-completed .workflow-marker {
-    border-color: #8fe7bd;
-    background: #8fe7bd;
-    box-shadow: 0 0 18px rgba(143, 231, 189, 0.38);
-  }
-
-  .step-current {
-    border-color: rgba(240, 173, 93, 0.5) !important;
-    background: rgba(240, 173, 93, 0.08) !important;
-  }
-
-  .step-current .workflow-marker {
-    border-color: #ffd591;
-    background: linear-gradient(135deg, #ffd591 0 45%, transparent 45%);
-    box-shadow: 0 0 0 4px rgba(240, 173, 93, 0.12), 0 0 18px rgba(240, 173, 93, 0.45);
-  }
-
-  .step-warning {
-    border-color: rgba(247, 178, 103, 0.62) !important;
-    background: rgba(247, 178, 103, 0.08) !important;
-  }
-
-  .step-warning .workflow-marker {
-    border-color: #ffd591;
-    background: linear-gradient(135deg, #ffd591 0 45%, transparent 45%);
-  }
-
-  .step-locked {
-    cursor: not-allowed;
-    opacity: 0.5;
   }
 
   /* Cast card hover: color-mix with var(--speaker-accent) */
@@ -541,6 +601,17 @@
     font-weight: 900;
   }
 
+  @keyframes step-number-glow {
+    0%, 100% { box-shadow: 0 0 12px rgba(143, 231, 189, 0.5), 0 0 28px rgba(143, 231, 189, 0.22); }
+    50%       { box-shadow: 0 0 22px rgba(143, 231, 189, 0.85), 0 0 44px rgba(143, 231, 189, 0.4); }
+  }
+
+  .step-number-done {
+    background: linear-gradient(135deg, #a8f0d0, #8fe7bd);
+    color: #0a2e1a;
+    animation: step-number-glow 2s ease-in-out infinite;
+  }
+
   /* Audio promise section with three-column layout */
   .audio-promise {
     border: 1px solid rgba(240, 173, 93, 0.2);
@@ -682,6 +753,12 @@
     line-height: 1.55;
   }
 
+  @media (max-width: 600px) {
+    .generated-audio-player {
+      grid-template-columns: 1fr;
+    }
+  }
+
   /* Audio parts details section */
   .audio-parts-details {
     border: 1px solid rgba(195, 204, 255, 0.16);
@@ -785,5 +862,78 @@
   /* Ensure [hidden] attribute beats display values */
   [hidden] {
     display: none !important;
+  }
+
+  /* Enhancement chip selected glow/pulse */
+  @keyframes chip-pulse {
+    0%, 100% {
+      box-shadow: 0 0 6px rgba(240, 173, 93, 0.5), 0 0 14px rgba(240, 173, 93, 0.25);
+      border-color: rgba(240, 173, 93, 0.7);
+    }
+    50% {
+      box-shadow: 0 0 10px rgba(240, 173, 93, 0.75), 0 0 22px rgba(240, 173, 93, 0.4);
+      border-color: rgba(240, 173, 93, 1);
+    }
+  }
+
+  .chip-lit {
+    animation: chip-pulse 1.8s ease-in-out infinite;
+    border-color: rgba(240, 173, 93, 0.7);
+    color: #f0ad5d;
+  }
+
+  /* AI generation overlay */
+  @keyframes ai-gen-spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .ai-gen-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2rem;
+    background: rgba(12, 9, 14, 0.82);
+    backdrop-filter: blur(2px);
+  }
+
+  .ai-gen-spinner-wrap {
+    position: relative;
+    width: 9rem;
+    height: 9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ai-gen-spinner-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 4px dotted #f0ad5d;
+    border-top-color: transparent;
+    animation: ai-gen-spin 1.8s linear infinite;
+  }
+
+  .ai-gen-robot {
+    width: 4rem;
+    height: 4rem;
+    color: #f0ad5d;
+    animation: icon-shimmer 2s ease-in-out infinite;
+  }
+
+  .ai-gen-robot svg {
+    width: 100%;
+    height: 100%;
+  }
+
+  .ai-gen-label {
+    color: #f8efe5;
+    font-size: 1.125rem;
+    font-weight: 500;
+    letter-spacing: 0.025em;
   }
 }

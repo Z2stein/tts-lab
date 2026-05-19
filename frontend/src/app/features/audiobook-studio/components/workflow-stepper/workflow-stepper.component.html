@@ -1,0 +1,144 @@
+<div #sentinel class="block h-0 invisible pointer-events-none" aria-hidden="true"></div>
+<nav
+  class="workflow-stepper sticky top-4 z-30 block w-full self-start box-border"
+  [class.workflow-stepper-stuck]="isStuck"
+  aria-label="Audiobook workflow steps"
+  data-testid="workflow-stepper"
+>
+  <div
+    #panel
+    class="workflow-stepper-panel rounded-2xl border border-[rgba(195,204,255,0.16)] px-2 py-2 sm:px-5 sm:py-3"
+  >
+    <ol class="m-0 flex list-none items-center gap-0 p-0">
+      <ng-container *ngFor="let view of views; let i = index; let last = last; trackBy: trackByKey">
+        <li class="relative flex min-w-0">
+          <button
+            type="button"
+            class="workflow-stepper-step group flex min-w-0 items-center gap-1 rounded-xl px-1.5 py-1.5 text-left sm:gap-2 sm:px-2.5 sm:py-2"
+            [attr.data-state]="view.visual"
+            [class.is-completed]="view.visual === 'completed'"
+            [class.is-current]="view.visual === 'current'"
+            [class.is-upcoming]="view.visual === 'upcoming'"
+            [attr.aria-current]="view.isCurrent ? 'step' : null"
+            [attr.aria-expanded]="activeDetailKey === view.key"
+            [attr.aria-label]="'Step ' + view.number + ': ' + view.title + ' (' + view.statusLabel + ')'"
+            data-testid="workflow-stepper-step"
+            [attr.data-step-key]="view.key"
+            (click)="toggleDetail(view.key)"
+            (mouseenter)="openOnHover(view.key)"
+            (mouseleave)="scheduleClose()"
+            (focus)="openOnHover(view.key)"
+            (keydown)="onKeydown($event, view)"
+          >
+            <span
+              class="workflow-stepper-badge flex shrink-0 items-center justify-center rounded-full font-bold transition-all"
+              [class.h-7]="!view.isCurrent"
+              [class.w-7]="!view.isCurrent"
+              [class.text-xs]="!view.isCurrent"
+              [class.h-9]="view.isCurrent"
+              [class.w-9]="view.isCurrent"
+              [class.text-sm]="view.isCurrent"
+              aria-hidden="true"
+            >
+              <svg
+                *ngIf="view.visual === 'completed'"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                class="h-3.5 w-3.5"
+              >
+                <polyline points="20 7 9 18 4 13"></polyline>
+              </svg>
+              <span *ngIf="view.visual !== 'completed'">{{ view.number }}</span>
+            </span>
+
+            <span class="ws-textwrap min-w-0">
+              <strong class="ws-label block truncate text-[0.82rem] leading-tight">{{ view.title }}</strong>
+              <small class="ws-status block truncate text-[0.7rem] font-semibold text-studio-muted">{{ view.statusLabel }}</small>
+            </span>
+          </button>
+
+          <div
+            *ngIf="!isCompact && activeDetailKey === view.key"
+            class="workflow-stepper-popover absolute top-[calc(100%+0.5rem)] z-40 w-64 rounded-xl border border-[rgba(195,204,255,0.18)] p-4 text-left"
+            [class.left-0]="!last"
+            [class.right-0]="last"
+            role="dialog"
+            [attr.aria-label]="view.title + ' step details'"
+            data-testid="workflow-stepper-popover"
+            (mouseenter)="cancelScheduledClose()"
+            (mouseleave)="scheduleClose()"
+          >
+            <p class="m-0 text-[0.7rem] font-bold uppercase tracking-wide text-studio-accent">Step {{ view.number }} of {{ views.length }}</p>
+            <h3 class="m-0 mt-1 text-base text-studio-text">{{ view.title }}</h3>
+            <p class="m-0 mt-1.5 text-[0.82rem] leading-relaxed text-studio-muted">{{ view.description }}</p>
+            <button
+              type="button"
+              class="workflow-stepper-jump mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[0.8rem] font-bold"
+              data-testid="workflow-stepper-jump"
+              (click)="jumpToStep(view, $event)"
+            >
+              Jump to step
+              <span aria-hidden="true">→</span>
+            </button>
+          </div>
+        </li>
+
+        <li
+          *ngIf="!last"
+          class="workflow-stepper-line h-px min-w-[0.5rem] flex-1"
+          aria-hidden="true"
+        ></li>
+      </ng-container>
+    </ol>
+
+    <p
+      class="workflow-stepper-compact-label m-0 mt-1.5 text-center text-[0.8rem] font-semibold text-studio-accent"
+      aria-hidden="true"
+    >{{ currentStepTitle }}</p>
+  </div>
+</nav>
+
+<div
+  *ngIf="isCompact && activeDetail as detail"
+  class="workflow-stepper-sheet-backdrop fixed inset-0 z-50 flex items-end"
+  data-testid="workflow-stepper-sheet-backdrop"
+  (click)="closeDetail()"
+>
+  <div
+    class="workflow-stepper-sheet w-full rounded-t-2xl border-t border-[rgba(195,204,255,0.18)] p-5 pb-7"
+    role="dialog"
+    [attr.aria-label]="detail.title + ' step details'"
+    data-testid="workflow-stepper-sheet"
+    (click)="$event.stopPropagation()"
+  >
+    <div class="flex items-start justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span class="workflow-stepper-badge is-current flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-sm font-bold" aria-hidden="true">{{ detail.number }}</span>
+        <h3 class="m-0 text-lg text-studio-text">{{ detail.title }}</h3>
+      </div>
+      <button
+        type="button"
+        class="workflow-stepper-close shrink-0 rounded-lg px-2 py-1 text-studio-muted"
+        aria-label="Close step details"
+        data-testid="workflow-stepper-sheet-close"
+        (click)="closeDetail()"
+      >
+        ✕
+      </button>
+    </div>
+    <p class="m-0 mt-3 text-[0.9rem] leading-relaxed text-studio-muted">{{ detail.description }}</p>
+    <button
+      type="button"
+      class="workflow-stepper-jump mt-4 inline-flex w-full items-center justify-center gap-1.5 rounded-lg px-3 py-2.5 text-sm font-bold"
+      data-testid="workflow-stepper-jump"
+      (click)="jumpToStep(detail, $event)"
+    >
+      Jump to step {{ detail.number }}
+      <span aria-hidden="true">→</span>
+    </button>
+  </div>
+</div>

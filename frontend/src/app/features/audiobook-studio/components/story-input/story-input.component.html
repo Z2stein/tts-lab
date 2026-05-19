@@ -1,31 +1,81 @@
-<div class="flex items-center gap-[0.9rem]">
-  <span class="inline-flex w-[2.35rem] h-[2.35rem] items-center justify-center flex-none rounded-full bg-gradient-to-r from-[#ffe2a7] to-[#f0ad5d] shadow-[0_0_28px_rgba(240,173,93,0.25)] text-[#140f14] font-black">1</span>
-  <div>
+<button type="button" class="flex items-center gap-[0.9rem] w-full text-left bg-transparent border-0 p-0 cursor-pointer" (click)="toggleCollapsed()" [attr.aria-expanded]="!collapsed()">
+  <span class="step-number" [class.step-number-done]="isCompleted">1</span>
+  <div class="flex-1">
     <h2 id="story-input-title" class="mb-[0.2rem] text-[#fff8ec] font-family-georgia text-[clamp(1.4rem,3vw,2rem)] leading-[1.1]">Story input</h2>
     <p class="m-0">Start with narration and character dialogue. The AI will find the narrator and characters for you.</p>
   </div>
+  <span class="text-[#c9d1e8] text-[1.2rem] flex-none ml-2" aria-hidden="true">{{ collapsed() ? '▸' : '▾' }}</span>
+</button>
+
+<ng-container *ngIf="!collapsed()">
+
+<div role="tablist" class="flex gap-[0.25rem] border-b border-[rgba(195,204,255,0.16)] pb-0">
+  <button
+    role="tab"
+    data-testid="tab-paste"
+    type="button"
+    [attr.aria-selected]="activeTab() === 'paste'"
+    class="px-[1rem] py-[0.55rem] rounded-t-[0.5rem] text-[0.9rem] font-bold border-b-2 transition-colors"
+    [class.border-[#f0ad5d]]="activeTab() === 'paste'"
+    [class.text-[#f0ad5d]]="activeTab() === 'paste'"
+    [class.border-transparent]="activeTab() !== 'paste'"
+    [class.text-[#c9d1e8]]="activeTab() !== 'paste'"
+    (click)="activeTab.set('paste')"
+  >
+    Paste story
+  </button>
+  <button
+    role="tab"
+    data-testid="tab-generate"
+    type="button"
+    [attr.aria-selected]="activeTab() === 'generate'"
+    class="px-[1rem] py-[0.55rem] rounded-t-[0.5rem] text-[0.9rem] font-bold border-b-2 transition-colors"
+    [class.border-[#f0ad5d]]="activeTab() === 'generate'"
+    [class.text-[#f0ad5d]]="activeTab() === 'generate'"
+    [class.border-transparent]="activeTab() !== 'generate'"
+    [class.text-[#c9d1e8]]="activeTab() !== 'generate'"
+    (click)="activeTab.set('generate')"
+  >
+    Generate from idea ✨
+  </button>
 </div>
 
-<label for="story-text" class="font-bold">Story text</label>
-<textarea
-  id="story-text"
-  rows="12"
-  class="form-control"
-  [formControl]="storyControl"
-  placeholder="Narrator: The platform lights flickered...&#10;Mara: Did you hear that?"
-></textarea>
+@if (activeTab() === 'paste') {
+  <label for="story-text" class="font-bold">Story text</label>
+  <textarea
+    id="story-text"
+    rows="12"
+    class="form-control"
+    [formControl]="storyControl"
+    placeholder="Narrator: The platform lights flickered...&#10;Mara: Did you hear that?"
+  ></textarea>
 
-<div class="flex flex-wrap items-center gap-[0.85rem] justify-between">
-  <div class="flex flex-wrap gap-[0.5rem] text-[#c9d1e8]" aria-label="Story text stats">
-    <span class="badge">{{ wordCount }} words</span>
-    <span class="badge">{{ characterCount }} characters</span>
+  <div class="flex flex-wrap items-center gap-[0.85rem] justify-between">
+    <div class="flex flex-wrap gap-[0.5rem] text-[#c9d1e8]" aria-label="Story text stats">
+      <span class="badge">{{ wordCount }} words</span>
+      <span class="badge">{{ characterCount }} characters</span>
+    </div>
+    <div class="flex flex-wrap items-center gap-[0.85rem]">
+      <button type="button" class="secondary-button" (click)="useSampleStory.emit()" [disabled]="loadingAction !== null">
+        Use sample story
+      </button>
+      <button type="button" class="primary-button" (click)="analyzeStory.emit()" [disabled]="loadingAction !== null || storyControl.value.trim().length === 0">
+        {{ isLoading('cast') ? 'Finding narrator & characters...' : 'Find narrator & characters' }}
+      </button>
+    </div>
   </div>
-  <div class="flex flex-wrap items-center gap-[0.85rem]">
-    <button type="button" class="secondary-button" (click)="useSampleStory.emit()" [disabled]="loadingAction !== null">
-      Use sample story
-    </button>
-    <button type="button" class="primary-button" (click)="analyzeStory.emit()" [disabled]="loadingAction !== null || storyControl.value.trim().length === 0">
-      {{ isLoading('cast') ? 'Finding narrator & characters...' : 'Find narrator & characters' }}
-    </button>
-  </div>
-</div>
+}
+
+@if (activeTab() === 'generate') {
+  <app-story-generator
+    [disabled]="loadingAction !== null"
+    (storyGenerated)="onStoryGenerated($event)"
+  ></app-story-generator>
+}
+
+<app-ai-hint-panel
+  [control]="speakerAnalysisHintControl"
+  placeholder="e.g. do not add a Narrator speaker"
+></app-ai-hint-panel>
+
+</ng-container>
