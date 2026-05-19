@@ -19,14 +19,17 @@ export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
   const scriptReady = state.scriptTurnCount > 0;
   const performanceReady = state.performanceReady && !state.performanceNotesStale;
   const audioReady = state.audioGenerated;
+  // The story step only counts as done once the narrator & characters have been
+  // detected — having story text alone (e.g. from a generated draft) is not enough.
+  const performanceDone = state.audioProductionPlanReady || audioReady;
 
   return [
     {
       key: 'story',
       label: 'Story',
       sectionId: 'story-section',
-      status: storyAdded ? 'completed' : 'current',
-      statusLabel: storyAdded ? 'Story added' : 'Add story'
+      status: castDetected ? 'completed' : 'current',
+      statusLabel: castDetected ? 'Story added' : 'Add story'
     },
     {
       key: 'cast',
@@ -46,8 +49,8 @@ export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
       key: 'performance',
       label: 'Performance',
       sectionId: 'performance-section',
-      status: !state.scriptApproved ? 'locked' : state.performanceNotesStale ? 'warning' : performanceReady ? 'completed' : 'current',
-      statusLabel: !state.scriptApproved ? 'Locked' : state.performanceNotesStale ? 'Notes stale' : performanceReady ? 'Performance ready' : 'Add emotion'
+      status: !state.scriptApproved ? 'locked' : state.performanceNotesStale ? 'warning' : performanceDone ? 'completed' : 'current',
+      statusLabel: !state.scriptApproved ? 'Locked' : state.performanceNotesStale ? 'Notes stale' : performanceDone ? 'Performance ready' : 'Add emotion'
     },
     {
       key: 'audio',

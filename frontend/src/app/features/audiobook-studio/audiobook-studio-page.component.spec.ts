@@ -381,9 +381,9 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     (component as any).facade.setCurrentProjectId('project-1');
     fixture.detectChanges();
 
-    // Performance section auto-collapsed (performanceReady=true at start). Expand it now, before
-    // the save — ngOnChanges only auto-collapses (true→set), so the section stays open when
-    // isCompleted later transitions to false after the script edit makes performance notes stale.
+    // Keep the performance section expanded for the interaction below. It is not
+    // auto-collapsed here (no audio production plan yet, so isCompleted is false),
+    // but make the intent explicit and robust to ordering changes.
     (fixture.debugElement.query(By.directive(PerformanceNotesComponent)).componentInstance as PerformanceNotesComponent).collapsed.set(false);
 
     // Script section auto-collapsed because scriptApproved=true; expand it before interacting.

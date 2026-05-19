@@ -145,6 +145,13 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   get performanceReady(): boolean { return this.facade.performanceReady(); }
 
+  // The performance step is only "done" once the audiobook production plan was
+  // created (the user clicked Next: Prepare audiobook) — identifying emotions
+  // alone must not collapse or mark the step complete.
+  get performanceStepCompleted(): boolean {
+    return this.audioProductionPlan !== null && !this.performanceNotesStale;
+  }
+
   get loadingAction(): string | null { return this.facade.loadingAction(); }
   get error(): string | null { return this.facade.error(); }
 

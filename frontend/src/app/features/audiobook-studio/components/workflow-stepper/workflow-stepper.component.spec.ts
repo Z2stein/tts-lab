@@ -73,13 +73,32 @@ describe('WorkflowStepperComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).toBeNull();
   });
 
-  it('opens a popover on hover (desktop)', () => {
+  it('does not open the popover on hover (click only on desktop)', () => {
     const buttons = stepButtons();
     buttons[3].dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).toBeNull();
+  });
+
+  it('keeps the popover open so the Jump action stays clickable', () => {
+    const buttons = stepButtons();
+    buttons[2].click();
+    fixture.detectChanges();
     const popover = fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]');
     expect(popover).not.toBeNull();
-    expect(popover.textContent).toContain('Performance');
+    // Moving the pointer toward the popover/jump button must not dismiss it
+    buttons[2].dispatchEvent(new MouseEvent('mouseleave'));
+    popover.dispatchEvent(new MouseEvent('mouseenter'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).not.toBeNull();
+  });
+
+  it('right-aligns the last step popover so it is not clipped', () => {
+    stepButtons()[4].click();
+    fixture.detectChanges();
+    const popover = fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]') as HTMLElement;
+    expect(popover.classList).toContain('right-0');
+    expect(popover.classList).not.toContain('left-0');
   });
 
   it('emits scrollTo with the section id when Jump to step is used', () => {

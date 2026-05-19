@@ -390,7 +390,6 @@ test('audiobook studio generates the final preview after the workflow reaches au
     ),
     page.locator('#script-section').getByRole('button', { name: 'Identify Emotions' }).click()
   ]);
-  await page.getByTestId('performance-section').getByRole('button', { name: /Add emotion & pacing/ }).click();
   await expect(page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' })).toBeEnabled();
   await page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' }).click();
 

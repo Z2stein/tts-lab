@@ -119,18 +119,6 @@ export class WorkflowStepperComponent implements AfterViewInit, OnDestroy {
     this.activeDetailKey = this.activeDetailKey === key ? null : key;
   }
 
-  hoverDetail(key: WorkflowStepKey): void {
-    if (!this.isMobile) {
-      this.activeDetailKey = key;
-    }
-  }
-
-  hoverLeave(key: WorkflowStepKey): void {
-    if (!this.isMobile && this.activeDetailKey === key) {
-      this.activeDetailKey = null;
-    }
-  }
-
   closeDetail(): void {
     this.activeDetailKey = null;
   }

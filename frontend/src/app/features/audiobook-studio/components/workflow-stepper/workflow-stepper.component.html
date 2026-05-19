@@ -24,9 +24,6 @@
             data-testid="workflow-stepper-step"
             [attr.data-step-key]="view.key"
             (click)="toggleDetail(view.key)"
-            (mouseenter)="hoverDetail(view.key)"
-            (mouseleave)="hoverLeave(view.key)"
-            (focus)="hoverDetail(view.key)"
             (keydown)="onKeydown($event, view)"
           >
             <span
@@ -66,12 +63,12 @@
 
           <div
             *ngIf="!isMobile && activeDetailKey === view.key"
-            class="workflow-stepper-popover absolute left-0 top-[calc(100%+0.5rem)] z-40 w-64 rounded-xl border border-[rgba(195,204,255,0.18)] p-4 text-left"
+            class="workflow-stepper-popover absolute top-[calc(100%+0.5rem)] z-40 w-64 rounded-xl border border-[rgba(195,204,255,0.18)] p-4 text-left"
+            [class.left-0]="!last"
+            [class.right-0]="last"
             role="dialog"
             [attr.aria-label]="view.title + ' step details'"
             data-testid="workflow-stepper-popover"
-            (mouseenter)="hoverDetail(view.key)"
-            (mouseleave)="hoverLeave(view.key)"
           >
             <p class="m-0 text-[0.7rem] font-bold uppercase tracking-wide text-studio-accent">Step {{ view.number }} of {{ views.length }}</p>
             <h3 class="m-0 mt-1 text-base text-studio-text">{{ view.title }}</h3>
