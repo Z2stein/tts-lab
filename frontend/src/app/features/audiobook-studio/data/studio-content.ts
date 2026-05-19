@@ -1,4 +1,4 @@
-import { HeroCastMember, JourneyStep, SpeakerAccent } from '../models/audiobook-studio.types';
+import { HeroCastMember, SpeakerAccent, WorkflowStepKey, WorkflowStepperContent } from '../models/audiobook-studio.types';
 
 export const BENEFIT_CHIPS: readonly string[] = ['Multi-speaker', 'Speech segment detection', 'Voice previews', 'Export MP3'];
 
@@ -9,43 +9,33 @@ export const HERO_CAST: readonly HeroCastMember[] = [
   { name: 'Station Keeper', tone: 'old gravelly', initials: 'SK', imageUrl: '/assets/voices/kore/avatar.png' }
 ];
 
-export const JOURNEY_STEPS: readonly JourneyStep[] = [
-  {
-    icon: '01',
+export const WORKFLOW_STEPPER_CONTENT: Readonly<Record<WorkflowStepKey, WorkflowStepperContent>> = {
+  story: {
+    number: 1,
     title: 'Add story',
-    description: 'Paste your text. We\'ll keep the original wording and structure it for audio.',
-    sectionId: 'story-section',
-    stepIcon: '📝'
+    description: 'Paste your text. We keep the original wording and structure it for audio.'
   },
-  {
-    icon: '02',
-    title: 'Choose voices',
-    description: 'We found the speakers in your story. Preview each voice or change it.',
-    sectionId: 'cast-section',
-    stepIcon: '🎤'
+  cast: {
+    number: 2,
+    title: 'Speaker',
+    description: 'We found the speakers in your story. Preview each voice or change it.'
   },
-  {
-    icon: '03',
+  script: {
+    number: 3,
     title: 'Review script',
-    description: 'Check that each line is assigned to the correct speaker.',
-    sectionId: 'script-section',
-    stepIcon: '✓'
+    description: 'Check that each line is assigned to the correct speaker.'
   },
-  {
-    icon: '04',
-    title: 'Add emotion & pacing',
-    description: 'Fine-tune how each line should be spoken, for example calm, urgent, or whispered.',
-    sectionId: 'performance-section',
-    stepIcon: '🎵'
+  performance: {
+    number: 4,
+    title: 'Performance',
+    description: 'Fine-tune how each line should be spoken. Adjust emotion, pacing, and emphasis.'
   },
-  {
-    icon: '05',
-    title: 'Generate audiobook',
-    description: 'Create a preview. You can still go back and edit before downloading.',
-    sectionId: 'audio-section',
-    stepIcon: '▶'
+  audio: {
+    number: 5,
+    title: 'Generate',
+    description: 'Create a preview. You can still go back and edit before downloading.'
   }
-];
+};
 
 export const SPEAKER_ACCENTS: readonly SpeakerAccent[] = [
   { color: '#f0ad5d', shadow: 'rgba(240, 173, 93, 0.34)' },

@@ -14,7 +14,6 @@ import {
 import { AiGenerationOverlayComponent } from '../../shared/components/ai-generation-overlay/ai-generation-overlay.component';
 import { CastSectionComponent } from './components/cast-section/cast-section.component';
 import { VoicePickerModalComponent } from './components/voice-picker/voice-picker-modal.component';
-import { JourneyGridComponent } from './components/journey-grid/journey-grid.component';
 import { PerformanceNotesComponent } from './components/performance-notes/performance-notes.component';
 import { ScriptReviewComponent } from './components/script-review/script-review.component';
 import { ProjectTitleEditorComponent } from './components/project-title-editor/project-title-editor.component';
@@ -22,10 +21,9 @@ import { StoryInputComponent } from './components/story-input/story-input.compon
 import { StudioHeroComponent } from './components/studio-hero/studio-hero.component';
 import { CurrentTaskPanelComponent } from './components/current-task-panel/current-task-panel.component';
 import { WaveformPlayerComponent } from './components/waveform-player/waveform-player.component';
-import { WorkflowProgressComponent } from './components/workflow-progress/workflow-progress.component';
+import { WorkflowStepperComponent } from './components/workflow-stepper/workflow-stepper.component';
 import {
   HERO_CAST,
-  JOURNEY_STEPS,
   LANGUAGE_CODE_OPTIONS,
   MODEL_NAME_OPTIONS,
   SAMPLE_STORY,
@@ -65,8 +63,7 @@ export { formatSpeakerDisplayName };
     ReactiveFormsModule,
     StudioHeroComponent,
     WaveformPlayerComponent,
-    JourneyGridComponent,
-    WorkflowProgressComponent,
+    WorkflowStepperComponent,
     ProjectTitleEditorComponent,
     StoryInputComponent,
     CastSectionComponent,
@@ -94,7 +91,6 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   readonly speakerStyleFn = (name: string | null | undefined) => this.speakerStyle(name);
 
   readonly heroCast: readonly HeroCastMember[] = HERO_CAST;
-  readonly journeySteps = JOURNEY_STEPS;
   readonly speakerAccents: readonly SpeakerAccent[] = SPEAKER_ACCENTS;
   readonly sampleStory = SAMPLE_STORY;
   readonly languageCodeOptions = LANGUAGE_CODE_OPTIONS;
@@ -148,6 +144,13 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   set performanceNotesStale(value: boolean) { this.facade.setPerformanceNotesStale(value); }
 
   get performanceReady(): boolean { return this.facade.performanceReady(); }
+
+  // The performance step is only "done" once the audiobook production plan was
+  // created (the user clicked Next: Prepare audiobook) — identifying emotions
+  // alone must not collapse or mark the step complete.
+  get performanceStepCompleted(): boolean {
+    return this.audioProductionPlan !== null && !this.performanceNotesStale;
+  }
 
   get loadingAction(): string | null { return this.facade.loadingAction(); }
   get error(): string | null { return this.facade.error(); }

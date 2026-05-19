@@ -14,26 +14,30 @@ export interface StudioWorkflowState {
 }
 
 export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
-  const storyAdded = state.storyText.trim().length > 0;
   const castDetected = state.castCount > 0;
   const scriptReady = state.scriptTurnCount > 0;
   const performanceReady = state.performanceReady && !state.performanceNotesStale;
   const audioReady = state.audioGenerated;
+  // The story step only counts as done once the narrator & characters have been
+  // detected — having story text alone (e.g. from a generated draft) is not enough.
+  const performanceDone = state.audioProductionPlanReady || audioReady;
 
   return [
     {
       key: 'story',
       label: 'Story',
       sectionId: 'story-section',
-      status: storyAdded ? 'completed' : 'current',
-      statusLabel: storyAdded ? 'Story added' : 'Add story'
+      status: castDetected ? 'completed' : 'current',
+      statusLabel: castDetected ? 'Story added' : 'Add story'
     },
     {
       key: 'cast',
       label: 'Cast',
       sectionId: 'cast-section',
-      status: !storyAdded ? 'locked' : state.castReviewed ? 'completed' : castDetected ? 'warning' : 'current',
-      statusLabel: !storyAdded ? 'Locked' : state.castReviewed ? 'Cast approved' : castDetected ? 'Cast needs review' : 'Find characters'
+      // Stays muted until characters are detected, so only the story step is
+      // active while the user is still adding/generating the story.
+      status: state.castReviewed ? 'completed' : castDetected ? 'warning' : 'locked',
+      statusLabel: state.castReviewed ? 'Cast approved' : castDetected ? 'Cast needs review' : 'Find characters'
     },
     {
       key: 'script',
@@ -46,8 +50,8 @@ export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
       key: 'performance',
       label: 'Performance',
       sectionId: 'performance-section',
-      status: !state.scriptApproved ? 'locked' : state.performanceNotesStale ? 'warning' : performanceReady ? 'completed' : 'current',
-      statusLabel: !state.scriptApproved ? 'Locked' : state.performanceNotesStale ? 'Notes stale' : performanceReady ? 'Performance ready' : 'Add emotion'
+      status: !state.scriptApproved ? 'locked' : state.performanceNotesStale ? 'warning' : performanceDone ? 'completed' : 'current',
+      statusLabel: !state.scriptApproved ? 'Locked' : state.performanceNotesStale ? 'Notes stale' : performanceDone ? 'Performance ready' : 'Add emotion'
     },
     {
       key: 'audio',
