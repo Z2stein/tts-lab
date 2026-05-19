@@ -531,7 +531,7 @@ test('audiobook studio edits a script preview turn without freezing the app', as
   await page.locator('#cast-section').getByRole('button', { name: 'Find Speech Segments' }).click();
 
   await page.getByTestId('script-turn-edit-0').click();
-  await expect(page.getByLabel('Speaker')).toBeVisible();
+  await expect(page.getByTestId('script-section').getByLabel('Speaker')).toBeVisible();
   await expect(page.locator('#script-text-0')).toBeVisible();
 
   await page.locator('#script-text-0').fill('The last train had already left, and the station clock was wrong.');

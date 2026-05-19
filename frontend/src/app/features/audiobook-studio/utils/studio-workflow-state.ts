@@ -14,7 +14,6 @@ export interface StudioWorkflowState {
 }
 
 export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
-  const storyAdded = state.storyText.trim().length > 0;
   const castDetected = state.castCount > 0;
   const scriptReady = state.scriptTurnCount > 0;
   const performanceReady = state.performanceReady && !state.performanceNotesStale;
@@ -35,8 +34,10 @@ export function buildWorkflowSteps(state: StudioWorkflowState): WorkflowStep[] {
       key: 'cast',
       label: 'Cast',
       sectionId: 'cast-section',
-      status: !storyAdded ? 'locked' : state.castReviewed ? 'completed' : castDetected ? 'warning' : 'current',
-      statusLabel: !storyAdded ? 'Locked' : state.castReviewed ? 'Cast approved' : castDetected ? 'Cast needs review' : 'Find characters'
+      // Stays muted until characters are detected, so only the story step is
+      // active while the user is still adding/generating the story.
+      status: state.castReviewed ? 'completed' : castDetected ? 'warning' : 'locked',
+      statusLabel: state.castReviewed ? 'Cast approved' : castDetected ? 'Cast needs review' : 'Find characters'
     },
     {
       key: 'script',

@@ -73,24 +73,51 @@ describe('WorkflowStepperComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).toBeNull();
   });
 
-  it('does not open the popover on hover (click only on desktop)', () => {
+  it('opens the popover on hover (desktop)', () => {
     const buttons = stepButtons();
     buttons[3].dispatchEvent(new MouseEvent('mouseenter'));
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).toBeNull();
-  });
-
-  it('keeps the popover open so the Jump action stays clickable', () => {
-    const buttons = stepButtons();
-    buttons[2].click();
-    fixture.detectChanges();
     const popover = fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]');
     expect(popover).not.toBeNull();
-    // Moving the pointer toward the popover/jump button must not dismiss it
-    buttons[2].dispatchEvent(new MouseEvent('mouseleave'));
-    popover.dispatchEvent(new MouseEvent('mouseenter'));
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).not.toBeNull();
+    expect(popover.textContent).toContain('Performance');
+  });
+
+  it('keeps the popover open while moving the pointer from step into the popover', () => {
+    jasmine.clock().install();
+    try {
+      const buttons = stepButtons();
+      buttons[2].dispatchEvent(new MouseEvent('mouseenter'));
+      fixture.detectChanges();
+      const popover = fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]');
+      expect(popover).not.toBeNull();
+
+      // Leaving the step schedules a delayed close; entering the popover before
+      // the delay elapses must cancel it so "Jump to step" stays clickable.
+      buttons[2].dispatchEvent(new MouseEvent('mouseleave'));
+      popover.dispatchEvent(new MouseEvent('mouseenter'));
+      jasmine.clock().tick(400);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).not.toBeNull();
+    } finally {
+      jasmine.clock().uninstall();
+    }
+  });
+
+  it('closes the popover shortly after the pointer leaves without entering it', () => {
+    jasmine.clock().install();
+    try {
+      const buttons = stepButtons();
+      buttons[2].dispatchEvent(new MouseEvent('mouseenter'));
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).not.toBeNull();
+
+      buttons[2].dispatchEvent(new MouseEvent('mouseleave'));
+      jasmine.clock().tick(400);
+      fixture.detectChanges();
+      expect(fixture.nativeElement.querySelector('[data-testid="workflow-stepper-popover"]')).toBeNull();
+    } finally {
+      jasmine.clock().uninstall();
+    }
   });
 
   it('right-aligns the last step popover so it is not clipped', () => {

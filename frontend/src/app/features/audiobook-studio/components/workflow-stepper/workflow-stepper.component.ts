@@ -49,6 +49,7 @@ export class WorkflowStepperComponent implements AfterViewInit, OnDestroy {
   activeDetailKey: WorkflowStepKey | null = null;
 
   private sentinelObserver: IntersectionObserver | null = null;
+  private closeTimer: ReturnType<typeof setTimeout> | null = null;
   private mobileMq: MediaQueryList | null = null;
   private readonly mobileMqHandler = (e: MediaQueryListEvent): void => {
     this.ngZone.run(() => {
@@ -78,6 +79,7 @@ export class WorkflowStepperComponent implements AfterViewInit, OnDestroy {
   ngOnDestroy(): void {
     this.sentinelObserver?.disconnect();
     this.mobileMq?.removeEventListener('change', this.mobileMqHandler);
+    this.clearCloseTimer();
   }
 
   get views(): StepperStepView[] {
@@ -116,11 +118,49 @@ export class WorkflowStepperComponent implements AfterViewInit, OnDestroy {
   }
 
   toggleDetail(key: WorkflowStepKey): void {
+    this.clearCloseTimer();
     this.activeDetailKey = this.activeDetailKey === key ? null : key;
   }
 
+  /** Desktop hover-open: keep the detail pinned while the pointer is over the
+   *  step or its popover. */
+  openOnHover(key: WorkflowStepKey): void {
+    if (this.isMobile) {
+      return;
+    }
+    this.clearCloseTimer();
+    this.activeDetailKey = key;
+  }
+
+  /** Desktop hover-out: delay the close so the pointer can travel across the
+   *  small gap into the popover (so "Jump to step" stays clickable). */
+  scheduleClose(): void {
+    if (this.isMobile) {
+      return;
+    }
+    this.clearCloseTimer();
+    this.closeTimer = setTimeout(() => {
+      this.ngZone.run(() => {
+        this.activeDetailKey = null;
+        this.closeTimer = null;
+      });
+    }, 220);
+  }
+
+  cancelScheduledClose(): void {
+    this.clearCloseTimer();
+  }
+
   closeDetail(): void {
+    this.clearCloseTimer();
     this.activeDetailKey = null;
+  }
+
+  private clearCloseTimer(): void {
+    if (this.closeTimer !== null) {
+      clearTimeout(this.closeTimer);
+      this.closeTimer = null;
+    }
   }
 
   jumpToStep(view: StepperStepView, event?: Event): void {
