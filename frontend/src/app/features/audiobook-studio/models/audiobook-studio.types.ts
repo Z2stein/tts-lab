@@ -22,14 +22,6 @@ export interface HeroCastMember {
   imageUrl?: string;
 }
 
-export interface JourneyStep {
-  icon: string;
-  title: string;
-  description: string;
-  sectionId: string;
-  stepIcon: string;
-}
-
 export type WorkflowStepKey = 'story' | 'cast' | 'script' | 'performance' | 'audio';
 export type WorkflowStepStatus = 'completed' | 'current' | 'warning' | 'locked' | 'upcoming';
 export type RenderRequestStatus = 'not-generated' | 'generating' | 'generated' | 'failed' | 'canceled' | 'timed-out';
@@ -41,6 +33,12 @@ export interface WorkflowStep {
   sectionId: string;
   status: WorkflowStepStatus;
   statusLabel: string;
+}
+
+export interface WorkflowStepperContent {
+  number: number;
+  title: string;
+  description: string;
 }
 
 export interface CurrentTask {

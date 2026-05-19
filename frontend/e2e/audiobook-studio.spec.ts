@@ -85,27 +85,24 @@ test('audiobook studio renders icon badges in the hero preview cards', async ({ 
   await expect(page.locator('section[data-testid="studio-hero"] article').filter({ hasText: 'Detected cast' }).locator('svg')).toBeVisible();
 });
 
-test('audiobook studio keeps journey step icons beside the copy on mobile widths', async ({ context, page }) => {
+test('audiobook studio shows a compact mobile workflow stepper with a tappable bottom sheet', async ({ context, page }) => {
   await authenticate(context, page);
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.goto('/audiobook-studio');
 
-  const journeyTitle = page.getByRole('heading', { name: 'From plain text to performed story' });
-  const card = page.getByTestId('journey-card').first();
-  const icon = card.locator('.journey-step-icon');
-  const title = card.locator('h3');
+  const stepper = page.getByTestId('workflow-stepper');
+  await expect(stepper).toBeVisible();
+  await expect(page.getByTestId('workflow-stepper-step')).toHaveCount(5);
 
-  await expect(journeyTitle).toBeVisible();
-  await expect(card).toBeVisible();
-  await expect(icon).toBeVisible();
-  await expect(title).toBeVisible();
+  await page.getByTestId('workflow-stepper-step').first().click();
 
-  const [iconBox, titleBox] = await Promise.all([icon.boundingBox(), title.boundingBox()]);
-  expect(iconBox).not.toBeNull();
-  expect(titleBox).not.toBeNull();
-  expect(Math.abs((iconBox!.y ?? 0) - (titleBox!.y ?? 0))).toBeLessThan(14);
-  expect(titleBox!.x).toBeGreaterThan((iconBox!.x ?? 0) + (iconBox!.width ?? 0) * 0.5);
+  const sheet = page.getByTestId('workflow-stepper-sheet');
+  await expect(sheet).toBeVisible();
+  await expect(sheet.getByRole('button', { name: /Jump to step/ })).toBeVisible();
+
+  await page.getByTestId('workflow-stepper-sheet-close').click();
+  await expect(sheet).toHaveCount(0);
 });
 
 test('audiobook studio shows cast cards after story analysis succeeds', async ({ context, page }) => {
@@ -420,7 +417,7 @@ test('audiobook studio keeps performance notes stale after reloading an edited s
   await expect(page.locator('#performance-section').getByRole('button', { name: 'Next: Prepare audiobook' })).toBeDisabled();
 });
 
-test('audiobook studio resume route keeps a single studio shell and renders styled journey and workflow sections', async ({ context, page }) => {
+test('audiobook studio resume route keeps a single studio shell and renders the compact workflow stepper', async ({ context, page }) => {
   await authenticate(context, page);
   await mockWorkflowSnapshot(page);
 
@@ -428,25 +425,25 @@ test('audiobook studio resume route keeps a single studio shell and renders styl
 
   await expect(page.locator('.studio')).toHaveCount(1);
   await expect(page.getByTestId('studio-hero')).toHaveCount(0);
-  await expect(page.getByTestId('journey-grid')).toBeVisible();
-  await expect(page.getByTestId('journey-card')).toHaveCount(5);
-  await expect(page.getByTestId('workflow-progress')).toBeVisible();
-  await expect(page.getByTestId('workflow-step')).toHaveCount(5);
+  await expect(page.getByTestId('workflow-stepper')).toBeVisible();
+  await expect(page.getByTestId('workflow-stepper-step')).toHaveCount(5);
+  await expect(page.getByTestId('journey-grid')).toHaveCount(0);
+  await expect(page.getByTestId('workflow-progress')).toHaveCount(0);
   await expect(page.getByTestId('current-task')).toBeVisible();
   await expect(page.getByTestId('current-task')).toContainText('Choose your voices');
 });
 
-test('audiobook studio keeps the workflow progress bar sticky while scrolling through the workflow', async ({ context, page }) => {
+test('audiobook studio keeps the workflow stepper sticky while scrolling through the workflow', async ({ context, page }) => {
   await authenticate(context, page);
   await mockWorkflowSnapshot(page);
 
   await page.goto(`/audiobook-studio/${testProjectId}`);
 
-  const workflowProgress = page.getByTestId('workflow-progress');
+  const workflowStepper = page.getByTestId('workflow-stepper');
   const currentTask = page.getByTestId('current-task');
   const audioSection = page.getByTestId('audio-section');
 
-  const beforeScroll = await workflowProgress.boundingBox();
+  const beforeScroll = await workflowStepper.boundingBox();
   expect(beforeScroll?.y ?? 0).toBeGreaterThan(0);
 
   const audioSectionTop = await audioSection.evaluate((element) => element.getBoundingClientRect().top + window.scrollY);
@@ -455,9 +452,9 @@ test('audiobook studio keeps the workflow progress bar sticky while scrolling th
   }, audioSectionTop);
   await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
 
-  await expect(workflowProgress).toBeVisible();
+  await expect(workflowStepper).toBeVisible();
 
-  const afterScroll = await workflowProgress.boundingBox();
+  const afterScroll = await workflowStepper.boundingBox();
   const afterTask = await currentTask.boundingBox();
   expect(afterScroll?.y ?? 0).toBeGreaterThanOrEqual(8);
   expect(afterScroll?.y ?? 0).toBeLessThanOrEqual(48);
