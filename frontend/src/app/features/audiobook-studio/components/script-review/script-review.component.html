@@ -33,7 +33,7 @@
   placeholder="e.g. use only calm and serious tags"
 ></app-ai-hint-panel>
 
-<button type="button" class="primary-button" (click)="approveScript.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || scriptApproved">
+<button type="button" class="primary-button" (click)="approveScript.emit()" [disabled]="loadingAction !== null || scriptTurns.length === 0 || performanceReady">
   Identify Emotions
 </button>
 

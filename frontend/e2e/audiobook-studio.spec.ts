@@ -405,6 +405,22 @@ test('audiobook studio generates the final preview after the workflow reaches au
   await expect(page.getByRole('alert')).toHaveCount(0);
 });
 
+test('audiobook studio keeps Identify Emotions actionable after reloading a script-approved project', async ({ context, page }) => {
+  await authenticate(context, page);
+  await mockWorkflowSnapshot(page, 'script-approved');
+
+  await page.goto(`/audiobook-studio/${testProjectId}`);
+
+  // Step 3 auto-collapses because the script is approved; expand it.
+  await page.locator('#script-section').getByRole('button', { name: /Review script/ }).click();
+
+  // Emotion annotation has not run yet (no annotated turns), so the action must
+  // stay enabled even though the script is already approved.
+  await expect(
+    page.locator('#script-section').getByRole('button', { name: 'Identify Emotions' })
+  ).toBeEnabled();
+});
+
 test('audiobook studio keeps performance notes stale after reloading an edited script', async ({ context, page }) => {
   await authenticate(context, page);
   await mockWorkflowSnapshot(page, 'script-approved-stale');

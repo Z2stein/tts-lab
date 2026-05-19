@@ -17,6 +17,10 @@ export class ScriptReviewComponent implements OnChanges {
   @Input() scriptTurns: SpeakerSplitTurn[] = [];
   @Input() scriptGroups: ScriptGroup[] = [];
   @Input() scriptApproved = false;
+  /** True once emotion annotation has produced performance notes. The
+   *  "Identify Emotions" action stays available while this is false even if the
+   *  script is already approved (e.g. a project reloaded at SCRIPT_APPROVED). */
+  @Input() performanceReady = false;
   @Input() isCompleted = false;
   @Input() editingScriptTurnIndex: number | null = null;
   @Input() scriptTurnEditDraft: SpeakerSplitTurn | null = null;
