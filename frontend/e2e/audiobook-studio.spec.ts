@@ -716,6 +716,8 @@ test('autopilot runs the full workflow and produces a playable preview', async (
 
   await expect(page.getByTestId('autopilot-step-generate-preview')).toHaveAttribute('data-status', 'completed', { timeout: 30000 });
   await expect(page.getByTestId('autopilot-step-analyze-story')).toHaveAttribute('data-status', 'completed');
+  // Autopilot reflects the audiobook URL in place (no route reload) once the project exists.
+  await expect(page).toHaveURL(new RegExp(`/audiobook-studio/${testProjectId}`));
   await expect(page.locator('[data-testid="autopilot-progress"] .generated-audio-player')).toBeVisible();
   await expect(page.getByTestId('autopilot-download-button')).toBeVisible();
   // Guided workflow still inspectable with the generated data.

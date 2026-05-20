@@ -141,15 +141,19 @@ describe('AudiobookStudioWorkspaceComponent — Autopilot', () => {
     expect(workflow.approveScript).toHaveBeenCalled();
   });
 
-  it('does not navigate away (no projectCreated emit) while Autopilot runs', async () => {
-    const emitted: string[] = [];
-    component.projectCreated.subscribe((id) => emitted.push(id));
+  it('reflects the audiobook URL without a full navigation while Autopilot runs', async () => {
+    const navigated: string[] = [];
+    const linked: string[] = [];
+    component.projectCreated.subscribe((id) => navigated.push(id));
+    component.autopilotProjectCreated.subscribe((id) => linked.push(id));
     component.setStudioMode('autopilot');
     component.storyTextControl.setValue('Mara: We go now and find the hidden signal together.');
 
     await component.startAutopilot();
 
-    expect(emitted).toEqual([]);
+    // No full route navigation (projectCreated), just the in-place URL update.
+    expect(navigated).toEqual([]);
+    expect(linked).toEqual(['project-1']);
   });
 
   it('stops on a failed step and falls back to the guided workflow with data preserved', async () => {

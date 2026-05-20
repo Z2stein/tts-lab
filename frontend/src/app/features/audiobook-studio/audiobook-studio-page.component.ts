@@ -118,6 +118,9 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   @Input() snapshot: AudiobookWorkflowSnapshotResponse | null = null;
   @Input() scrollToSectionAfterLoad: string | null = null;
   @Output() projectCreated = new EventEmitter<string>();
+  // Emitted when Autopilot creates the project. The host updates the URL to the
+  // audiobook link in place (no route reload) so the in-page run continues.
+  @Output() autopilotProjectCreated = new EventEmitter<string>();
 
   private pendingScrollToSection: string | null = null;
 
@@ -321,10 +324,14 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     this.projectTitleEditing = false;
     this.lastKnownProjectId = this.facade.currentProjectId();
     const projectId = this.facade.currentProjectId();
-    // While Autopilot is running we must stay in this component instance so the
-    // in-memory run survives; navigating to the project route would reload it.
-    if (projectId && !this.autopilotActive) {
-      this.projectCreated.emit(projectId);
+    if (projectId) {
+      if (this.autopilotActive) {
+        // Update the URL to the audiobook link without a full route reload, so
+        // the in-page Autopilot run keeps going (and a reload resumes the project).
+        this.autopilotProjectCreated.emit(projectId);
+      } else {
+        this.projectCreated.emit(projectId);
+      }
     }
     if (this.facade.cast().length > 0) {
       void this.liveAnnouncer.announce(`Found ${this.facade.cast().length} characters`, 'polite');
