@@ -72,6 +72,15 @@ public class TtsAudioCreationService {
         try {
             return googleTtsClient.synthesize(project,targetSegmentIndex);
         } catch (TtsAudioCreationException ex) {
+            if (ex.inputTooLarge()) {
+                throw new ApiException(
+                    HttpStatus.BAD_REQUEST,
+                    "TTS_INPUT_TOO_LARGE",
+                    "The text is too long for the speech provider. Please shorten the segment and try again.",
+                    null,
+                    ex
+                );
+            }
             throw new ApiException(
                 HttpStatus.BAD_GATEWAY,
                 "TTS_AUDIO_PROVIDER_UNAVAILABLE",
