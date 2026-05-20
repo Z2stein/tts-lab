@@ -8,9 +8,10 @@ import com.google.auth.oauth2.GoogleCredentials;
 import com.google.cloud.texttospeech.v1.*;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Base64;
-import java.util.Map;
+import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,6 +22,10 @@ import org.springframework.stereotype.Component;
 @Component
 public class GoogleCloudTtsClient implements GoogleTtsClient {
     private static final Logger log = LoggerFactory.getLogger(GoogleCloudTtsClient.class);
+
+    // Google rejects requests above 4000 UTF-8 bytes; stay below that with a safety margin.
+    private static final int MAX_INPUT_BYTES = 3800;
+
     private final String serviceAccountJsonBase64;
 
     @Autowired
@@ -37,24 +42,58 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
     @Override
     public byte[] synthesize(AudiobookProject project, int targetSegmentIndex) {
         try (TextToSpeechClient client = TextToSpeechClient.create(settings())) {
-            SynthesizeSpeechRequest synthesizeSpeechRequest = SynthesizeSpeechRequest.newBuilder()
-                    .setInput(parseToGoogleInput(project.getSpeechSegments().get(targetSegmentIndex)))
-                    .setVoice(parseToGoogleVoice(project,targetSegmentIndex))
-                    .setAudioConfig(parseToGoogleAudioConfig(project))
-                    .build();
+            AudiobookSpeechSegment segment = project.getSpeechSegments().get(targetSegmentIndex);
+            VoiceSelectionParams voice = parseToGoogleVoice(project, targetSegmentIndex);
+            AudioConfig audioConfig = parseToGoogleAudioConfig(project);
+            List<String> chunks = TtsTextChunker.chunkByUtf8Bytes(segment.getStyledText(), MAX_INPUT_BYTES);
 
-            log.debug("sending Request to Google:" +synthesizeSpeechRequest.toString());
+            ByteArrayOutputStream audio = new ByteArrayOutputStream();
+            for (String chunk : chunks) {
+                SynthesizeSpeechRequest synthesizeSpeechRequest = SynthesizeSpeechRequest.newBuilder()
+                        .setInput(SynthesisInput.newBuilder().setText(chunk).build())
+                        .setVoice(voice)
+                        .setAudioConfig(audioConfig)
+                        .build();
 
-            SynthesizeSpeechResponse response = client.synthesizeSpeech(synthesizeSpeechRequest);
+                log.debug("sending Request to Google:" + synthesizeSpeechRequest.toString());
 
-            return response.getAudioContent().toByteArray();
+                SynthesizeSpeechResponse response = client.synthesizeSpeech(synthesizeSpeechRequest);
+                audio.writeBytes(response.getAudioContent().toByteArray());
+            }
+
+            return audio.toByteArray();
         } catch (TtsAudioCreationException ex) {
             throw ex;
         } catch (IOException ex) {
-            throw new TtsAudioCreationException("Google Cloud Text-to-Speech client failed", ex, false);
+            throw new TtsAudioCreationException("Google Cloud Text-to-Speech client failed", ex, TtsAudioCreationException.Kind.PROVIDER);
         } catch (RuntimeException ex) {
-            throw new TtsAudioCreationException("Google Cloud Text-to-Speech project failed", ex, false);
+            throw mapProviderException(ex);
         }
+    }
+
+    private TtsAudioCreationException mapProviderException(RuntimeException ex) {
+        if (isInputTooLarge(ex)) {
+            return new TtsAudioCreationException(
+                "Google Cloud Text-to-Speech input exceeds the provider size limit",
+                ex,
+                TtsAudioCreationException.Kind.INPUT_TOO_LARGE
+            );
+        }
+        return new TtsAudioCreationException(
+            "Google Cloud Text-to-Speech project failed",
+            ex,
+            TtsAudioCreationException.Kind.PROVIDER
+        );
+    }
+
+    private static boolean isInputTooLarge(Throwable ex) {
+        for (Throwable current = ex; current != null && current != current.getCause(); current = current.getCause()) {
+            String message = current.getMessage();
+            if (message != null && message.toLowerCase().contains("longer than the limit")) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private TextToSpeechSettings settings() throws IOException {
@@ -65,24 +104,17 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
 
     private GoogleCredentials credentials() {
         if (serviceAccountJsonBase64.isBlank()) {
-            throw new TtsAudioCreationException("Google Cloud Text-to-Speech credentials are not configured", null, true);
+            throw new TtsAudioCreationException("Google Cloud Text-to-Speech credentials are not configured", null, TtsAudioCreationException.Kind.CONFIGURATION);
         }
 
         try {
             byte[] serviceAccountJson = Base64.getDecoder().decode(serviceAccountJsonBase64);
             return GoogleCredentials.fromStream(new ByteArrayInputStream(serviceAccountJson));
         } catch (IllegalArgumentException ex) {
-            throw new TtsAudioCreationException("Google Cloud Text-to-Speech credentials are not valid Base64", ex, true);
+            throw new TtsAudioCreationException("Google Cloud Text-to-Speech credentials are not valid Base64", ex, TtsAudioCreationException.Kind.CONFIGURATION);
         } catch (IOException ex) {
-            throw new TtsAudioCreationException("Google Cloud Text-to-Speech credentials are not valid service account JSON", ex, true);
+            throw new TtsAudioCreationException("Google Cloud Text-to-Speech credentials are not valid service account JSON", ex, TtsAudioCreationException.Kind.CONFIGURATION);
         }
-    }
-
-    private SynthesisInput parseToGoogleInput(AudiobookSpeechSegment speechSegment) {
-        log.debug("speechSegment:" + speechSegment.toString());
-        return SynthesisInput.newBuilder()
-            .setText(speechSegment.getStyledText())
-            .build();
     }
 
     private VoiceSelectionParams parseToGoogleVoice( AudiobookProject project, int targetSegmentIndex) {
@@ -100,14 +132,6 @@ public class GoogleCloudTtsClient implements GoogleTtsClient {
         return AudioConfig.newBuilder()
             .setAudioEncoding(encoding.isBlank() ? AudioEncoding.MP3 : AudioEncoding.valueOf(encoding))
             .build();
-    }
-
-    private String stringValue(Map<String, Object> map, String key) {
-        if (map == null) {
-            return "";
-        }
-        Object value = map.get(key);
-        return value == null ? "" : value.toString();
     }
 }
 

@@ -22,6 +22,10 @@ import { StudioHeroComponent } from './components/studio-hero/studio-hero.compon
 import { CurrentTaskPanelComponent } from './components/current-task-panel/current-task-panel.component';
 import { WaveformPlayerComponent } from './components/waveform-player/waveform-player.component';
 import { WorkflowStepperComponent } from './components/workflow-stepper/workflow-stepper.component';
+import { AutopilotModeToggleComponent, StudioMode } from './components/autopilot/autopilot-mode-toggle.component';
+import { AutopilotSetupCardComponent } from './components/autopilot/autopilot-setup-card.component';
+import { AutopilotProgressCardComponent } from './components/autopilot/autopilot-progress-card.component';
+import { AutopilotService, AutopilotStepId } from './services/autopilot.service';
 import {
   HERO_CAST,
   LANGUAGE_CODE_OPTIONS,
@@ -72,6 +76,9 @@ export { formatSpeakerDisplayName };
     CurrentTaskPanelComponent,
     VoicePickerModalComponent,
     AiGenerationOverlayComponent,
+    AutopilotModeToggleComponent,
+    AutopilotSetupCardComponent,
+    AutopilotProgressCardComponent,
   ],
   providers: [
     AudiobookStudioFacade,
@@ -80,6 +87,7 @@ export { formatSpeakerDisplayName };
     RenderRequestAudioService,
     FullAudioGenerationService,
     ScrollService,
+    AutopilotService,
   ],
   templateUrl: './audiobook-studio-page.component.html'
 })
@@ -110,8 +118,21 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   @Input() snapshot: AudiobookWorkflowSnapshotResponse | null = null;
   @Input() scrollToSectionAfterLoad: string | null = null;
   @Output() projectCreated = new EventEmitter<string>();
+  // Emitted when Autopilot creates the project. The host updates the URL to the
+  // audiobook link in place (no route reload) so the in-page run continues.
+  @Output() autopilotProjectCreated = new EventEmitter<string>();
 
   private pendingScrollToSection: string | null = null;
+
+  readonly studioMode = signal<StudioMode>('autopilot');
+  // Resume page opens an in-progress project directly in the detailed Guided
+  // view; new sessions (landing) keep the Autopilot default.
+  @Input() set initialMode(mode: StudioMode) { this.studioMode.set(mode); }
+  private autopilotActive = false;
+
+  get autopilotSteps() { return this.autopilot.steps(); }
+  get autopilotRunning(): boolean { return this.autopilot.running(); }
+  get autopilotFinished(): boolean { return this.autopilot.finished(); }
 
   // ── Facade state proxies (spec reads/writes these directly) ───────────────
 
@@ -189,6 +210,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     private readonly scrollService: ScrollService,
     private readonly liveAnnouncer: LiveAnnouncer,
     private readonly errorBannerService: AppErrorBannerService,
+    private readonly autopilot: AutopilotService,
   ) {
     effect(() => {
       const error = this.facade.error();
@@ -303,7 +325,13 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     this.lastKnownProjectId = this.facade.currentProjectId();
     const projectId = this.facade.currentProjectId();
     if (projectId) {
-      this.projectCreated.emit(projectId);
+      if (this.autopilotActive) {
+        // Update the URL to the audiobook link without a full route reload, so
+        // the in-page Autopilot run keeps going (and a reload resumes the project).
+        this.autopilotProjectCreated.emit(projectId);
+      } else {
+        this.projectCreated.emit(projectId);
+      }
     }
     if (this.facade.cast().length > 0) {
       void this.liveAnnouncer.announce(`Found ${this.facade.cast().length} characters`, 'polite');
@@ -486,6 +514,85 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   startScriptTurnEdit(index: number): void { this.facade.startScriptTurnEdit(index); }
   async saveScriptTurnEdit(index: number): Promise<void> { await this.facade.saveScriptTurnEdit(index); }
   cancelScriptTurnEdit(): void { this.facade.cancelScriptTurnEdit(); }
+
+  // ── Autopilot orchestration ───────────────────────────────────────────────
+
+  setStudioMode(mode: StudioMode): void {
+    this.studioMode.set(mode);
+  }
+
+  openInGuidedWorkflow(): void {
+    const section = this.autopilot.guidedSectionForFailedStep();
+    this.studioMode.set('guided');
+    setTimeout(() => this.scrollService.scrollTo(section), 50);
+  }
+
+  // Clicking a progress step jumps into the Guided workflow at that step.
+  openGuidedStep(stepId: AutopilotStepId): void {
+    const section = this.autopilot.guidedSectionForStep(stepId);
+    this.studioMode.set('guided');
+    setTimeout(() => this.scrollService.scrollTo(section), 50);
+  }
+
+  async startAutopilot(): Promise<void> {
+    this.autopilot.reset();
+    setTimeout(() => this.scrollService.scrollTo('autopilot-progress'), 50);
+    await this.runAutopilotFrom('analyze-story');
+  }
+
+  async retryAutopilot(): Promise<void> {
+    const failed = this.autopilot.firstFailedStepId();
+    if (failed) {
+      await this.runAutopilotFrom(failed);
+    }
+  }
+
+  private async runAutopilotFrom(startId: AutopilotStepId): Promise<void> {
+    this.autopilotActive = true;
+    this.autopilot.setRunning(true);
+    try {
+      const order = this.autopilot.stepOrder;
+      for (let i = order.indexOf(startId); i < order.length; i++) {
+        const id = order[i];
+        this.autopilot.markRunning(id);
+        const ok = await this.runAutopilotStep(id);
+        if (!ok) {
+          this.autopilot.markFailed(id, this.error ?? 'This step could not be completed.');
+          return;
+        }
+        this.autopilot.markCompleted(id);
+      }
+      this.autopilot.markFinished();
+    } finally {
+      this.autopilotActive = false;
+    }
+  }
+
+  private async runAutopilotStep(id: AutopilotStepId): Promise<boolean> {
+    switch (id) {
+      case 'analyze-story':
+        await this.analyzeStory();
+        return !this.error && this.cast.length > 0;
+      case 'detect-cast':
+        return !this.error && this.cast.length > 0;
+      case 'assign-voices':
+        await this.approveCast();
+        return !this.error && this.castReviewed;
+      case 'split-script':
+        await this.createScriptPreview();
+        if (this.error || this.scriptTurns.length === 0) return false;
+        await this.approveScript();
+        return !this.error && this.scriptApproved;
+      case 'add-emotion':
+        await this.createPerformanceNotes();
+        return !this.error && this.performanceReady;
+      case 'generate-preview':
+        await this.createAudioProductionPlan();
+        if (this.error || !this.audioProductionPlan) return false;
+        await this.generateAudio();
+        return !this.error && this.fullPlanAudioUrl !== null;
+    }
+  }
 
   // ── Presentation helpers ──────────────────────────────────────────────────
 

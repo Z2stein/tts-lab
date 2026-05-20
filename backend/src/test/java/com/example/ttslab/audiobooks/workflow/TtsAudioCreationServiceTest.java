@@ -15,6 +15,7 @@ import java.util.Map;
 import com.example.ttslab.audiobooks.workflow.service.TtsAudioCreationService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.ObjectProvider;
+import org.springframework.http.HttpStatus;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -58,6 +59,34 @@ class TtsAudioCreationServiceTest {
         assertEquals("audio/mpeg", audioFile.contentType());
         assertArrayEquals(mp3, audioFile.content());
         verify(googleTtsClient).synthesize(project, 0);
+    }
+
+    @Test
+    void inputTooLargeIsMappedToValidationErrorNotProviderOutage() {
+        GoogleTtsClient googleTtsClient = mock(GoogleTtsClient.class);
+        when(googleTtsClient.synthesize(any(AudiobookProject.class), anyInt()))
+            .thenThrow(new TtsAudioCreationException("too large", null, TtsAudioCreationException.Kind.INPUT_TOO_LARGE));
+        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "gemini");
+        AudiobookProject project = mockProjectWithSegment("Very long text");
+
+        ApiException exception = assertThrows(ApiException.class, () -> service.createAudio(project, 0));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.status());
+        assertEquals("TTS_INPUT_TOO_LARGE", exception.code());
+    }
+
+    @Test
+    void providerFailureIsStillMappedToProviderUnavailable() {
+        GoogleTtsClient googleTtsClient = mock(GoogleTtsClient.class);
+        when(googleTtsClient.synthesize(any(AudiobookProject.class), anyInt()))
+            .thenThrow(new TtsAudioCreationException("boom", null, TtsAudioCreationException.Kind.PROVIDER));
+        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "gemini");
+        AudiobookProject project = mockProjectWithSegment("Some text");
+
+        ApiException exception = assertThrows(ApiException.class, () -> service.createAudio(project, 0));
+
+        assertEquals(HttpStatus.BAD_GATEWAY, exception.status());
+        assertEquals("TTS_AUDIO_PROVIDER_UNAVAILABLE", exception.code());
     }
 
     @Test

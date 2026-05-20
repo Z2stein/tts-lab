@@ -1,0 +1,67 @@
+<section class="glow-card" data-testid="autopilot-setup" aria-labelledby="autopilot-setup-title">
+  <header>
+    <span class="task-label">Autopilot mode</span>
+    <h2 id="autopilot-setup-title" class="mb-2 mt-1.5 text-2xl leading-tight text-studio-text">
+      Let TTS Lab turn your story into a ready-to-listen audiobook preview.
+    </h2>
+    <p class="m-0 leading-relaxed text-studio-muted">
+      We'll analyze your script, build the cast, assign voices, add emotion &amp; pacing, and generate a full preview — all automatically.
+    </p>
+  </header>
+
+  <div role="tablist" class="mt-5 flex gap-1 border-b border-[rgba(195,204,255,0.16)]" aria-label="Story source">
+    <button
+      role="tab"
+      type="button"
+      data-testid="autopilot-tab-paste"
+      class="rounded-t-lg border-b-2 px-4 py-2 text-[0.9rem] font-bold transition-colors"
+      [ngClass]="activeTab() === 'paste' ? 'border-studio-accent text-studio-accent' : 'border-transparent text-studio-muted'"
+      [attr.aria-selected]="activeTab() === 'paste'"
+      (click)="activeTab.set('paste')"
+    >
+      Paste story
+    </button>
+    <button
+      role="tab"
+      type="button"
+      data-testid="autopilot-tab-generate"
+      class="rounded-t-lg border-b-2 px-4 py-2 text-[0.9rem] font-bold transition-colors"
+      [ngClass]="activeTab() === 'generate' ? 'border-studio-accent text-studio-accent' : 'border-transparent text-studio-muted'"
+      [attr.aria-selected]="activeTab() === 'generate'"
+      (click)="activeTab.set('generate')"
+    >
+      Generate from idea ✨
+    </button>
+  </div>
+
+  <ng-container *ngIf="activeTab() === 'paste'">
+    <label class="mb-2 mt-4 block font-extrabold text-studio-text" for="autopilot-story-text">Your story</label>
+    <textarea
+      id="autopilot-story-text"
+      class="form-control min-h-32 resize-y"
+      rows="6"
+      placeholder="Paste your story here…"
+      [formControl]="storyControl"
+      data-testid="autopilot-story-input"
+    ></textarea>
+    <p class="mb-0 mt-1.5 text-sm text-studio-muted">{{ characterCount }} characters</p>
+  </ng-container>
+
+  <div *ngIf="activeTab() === 'generate'" class="mt-4">
+    <app-story-generator
+      [disabled]="running"
+      (storyGenerated)="onStoryGenerated($event)"
+    ></app-story-generator>
+  </div>
+
+  <button
+    type="button"
+    class="primary-button glow-cta mt-6 w-full disabled:cursor-not-allowed"
+    data-testid="start-autopilot-button"
+    [disabled]="!canStart"
+    (click)="onStart()"
+  >
+    {{ running ? 'Autopilot running…' : '▶ Start autopilot' }}
+  </button>
+  <p class="mb-0 mt-3 text-center text-sm text-studio-muted">Estimated time: 2–6 minutes for a standard chapter</p>
+</section>

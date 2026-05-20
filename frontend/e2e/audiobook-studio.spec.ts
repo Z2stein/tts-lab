@@ -58,7 +58,17 @@ async function mockWorkflowSnapshot(
   });
 }
 
+// New sessions land in Autopilot mode, so guided-workflow tests must switch
+// to the Guided view first.
+async function ensureGuided(page: Page): Promise<void> {
+  const guided = page.getByTestId('studio-mode-guided');
+  if (await guided.count() > 0) {
+    await guided.click();
+  }
+}
+
 async function selectPasteStoryTab(page: Page): Promise<void> {
+  await ensureGuided(page);
   await page.getByTestId('tab-paste').click();
   await expect(page.getByRole('textbox', { name: 'Story text' })).toBeVisible();
 }
@@ -90,6 +100,7 @@ test('audiobook studio shows a compact mobile workflow stepper with a tappable b
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.goto('/audiobook-studio');
+  await ensureGuided(page);
 
   const stepper = page.getByTestId('workflow-stepper');
   await expect(stepper).toBeVisible();
@@ -605,6 +616,155 @@ test('audiobook studio shows structured backend errors without internal details'
   await expect(page.getByText('request-1')).toHaveCount(0);
 });
 
+async function mockAutopilotChain(page: Page): Promise<void> {
+  const castReviewSnapshot = await loadWorkflowSnapshotFixture('cast-review');
+  const castApprovedSnapshot = await loadWorkflowSnapshotFixture('cast-approved');
+  const scriptApprovedSnapshot = await loadWorkflowSnapshotFixture('script-approved');
+  const performanceReadySnapshot = await loadWorkflowSnapshotFixture('performance-ready');
+  const audioGeneratedSnapshot = await loadWorkflowSnapshotFixture('audio-generated');
+  let performanceReady = false;
+
+  await page.route('**/api/audiobooks/workflow/speaker-voice-analysis', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-voice-analysis/cast-analysis/response.json'))
+    });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}`, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(performanceReady ? performanceReadySnapshot : castReviewSnapshot)
+    });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/cast-approval`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(castApprovedSnapshot) });
+  });
+  await page.route('**/api/audiobooks/workflow/speaker-split-analysis', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/speaker-split-analysis/script-preview/response.json'))
+    });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/script-approval`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(scriptApprovedSnapshot) });
+  });
+  await page.route('**/api/audiobooks/workflow/emotion-annotation-analysis', async (route) => {
+    performanceReady = true;
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(performanceReadySnapshot) });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/production-settings`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(performanceReadySnapshot) });
+  });
+  await page.route('**/api/audiobooks/workflow/final-request-preview', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/final-request-preview/default/response.json'))
+    });
+  });
+  await page.route('**/api/audiobooks/workflow/single-speaker-render-plan', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(await loadTestContractJson('audiobook-workflow/single-speaker-render-plan/multi-speaker/response.json'))
+    });
+  });
+  await page.route(/\/api\/audiobooks\/workflow\/create-audio(\?.*)?$/, async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'audio/mpeg',
+      headers: {
+        'Content-Disposition': 'attachment; filename="audiobook-preview-merged.mp3"',
+        'X-Audiobook-Project-Id': testProjectId
+      },
+      body: 'ID3MOCKMP3'
+    });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/audio-generated`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(audioGeneratedSnapshot) });
+  });
+}
+
+test('autopilot is the default view and the guided workflow can be toggled in', async ({ context, page }) => {
+  await authenticate(context, page);
+  await page.goto('/audiobook-studio');
+
+  // Autopilot is the default for new sessions.
+  await expect(page.getByTestId('autopilot-setup')).toBeVisible();
+  await expect(page.getByTestId('story-section')).toHaveCount(0);
+
+  await page.getByTestId('studio-mode-guided').click();
+  await expect(page.getByTestId('story-section')).toBeVisible();
+  await expect(page.getByTestId('autopilot-setup')).toHaveCount(0);
+
+  await page.getByTestId('studio-mode-autopilot').click();
+  await expect(page.getByTestId('autopilot-setup')).toBeVisible();
+  await expect(page.getByTestId('story-section')).toHaveCount(0);
+});
+
+test('autopilot runs the full workflow and produces a playable preview', async ({ context, page }) => {
+  await authenticate(context, page);
+  await mockAutopilotChain(page);
+
+  await page.goto('/audiobook-studio');
+  await page.getByTestId('studio-mode-autopilot').click();
+  await page.getByTestId('autopilot-story-input').fill('Mara: We go now.\nJonas: Together.');
+  await page.getByTestId('start-autopilot-button').click();
+
+  await expect(page.getByTestId('autopilot-step-generate-preview')).toHaveAttribute('data-status', 'completed', { timeout: 30000 });
+  await expect(page.getByTestId('autopilot-step-analyze-story')).toHaveAttribute('data-status', 'completed');
+  // Autopilot reflects the audiobook URL in place (no route reload) once the project exists.
+  await expect(page).toHaveURL(new RegExp(`/audiobook-studio/${testProjectId}`));
+  await expect(page.locator('[data-testid="autopilot-progress"] .generated-audio-player')).toBeVisible();
+  await expect(page.getByTestId('autopilot-download-button')).toBeVisible();
+  // Guided workflow still inspectable with the generated data.
+  await page.getByTestId('studio-mode-guided').click();
+  await expect(page.getByTestId('cast-section')).toBeVisible();
+});
+
+test('autopilot stops on a failed step and offers a guided-workflow fallback', async ({ context, page }) => {
+  await authenticate(context, page);
+  await mockAutopilotChain(page);
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/cast-approval`, async (route) => {
+    await route.fulfill({
+      status: 502,
+      contentType: 'application/json',
+      body: JSON.stringify({ message: 'Voice assignment failed.' })
+    });
+  });
+
+  await page.goto('/audiobook-studio');
+  await page.getByTestId('studio-mode-autopilot').click();
+  await page.getByTestId('autopilot-story-input').fill('Mara: We go now.\nJonas: Together.');
+  await page.getByTestId('start-autopilot-button').click();
+
+  await expect(page.getByTestId('autopilot-step-assign-voices')).toHaveAttribute('data-status', 'failed', { timeout: 30000 });
+  await expect(page.getByTestId('autopilot-error')).toBeVisible();
+
+  await page.getByTestId('open-guided-workflow-button').click();
+  await expect(page.getByTestId('cast-section')).toBeVisible();
+  // Cast detected before the failure is still available in the guided view.
+  await expect(page.locator('#cast-section')).toContainText('Mara');
+});
+
+test('autopilot progress is usable on a narrow mobile viewport', async ({ context, page }) => {
+  await authenticate(context, page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/audiobook-studio');
+
+  await page.getByTestId('studio-mode-autopilot').click();
+  await expect(page.getByTestId('autopilot-setup')).toBeVisible();
+  await expect(page.getByTestId('autopilot-progress')).toBeVisible();
+
+  const overflow = await page.evaluate(() =>
+    document.documentElement.scrollWidth - document.documentElement.clientWidth
+  );
+  expect(overflow).toBeLessThanOrEqual(1);
+});
+
 test('audiobook studio shows saved audio setup and previously generated audio after page reload', async ({ context, page }) => {
   await authenticate(context, page);
   const audioGeneratedSnapshot = await loadWorkflowSnapshotFixture('audio-generated');
@@ -682,12 +842,43 @@ test('audiobook studio generate-from-idea tab fills the story textarea with AI-g
   });
 
   await page.goto('/audiobook-studio');
+  await ensureGuided(page);
   await page.getByTestId('tab-generate').click();
   await page.getByTestId('idea-input').fill('A lonely lighthouse keeper');
   await page.getByTestId('create-story-draft').click();
 
   const storyText = page.getByRole('textbox', { name: 'Story text' });
   await expect(storyText).toHaveValue(/lighthouse/);
+});
+
+test('autopilot generate-from-idea tab fills the story input with AI-generated text', async ({ context, page }) => {
+  await authenticate(context, page);
+
+  const draftResponse = await loadTestContractJson('audiobook-workflow/generate-story-draft/default/response.json');
+  await page.route('**/api/audiobooks/workflow/generate-story-draft', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(draftResponse)
+    });
+  });
+
+  await page.goto('/audiobook-studio');
+  await page.getByTestId('autopilot-tab-generate').click();
+  await page.getByTestId('idea-input').fill('A lonely lighthouse keeper');
+  await page.getByTestId('create-story-draft').click();
+
+  await expect(page.getByTestId('autopilot-story-input')).toHaveValue(/lighthouse/);
+});
+
+test('autopilot clicking a progress step opens that step in the guided workflow', async ({ context, page }) => {
+  await authenticate(context, page);
+  await page.goto('/audiobook-studio');
+
+  await page.getByTestId('autopilot-step-split-script').click();
+
+  await expect(page.getByTestId('script-section')).toBeVisible();
+  await expect(page.getByTestId('autopilot-setup')).toHaveCount(0);
 });
 
 

@@ -759,6 +759,56 @@
     }
   }
 
+  /* Circular gold play button for the waveform player, matching the hero
+     preview control. Shared by every waveform player instance. */
+  .player-button {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(240, 173, 93, 0.4);
+    background: rgba(240, 173, 93, 0.08);
+    color: #ffd591;
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  }
+
+  .player-button:hover {
+    background: rgba(240, 173, 93, 0.16);
+    box-shadow: 0 0 16px rgba(240, 173, 93, 0.35);
+  }
+
+  .player-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(240, 173, 93, 0.6);
+  }
+
+  .player-button.is-playing {
+    background: rgba(240, 173, 93, 0.18);
+    box-shadow: 0 0 14px rgba(240, 173, 93, 0.4);
+  }
+
+  /* Nudge the triangle to look optically centred inside the circle. */
+  .player-button .play-icon {
+    margin-left: 2px;
+  }
+
+  /* Compact label-free preview player (Autopilot): play • waveform • time •
+     download, with the waveform constrained so it never spills past the card. */
+  .ap-preview-player.generated-audio-player {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    overflow: hidden;
+  }
+
+  .ap-preview-player .waveform-canvas {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
   /* Audio parts details section */
   .audio-parts-details {
     border: 1px solid rgba(195, 204, 255, 0.16);
@@ -935,5 +985,446 @@
     font-size: 1.125rem;
     font-weight: 500;
     letter-spacing: 0.025em;
+  }
+
+  /* ── Autopilot premium visual system ──────────────────────────────────────
+     Reusable glow-card surface + step-state styling. One set of classes,
+     consumed by every Autopilot card/step so the look stays consistent and
+     is changed in a single place. */
+
+  @keyframes autopilot-running-pulse {
+    0%, 100% {
+      box-shadow: 0 0 0 1px rgba(240, 173, 93, 0.5), 0 0 18px rgba(240, 173, 93, 0.28);
+    }
+    50% {
+      box-shadow: 0 0 0 1px rgba(240, 173, 93, 0.85), 0 0 26px rgba(240, 173, 93, 0.5);
+    }
+  }
+
+  @keyframes autopilot-sheen {
+    0% { transform: translateX(-120%); }
+    100% { transform: translateX(220%); }
+  }
+
+  /* Premium card surface: dark gradient, glowing border, ambient
+     purple/gold halo, layered depth shadow. */
+  .glow-card {
+    position: relative;
+    border: 1px solid rgba(240, 173, 93, 0.22);
+    border-radius: 1.5rem;
+    background:
+      radial-gradient(120% 90% at 10% 0%, rgba(201, 101, 255, 0.16), transparent 60%),
+      radial-gradient(120% 90% at 100% 100%, rgba(240, 173, 93, 0.14), transparent 58%),
+      linear-gradient(165deg, #1d1726 0%, #161220 55%, #100d16 100%);
+    box-shadow:
+      0 24px 70px rgba(0, 0, 0, 0.55),
+      0 0 36px rgba(201, 101, 255, 0.12),
+      inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(14px);
+    padding: 1.75rem;
+    overflow: hidden;
+  }
+
+  /* Hairline gradient ring that reads as a soft glowing border. */
+  .glow-card::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(140deg, rgba(240, 173, 93, 0.55), rgba(201, 101, 255, 0.35) 45%, transparent 70%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+  }
+
+  /* Warm gold primary CTA with depth + glow + hover lift. Used alongside
+     .primary-button so layout/typography stay shared. */
+  .glow-cta {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(135deg, #ffd591 0%, #f0ad5d 55%, #e8923f 100%);
+    box-shadow: 0 12px 30px rgba(240, 173, 93, 0.35), 0 0 0 1px rgba(255, 213, 145, 0.45);
+    transition: transform 0.15s ease, box-shadow 0.2s ease;
+  }
+
+  .glow-cta:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 16px 38px rgba(240, 173, 93, 0.5), 0 0 0 1px rgba(255, 213, 145, 0.7);
+    background: linear-gradient(135deg, #ffdca3 0%, #f4b86b 55%, #ef9b48 100%);
+  }
+
+  .glow-cta::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 36%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.45), transparent);
+    transform: translateX(-120%);
+    pointer-events: none;
+  }
+
+  .glow-cta:hover:not(:disabled)::after {
+    animation: autopilot-sheen 0.9s ease-out;
+  }
+
+  .glow-cta:disabled {
+    background: linear-gradient(135deg, #6f5a3b, #5a4830);
+    box-shadow: none;
+  }
+
+  .ap-step {
+    position: relative;
+    isolation: isolate;
+
+    display: grid;
+    grid-template-columns: 46px 34px minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: 0.75rem;
+
+    min-height: 72px;
+    padding: 0.75rem 1rem;
+    border-radius: 0.85rem;
+
+    background:
+            radial-gradient(
+                    160px 55px at 23% 100%,
+                    rgba(190, 54, 255, 0.20),
+                    transparent 68%
+            ),
+            radial-gradient(
+                    90px 70px at 0% 50%,
+                    rgba(206, 85, 255, 0.22),
+                    transparent 70%
+            ),
+            linear-gradient(
+                    180deg,
+                    #0a1024 0%,
+                    #080d1f 100%
+            );
+
+    box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 0 0 1px rgba(172, 77, 255, 0.18),
+            0 0 18px rgba(157, 63, 255, 0.14);
+
+    overflow: hidden;
+  }
+
+  /* thin gradient border */
+  .ap-step::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    pointer-events: none;
+    z-index: 2;
+
+    background:
+            linear-gradient(
+                    115deg,
+                    rgba(255, 190, 230, 0.74) 0%,
+                    rgba(190, 74, 255, 0.82) 18%,
+                    rgba(100, 86, 255, 0.28) 48%,
+                    rgba(80, 75, 170, 0.18) 72%,
+                    rgba(255, 166, 90, 0.38) 100%
+            );
+
+    -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+  }
+
+  /* small bottom mirror line */
+  .ap-step::after {
+    content: "";
+    position: absolute;
+    left: 17%;
+    bottom: 0;
+    width: 120px;
+    height: 2px;
+    border-radius: 999px;
+    pointer-events: none;
+    z-index: 3;
+
+    background:
+            linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(174, 58, 255, 0.95),
+                    rgba(255, 215, 255, 0.75),
+                    transparent
+            );
+
+    filter: blur(1.2px);
+    opacity: 0.8;
+  }
+
+  /* number circle */
+  .ap-step-number {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+
+    display: grid;
+    place-items: center;
+
+    color: #fff;
+    font-weight: 800;
+    font-size: 1rem;
+
+    background:
+            radial-gradient(
+                    circle at 45% 40%,
+                    rgba(255, 255, 255, 0.16),
+                    rgba(112, 38, 162, 0.95) 58%,
+                    rgba(54, 20, 91, 1) 100%
+            );
+
+    border: 1px solid rgba(218, 93, 255, 0.95);
+
+    box-shadow:
+            0 0 18px rgba(198, 75, 255, 0.85),
+            0 0 36px rgba(198, 75, 255, 0.35);
+  }
+
+  /* icon */
+  .ap-step-icon {
+    font-size: 1.45rem;
+    width: 30px;
+    text-align: center;
+
+    filter:
+            drop-shadow(0 0 7px rgba(156, 82, 255, 0.55))
+            drop-shadow(0 0 2px rgba(255, 255, 255, 0.35));
+  }
+
+  /* text block */
+  .ap-step-copy {
+    min-width: 0;
+  }
+
+  .ap-step-title {
+    margin: 0;
+    color: #fff8f2;
+    font-size: 1.08rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  .ap-step-desc {
+    margin: 0.18rem 0 0;
+    color: rgba(255, 244, 236, 0.82);
+    font-size: 0.86rem;
+    line-height: 1.25;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* status pill */
+  .ap-step-status {
+    justify-self: end;
+
+    padding: 0.42rem 0.88rem;
+    border-radius: 999px;
+
+    color: #f4bd6f;
+    font-size: 0.82rem;
+    font-weight: 800;
+
+    background: rgba(20, 18, 28, 0.72);
+    border: 1px solid rgba(205, 137, 70, 0.55);
+
+    box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  /* keep everything above the card background */
+  .ap-step > * {
+    position: relative;
+    z-index: 4;
+  }
+  .ap-step.is-running {
+    animation: autopilot-running-pulse 2s ease-in-out infinite;
+  }
+
+  .ap-step.is-running::before {
+    background: linear-gradient(125deg, rgba(240, 173, 93, 0.8), rgba(240, 173, 93, 0.12) 55%, rgba(201, 101, 255, 0.35));
+  }
+
+  .ap-step.is-completed::before {
+    background: linear-gradient(125deg, rgba(143, 231, 189, 0.7), rgba(143, 231, 189, 0.08) 60%, rgba(201, 101, 255, 0.2));
+  }
+
+  .ap-step.is-failed::before {
+    background: linear-gradient(125deg, rgba(255, 138, 145, 0.75), rgba(255, 110, 120, 0.1) 60%, rgba(201, 101, 255, 0.2));
+  }
+
+  /* Numbered badge with a glowing purple ring. */
+  .ap-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.2rem;
+    height: 2.2rem;
+    flex: none;
+    border-radius: 999px;
+    border: 1.5px solid rgba(201, 101, 255, 0.85);
+    background: radial-gradient(circle at 50% 50%, rgba(201, 101, 255, 0.12), rgba(12, 9, 18, 0.92));
+    color: #f3e9ff;
+    font-weight: 800;
+    font-size: 0.9rem;
+    box-shadow: 0 0 13px rgba(201, 101, 255, 0.55), inset 0 0 6px rgba(201, 101, 255, 0.18);
+  }
+
+  .ap-step.is-running .ap-badge {
+    border-color: #ffd591;
+    background: linear-gradient(135deg, #ffd591, #f0ad5d);
+    color: #1a1206;
+    box-shadow: 0 0 18px rgba(240, 173, 93, 0.6);
+  }
+
+  .ap-step.is-completed .ap-badge {
+    border-color: #8fe7bd;
+    background: linear-gradient(135deg, #b6f1d6, #8fe7bd);
+    color: #07140e;
+    box-shadow: 0 0 16px rgba(143, 231, 189, 0.45);
+  }
+
+  .ap-step.is-failed .ap-badge {
+    border-color: #ff8a91;
+    background: linear-gradient(135deg, #ff9aa0, #d4565d);
+    color: #2a0c0e;
+    box-shadow: 0 0 16px rgba(255, 110, 120, 0.45);
+  }
+
+  /* Per-step glyph with a soft purple glow. */
+  .ap-icon {
+    flex: none;
+    font-size: 1.6rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 8px rgba(201, 101, 255, 0.5));
+  }
+
+  /* Clickable step row → jumps into the Guided workflow at that step. */
+  .ap-step-clickable {
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .ap-step-clickable:hover {
+    transform: translateY(-1px);
+  }
+
+  .ap-step-clickable:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(240, 173, 93, 0.6);
+  }
+
+  /* Inline "generating" indicator shown in the progress header (Autopilot
+     replaces the full-screen overlay with this compact in-panel version). */
+  .ap-busy {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+
+  .ap-busy-spinner {
+    position: relative;
+    width: 2.6rem;
+    height: 2.6rem;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ap-busy-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 3px dotted #f0ad5d;
+    border-top-color: transparent;
+    animation: ai-gen-spin 1.8s linear infinite;
+  }
+
+  .ap-busy-robot {
+    width: 1.3rem;
+    height: 1.3rem;
+    color: #f0ad5d;
+  }
+
+  .ap-busy-label {
+    color: #ffd591;
+    font-weight: 800;
+  }
+
+  /* Status as a rounded pill chip. */
+  .ap-state {
+    flex: none;
+    border: 1px solid rgba(240, 173, 93, 0.45);
+    border-radius: 999px;
+    padding: 0.26rem 0.72rem;
+    background: transparent;
+    color: #e6b877;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+  }
+
+  .ap-step.is-running .ap-state {
+    border-color: #ffd591;
+    background: rgba(240, 173, 93, 0.18);
+    color: #ffd591;
+  }
+
+  .ap-step.is-completed .ap-state {
+    border-color: rgba(143, 231, 189, 0.55);
+    background: rgba(143, 231, 189, 0.12);
+    color: #8fe7bd;
+  }
+
+  .ap-step.is-failed .ap-state {
+    border-color: rgba(255, 138, 145, 0.6);
+    background: rgba(255, 110, 120, 0.12);
+    color: #ff9aa0;
+  }
+
+  /* Glowing "Live" pill on the progress card. */
+  .ap-live {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    border-radius: 999px;
+    border: 1px solid rgba(143, 231, 189, 0.45);
+    background: rgba(143, 231, 189, 0.12);
+    padding: 0.32rem 0.8rem;
+    color: #8fe7bd;
+    font-size: 0.78rem;
+    font-weight: 900;
+    letter-spacing: 0.05em;
+    box-shadow: 0 0 16px rgba(143, 231, 189, 0.3);
+  }
+
+  .ap-live.is-done {
+    color: #ffd591;
+    border-color: rgba(240, 173, 93, 0.45);
+    background: rgba(240, 173, 93, 0.12);
+    box-shadow: 0 0 16px rgba(240, 173, 93, 0.3);
+  }
+
+  /* Active segment of the mode toggle gets a soft gold glow. */
+  .ap-toggle-active {
+    box-shadow: 0 0 0 1px rgba(255, 213, 145, 0.55), 0 0 18px rgba(240, 173, 93, 0.4);
   }
 }

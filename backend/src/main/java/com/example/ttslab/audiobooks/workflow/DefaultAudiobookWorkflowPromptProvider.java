@@ -139,7 +139,6 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
             - Do not invent speakers.
             - Preserve all content that should be read aloud.
             - Do not summarize or rewrite.
-            - Split mixed dialogue and prose in reading order.
             - Speaker labels are structural metadata, not spoken text.
               Example: `Zephyr — "Hello"` -> speaker `Zephyr`, text `Hello`.
               Example: `Zephyr: "Hello"` -> speaker `Zephyr`, text `Hello`.

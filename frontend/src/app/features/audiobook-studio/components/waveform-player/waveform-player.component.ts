@@ -47,9 +47,20 @@ export class WaveformPlayerComponent implements AfterViewInit, OnChanges, OnDest
   @ViewChild('waveformEl') private waveformEl!: ElementRef<HTMLElement>;
 
   private viewInitialized = false;
+  currentTimeSeconds = 0;
 
   get durationLabel(): string {
     return durationLabelFor(this.waveSurferService.get(this.key));
+  }
+
+  get currentTimeLabel(): string {
+    const seconds = this.currentTimeSeconds;
+    if (!Number.isFinite(seconds) || seconds <= 0) {
+      return '00:00';
+    }
+    const minutes = Math.floor(seconds / 60).toString().padStart(2, '0');
+    const secs = Math.floor(seconds % 60).toString().padStart(2, '0');
+    return `${minutes}:${secs}`;
   }
 
   constructor(
@@ -90,9 +101,20 @@ export class WaveformPlayerComponent implements AfterViewInit, OnChanges, OnDest
         ? { height: this.waveHeight }
         : undefined;
     const ws = this.waveSurferService.create(this.key, this.waveformEl.nativeElement, this.src, colorOverrides);
+    this.currentTimeSeconds = 0;
 
     // Update duration label when audio is ready
     ws.on('ready', () => {
+      this.cdr.markForCheck();
+    });
+
+    // Keep the displayed current time in sync with playback / seeking.
+    ws.on('timeupdate', (time: number) => {
+      this.currentTimeSeconds = time;
+      this.cdr.markForCheck();
+    });
+    ws.on('finish', () => {
+      this.currentTimeSeconds = 0;
       this.cdr.markForCheck();
     });
 
