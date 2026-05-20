@@ -1025,34 +1025,183 @@
     box-shadow: none;
   }
 
-  /* Progress step row: dark surface + glowing gradient (sparkle) border. */
   .ap-step {
     position: relative;
+    isolation: isolate;
+
     display: grid;
-    grid-template-columns: auto auto minmax(0, 1fr) auto;
+    grid-template-columns: 46px 34px minmax(0, 1fr) auto;
     align-items: center;
-    gap: 0.9rem 1rem;
-    border: 1px solid transparent;
-    border-radius: 1.1rem;
-    background: linear-gradient(180deg, rgba(30, 21, 44, 0.72), rgba(13, 9, 19, 0.72));
-    padding: 1rem 1.2rem;
-    transition: transform 0.2s ease;
+    column-gap: 0.75rem;
+
+    min-height: 72px;
+    padding: 0.75rem 1rem;
+    border-radius: 0.85rem;
+
+    background:
+            radial-gradient(
+                    160px 55px at 23% 100%,
+                    rgba(190, 54, 255, 0.20),
+                    transparent 68%
+            ),
+            radial-gradient(
+                    90px 70px at 0% 50%,
+                    rgba(206, 85, 255, 0.22),
+                    transparent 70%
+            ),
+            linear-gradient(
+                    180deg,
+                    #0a1024 0%,
+                    #080d1f 100%
+            );
+
+    box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.06),
+            0 0 0 1px rgba(172, 77, 255, 0.18),
+            0 0 18px rgba(157, 63, 255, 0.14);
+
+    overflow: hidden;
   }
 
-  /* Masked gradient ring = thin glowing border that brightens like a sparkle. */
+  /* thin gradient border */
   .ap-step::before {
-    content: '';
+    content: "";
     position: absolute;
     inset: 0;
     border-radius: inherit;
     padding: 1px;
-    background: linear-gradient(125deg, rgba(201, 101, 255, 0.65), rgba(201, 101, 255, 0.06) 45%, rgba(240, 173, 93, 0.3) 92%);
-    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    pointer-events: none;
+    z-index: 2;
+
+    background:
+            linear-gradient(
+                    115deg,
+                    rgba(255, 190, 230, 0.74) 0%,
+                    rgba(190, 74, 255, 0.82) 18%,
+                    rgba(100, 86, 255, 0.28) 48%,
+                    rgba(80, 75, 170, 0.18) 72%,
+                    rgba(255, 166, 90, 0.38) 100%
+            );
+
+    -webkit-mask:
+            linear-gradient(#000 0 0) content-box,
+            linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
-    pointer-events: none;
   }
 
+  /* small bottom mirror line */
+  .ap-step::after {
+    content: "";
+    position: absolute;
+    left: 17%;
+    bottom: 0;
+    width: 120px;
+    height: 2px;
+    border-radius: 999px;
+    pointer-events: none;
+    z-index: 3;
+
+    background:
+            linear-gradient(
+                    90deg,
+                    transparent,
+                    rgba(174, 58, 255, 0.95),
+                    rgba(255, 215, 255, 0.75),
+                    transparent
+            );
+
+    filter: blur(1.2px);
+    opacity: 0.8;
+  }
+
+  /* number circle */
+  .ap-step-number {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+
+    display: grid;
+    place-items: center;
+
+    color: #fff;
+    font-weight: 800;
+    font-size: 1rem;
+
+    background:
+            radial-gradient(
+                    circle at 45% 40%,
+                    rgba(255, 255, 255, 0.16),
+                    rgba(112, 38, 162, 0.95) 58%,
+                    rgba(54, 20, 91, 1) 100%
+            );
+
+    border: 1px solid rgba(218, 93, 255, 0.95);
+
+    box-shadow:
+            0 0 18px rgba(198, 75, 255, 0.85),
+            0 0 36px rgba(198, 75, 255, 0.35);
+  }
+
+  /* icon */
+  .ap-step-icon {
+    font-size: 1.45rem;
+    width: 30px;
+    text-align: center;
+
+    filter:
+            drop-shadow(0 0 7px rgba(156, 82, 255, 0.55))
+            drop-shadow(0 0 2px rgba(255, 255, 255, 0.35));
+  }
+
+  /* text block */
+  .ap-step-copy {
+    min-width: 0;
+  }
+
+  .ap-step-title {
+    margin: 0;
+    color: #fff8f2;
+    font-size: 1.08rem;
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+  }
+
+  .ap-step-desc {
+    margin: 0.18rem 0 0;
+    color: rgba(255, 244, 236, 0.82);
+    font-size: 0.86rem;
+    line-height: 1.25;
+
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* status pill */
+  .ap-step-status {
+    justify-self: end;
+
+    padding: 0.42rem 0.88rem;
+    border-radius: 999px;
+
+    color: #f4bd6f;
+    font-size: 0.82rem;
+    font-weight: 800;
+
+    background: rgba(20, 18, 28, 0.72);
+    border: 1px solid rgba(205, 137, 70, 0.55);
+
+    box-shadow:
+            inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  /* keep everything above the card background */
+  .ap-step > * {
+    position: relative;
+    z-index: 4;
+  }
   .ap-step.is-running {
     animation: autopilot-running-pulse 2s ease-in-out infinite;
   }
@@ -1074,16 +1223,16 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.4rem;
-    height: 2.4rem;
+    width: 2.2rem;
+    height: 2.2rem;
     flex: none;
     border-radius: 999px;
-    border: 2px solid rgba(201, 101, 255, 0.7);
-    background: radial-gradient(circle at 50% 50%, rgba(201, 101, 255, 0.2), rgba(12, 9, 18, 0.85));
+    border: 1.5px solid rgba(201, 101, 255, 0.85);
+    background: radial-gradient(circle at 50% 50%, rgba(201, 101, 255, 0.12), rgba(12, 9, 18, 0.92));
     color: #f3e9ff;
-    font-weight: 900;
-    font-size: 0.95rem;
-    box-shadow: 0 0 12px rgba(201, 101, 255, 0.5), inset 0 0 10px rgba(201, 101, 255, 0.22);
+    font-weight: 800;
+    font-size: 0.9rem;
+    box-shadow: 0 0 13px rgba(201, 101, 255, 0.55), inset 0 0 6px rgba(201, 101, 255, 0.18);
   }
 
   .ap-step.is-running .ap-badge {
@@ -1110,21 +1259,21 @@
   /* Per-step glyph with a soft purple glow. */
   .ap-icon {
     flex: none;
-    font-size: 1.5rem;
+    font-size: 1.6rem;
     line-height: 1;
-    filter: drop-shadow(0 0 6px rgba(201, 101, 255, 0.4));
+    filter: drop-shadow(0 0 8px rgba(201, 101, 255, 0.5));
   }
 
   /* Status as a rounded pill chip. */
   .ap-state {
     flex: none;
-    border: 1px solid rgba(240, 173, 93, 0.55);
+    border: 1px solid rgba(240, 173, 93, 0.45);
     border-radius: 999px;
-    padding: 0.3rem 0.95rem;
-    background: rgba(240, 173, 93, 0.08);
-    color: #f0ad5d;
-    font-size: 0.8rem;
-    font-weight: 800;
+    padding: 0.26rem 0.72rem;
+    background: transparent;
+    color: #e6b877;
+    font-size: 0.74rem;
+    font-weight: 700;
     letter-spacing: 0.02em;
   }
 
