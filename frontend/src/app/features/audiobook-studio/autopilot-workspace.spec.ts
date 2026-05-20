@@ -94,14 +94,29 @@ describe('AudiobookStudioWorkspaceComponent — Autopilot', () => {
     return fixture.nativeElement.querySelector(`[data-testid="${id}"]`) as HTMLElement | null;
   }
 
-  it('switches to Autopilot view and hides (but keeps) the guided story section', () => {
-    expect(byTestId('story-section')).not.toBeNull();
-
-    component.setStudioMode('autopilot');
-    fixture.detectChanges();
-
+  it('defaults to the Autopilot view and toggles the guided workflow in and out', () => {
+    expect(component.studioMode()).toBe('autopilot');
     expect(byTestId('autopilot-setup')).not.toBeNull();
     expect(byTestId('story-section')).toBeNull();
+
+    component.setStudioMode('guided');
+    fixture.detectChanges();
+    expect(byTestId('story-section')).not.toBeNull();
+    expect(byTestId('autopilot-setup')).toBeNull();
+  });
+
+  it('honours an initialMode input (resume page opens guided)', () => {
+    component.initialMode = 'guided';
+    fixture.detectChanges();
+    expect(component.studioMode()).toBe('guided');
+    expect(byTestId('story-section')).not.toBeNull();
+  });
+
+  it('opens the matching guided section when a progress step is clicked', () => {
+    component.openGuidedStep('split-script');
+    fixture.detectChanges();
+    expect(component.studioMode()).toBe('guided');
+    expect(byTestId('script-section')).not.toBeNull();
   });
 
   it('runs the full workflow automatically and produces a playable preview', async () => {

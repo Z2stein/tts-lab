@@ -88,7 +88,7 @@
           (click)="togglePreview()"
           [attr.aria-label]="'Preview voice ' + (speaker.voiceSuggestion | uppercase) + ' for ' + displayName(speaker.speakerName)"
         >
-          <span class="play-icon" aria-hidden="true"></span>
+          <span [class.play-icon]="!isPlaying" [class.play-icon-pause]="isPlaying" aria-hidden="true"></span>
           {{ isPlaying ? 'Pause' : 'Preview' }}
         </button>
         <button

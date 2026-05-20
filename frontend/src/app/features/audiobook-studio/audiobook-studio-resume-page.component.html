@@ -4,6 +4,7 @@
   <app-audiobook-studio-workspace
     *ngIf="!loading && snapshot"
     [showHero]="false"
+    [initialMode]="'guided'"
     [snapshot]="snapshot"
     [scrollToSectionAfterLoad]="scrollToSection"
   ></app-audiobook-studio-workspace>

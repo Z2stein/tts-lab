@@ -9,16 +9,50 @@
     </p>
   </header>
 
-  <label class="mb-2 mt-5 block font-extrabold text-studio-text" for="autopilot-story-text">Your story</label>
-  <textarea
-    id="autopilot-story-text"
-    class="form-control min-h-32 resize-y"
-    rows="6"
-    placeholder="Paste your story here…"
-    [formControl]="storyControl"
-    data-testid="autopilot-story-input"
-  ></textarea>
-  <p class="mb-0 mt-1.5 text-sm text-studio-muted">{{ characterCount }} characters</p>
+  <div role="tablist" class="mt-5 flex gap-1 border-b border-[rgba(195,204,255,0.16)]" aria-label="Story source">
+    <button
+      role="tab"
+      type="button"
+      data-testid="autopilot-tab-paste"
+      class="rounded-t-lg border-b-2 px-4 py-2 text-[0.9rem] font-bold transition-colors"
+      [ngClass]="activeTab() === 'paste' ? 'border-studio-accent text-studio-accent' : 'border-transparent text-studio-muted'"
+      [attr.aria-selected]="activeTab() === 'paste'"
+      (click)="activeTab.set('paste')"
+    >
+      Paste story
+    </button>
+    <button
+      role="tab"
+      type="button"
+      data-testid="autopilot-tab-generate"
+      class="rounded-t-lg border-b-2 px-4 py-2 text-[0.9rem] font-bold transition-colors"
+      [ngClass]="activeTab() === 'generate' ? 'border-studio-accent text-studio-accent' : 'border-transparent text-studio-muted'"
+      [attr.aria-selected]="activeTab() === 'generate'"
+      (click)="activeTab.set('generate')"
+    >
+      Generate from idea ✨
+    </button>
+  </div>
+
+  <ng-container *ngIf="activeTab() === 'paste'">
+    <label class="mb-2 mt-4 block font-extrabold text-studio-text" for="autopilot-story-text">Your story</label>
+    <textarea
+      id="autopilot-story-text"
+      class="form-control min-h-32 resize-y"
+      rows="6"
+      placeholder="Paste your story here…"
+      [formControl]="storyControl"
+      data-testid="autopilot-story-input"
+    ></textarea>
+    <p class="mb-0 mt-1.5 text-sm text-studio-muted">{{ characterCount }} characters</p>
+  </ng-container>
+
+  <div *ngIf="activeTab() === 'generate'" class="mt-4">
+    <app-story-generator
+      [disabled]="running"
+      (storyGenerated)="onStoryGenerated($event)"
+    ></app-story-generator>
+  </div>
 
   <div class="my-6 grid gap-2.5">
     <div class="ap-setting">

@@ -1,8 +1,14 @@
 <div
-  class="ap-step"
+  class="ap-step ap-step-clickable"
+  role="button"
+  tabindex="0"
   [ngClass]="'is-' + step.status"
   [attr.data-testid]="'autopilot-step-' + step.id"
   [attr.data-status]="step.status"
+  [attr.aria-label]="'Open ' + step.label + ' in the guided workflow'"
+  (click)="onOpen()"
+  (keydown.enter)="onOpen()"
+  (keydown.space)="$event.preventDefault(); onOpen()"
 >
   <span class="ap-badge" aria-hidden="true">
     <ng-container [ngSwitch]="step.status">

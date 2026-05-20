@@ -88,6 +88,11 @@ export class AutopilotService {
     return failed ? GUIDED_SECTION_FOR_STEP[failed] : 'story-section';
   }
 
+  /** The Guided-workflow section a given step maps to. */
+  guidedSectionForStep(id: AutopilotStepId): string {
+    return GUIDED_SECTION_FOR_STEP[id];
+  }
+
   private patch(id: AutopilotStepId, changes: Partial<AutopilotStep>): void {
     this._steps.update((steps) =>
       steps.map((step) => (step.id === id ? { ...step, ...changes } : step))

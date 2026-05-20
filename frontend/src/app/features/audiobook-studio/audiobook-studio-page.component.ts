@@ -121,7 +121,10 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   private pendingScrollToSection: string | null = null;
 
-  readonly studioMode = signal<StudioMode>('guided');
+  readonly studioMode = signal<StudioMode>('autopilot');
+  // Resume page opens an in-progress project directly in the detailed Guided
+  // view; new sessions (landing) keep the Autopilot default.
+  @Input() set initialMode(mode: StudioMode) { this.studioMode.set(mode); }
   private autopilotActive = false;
 
   get autopilotSteps() { return this.autopilot.steps(); }
@@ -517,8 +520,16 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
     setTimeout(() => this.scrollService.scrollTo(section), 50);
   }
 
+  // Clicking a progress step jumps into the Guided workflow at that step.
+  openGuidedStep(stepId: AutopilotStepId): void {
+    const section = this.autopilot.guidedSectionForStep(stepId);
+    this.studioMode.set('guided');
+    setTimeout(() => this.scrollService.scrollTo(section), 50);
+  }
+
   async startAutopilot(): Promise<void> {
     this.autopilot.reset();
+    setTimeout(() => this.scrollService.scrollTo('autopilot-progress'), 50);
     await this.runAutopilotFrom('analyze-story');
   }
 

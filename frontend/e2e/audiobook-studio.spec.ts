@@ -58,7 +58,17 @@ async function mockWorkflowSnapshot(
   });
 }
 
+// New sessions land in Autopilot mode, so guided-workflow tests must switch
+// to the Guided view first.
+async function ensureGuided(page: Page): Promise<void> {
+  const guided = page.getByTestId('studio-mode-guided');
+  if (await guided.count() > 0) {
+    await guided.click();
+  }
+}
+
 async function selectPasteStoryTab(page: Page): Promise<void> {
+  await ensureGuided(page);
   await page.getByTestId('tab-paste').click();
   await expect(page.getByRole('textbox', { name: 'Story text' })).toBeVisible();
 }
@@ -90,6 +100,7 @@ test('audiobook studio shows a compact mobile workflow stepper with a tappable b
   await page.setViewportSize({ width: 390, height: 844 });
 
   await page.goto('/audiobook-studio');
+  await ensureGuided(page);
 
   const stepper = page.getByTestId('workflow-stepper');
   await expect(stepper).toBeVisible();
@@ -677,19 +688,21 @@ async function mockAutopilotChain(page: Page): Promise<void> {
   });
 }
 
-test('autopilot mode switch hides the guided workflow without destroying it', async ({ context, page }) => {
+test('autopilot is the default view and the guided workflow can be toggled in', async ({ context, page }) => {
   await authenticate(context, page);
   await page.goto('/audiobook-studio');
 
-  await expect(page.getByTestId('story-section')).toBeVisible();
-
-  await page.getByTestId('studio-mode-autopilot').click();
+  // Autopilot is the default for new sessions.
   await expect(page.getByTestId('autopilot-setup')).toBeVisible();
   await expect(page.getByTestId('story-section')).toHaveCount(0);
 
   await page.getByTestId('studio-mode-guided').click();
   await expect(page.getByTestId('story-section')).toBeVisible();
   await expect(page.getByTestId('autopilot-setup')).toHaveCount(0);
+
+  await page.getByTestId('studio-mode-autopilot').click();
+  await expect(page.getByTestId('autopilot-setup')).toBeVisible();
+  await expect(page.getByTestId('story-section')).toHaveCount(0);
 });
 
 test('autopilot runs the full workflow and produces a playable preview', async ({ context, page }) => {
@@ -827,12 +840,43 @@ test('audiobook studio generate-from-idea tab fills the story textarea with AI-g
   });
 
   await page.goto('/audiobook-studio');
+  await ensureGuided(page);
   await page.getByTestId('tab-generate').click();
   await page.getByTestId('idea-input').fill('A lonely lighthouse keeper');
   await page.getByTestId('create-story-draft').click();
 
   const storyText = page.getByRole('textbox', { name: 'Story text' });
   await expect(storyText).toHaveValue(/lighthouse/);
+});
+
+test('autopilot generate-from-idea tab fills the story input with AI-generated text', async ({ context, page }) => {
+  await authenticate(context, page);
+
+  const draftResponse = await loadTestContractJson('audiobook-workflow/generate-story-draft/default/response.json');
+  await page.route('**/api/audiobooks/workflow/generate-story-draft', async (route) => {
+    await route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify(draftResponse)
+    });
+  });
+
+  await page.goto('/audiobook-studio');
+  await page.getByTestId('autopilot-tab-generate').click();
+  await page.getByTestId('idea-input').fill('A lonely lighthouse keeper');
+  await page.getByTestId('create-story-draft').click();
+
+  await expect(page.getByTestId('autopilot-story-input')).toHaveValue(/lighthouse/);
+});
+
+test('autopilot clicking a progress step opens that step in the guided workflow', async ({ context, page }) => {
+  await authenticate(context, page);
+  await page.goto('/audiobook-studio');
+
+  await page.getByTestId('autopilot-step-split-script').click();
+
+  await expect(page.getByTestId('script-section')).toBeVisible();
+  await expect(page.getByTestId('autopilot-setup')).toHaveCount(0);
 });
 
 

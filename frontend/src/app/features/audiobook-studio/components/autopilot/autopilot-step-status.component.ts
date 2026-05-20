@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, Input } from '@angular/core';
-import { AutopilotStep } from '../../services/autopilot.service';
+import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { AutopilotStep, AutopilotStepId } from '../../services/autopilot.service';
 
 @Component({
   selector: 'app-autopilot-step-status',
@@ -12,4 +12,9 @@ import { AutopilotStep } from '../../services/autopilot.service';
 export class AutopilotStepStatusComponent {
   @Input() step!: AutopilotStep;
   @Input() position = 0;
+  @Output() open = new EventEmitter<AutopilotStepId>();
+
+  onOpen(): void {
+    this.open.emit(this.step.id);
+  }
 }

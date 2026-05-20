@@ -7,7 +7,7 @@
   [attr.aria-label]="playing ? 'Pause ' + ariaLabel : 'Play ' + ariaLabel"
   (click)="onPlayPause()"
 >
-  <span class="play-icon" aria-hidden="true"></span>
+  <span [class.play-icon]="!playing" [class.play-icon-pause]="playing" aria-hidden="true"></span>
 </button>
 <div #waveformEl class="waveform-canvas generated-waveform" aria-hidden="true"></div>
 <span *ngIf="showTime" class="wave-time">00:00 / {{ durationLabel }}</span>

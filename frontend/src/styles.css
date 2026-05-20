@@ -759,6 +759,43 @@
     }
   }
 
+  /* Circular gold play button for the waveform player, matching the hero
+     preview control. Shared by every waveform player instance. */
+  .player-button {
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 9999px;
+    border: 1px solid rgba(240, 173, 93, 0.4);
+    background: rgba(240, 173, 93, 0.08);
+    color: #ffd591;
+    cursor: pointer;
+    transition: background 0.15s ease, box-shadow 0.15s ease, transform 0.15s ease;
+  }
+
+  .player-button:hover {
+    background: rgba(240, 173, 93, 0.16);
+    box-shadow: 0 0 16px rgba(240, 173, 93, 0.35);
+  }
+
+  .player-button:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(240, 173, 93, 0.6);
+  }
+
+  .player-button.is-playing {
+    background: rgba(240, 173, 93, 0.18);
+    box-shadow: 0 0 14px rgba(240, 173, 93, 0.4);
+  }
+
+  /* Nudge the triangle to look optically centred inside the circle. */
+  .player-button .play-icon {
+    margin-left: 2px;
+  }
+
   /* Audio parts details section */
   .audio-parts-details {
     border: 1px solid rgba(195, 204, 255, 0.16);
@@ -1262,6 +1299,60 @@
     font-size: 1.6rem;
     line-height: 1;
     filter: drop-shadow(0 0 8px rgba(201, 101, 255, 0.5));
+  }
+
+  /* Clickable step row → jumps into the Guided workflow at that step. */
+  .ap-step-clickable {
+    cursor: pointer;
+    text-align: left;
+  }
+
+  .ap-step-clickable:hover {
+    transform: translateY(-1px);
+  }
+
+  .ap-step-clickable:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(240, 173, 93, 0.6);
+  }
+
+  /* Inline "generating" indicator shown in the progress header (Autopilot
+     replaces the full-screen overlay with this compact in-panel version). */
+  .ap-busy {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    margin-top: 1rem;
+  }
+
+  .ap-busy-spinner {
+    position: relative;
+    width: 2.6rem;
+    height: 2.6rem;
+    flex: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ap-busy-ring {
+    position: absolute;
+    inset: 0;
+    border-radius: 9999px;
+    border: 3px dotted #f0ad5d;
+    border-top-color: transparent;
+    animation: ai-gen-spin 1.8s linear infinite;
+  }
+
+  .ap-busy-robot {
+    width: 1.3rem;
+    height: 1.3rem;
+    color: #f0ad5d;
+  }
+
+  .ap-busy-label {
+    color: #ffd591;
+    font-weight: 800;
   }
 
   /* Status as a rounded pill chip. */

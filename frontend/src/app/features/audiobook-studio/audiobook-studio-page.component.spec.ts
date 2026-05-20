@@ -117,6 +117,11 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     fixture = TestBed.createComponent(AudiobookStudioWorkspaceComponent);
     component = fixture.componentInstance;
     fixture.detectChanges();
+    // These specs exercise the guided workflow; Autopilot is now the default
+    // view, so switch into guided mode first (the default is covered by
+    // autopilot-workspace.spec.ts).
+    component.setStudioMode('guided');
+    fixture.detectChanges();
   });
 
   it('fills the textarea when the sample story is selected', () => {

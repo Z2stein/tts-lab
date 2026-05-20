@@ -28,9 +28,11 @@
           [steps]="autopilotSteps"
           [running]="autopilotRunning"
           [finished]="autopilotFinished"
+          [busy]="autopilotRunning"
           [audioUrl]="fullPlanAudioUrl"
           [audioFilename]="fullPlanAudioFilename"
           (openGuided)="openInGuidedWorkflow()"
+          (openStep)="openGuidedStep($event)"
           (retry)="retryAutopilot()"
           (download)="downloadFullPlanAudio()"
         ></app-autopilot-progress-card>
@@ -365,5 +367,5 @@
     </ng-container>
   </div>
 
-  <app-ai-generation-overlay [visible]="anyAudioLoading() || loadingAction !== null"></app-ai-generation-overlay>
+  <app-ai-generation-overlay [visible]="studioMode() !== 'autopilot' && (anyAudioLoading() || loadingAction !== null)"></app-ai-generation-overlay>
 </section>

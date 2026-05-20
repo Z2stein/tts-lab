@@ -51,7 +51,7 @@
         [class.is-playing]="demoPlaying"
         (click)="playDemo($event)"
       >
-        <span class="play-icon" aria-hidden="true"></span>
+        <span [class.play-icon]="!demoPlaying" [class.play-icon-pause]="demoPlaying" aria-hidden="true"></span>
         {{ demoPlaying ? 'Pause demo' : 'Listen to demo' }}
       </button>
     </div>
@@ -161,7 +161,7 @@
               (click)="onPlayVoiceSample(member.name, $event)"
               [attr.aria-label]="isVoiceSamplePlaying(member.name) ? 'Pause voice for ' + member.name : 'Preview voice for ' + member.name"
             >
-              <span class="play-icon text-[#ffd591] text-xs" aria-hidden="true"></span>
+              <span class="text-[#ffd591] text-xs" [class.play-icon]="!isVoiceSamplePlaying(member.name)" [class.play-icon-pause]="isVoiceSamplePlaying(member.name)" aria-hidden="true"></span>
             </button>
           </div>
         </div>
@@ -182,7 +182,7 @@
           [attr.aria-label]="demoPlaying ? 'Pause audio preview' : 'Play audio preview'"
           (click)="playDemo($event)"
         >
-          <span class="play-icon text-[#ffd591] text-xs" aria-hidden="true"></span>
+          <span class="text-[#ffd591] text-xs" [class.play-icon]="!demoPlaying" [class.play-icon-pause]="demoPlaying" aria-hidden="true"></span>
         </button>
         <div #demoWaveform class="flex-1 min-w-0" aria-hidden="true"></div>
         <span class="flex-none text-xs text-[#9aa3bc] whitespace-nowrap">00:00 / 02:45</span>
