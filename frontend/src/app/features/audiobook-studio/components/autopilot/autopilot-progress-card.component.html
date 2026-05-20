@@ -60,18 +60,13 @@
 
   <app-waveform-player
     *ngIf="audioUrl && finished"
-    class="generated-audio-player framework-player"
+    class="generated-audio-player framework-player ap-preview-player mt-6"
     key="autopilot-full"
     [src]="audioUrl"
     [playing]="audioPlaying"
     ariaLabel="audiobook preview"
     (playingChange)="audioPlaying = $event"
   >
-    <div slot="header">
-      <span class="task-label">Generated preview</span>
-      <h3>Audiobook preview</h3>
-      <p>{{ audioFilename }}</p>
-    </div>
     <button type="button" class="secondary-button download-button" data-testid="autopilot-download-button" (click)="download.emit()">
       Download MP3
     </button>

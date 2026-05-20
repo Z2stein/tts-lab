@@ -796,6 +796,19 @@
     margin-left: 2px;
   }
 
+  /* Compact label-free preview player (Autopilot): play • waveform • time •
+     download, with the waveform constrained so it never spills past the card. */
+  .ap-preview-player.generated-audio-player {
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+    overflow: hidden;
+  }
+
+  .ap-preview-player .waveform-canvas {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
+  }
+
   /* Audio parts details section */
   .audio-parts-details {
     border: 1px solid rgba(195, 204, 255, 0.16);
@@ -1408,19 +1421,6 @@
     border-color: rgba(240, 173, 93, 0.45);
     background: rgba(240, 173, 93, 0.12);
     box-shadow: 0 0 16px rgba(240, 173, 93, 0.3);
-  }
-
-  /* Settings row with a subtle gold edge for visual hierarchy. */
-  .ap-setting {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    gap: 1rem;
-    border: 1px solid rgba(195, 204, 255, 0.12);
-    border-left: 3px solid rgba(240, 173, 93, 0.6);
-    border-radius: 0.85rem;
-    background: rgba(8, 6, 14, 0.5);
-    padding: 0.85rem 1.05rem;
   }
 
   /* Active segment of the mode toggle gets a soft gold glow. */
