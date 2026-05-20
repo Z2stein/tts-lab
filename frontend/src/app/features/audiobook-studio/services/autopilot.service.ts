@@ -15,16 +15,17 @@ export interface AutopilotStep {
   label: string;
   description: string;
   status: AutopilotStepStatus;
+  icon?: string;
   errorMessage?: string;
 }
 
-const STEP_DEFINITIONS: ReadonlyArray<Pick<AutopilotStep, 'id' | 'label' | 'description'>> = [
-  { id: 'analyze-story', label: 'Analyze story', description: 'Understanding themes, tone, and structure.' },
-  { id: 'detect-cast', label: 'Detect cast', description: 'Finding characters and narrators.' },
-  { id: 'assign-voices', label: 'Assign voices', description: 'Matching voices to characters.' },
-  { id: 'split-script', label: 'Split script', description: 'Breaking the script into speakable segments.' },
-  { id: 'add-emotion', label: 'Add emotion & pacing', description: 'Applying emotion, pacing, and performance style.' },
-  { id: 'generate-preview', label: 'Generate audio preview', description: 'Rendering a full audiobook preview.' },
+const STEP_DEFINITIONS: ReadonlyArray<Pick<AutopilotStep, 'id' | 'label' | 'description' | 'icon'>> = [
+  { id: 'analyze-story', label: 'Analyze story', description: 'Understanding themes, tone, and structure.', icon: '📖' },
+  { id: 'detect-cast', label: 'Detect cast', description: 'Finding characters and narrators.', icon: '👥' },
+  { id: 'assign-voices', label: 'Assign voices', description: 'Matching voices to characters.', icon: '🎙️' },
+  { id: 'split-script', label: 'Split script', description: 'Breaking the script into speakable segments.', icon: '✂️' },
+  { id: 'add-emotion', label: 'Add emotion & pacing', description: 'Applying emotion, pacing, and performance style.', icon: '✨' },
+  { id: 'generate-preview', label: 'Generate audio preview', description: 'Rendering a full audiobook preview.', icon: '🎵' },
 ];
 
 // Which Guided-workflow section a failed step maps to, so the fallback lands

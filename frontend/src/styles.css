@@ -1025,88 +1025,126 @@
     box-shadow: none;
   }
 
-  /* Progress step row + distinct state styling. */
+  /* Progress step row: dark surface + glowing gradient (sparkle) border. */
   .ap-step {
+    position: relative;
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto auto minmax(0, 1fr) auto;
     align-items: center;
-    gap: 0.9rem;
-    border: 1px solid rgba(195, 204, 255, 0.12);
-    border-radius: 1rem;
-    background: rgba(8, 6, 14, 0.55);
-    padding: 0.95rem 1.05rem;
-    transition: border-color 0.2s ease, background 0.2s ease;
+    gap: 0.9rem 1rem;
+    border: 1px solid transparent;
+    border-radius: 1.1rem;
+    background: linear-gradient(180deg, rgba(30, 21, 44, 0.72), rgba(13, 9, 19, 0.72));
+    padding: 1rem 1.2rem;
+    transition: transform 0.2s ease;
+  }
+
+  /* Masked gradient ring = thin glowing border that brightens like a sparkle. */
+  .ap-step::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: linear-gradient(125deg, rgba(201, 101, 255, 0.65), rgba(201, 101, 255, 0.06) 45%, rgba(240, 173, 93, 0.3) 92%);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
   }
 
   .ap-step.is-running {
-    border-color: rgba(240, 173, 93, 0.55);
-    background:
-      radial-gradient(120% 140% at 0% 50%, rgba(240, 173, 93, 0.16), transparent 60%),
-      rgba(20, 15, 10, 0.7);
     animation: autopilot-running-pulse 2s ease-in-out infinite;
   }
 
-  .ap-step.is-completed {
-    border-color: rgba(143, 231, 189, 0.4);
-    background:
-      radial-gradient(120% 140% at 0% 50%, rgba(143, 231, 189, 0.12), transparent 58%),
-      rgba(8, 16, 13, 0.55);
+  .ap-step.is-running::before {
+    background: linear-gradient(125deg, rgba(240, 173, 93, 0.8), rgba(240, 173, 93, 0.12) 55%, rgba(201, 101, 255, 0.35));
   }
 
-  .ap-step.is-failed {
-    border-color: rgba(255, 138, 145, 0.5);
-    background:
-      radial-gradient(120% 140% at 0% 50%, rgba(255, 110, 120, 0.16), transparent 60%),
-      rgba(26, 12, 14, 0.7);
+  .ap-step.is-completed::before {
+    background: linear-gradient(125deg, rgba(143, 231, 189, 0.7), rgba(143, 231, 189, 0.08) 60%, rgba(201, 101, 255, 0.2));
   }
 
+  .ap-step.is-failed::before {
+    background: linear-gradient(125deg, rgba(255, 138, 145, 0.75), rgba(255, 110, 120, 0.1) 60%, rgba(201, 101, 255, 0.2));
+  }
+
+  /* Numbered badge with a glowing purple ring. */
   .ap-badge {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 2.1rem;
-    height: 2.1rem;
+    width: 2.4rem;
+    height: 2.4rem;
     flex: none;
     border-radius: 999px;
-    border: 1px solid rgba(195, 204, 255, 0.28);
-    color: #cbbdb0;
+    border: 2px solid rgba(201, 101, 255, 0.7);
+    background: radial-gradient(circle at 50% 50%, rgba(201, 101, 255, 0.2), rgba(12, 9, 18, 0.85));
+    color: #f3e9ff;
     font-weight: 900;
-    font-size: 0.9rem;
+    font-size: 0.95rem;
+    box-shadow: 0 0 12px rgba(201, 101, 255, 0.5), inset 0 0 10px rgba(201, 101, 255, 0.22);
   }
 
   .ap-step.is-running .ap-badge {
     border-color: #ffd591;
     background: linear-gradient(135deg, #ffd591, #f0ad5d);
     color: #1a1206;
-    box-shadow: 0 0 16px rgba(240, 173, 93, 0.55);
+    box-shadow: 0 0 18px rgba(240, 173, 93, 0.6);
   }
 
   .ap-step.is-completed .ap-badge {
     border-color: #8fe7bd;
     background: linear-gradient(135deg, #b6f1d6, #8fe7bd);
     color: #07140e;
-    box-shadow: 0 0 14px rgba(143, 231, 189, 0.4);
+    box-shadow: 0 0 16px rgba(143, 231, 189, 0.45);
   }
 
   .ap-step.is-failed .ap-badge {
     border-color: #ff8a91;
     background: linear-gradient(135deg, #ff9aa0, #d4565d);
     color: #2a0c0e;
-    box-shadow: 0 0 14px rgba(255, 110, 120, 0.4);
+    box-shadow: 0 0 16px rgba(255, 110, 120, 0.45);
   }
 
+  /* Per-step glyph with a soft purple glow. */
+  .ap-icon {
+    flex: none;
+    font-size: 1.5rem;
+    line-height: 1;
+    filter: drop-shadow(0 0 6px rgba(201, 101, 255, 0.4));
+  }
+
+  /* Status as a rounded pill chip. */
   .ap-state {
     flex: none;
-    font-size: 0.78rem;
+    border: 1px solid rgba(240, 173, 93, 0.55);
+    border-radius: 999px;
+    padding: 0.3rem 0.95rem;
+    background: rgba(240, 173, 93, 0.08);
+    color: #f0ad5d;
+    font-size: 0.8rem;
     font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: #b6a99c;
+    letter-spacing: 0.02em;
   }
 
-  .ap-step.is-running .ap-state { color: #ffd591; }
-  .ap-step.is-completed .ap-state { color: #8fe7bd; }
-  .ap-step.is-failed .ap-state { color: #ff9aa0; }
+  .ap-step.is-running .ap-state {
+    border-color: #ffd591;
+    background: rgba(240, 173, 93, 0.18);
+    color: #ffd591;
+  }
+
+  .ap-step.is-completed .ap-state {
+    border-color: rgba(143, 231, 189, 0.55);
+    background: rgba(143, 231, 189, 0.12);
+    color: #8fe7bd;
+  }
+
+  .ap-step.is-failed .ap-state {
+    border-color: rgba(255, 138, 145, 0.6);
+    background: rgba(255, 110, 120, 0.12);
+    color: #ff9aa0;
+  }
 
   /* Glowing "Live" pill on the progress card. */
   .ap-live {

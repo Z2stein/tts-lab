@@ -12,6 +12,7 @@
       <ng-container *ngSwitchDefault>{{ position + 1 }}</ng-container>
     </ng-container>
   </span>
+  <span *ngIf="step.icon" class="ap-icon" aria-hidden="true">{{ step.icon }}</span>
   <div class="min-w-0">
     <p class="m-0 font-extrabold text-studio-text">{{ step.label }}</p>
     <p class="mb-0 mt-0.5 text-sm text-studio-muted">{{ step.description }}</p>
