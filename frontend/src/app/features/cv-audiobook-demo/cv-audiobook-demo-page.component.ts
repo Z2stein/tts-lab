@@ -23,11 +23,11 @@ interface TechnicalFeatureCard {
   templateUrl: './cv-audiobook-demo-page.component.html'
 })
 export class CvAudiobookDemoPageComponent {
-  readonly projectLabel = 'Private AI / Audiobook Project';
-  readonly headlinePrefix = 'I built an';
-  readonly headlineAccent = 'AI audiobook';
-  readonly headlineSuffix = 'creator.';
-  readonly subtitle = 'Paste a story excerpt with dialogue. The app analyses speakers, splits the script, adds performance notes, previews the final request, and turns it into audio.';
+  readonly projectLabel = 'AI AUDIOBOOK STUDIO';
+  readonly headlinePrefix = 'From written scene to';
+  readonly headlineAccent = 'spoken performance';
+  readonly headlineSuffix = '.';
+  readonly subtitle = 'Paste your story. AI detects the speakers, gives each character a distinct voice, adds emotion and pacing, and creates a polished audiobook preview.';
   readonly demoLabel = 'Demo preview';
   readonly demoAudioSrc = '/assets/audio/voice-samples/full-text-preview.mp3';
   readonly primaryAction: DemoAction = {
