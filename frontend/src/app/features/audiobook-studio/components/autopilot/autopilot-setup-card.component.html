@@ -1,4 +1,4 @@
-<section class="glow-card" data-testid="autopilot-setup" aria-labelledby="autopilot-setup-title">
+<section id="autopilot-setup" class="glow-card" data-testid="autopilot-setup" aria-labelledby="autopilot-setup-title">
   <header>
     <span class="task-label">Autopilot mode</span>
     <h2 id="autopilot-setup-title" class="mb-2 mt-1.5 text-2xl leading-tight text-studio-text">
@@ -44,7 +44,10 @@
       [formControl]="storyControl"
       data-testid="autopilot-story-input"
     ></textarea>
-    <p class="mb-0 mt-1.5 text-sm text-studio-muted">{{ characterCount }} characters</p>
+    <div class="mt-2 flex flex-wrap gap-[0.5rem] text-[#c9d1e8]" aria-label="Story text stats">
+      <span class="badge">{{ wordCount }} words</span>
+      <span class="badge">{{ characterCount }} characters</span>
+    </div>
   </ng-container>
 
   <div *ngIf="activeTab() === 'generate'" class="mt-4">

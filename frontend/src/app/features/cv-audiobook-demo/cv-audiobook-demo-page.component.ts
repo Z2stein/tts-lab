@@ -5,7 +5,12 @@ import { DemoAudioPreviewComponent } from './demo-audio-preview.component';
 interface DemoAction {
   label: string;
   route: string;
-  fragment?: string;
+}
+
+interface ExternalDemoAction {
+  label: string;
+  href: string;
+  ariaLabel: string;
 }
 
 interface TechnicalFeatureCard {
@@ -26,7 +31,7 @@ export class CvAudiobookDemoPageComponent {
   readonly projectLabel = 'AI AUDIOBOOK STUDIO';
   readonly headlinePrefix = 'From written scene to';
   readonly headlineAccent = 'spoken performance';
-  readonly headlineSuffix = '.';
+  readonly headlineSuffix = '';
   readonly subtitle = 'Paste your story. AI detects the speakers, gives each character a distinct voice, adds emotion and pacing, and creates a polished audiobook preview.';
   readonly demoLabel = 'Demo preview';
   readonly demoAudioSrc = '/assets/audio/voice-samples/full-text-preview.mp3';
@@ -34,10 +39,10 @@ export class CvAudiobookDemoPageComponent {
     label: 'Try the Audiobook Creator',
     route: '/audiobook-studio'
   };
-  readonly secondaryAction: DemoAction = {
-    label: 'View technical details',
-    route: '/cv-audiobook-demo',
-    fragment: 'technical-details'
+  readonly secondaryAction: ExternalDemoAction = {
+    label: 'Z2stein/tts-lab',
+    href: 'https://github.com/Z2stein/tts-lab',
+    ariaLabel: 'View Z2stein/tts-lab on GitHub'
   };
   readonly technicalFeatureCards: TechnicalFeatureCard[] = [
     {

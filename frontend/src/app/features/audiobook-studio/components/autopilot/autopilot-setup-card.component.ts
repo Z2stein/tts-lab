@@ -19,12 +19,16 @@ export class AutopilotSetupCardComponent {
 
   readonly activeTab = signal<'paste' | 'generate'>('paste');
 
+  get wordCount(): number {
+    return this.storyControl?.value.trim().split(/\s+/).filter(Boolean).length ?? 0;
+  }
+
   get characterCount(): number {
-    return this.storyControl?.value.trim().length ?? 0;
+    return this.storyControl?.value.length ?? 0;
   }
 
   get canStart(): boolean {
-    return !this.running && this.characterCount >= MIN_STORY_CHARACTERS;
+    return !this.running && (this.storyControl?.value.trim().length ?? 0) >= MIN_STORY_CHARACTERS;
   }
 
   onStoryGenerated(text: string): void {

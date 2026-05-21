@@ -28,7 +28,11 @@
       </button>
 
       <div class="min-w-0 flex-1">
-        <div class="flex h-20 items-center justify-center gap-0.5 overflow-hidden sm:h-24 sm:justify-start sm:gap-1" aria-hidden="true">
+        <div
+          data-testid="cv-demo-waveform"
+          class="flex h-20 w-full items-center justify-between gap-0.5 overflow-hidden sm:h-24 sm:gap-1"
+          aria-hidden="true"
+        >
           @for (bar of waveformBars; track $index) {
             <span
               class="w-1 shrink-0 rounded-full bg-gradient-to-t from-[#f0ad5d] via-[#ffd77f] to-[#fff0b3] transition-opacity sm:w-1.5"

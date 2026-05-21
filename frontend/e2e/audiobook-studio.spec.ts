@@ -107,6 +107,9 @@ test('hero CTA jumps to the Autopilot generation panel', async ({ context, page 
   await expect(page.getByTestId('studio-mode-autopilot')).toHaveAttribute('aria-selected', 'true');
   await expect(page.getByTestId('autopilot-setup')).toBeVisible();
   await expect(page.getByTestId('autopilot-story-input')).toBeFocused();
+  await expect.poll(async () => page.evaluate(() => {
+    return Math.round(document.getElementById('autopilot-setup')?.getBoundingClientRect().top ?? 9999);
+  })).toBeLessThan(220);
 });
 
 test('audiobook studio shows a compact mobile workflow stepper with a tappable bottom sheet', async ({ context, page }) => {
