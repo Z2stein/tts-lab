@@ -262,8 +262,11 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   focusStoryInput(event?: Event): void {
     event?.preventDefault();
-    this.scrollService.scrollTo('story-section');
-    this.scrollService.focusById('story-text', { preventScroll: true });
+    this.studioMode.set('autopilot');
+    setTimeout(() => {
+      this.scrollService.scrollTo('autopilot-setup');
+      this.scrollService.focusById('autopilot-story-text', { preventScroll: true });
+    }, 50);
   }
 
   scrollToSection(sectionId: string, event?: Event): void {

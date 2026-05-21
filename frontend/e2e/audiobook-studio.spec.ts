@@ -96,6 +96,19 @@ test('audiobook studio renders icon badges in the hero preview cards', async ({ 
   await expect(desktopPreview.locator('article').filter({ hasText: 'Detected cast' }).locator('svg')).toBeVisible();
 });
 
+test('hero CTA jumps to the Autopilot generation panel', async ({ context, page }) => {
+  await authenticate(context, page);
+
+  await page.goto('/audiobook-studio');
+  await ensureGuided(page);
+
+  await page.getByRole('button', { name: 'Create audio story' }).click();
+
+  await expect(page.getByTestId('studio-mode-autopilot')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('autopilot-setup')).toBeVisible();
+  await expect(page.getByTestId('autopilot-story-input')).toBeFocused();
+});
+
 test('audiobook studio shows a compact mobile workflow stepper with a tappable bottom sheet', async ({ context, page }) => {
   await authenticate(context, page);
   await page.setViewportSize({ width: 390, height: 844 });
