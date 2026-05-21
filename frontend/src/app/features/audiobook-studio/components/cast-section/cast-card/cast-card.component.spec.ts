@@ -196,6 +196,60 @@ describe('CastCardComponent', () => {
     });
   });
 
+  describe('Remove speaker', () => {
+    it('shows a confirmation prompt before removing', () => {
+      setup();
+      const emitSpy = spyOn(component.removeSpeaker, 'emit');
+
+      fixture.debugElement.query(By.css('[data-testid="cast-remove-0"]')).nativeElement.click();
+      fixture.detectChanges();
+
+      const panel = fixture.debugElement.query(By.css('[data-testid="cast-remove-confirm-panel-0"]'));
+      expect(panel).toBeTruthy();
+      expect(panel.nativeElement.textContent).toContain('Remove this speaker from the cast?');
+      expect(emitSpy).not.toHaveBeenCalled();
+    });
+
+    it('emits removeSpeaker only after the confirmation is accepted', () => {
+      setup();
+      const emitSpy = spyOn(component.removeSpeaker, 'emit');
+
+      fixture.debugElement.query(By.css('[data-testid="cast-remove-0"]')).nativeElement.click();
+      fixture.detectChanges();
+      fixture.debugElement.query(By.css('[data-testid="cast-remove-confirm-0"]')).nativeElement.click();
+
+      expect(emitSpy).toHaveBeenCalledOnceWith();
+    });
+
+    it('cancels the removal without emitting', () => {
+      setup();
+      const emitSpy = spyOn(component.removeSpeaker, 'emit');
+
+      fixture.debugElement.query(By.css('[data-testid="cast-remove-0"]')).nativeElement.click();
+      fixture.detectChanges();
+      fixture.debugElement.query(By.css('[data-testid="cast-remove-cancel-0"]')).nativeElement.click();
+      fixture.detectChanges();
+
+      expect(emitSpy).not.toHaveBeenCalled();
+      expect(fixture.debugElement.query(By.css('[data-testid="cast-remove-confirm-panel-0"]'))).toBeNull();
+    });
+
+    it('blocks removing the only speaker and shows a message instead of confirming', () => {
+      setup();
+      component.isOnlySpeaker = true;
+      fixture.detectChanges();
+      const emitSpy = spyOn(component.removeSpeaker, 'emit');
+
+      fixture.debugElement.query(By.css('[data-testid="cast-remove-0"]')).nativeElement.click();
+      fixture.detectChanges();
+
+      const blocked = fixture.debugElement.query(By.css('[data-testid="cast-remove-blocked-0"]'));
+      expect(blocked.nativeElement.textContent).toContain('At least one speaker is required.');
+      expect(fixture.debugElement.query(By.css('[data-testid="cast-remove-confirm-panel-0"]'))).toBeNull();
+      expect(emitSpy).not.toHaveBeenCalled();
+    });
+  });
+
   describe('accent colour', () => {
     it('maps cast-accent-0 to the amber colour', () => {
       setup();

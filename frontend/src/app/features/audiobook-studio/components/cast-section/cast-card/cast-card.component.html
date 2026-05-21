@@ -54,6 +54,18 @@
         <span aria-hidden="true" style="letter-spacing: -0.1em">⋮</span>
       </button>
 
+      <button
+        *ngIf="castEditable"
+        type="button"
+        class="absolute top-[-0.25rem] right-[2rem] flex items-center justify-center w-[2rem] h-[2rem] border-none rounded-full bg-transparent text-[#5a6380] cursor-pointer text-[1.1rem] leading-none transition-[background,color] duration-150 hover:bg-white/[0.07] hover:text-[#ff9aa8]"
+        (click)="onRemoveClick()"
+        [attr.data-testid]="'cast-remove-' + index"
+        [attr.aria-label]="'Remove ' + displayName(speaker.speakerName) + ' from the cast'"
+        title="Remove speaker"
+      >
+        <span aria-hidden="true">×</span>
+      </button>
+
       <span class="text-[0.7rem] font-[700] tracking-[0.12em] uppercase text-[#5a6380]">Voice</span>
       <strong
         class="voice-name-display block text-[var(--speaker-accent,#f0ad5d)] text-[1rem] font-[900] tracking-[0.06em] md:whitespace-nowrap md:overflow-hidden md:text-ellipsis"
@@ -104,6 +116,33 @@
         >Change voice</button>
       </div>
     </div>
+
+    <div
+      *ngIf="confirmingRemove"
+      class="basis-full flex flex-wrap items-center gap-[0.7rem] rounded-[0.8rem] border border-[rgba(255,154,168,0.4)] bg-[rgba(255,154,168,0.08)] p-[0.7rem_0.85rem]"
+      [attr.data-testid]="'cast-remove-confirm-panel-' + index"
+    >
+      <span class="text-[#ffd0d7] text-[0.92rem] font-[700]">Remove this speaker from the cast?</span>
+      <button
+        type="button"
+        class="rounded-full border border-[rgba(255,154,168,0.55)] bg-[rgba(255,154,168,0.12)] text-[#ff9aa8] cursor-pointer text-[0.84rem] font-[900] p-[0.4rem_0.9rem]"
+        (click)="confirmRemove()"
+        [attr.data-testid]="'cast-remove-confirm-' + index"
+      >Remove</button>
+      <button
+        type="button"
+        class="secondary-button p-[0.4rem_0.9rem]"
+        (click)="cancelRemove()"
+        [attr.data-testid]="'cast-remove-cancel-' + index"
+      >Cancel</button>
+    </div>
+
+    <p
+      *ngIf="removeBlockedMessage"
+      class="basis-full m-0 text-[#ff9aa8] text-[0.9rem] font-[700]"
+      role="alert"
+      [attr.data-testid]="'cast-remove-blocked-' + index"
+    >{{ removeBlockedMessage }}</p>
 
   </ng-container>
 

@@ -177,6 +177,8 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   get editingCastIndex(): number | null { return this.facade.editingCastIndex(); }
   get castEditDraft(): SpeakerVoiceAnalysisItem | null { return this.facade.castEditDraft(); }
+  get addingSpeaker(): boolean { return this.facade.addingSpeaker(); }
+  get addSpeakerDraft(): SpeakerVoiceAnalysisItem | null { return this.facade.addSpeakerDraft(); }
   get editingScriptTurnIndex(): number | null { return this.facade.editingScriptTurnIndex(); }
   get scriptTurnEditDraft(): SpeakerSplitTurn | null { return this.facade.scriptTurnEditDraft(); }
 
@@ -194,6 +196,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
   voicePickerOpenForIndex: number | null = null;
+  voicePickerForNewSpeaker = false;
   readonly audioSectionCollapsed = signal(false);
   private lastKnownProjectId: string | null = null;
 
@@ -485,27 +488,65 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   async saveCastEdit(index: number): Promise<void> { await this.facade.saveCastEdit(index); }
   cancelCastEdit(): void { this.facade.cancelCastEdit(); }
 
+  startAddSpeaker(): void {
+    if (!this.castEditable) {
+      return;
+    }
+    this.facade.startAddSpeaker();
+  }
+  async saveAddSpeaker(): Promise<void> { await this.facade.saveAddSpeaker(); }
+  cancelAddSpeaker(): void { this.facade.cancelAddSpeaker(); }
+  async removeSpeaker(index: number): Promise<void> { await this.facade.removeSpeaker(index); }
+
   openVoicePicker(index: number): void {
     if (!this.castEditable) {
       return;
     }
+    this.voicePickerForNewSpeaker = false;
     this.voicePickerOpenForIndex = index;
   }
-  closeVoicePicker(): void { this.voicePickerOpenForIndex = null; }
+
+  openVoicePickerForNewSpeaker(): void {
+    if (!this.castEditable) {
+      return;
+    }
+    this.voicePickerOpenForIndex = null;
+    this.voicePickerForNewSpeaker = true;
+  }
+
+  get voicePickerOpen(): boolean {
+    return this.voicePickerOpenForIndex !== null || this.voicePickerForNewSpeaker;
+  }
+
+  closeVoicePicker(): void {
+    this.voicePickerOpenForIndex = null;
+    this.voicePickerForNewSpeaker = false;
+  }
 
   voicePickerSpeakerName(): string {
+    if (this.voicePickerForNewSpeaker) {
+      return formatSpeakerDisplayName(this.facade.addSpeakerDraft()?.speakerName ?? '') || 'New speaker';
+    }
     if (this.voicePickerOpenForIndex === null) return '';
     return formatSpeakerDisplayName(this.facade.cast()[this.voicePickerOpenForIndex]?.speakerName ?? '');
   }
 
   voicePickerCurrentVoiceId(): string {
+    if (this.voicePickerForNewSpeaker) {
+      return (this.facade.addSpeakerDraft()?.voiceSuggestion ?? '').toLowerCase();
+    }
     if (this.voicePickerOpenForIndex === null) return '';
     return (this.facade.cast()[this.voicePickerOpenForIndex]?.voiceSuggestion ?? '').toLowerCase();
   }
 
   async applyVoiceSelection(voice: SpeakerVoiceCatalogItem): Promise<void> {
-    if (this.voicePickerOpenForIndex === null) return;
     const voiceKey = voice.id.toUpperCase();
+    if (this.voicePickerForNewSpeaker) {
+      this.facade.setAddSpeakerVoice(voiceKey);
+      this.closeVoicePicker();
+      return;
+    }
+    if (this.voicePickerOpenForIndex === null) return;
     this.cast[this.voicePickerOpenForIndex].voiceSuggestion = voiceKey;
     await this.facade.saveCastVoice(this.voicePickerOpenForIndex, voiceKey);
     this.closeVoicePicker();

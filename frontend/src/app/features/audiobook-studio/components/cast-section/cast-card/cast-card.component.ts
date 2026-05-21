@@ -28,14 +28,18 @@ export class CastCardComponent {
   @Input() editing = false;
   @Input() editDraft: SpeakerVoiceAnalysisItem | null = null;
   @Input() castEditable = true;
+  @Input() isOnlySpeaker = false;
   @Input() speakerStyleFn!: (name: string | null | undefined) => Record<string, string>;
   @Output() startEdit = new EventEmitter<void>();
   @Output() saveEdit = new EventEmitter<void>();
   @Output() cancelEdit = new EventEmitter<void>();
   @Output() changeVoice = new EventEmitter<void>();
+  @Output() removeSpeaker = new EventEmitter<void>();
 
   avatarError = false;
   isPlaying = false;
+  confirmingRemove = false;
+  removeBlockedMessage: string | null = null;
 
   constructor(
     private waveSurferService: WaveSurferService,
@@ -89,5 +93,23 @@ export class CastCardComponent {
 
   togglePreview(): void {
     void this.waveSurferService.get(this.voiceDemoKey)?.playPause();
+  }
+
+  onRemoveClick(): void {
+    if (this.isOnlySpeaker) {
+      this.removeBlockedMessage = 'At least one speaker is required.';
+      return;
+    }
+    this.removeBlockedMessage = null;
+    this.confirmingRemove = true;
+  }
+
+  confirmRemove(): void {
+    this.confirmingRemove = false;
+    this.removeSpeaker.emit();
+  }
+
+  cancelRemove(): void {
+    this.confirmingRemove = false;
   }
 }
