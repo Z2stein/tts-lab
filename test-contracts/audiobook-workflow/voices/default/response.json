@@ -6,7 +6,7 @@
     "description": "Bright, airy, youthful, and optimistic. Works well for fresh, energetic narration, uplifting audiobook passages, friendly introductions, and scenes with a light emotional tone.",
     "imageUrl": "/assets/voices/zephyr/avatar.png",
     "demoMp3Url": "/assets/voices/zephyr/demo.mp3",
-    "gender": "MALE"
+    "gender": "FEMALE"
   },
   {
     "id": "puck",
@@ -42,7 +42,7 @@
     "description": "Dynamic, intense, adventurous, and expressive. Works well for action scenes, dramatic moments, fantasy characters, suspenseful narration, and emotionally charged passages.",
     "imageUrl": "/assets/voices/fenrir/avatar.png",
     "demoMp3Url": "/assets/voices/fenrir/demo.mp3",
-    "gender": "MALE"
+    "gender": "FEMALE"
   },
   {
     "id": "leda",
@@ -69,7 +69,7 @@
     "description": "Smooth, artistic, conversational, and relaxed. Suitable for storytelling, poetic narration, reflective audiobook passages, creative essays, and warm long-form listening.",
     "imageUrl": "/assets/voices/aoede/avatar.png",
     "demoMp3Url": "/assets/voices/aoede/demo.mp3",
-    "gender": "MALE"
+    "gender": "FEMALE"
   },
   {
     "id": "callirrhoe",
@@ -204,7 +204,7 @@
     "description": "Experienced, calm, serious, and trustworthy. Works well for documentaries, historical narration, older characters, reflective nonfiction, and scenes with life experience.",
     "imageUrl": "/assets/voices/gacrux/avatar.png",
     "demoMp3Url": "/assets/voices/gacrux/demo.mp3",
-    "gender": "MALE"
+    "gender": "FEMALE"
   },
   {
     "id": "pulcherrima",
