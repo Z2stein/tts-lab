@@ -34,6 +34,8 @@ export class AudiobookStudioFacade {
   private readonly _error = signal<string | null>(null);
   private readonly _editingCastIndex = signal<number | null>(null);
   private readonly _castEditDraft = signal<SpeakerVoiceAnalysisItem | null>(null);
+  private readonly _addingSpeaker = signal(false);
+  private readonly _addSpeakerDraft = signal<SpeakerVoiceAnalysisItem | null>(null);
   private readonly _editingScriptTurnIndex = signal<number | null>(null);
   private readonly _scriptTurnEditDraft = signal<SpeakerSplitTurn | null>(null);
   private readonly _currentProjectId = signal<string | null>(null);
@@ -64,6 +66,8 @@ export class AudiobookStudioFacade {
   readonly error = this._error.asReadonly();
   readonly editingCastIndex = this._editingCastIndex.asReadonly();
   readonly castEditDraft = this._castEditDraft.asReadonly();
+  readonly addingSpeaker = this._addingSpeaker.asReadonly();
+  readonly addSpeakerDraft = this._addSpeakerDraft.asReadonly();
   readonly editingScriptTurnIndex = this._editingScriptTurnIndex.asReadonly();
   readonly scriptTurnEditDraft = this._scriptTurnEditDraft.asReadonly();
   readonly currentProjectId = this._currentProjectId.asReadonly();
@@ -325,6 +329,71 @@ export class AudiobookStudioFacade {
     this._castEditDraft.set(null);
   }
 
+  startAddSpeaker(): void {
+    this.cancelCastEdit();
+    this._addSpeakerDraft.set({ speakerName: '', roleDescription: '', voiceSuggestion: '' });
+    this._addingSpeaker.set(true);
+  }
+
+  cancelAddSpeaker(): void {
+    this._addingSpeaker.set(false);
+    this._addSpeakerDraft.set(null);
+  }
+
+  setAddSpeakerVoice(voiceSuggestion: string): void {
+    const draft = this._addSpeakerDraft();
+    if (draft) {
+      this._addSpeakerDraft.set({ ...draft, voiceSuggestion });
+    }
+  }
+
+  async saveAddSpeaker(): Promise<void> {
+    await this.runStep('cast-edit', async () => {
+      const draft = this._addSpeakerDraft();
+      if (!draft) return;
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      const speakerName = draft.speakerName.trim();
+      if (!speakerName) {
+        throw new Error('Speaker name is required.');
+      }
+      const speakers = [
+        ...this._cast().map((speaker) => ({ ...speaker })),
+        {
+          speakerName,
+          roleDescription: draft.roleDescription.trim(),
+          voiceSuggestion: draft.voiceSuggestion.trim(),
+        },
+      ];
+      const snapshot = await this.audiobookWorkflowService.saveCast(projectId, { speakers });
+      this.cancelAddSpeaker();
+      this.applyWorkflowSnapshot(snapshot);
+      this.resetAudio();
+    }, 'Speaker add failed.');
+  }
+
+  async removeSpeaker(index: number): Promise<void> {
+    await this.runStep('cast-edit', async () => {
+      const projectId = this._currentProjectId();
+      if (!projectId) {
+        throw new Error('Story analysis did not return a project id.');
+      }
+      if (this._cast().length <= 1) {
+        throw new Error('At least one speaker is required.');
+      }
+      const speakers = this._cast()
+        .filter((_, speakerIndex) => speakerIndex !== index)
+        .map((speaker) => ({ ...speaker }));
+      const snapshot = await this.audiobookWorkflowService.saveCast(projectId, { speakers });
+      this.cancelCastEdit();
+      this.cancelAddSpeaker();
+      this.applyWorkflowSnapshot(snapshot);
+      this.resetAudio();
+    }, 'Speaker removal failed.');
+  }
+
   startScriptTurnEdit(index: number): void {
     this._editingScriptTurnIndex.set(index);
     this._scriptTurnEditDraft.set({ ...this._scriptTurns()[index] });
@@ -377,6 +446,7 @@ export class AudiobookStudioFacade {
     this._error.set(null);
     this._currentProjectId.set(null);
     this.cancelCastEdit();
+    this.cancelAddSpeaker();
     this.cancelScriptTurnEdit();
     this.resetAudio();
   }

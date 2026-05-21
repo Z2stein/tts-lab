@@ -21,13 +21,33 @@
     [editing]="editingCastIndex === i"
     [editDraft]="editingCastIndex === i ? castEditDraft : null"
     [castEditable]="castEditable"
+    [isOnlySpeaker]="cast.length === 1"
     [speakerStyleFn]="speakerStyleFn"
     (startEdit)="startCastEdit.emit(i)"
     (saveEdit)="saveCastEdit.emit(i)"
     (cancelEdit)="cancelCastEdit.emit()"
     (changeVoice)="changeVoice.emit(i)"
+    (removeSpeaker)="removeSpeaker.emit(i)"
   ></app-cast-card>
 </div>
+
+<app-add-speaker-form
+  *ngIf="cast.length > 0 && castEditable && addingSpeaker && addSpeakerDraft"
+  [draft]="addSpeakerDraft"
+  (save)="saveAddSpeaker.emit()"
+  (cancel)="cancelAddSpeaker.emit()"
+  (pickVoice)="pickVoiceForNewSpeaker.emit()"
+></app-add-speaker-form>
+
+<button
+  *ngIf="cast.length > 0 && castEditable && !addingSpeaker"
+  type="button"
+  class="flex items-center justify-center gap-[0.5rem] w-full border border-dashed border-[rgba(195,204,255,0.28)] rounded-2xl bg-transparent text-[#c9d1e8] cursor-pointer text-[0.95rem] font-[900] p-[0.85rem] transition-[border-color,color] duration-150 hover:border-[rgba(240,173,93,0.55)] hover:text-[#ffd591]"
+  data-testid="add-speaker"
+  (click)="startAddSpeaker.emit()"
+>
+  <span aria-hidden="true" class="text-[1.2rem] leading-none">+</span> Add speaker
+</button>
 
 <p *ngIf="cast.length > 0 && !castEditable" class="m-0 text-[#c9d1e8] leading-[1.6]">Cast edits are locked after script preview begins.</p>
 
