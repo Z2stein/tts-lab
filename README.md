@@ -27,7 +27,7 @@ Lernprojekt mit Angular-Frontend und Spring-Boot-Backend.
 
 This chat upgraded the existing Audiobook Studio MVP from an internal workflow page into a more premium, cinematic AI audiobook studio experience:
 
-- `/audiobook-studio` now opens with a frontend-only hero section: “Give every character in your story a voice.”
+- `/audiobook-studio` now opens with a frontend-only hero section: “Give your story voices you can feel.”
 - The first viewport shows the intended product promise visually: pasted story text flows into a detected cast card and an audio waveform preview.
 - The hero includes `Create audio story` and `Listen to demo` actions; the primary CTA scrolls to and focuses the existing story textarea.
 - A new “From plain text to performed story” section explains the four-step journey: paste story, discover cast, direct performance, generate audio.
@@ -334,7 +334,7 @@ The first workflow step asks the model for both speakers and a project title. Th
 
 The page now starts with a product-led landing/workflow layer:
 
-- A premium hero with the headline “Give every character in your story a voice.”
+- A premium hero with the headline “Give your story voices you can feel.”
 - A static visual demo that shows story text transforming into a detected cast and an audio waveform.
 - Benefit chips for `Multi-speaker`, `Speech segment detection`, `Voice previews`, and `Export MP3`.
 - A four-card “From plain text to performed story” journey section.
