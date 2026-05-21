@@ -6,7 +6,7 @@ export const HERO_CAST: readonly HeroCastMember[] = [
   { name: 'Narrator', tone: 'warm calm', initials: 'N', imageUrl: '/assets/voices/zephyr/avatar.png' },
   { name: 'Mara', tone: 'young tense', initials: 'M', imageUrl: '/assets/voices/puck/avatar.png' },
   { name: 'Jonas', tone: 'soft nervous', initials: 'J', imageUrl: '/assets/voices/charon/avatar.png' },
-  { name: 'Station Keeper', tone: 'old gravelly', initials: 'SK', imageUrl: '/assets/voices/kore/avatar.png' }
+  { name: 'Station Keeper', tone: 'old gravelly', initials: 'SK', imageUrl: '/assets/voices/algenib/avatar.png' }
 ];
 
 export const WORKFLOW_STEPPER_CONTENT: Readonly<Record<WorkflowStepKey, WorkflowStepperContent>> = {
