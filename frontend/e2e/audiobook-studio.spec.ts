@@ -91,8 +91,9 @@ test('audiobook studio renders icon badges in the hero preview cards', async ({ 
 
   await page.goto('/audiobook-studio');
 
-  await expect(page.locator('section[data-testid="studio-hero"] article').filter({ hasText: 'Your story' }).locator('svg')).toBeVisible();
-  await expect(page.locator('section[data-testid="studio-hero"] article').filter({ hasText: 'Detected cast' }).locator('svg')).toBeVisible();
+  const desktopPreview = page.locator('section[data-testid="studio-hero"] > div[aria-label="Story to cast audio preview"]');
+  await expect(desktopPreview.locator('article').filter({ hasText: 'Your story' }).locator('svg')).toBeVisible();
+  await expect(desktopPreview.locator('article').filter({ hasText: 'Detected cast' }).locator('svg')).toBeVisible();
 });
 
 test('audiobook studio shows a compact mobile workflow stepper with a tappable bottom sheet', async ({ context, page }) => {
