@@ -5,7 +5,7 @@ public enum SpeakerVoice {
             "Zephyr",
             "Bright",
             "Bright, airy, youthful, and optimistic. Works well for fresh, energetic narration, uplifting audiobook passages, friendly introductions, and scenes with a light emotional tone.",
-            Gender.MALE
+            Gender.FEMALE
     ),
     PUCK(
             "Puck",
@@ -47,7 +47,7 @@ public enum SpeakerVoice {
             "Aoede",
             "Breezy",
             "Smooth, artistic, conversational, and relaxed. Suitable for storytelling, poetic narration, reflective audiobook passages, creative essays, and warm long-form listening.",
-            Gender.MALE
+            Gender.FEMALE
     ),
     CALLIRRHOE(
             "Callirrhoe",
@@ -137,7 +137,7 @@ public enum SpeakerVoice {
             "Gacrux",
             "Mature",
             "Experienced, calm, serious, and trustworthy. Works well for documentaries, historical narration, older characters, reflective nonfiction, and scenes with life experience.",
-            Gender.MALE
+            Gender.FEMALE
     ),
     PULCHERRIMA(
             "Pulcherrima",
