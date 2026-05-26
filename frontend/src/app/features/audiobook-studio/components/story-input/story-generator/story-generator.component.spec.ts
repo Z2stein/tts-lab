@@ -142,6 +142,17 @@ describe('StoryGeneratorComponent', () => {
     });
   });
 
+
+  describe('loading indicator', () => {
+    it('shows the autopilot loading bot while generating', () => {
+      component.generating.set(true);
+      fixture.detectChanges();
+
+      const busy = fixture.debugElement.query(By.css('[data-testid="generate-idea-busy"]'));
+      expect(busy).withContext('expected loading bot to be visible').not.toBeNull();
+    });
+  });
+
   describe('disabled input', () => {
     it('disables the create-story-draft button when disabled=true', () => {
       component.disabled = true;
