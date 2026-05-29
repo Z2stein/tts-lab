@@ -218,6 +218,7 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
         sb.append("Requirements:\n");
         sb.append("- Format each line with a speaker label and a colon (e.g. \"Narrator: ...\", \"Elena: ...\")\n");
         sb.append("- Keep it between 250 and 500 words\n");
+        sb.append("- The Story Language should be the same as the language  used at the users idea");
         if (safeEnhancements.contains("Add narrator")) {
             sb.append("- Include a narrator character\n");
         }
