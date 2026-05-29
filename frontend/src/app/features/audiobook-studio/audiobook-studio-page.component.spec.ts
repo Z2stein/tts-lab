@@ -149,6 +149,11 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(fixture.nativeElement.querySelector('[data-testid="autopilot-setup"]')).not.toBeNull();
     expect(scrollService.scrollTo).toHaveBeenCalledWith('autopilot-setup');
     expect(scrollService.focusById).toHaveBeenCalledWith('autopilot-story-text', { preventScroll: true });
+
+    // AutopilotSetupCardComponent sets a 1 000 ms idea-CTA timer on init when
+    // the story field is empty. Flush it so fakeAsync does not complain about
+    // pending timers after the test exits.
+    flush();
   }));
 
   it('shows cast cards after story analysis succeeds', async () => {

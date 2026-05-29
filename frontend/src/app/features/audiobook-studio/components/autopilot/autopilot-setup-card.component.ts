@@ -23,7 +23,6 @@ export class AutopilotSetupCardComponent implements OnInit, OnDestroy {
   @Output() start = new EventEmitter<void>();
 
   readonly activeTab = signal<'paste' | 'generate'>('paste');
-  readonly generatingStory = signal(false);
   readonly showIdeaCta = signal(false);
 
   private storySub?: Subscription;
@@ -78,10 +77,6 @@ export class AutopilotSetupCardComponent implements OnInit, OnDestroy {
 
   get canStart(): boolean {
     return !this.running && (this.storyControl?.value.trim().length ?? 0) >= MIN_STORY_CHARACTERS;
-  }
-
-  onGeneratingChange(value: boolean): void {
-    this.generatingStory.set(value);
   }
 
   onStoryGenerated(text: string): void {
