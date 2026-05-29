@@ -32,6 +32,7 @@
           [busy]="autopilotRunning"
           [audioUrl]="fullPlanAudioUrl"
           [audioFilename]="fullPlanAudioFilename"
+          [previewProgress]="autopilotPreviewProgress"
           (openGuided)="openInGuidedWorkflow()"
           (openStep)="openGuidedStep($event)"
           (retry)="retryAutopilot()"

@@ -29,7 +29,12 @@
 
   <ol class="m-0 mt-5 grid list-none gap-2 p-0" aria-label="Autopilot steps">
     <li *ngFor="let step of steps; let i = index; trackBy: trackStep">
-      <app-autopilot-step-status [step]="step" [position]="i" (open)="openStep.emit($event)"></app-autopilot-step-status>
+      <app-autopilot-step-status
+        [step]="step"
+        [position]="i"
+        [progressMessage]="step.id === 'generate-preview' ? previewProgress : null"
+        (open)="openStep.emit($event)"
+      ></app-autopilot-step-status>
     </li>
   </ol>
 

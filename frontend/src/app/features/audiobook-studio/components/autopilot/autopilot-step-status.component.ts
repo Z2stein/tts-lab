@@ -12,6 +12,7 @@ import { AutopilotStep, AutopilotStepId } from '../../services/autopilot.service
 export class AutopilotStepStatusComponent {
   @Input() step!: AutopilotStep;
   @Input() position = 0;
+  @Input() progressMessage: string | null = null;
   @Output() open = new EventEmitter<AutopilotStepId>();
 
   onOpen(): void {

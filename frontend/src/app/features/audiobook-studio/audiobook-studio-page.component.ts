@@ -134,6 +134,41 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   get autopilotRunning(): boolean { return this.autopilot.running(); }
   get autopilotFinished(): boolean { return this.autopilot.finished(); }
 
+  // Live progress for the "Generate audio preview" autopilot step: how many parts
+  // are ready vs still open, which part is rendering, and any retry/merge state.
+  get autopilotPreviewProgress(): string | null {
+    const step = this.autopilotSteps.find(s => s.id === 'generate-preview');
+    if (!step || step.status !== 'running') return null;
+
+    const total = this.renderRequests.length;
+    if (total === 0) return null;
+
+    // Touch the per-second clock so this label refreshes while parts render.
+    void this.renderRequestAudioService.clockTick;
+
+    const ready = this.generatedPartCount();
+    const open = this.partsToGenerateCount();
+    const counts = open > 0
+      ? `${ready} of ${total} parts ready, ${open} still open`
+      : `${ready} of ${total} parts ready`;
+
+    const serviceMessage = this.fullPlanAudioStatusMessage;
+    if (serviceMessage && /retry/i.test(serviceMessage)) {
+      return `${serviceMessage} — ${counts}`;
+    }
+
+    const currentIndex = this.currentGeneratingRequestIndex();
+    if (currentIndex !== null) {
+      return `Generating part ${currentIndex + 1} of ${total} — ${counts}`;
+    }
+
+    if (this.fullPlanAudioLoading && serviceMessage) {
+      return `${serviceMessage} — ${counts}`;
+    }
+
+    return counts;
+  }
+
   // ── Facade state proxies (spec reads/writes these directly) ───────────────
 
   get cast(): SpeakerVoiceAnalysisItem[] { return this.facade.cast(); }
