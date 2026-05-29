@@ -81,7 +81,7 @@ public class TtsAudioCreationService {
                 throw new ApiException(
                     HttpStatus.BAD_REQUEST,
                     "TTS_INPUT_TOO_LARGE",
-                    "The text is too long for the speech provider. Please shorten the segment and try again.",
+                    "The text is too long for the speech provider. Please shorten the segment and try again. \nOn Project "+project.getId() +" at Segment "+targetSegmentIndex+".",
                     null,
                     ex
                 );
@@ -89,7 +89,7 @@ public class TtsAudioCreationService {
             throw new ApiException(
                 HttpStatus.BAD_GATEWAY,
                 "TTS_AUDIO_PROVIDER_UNAVAILABLE",
-                "The text-to-speech provider is currently unavailable. Please try again later.",
+                "The text-to-speech provider is currently unavailable. Please try again later. \nOn Project "+project.getId() +" at Segment "+targetSegmentIndex+".",
                 null,
                 ex
             );
