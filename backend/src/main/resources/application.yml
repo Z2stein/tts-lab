@@ -82,6 +82,11 @@ request-limits:
   text-model-multiplier: ${REQUEST_LIMITS_TEXT_MODEL_MULTIPLIER:3}
   unit: ${REQUEST_LIMITS_UNIT:WORDS}
 
+speech-model-concurrency:
+  enabled: ${SPEECH_MODEL_CONCURRENCY_ENABLED:true}
+  max-concurrent: ${SPEECH_MODEL_MAX_CONCURRENT:4}
+  acquire-timeout: ${SPEECH_MODEL_ACQUIRE_TIMEOUT:60s}
+
 logging:
   level:
     root: info

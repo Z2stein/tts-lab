@@ -1,6 +1,7 @@
 package com.example.ttslab.audiobooks.workflow.service;
 
 import com.example.ttslab.audiobooks.model.AudiobookProject;
+import com.example.ttslab.audiobooks.workflow.concurrency.SpeechModelConcurrencyLimiter;
 import com.example.ttslab.error.ApiException;
 import com.example.ttslab.config.ChatbotProperties;
 import java.io.ByteArrayOutputStream;
@@ -20,21 +21,25 @@ public class TtsAudioCreationService {
 
     private final ObjectProvider<GoogleTtsClient> googleTtsClientProvider;
     private final String chatbotProvider;
+    private final SpeechModelConcurrencyLimiter concurrencyLimiter;
 
     @Autowired
     public TtsAudioCreationService(
         ObjectProvider<GoogleTtsClient> googleTtsClientProvider,
-        ChatbotProperties chatbotProperties
+        ChatbotProperties chatbotProperties,
+        SpeechModelConcurrencyLimiter concurrencyLimiter
     ) {
-        this(googleTtsClientProvider, chatbotProperties == null ? PROVIDER_MOCK : chatbotProperties.provider());
+        this(googleTtsClientProvider, chatbotProperties == null ? PROVIDER_MOCK : chatbotProperties.provider(), concurrencyLimiter);
     }
 
     public TtsAudioCreationService(
         ObjectProvider<GoogleTtsClient> googleTtsClientProvider,
-        String chatbotProvider
+        String chatbotProvider,
+        SpeechModelConcurrencyLimiter concurrencyLimiter
     ) {
         this.googleTtsClientProvider = googleTtsClientProvider;
         this.chatbotProvider = chatbotProvider == null ? PROVIDER_MOCK : chatbotProvider.trim().toLowerCase();
+        this.concurrencyLimiter = concurrencyLimiter;
     }
 
     public TtsAudioFile createAudio(AudiobookProject project, int targetSegmentIndex) {
@@ -70,7 +75,7 @@ public class TtsAudioCreationService {
         }
 
         try {
-            return googleTtsClient.synthesize(project,targetSegmentIndex);
+            return concurrencyLimiter.callWithPermit(() -> googleTtsClient.synthesize(project, targetSegmentIndex));
         } catch (TtsAudioCreationException ex) {
             if (ex.inputTooLarge()) {
                 throw new ApiException(

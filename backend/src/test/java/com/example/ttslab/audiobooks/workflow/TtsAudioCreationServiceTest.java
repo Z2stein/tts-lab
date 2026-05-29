@@ -6,11 +6,16 @@ import com.example.ttslab.audiobooks.model.AudiobookSpeechSegment;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentOrigin;
 import com.example.ttslab.audiobooks.model.AudiobookSpeechSegmentReviewStatus;
 import com.example.ttslab.audiobooks.model.SpeakerCharacter;
+import com.example.ttslab.audiobooks.workflow.concurrency.SpeechModelConcurrencyLimiter;
+import com.example.ttslab.audiobooks.workflow.concurrency.SpeechModelConcurrencyProperties;
 import com.example.ttslab.error.ApiException;
 import java.nio.charset.StandardCharsets;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.TimeUnit;
 
 import com.example.ttslab.audiobooks.workflow.service.TtsAudioCreationService;
 import org.junit.jupiter.api.Test;
@@ -33,7 +38,7 @@ class TtsAudioCreationServiceTest {
     @Test
     void mockProviderReturnsDeterministicMp3WithoutCallingGoogleTts() {
         GoogleTtsClient googleTtsClient = mock(GoogleTtsClient.class);
-        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "mock");
+        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "mock", limiter());
         AudiobookProject project = mockProjectWithSegment("Hello");
 
         TtsAudioFile audioFile = service.createAudio(project, 0);
@@ -51,7 +56,7 @@ class TtsAudioCreationServiceTest {
         GoogleTtsClient googleTtsClient = mock(GoogleTtsClient.class);
         byte[] mp3 = new byte[] {'I', 'D', '3', 1};
         when(googleTtsClient.synthesize(any(AudiobookProject.class), anyInt())).thenReturn(mp3);
-        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "gemini");
+        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "gemini", limiter());
         AudiobookProject project = mockProjectWithSegment("Real audio");
 
         TtsAudioFile audioFile = service.createAudio(project, 0);
@@ -66,7 +71,7 @@ class TtsAudioCreationServiceTest {
         GoogleTtsClient googleTtsClient = mock(GoogleTtsClient.class);
         when(googleTtsClient.synthesize(any(AudiobookProject.class), anyInt()))
             .thenThrow(new TtsAudioCreationException("too large", null, TtsAudioCreationException.Kind.INPUT_TOO_LARGE));
-        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "gemini");
+        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "gemini", limiter());
         AudiobookProject project = mockProjectWithSegment("Very long text");
 
         ApiException exception = assertThrows(ApiException.class, () -> service.createAudio(project, 0));
@@ -80,7 +85,7 @@ class TtsAudioCreationServiceTest {
         GoogleTtsClient googleTtsClient = mock(GoogleTtsClient.class);
         when(googleTtsClient.synthesize(any(AudiobookProject.class), anyInt()))
             .thenThrow(new TtsAudioCreationException("boom", null, TtsAudioCreationException.Kind.PROVIDER));
-        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "gemini");
+        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "gemini", limiter());
         AudiobookProject project = mockProjectWithSegment("Some text");
 
         ApiException exception = assertThrows(ApiException.class, () -> service.createAudio(project, 0));
@@ -91,7 +96,7 @@ class TtsAudioCreationServiceTest {
 
     @Test
     void multipleSegmentsReturnMockAudioForSpecificSegment() {
-        TtsAudioCreationService service = new TtsAudioCreationService(provider(null), "mock");
+        TtsAudioCreationService service = new TtsAudioCreationService(provider(null), "mock", limiter());
         AudiobookProject project = mockProjectWithSegments("First", "Second");
 
         TtsAudioFile audioFile = service.createAudio(project, 0);
@@ -105,7 +110,7 @@ class TtsAudioCreationServiceTest {
 
     @Test
     void missingSegmentThrowsException() {
-        TtsAudioCreationService service = new TtsAudioCreationService(provider(null), "mock");
+        TtsAudioCreationService service = new TtsAudioCreationService(provider(null), "mock", limiter());
         AudiobookProject project = new AudiobookProject(
             "test-project",
             "user-1",
@@ -120,6 +125,45 @@ class TtsAudioCreationServiceTest {
         );
 
         assertThrows(IndexOutOfBoundsException.class, () -> service.createAudio(project, 0));
+    }
+
+    @Test
+    void geminiPathSurfacesProviderBusyWhenConcurrencyLimitIsSaturated() throws InterruptedException {
+        GoogleTtsClient googleTtsClient = mock(GoogleTtsClient.class);
+        byte[] mp3 = new byte[] {'I', 'D', '3', 1};
+        when(googleTtsClient.synthesize(any(AudiobookProject.class), anyInt())).thenReturn(mp3);
+        SpeechModelConcurrencyLimiter sharedLimiter = new SpeechModelConcurrencyLimiter(
+            new SpeechModelConcurrencyProperties(true, 1, Duration.ofMillis(50))
+        );
+        TtsAudioCreationService service = new TtsAudioCreationService(provider(googleTtsClient), "gemini", sharedLimiter);
+        AudiobookProject project = mockProjectWithSegment("Real audio");
+
+        CountDownLatch holderInside = new CountDownLatch(1);
+        CountDownLatch releaseHolder = new CountDownLatch(1);
+        Thread holder = new Thread(() -> sharedLimiter.callWithPermit(() -> {
+            holderInside.countDown();
+            try {
+                releaseHolder.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+            return "holder";
+        }));
+        holder.start();
+        assertTrue(holderInside.await(2, TimeUnit.SECONDS));
+
+        ApiException exception = assertThrows(ApiException.class, () -> service.createAudio(project, 0));
+        assertEquals(HttpStatus.SERVICE_UNAVAILABLE, exception.status());
+        assertEquals("TTS_AUDIO_PROVIDER_BUSY", exception.code());
+
+        releaseHolder.countDown();
+        holder.join(2000);
+    }
+
+    private SpeechModelConcurrencyLimiter limiter() {
+        return new SpeechModelConcurrencyLimiter(
+            new SpeechModelConcurrencyProperties(true, 8, Duration.ofSeconds(60))
+        );
     }
 
     @SuppressWarnings("unchecked")
