@@ -156,6 +156,6 @@ test('authenticated header account menu shows user details and logout action', a
   await expect(page.getByTestId('account-menu-trigger')).toContainText('L');
   await page.getByTestId('account-menu-trigger').click();
   await expect(page.getByTestId('account-menu-panel')).toContainText('Learner');
-  await expect(page.getByTestId('account-menu-panel')).toContainText('Signed in with Mock');
+  await expect(page.getByTestId('account-menu-panel')).toContainText('Signed in with Key');
   await expect(page.getByTestId('account-menu-logout')).toBeVisible();
 });

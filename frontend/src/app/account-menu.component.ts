@@ -35,7 +35,7 @@ export class AccountMenuComponent {
   get providerLabel(): string {
     return this.currentUser.authMode === 'google'
       ? 'Signed in with Google'
-      : 'Signed in with Mock';
+      : 'Signed in with Key';
   }
 
   toggleMenu(): void {
