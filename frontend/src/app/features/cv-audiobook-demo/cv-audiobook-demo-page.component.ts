@@ -29,8 +29,8 @@ interface TechnicalFeatureCard {
 })
 export class CvAudiobookDemoPageComponent {
   readonly projectLabel = 'AI AUDIOBOOK STUDIO';
-  readonly headlinePrefix = 'From written scene to';
-  readonly headlineAccent = 'spoken performance';
+  readonly headlinePrefix = 'Create you own';
+  readonly headlineAccent = 'Audiobook';
   readonly headlineSuffix = '';
   readonly subtitle = 'Paste your story. AI detects the speakers, gives each character a distinct voice, adds emotion and pacing, and creates a polished audiobook preview.';
   readonly demoLabel = 'Demo preview';

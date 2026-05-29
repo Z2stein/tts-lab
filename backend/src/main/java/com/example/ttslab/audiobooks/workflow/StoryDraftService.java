@@ -50,6 +50,7 @@ public class StoryDraftService {
 
         if (!PROVIDER_GEMINI.equals(chatbotProvider)) {
             log.debug("Story draft using fallback, provider={}", chatbotProvider);
+            try {Thread.sleep(1000);} catch (Throwable t){};
             return new GenerateStoryDraftResponse(FALLBACK_DRAFT);
         }
 

@@ -18,6 +18,7 @@ export class AutopilotSetupCardComponent {
   @Output() start = new EventEmitter<void>();
 
   readonly activeTab = signal<'paste' | 'generate'>('paste');
+  readonly generatingStory = signal(false);
 
   get wordCount(): number {
     return this.storyControl?.value.trim().split(/\s+/).filter(Boolean).length ?? 0;
@@ -29,6 +30,10 @@ export class AutopilotSetupCardComponent {
 
   get canStart(): boolean {
     return !this.running && (this.storyControl?.value.trim().length ?? 0) >= MIN_STORY_CHARACTERS;
+  }
+
+  onGeneratingChange(value: boolean): void {
+    this.generatingStory.set(value);
   }
 
   onStoryGenerated(text: string): void {

@@ -992,7 +992,7 @@ components:
         idea:
           type: string
           minLength: 1
-          maxLength: 500
+          maxLength: 1000
         enhancements:
           type: array
           items:
