@@ -599,14 +599,18 @@ test('audiobook studio keeps the workflow stepper sticky while scrolling through
   await page.evaluate((scrollTop) => {
     window.scrollTo(0, Math.max(0, scrollTop - 140));
   }, audioSectionTop);
-  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
 
   await expect(workflowStepper).toBeVisible();
 
-  const afterScroll = await workflowStepper.boundingBox();
+  // The sticky reflow can lag a frame or two under parallel CI load, so poll the
+  // stepper position until it settles into its sticky band instead of reading a
+  // single post-scroll frame (which intermittently caught it mid-scroll).
+  await expect.poll(async () => {
+    const y = (await workflowStepper.boundingBox())?.y ?? -1;
+    return y >= 8 && y <= 48;
+  }).toBe(true);
+
   const afterTask = await currentTask.boundingBox();
-  expect(afterScroll?.y ?? 0).toBeGreaterThanOrEqual(8);
-  expect(afterScroll?.y ?? 0).toBeLessThanOrEqual(48);
   expect(afterTask?.y ?? 0).toBeLessThan(0);
 });
 
