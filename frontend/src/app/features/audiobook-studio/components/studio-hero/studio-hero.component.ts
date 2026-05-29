@@ -13,11 +13,12 @@ import { FocusMonitor } from '@angular/cdk/a11y';
 import { HeroCastMember } from '../../models/audiobook-studio.types';
 import { VoiceSampleService } from '../../services/voice-sample.service';
 import { WaveSurferService } from '../../services/wave-surfer.service';
+import { AudiobookHeroPreviewCardComponent } from '../audiobook-hero-preview-card/audiobook-hero-preview-card.component';
 
 @Component({
   selector: 'app-studio-hero',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, AudiobookHeroPreviewCardComponent],
   templateUrl: './studio-hero.component.html'
 })
 export class StudioHeroComponent implements AfterViewInit, OnDestroy {
@@ -32,6 +33,7 @@ export class StudioHeroComponent implements AfterViewInit, OnDestroy {
   @ViewChild('demoWaveform') private demoWaveformRef!: ElementRef<HTMLElement>;
 
   demoPlaying = false;
+  demoProgress = 0;
 
   constructor(
     private readonly waveSurferService: WaveSurferService,
@@ -80,5 +82,10 @@ export class StudioHeroComponent implements AfterViewInit, OnDestroy {
       },
       (playing) => { this.demoPlaying = playing; },
     );
+    ws.on('timeupdate', (currentTime: number) => {
+      const total = ws.getDuration();
+      this.demoProgress = total > 0 ? currentTime / total : 0;
+    });
+    ws.on('finish', () => { this.demoProgress = 0; });
   }
 }

@@ -72,7 +72,7 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
     public String getSpeakerVoiceAnalysisPrompt(String rawDialogue, String customHint) {
 
         String availableVoices = Arrays.stream(SpeakerVoice.values())
-                .map(voice -> voice.getKey() + " (" + voice.getGender().name() + ")")
+                .map(SpeakerVoice::toString)
                 .collect(Collectors.joining(", "));
 
         String basePrompt = """
@@ -80,7 +80,8 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
 
                 Return only JSON with this shape:
                 {"projectTitle":"...","sourceLanguageCode":"...","speakers":[{"speakerName":"...","roleDescription":"...","voiceSuggestion":"..."}]}
-
+                voiceSuggestion should be filled with the voice-Key 
+                
                 Project title rules:
                 - Generate a short, compelling audiobook project title.
                 - Prefer 3 to 8 words.
@@ -111,7 +112,8 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
                 - If a speaker is described as male or uses he/him pronouns, select a MALE voice.
                 - If a speaker's gender is unclear from the text, choose the voice that best fits the character description.
                 - Always select voices with the correct gender to avoid mismatches.
-
+                
+                voiceSuggestion should be filled with the voice-Key 
                 Available Voice Keys: %s
 
                 Text:
@@ -216,6 +218,7 @@ public class DefaultAudiobookWorkflowPromptProvider implements AudiobookWorkflow
         sb.append("Requirements:\n");
         sb.append("- Format each line with a speaker label and a colon (e.g. \"Narrator: ...\", \"Elena: ...\")\n");
         sb.append("- Keep it between 250 and 500 words\n");
+        sb.append("- The Story Language should be the same as the language  used at the users idea");
         if (safeEnhancements.contains("Add narrator")) {
             sb.append("- Include a narrator character\n");
         }

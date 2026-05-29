@@ -1,6 +1,7 @@
 <section class="studio bg-studio-baseBg">
   <app-studio-hero
     *ngIf="showHero"
+    class="block w-full min-w-0"
     [heroCast]="heroCast"
     [activeSampleKey]="activeSampleKey"
     [speakerStyleFn]="speakerStyleFn"
@@ -31,6 +32,7 @@
           [busy]="autopilotRunning"
           [audioUrl]="fullPlanAudioUrl"
           [audioFilename]="fullPlanAudioFilename"
+          [previewProgress]="autopilotPreviewProgress"
           (openGuided)="openInGuidedWorkflow()"
           (openStep)="openGuidedStep($event)"
           (retry)="retryAutopilot()"
@@ -84,16 +86,23 @@
       [castEditDraft]="castEditDraft"
       [castEditable]="castEditable"
       [loadingAction]="loadingAction"
+      [addingSpeaker]="addingSpeaker"
+      [addSpeakerDraft]="addSpeakerDraft"
       [speakerStyleFn]="speakerStyleFn"
       (startCastEdit)="startCastEdit($event)"
       (saveCastEdit)="saveCastEdit($event)"
       (cancelCastEdit)="cancelCastEdit()"
       (createScriptPreview)="createScriptPreviewAndScroll()"
       (changeVoice)="openVoicePicker($event)"
+      (removeSpeaker)="removeSpeaker($event)"
+      (startAddSpeaker)="startAddSpeaker()"
+      (saveAddSpeaker)="saveAddSpeaker()"
+      (cancelAddSpeaker)="cancelAddSpeaker()"
+      (pickVoiceForNewSpeaker)="openVoicePickerForNewSpeaker()"
     ></app-cast-section>
 
     <app-voice-picker-modal
-      [open]="voicePickerOpenForIndex !== null"
+      [open]="voicePickerOpen"
       [speakerName]="voicePickerSpeakerName()"
       [currentVoiceId]="voicePickerCurrentVoiceId()"
       (voiceSelected)="applyVoiceSelection($event)"

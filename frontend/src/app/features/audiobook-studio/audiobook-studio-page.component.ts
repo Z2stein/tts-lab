@@ -134,6 +134,41 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   get autopilotRunning(): boolean { return this.autopilot.running(); }
   get autopilotFinished(): boolean { return this.autopilot.finished(); }
 
+  // Live progress for the "Generate audio preview" autopilot step: how many parts
+  // are ready vs still open, which part is rendering, and any retry/merge state.
+  get autopilotPreviewProgress(): string | null {
+    const step = this.autopilotSteps.find(s => s.id === 'generate-preview');
+    if (!step || step.status !== 'running') return null;
+
+    const total = this.renderRequests.length;
+    if (total === 0) return null;
+
+    // Touch the per-second clock so this label refreshes while parts render.
+    void this.renderRequestAudioService.clockTick;
+
+    const ready = this.generatedPartCount();
+    const open = this.partsToGenerateCount();
+    const counts = open > 0
+      ? `${ready} of ${total} parts ready, ${open} still open`
+      : `${ready} of ${total} parts ready`;
+
+    const serviceMessage = this.fullPlanAudioStatusMessage;
+    if (serviceMessage && /retry/i.test(serviceMessage)) {
+      return `${serviceMessage} — ${counts}`;
+    }
+
+    const currentIndex = this.currentGeneratingRequestIndex();
+    if (currentIndex !== null) {
+      return `Generating part ${currentIndex + 1} of ${total} — ${counts}`;
+    }
+
+    if (this.fullPlanAudioLoading && serviceMessage) {
+      return `${serviceMessage} — ${counts}`;
+    }
+
+    return counts;
+  }
+
   // ── Facade state proxies (spec reads/writes these directly) ───────────────
 
   get cast(): SpeakerVoiceAnalysisItem[] { return this.facade.cast(); }
@@ -177,6 +212,8 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   get editingCastIndex(): number | null { return this.facade.editingCastIndex(); }
   get castEditDraft(): SpeakerVoiceAnalysisItem | null { return this.facade.castEditDraft(); }
+  get addingSpeaker(): boolean { return this.facade.addingSpeaker(); }
+  get addSpeakerDraft(): SpeakerVoiceAnalysisItem | null { return this.facade.addSpeakerDraft(); }
   get editingScriptTurnIndex(): number | null { return this.facade.editingScriptTurnIndex(); }
   get scriptTurnEditDraft(): SpeakerSplitTurn | null { return this.facade.scriptTurnEditDraft(); }
 
@@ -194,6 +231,7 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   fullPlanAudioPlaying = false;
   renderRequestAudioPlayingStates: Record<number, boolean> = {};
   voicePickerOpenForIndex: number | null = null;
+  voicePickerForNewSpeaker = false;
   readonly audioSectionCollapsed = signal(false);
   private lastKnownProjectId: string | null = null;
 
@@ -259,8 +297,11 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
 
   focusStoryInput(event?: Event): void {
     event?.preventDefault();
-    this.scrollService.scrollTo('story-section');
-    this.scrollService.focusById('story-text', { preventScroll: true });
+    this.studioMode.set('autopilot');
+    setTimeout(() => {
+      this.scrollService.scrollTo('autopilot-setup');
+      this.scrollService.focusById('autopilot-story-text', { preventScroll: true });
+    }, 50);
   }
 
   scrollToSection(sectionId: string, event?: Event): void {
@@ -485,27 +526,65 @@ export class AudiobookStudioWorkspaceComponent implements AfterViewInit, OnChang
   async saveCastEdit(index: number): Promise<void> { await this.facade.saveCastEdit(index); }
   cancelCastEdit(): void { this.facade.cancelCastEdit(); }
 
+  startAddSpeaker(): void {
+    if (!this.castEditable) {
+      return;
+    }
+    this.facade.startAddSpeaker();
+  }
+  async saveAddSpeaker(): Promise<void> { await this.facade.saveAddSpeaker(); }
+  cancelAddSpeaker(): void { this.facade.cancelAddSpeaker(); }
+  async removeSpeaker(index: number): Promise<void> { await this.facade.removeSpeaker(index); }
+
   openVoicePicker(index: number): void {
     if (!this.castEditable) {
       return;
     }
+    this.voicePickerForNewSpeaker = false;
     this.voicePickerOpenForIndex = index;
   }
-  closeVoicePicker(): void { this.voicePickerOpenForIndex = null; }
+
+  openVoicePickerForNewSpeaker(): void {
+    if (!this.castEditable) {
+      return;
+    }
+    this.voicePickerOpenForIndex = null;
+    this.voicePickerForNewSpeaker = true;
+  }
+
+  get voicePickerOpen(): boolean {
+    return this.voicePickerOpenForIndex !== null || this.voicePickerForNewSpeaker;
+  }
+
+  closeVoicePicker(): void {
+    this.voicePickerOpenForIndex = null;
+    this.voicePickerForNewSpeaker = false;
+  }
 
   voicePickerSpeakerName(): string {
+    if (this.voicePickerForNewSpeaker) {
+      return formatSpeakerDisplayName(this.facade.addSpeakerDraft()?.speakerName ?? '') || 'New speaker';
+    }
     if (this.voicePickerOpenForIndex === null) return '';
     return formatSpeakerDisplayName(this.facade.cast()[this.voicePickerOpenForIndex]?.speakerName ?? '');
   }
 
   voicePickerCurrentVoiceId(): string {
+    if (this.voicePickerForNewSpeaker) {
+      return (this.facade.addSpeakerDraft()?.voiceSuggestion ?? '').toLowerCase();
+    }
     if (this.voicePickerOpenForIndex === null) return '';
     return (this.facade.cast()[this.voicePickerOpenForIndex]?.voiceSuggestion ?? '').toLowerCase();
   }
 
   async applyVoiceSelection(voice: SpeakerVoiceCatalogItem): Promise<void> {
-    if (this.voicePickerOpenForIndex === null) return;
     const voiceKey = voice.id.toUpperCase();
+    if (this.voicePickerForNewSpeaker) {
+      this.facade.setAddSpeakerVoice(voiceKey);
+      this.closeVoicePicker();
+      return;
+    }
+    if (this.voicePickerOpenForIndex === null) return;
     this.cast[this.voicePickerOpenForIndex].voiceSuggestion = voiceKey;
     await this.facade.saveCastVoice(this.voicePickerOpenForIndex, voiceKey);
     this.closeVoicePicker();

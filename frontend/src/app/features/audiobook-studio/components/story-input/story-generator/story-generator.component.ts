@@ -12,6 +12,7 @@ import { AudiobookStudioFacade } from '../../../audiobook-studio.facade';
 export class StoryGeneratorComponent {
   @Input() disabled = false;
   @Output() readonly storyGenerated = new EventEmitter<string>();
+  @Output() readonly generatingChange = new EventEmitter<boolean>();
 
   readonly ideaControl = new FormControl('', { nonNullable: true });
 
@@ -49,6 +50,7 @@ export class StoryGeneratorComponent {
     if (!idea) return;
 
     this.generating.set(true);
+    this.generatingChange.emit(true);
     this.error.set(null);
 
     try {
@@ -58,6 +60,7 @@ export class StoryGeneratorComponent {
       this.error.set(err instanceof Error ? err.message : 'Failed to generate story. Please try again.');
     } finally {
       this.generating.set(false);
+      this.generatingChange.emit(false);
     }
   }
 }

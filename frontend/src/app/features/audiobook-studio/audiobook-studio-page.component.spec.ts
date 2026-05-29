@@ -136,6 +136,26 @@ describe('AudiobookStudioWorkspaceComponent', () => {
     expect(textarea.value).toContain('Station Keeper');
   });
 
+  it('opens the Autopilot generation panel from the hero CTA', fakeAsync(() => {
+    const scrollService = (component as any).scrollService as { scrollTo: jasmine.Spy; focusById: jasmine.Spy };
+    spyOn(scrollService, 'scrollTo');
+    spyOn(scrollService, 'focusById');
+
+    component.focusStoryInput(new Event('click'));
+    fixture.detectChanges();
+    tick(50);
+
+    expect(component.studioMode()).toBe('autopilot');
+    expect(fixture.nativeElement.querySelector('[data-testid="autopilot-setup"]')).not.toBeNull();
+    expect(scrollService.scrollTo).toHaveBeenCalledWith('autopilot-setup');
+    expect(scrollService.focusById).toHaveBeenCalledWith('autopilot-story-text', { preventScroll: true });
+
+    // AutopilotSetupCardComponent sets a 1 000 ms idea-CTA timer on init when
+    // the story field is empty. Flush it so fakeAsync does not complain about
+    // pending timers after the test exits.
+    flush();
+  }));
+
   it('shows cast cards after story analysis succeeds', async () => {
     audiobookWorkflowService.analyzeSpeakers.and.resolveTo({
       speakers: [{ speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'Warm alto voice' }],

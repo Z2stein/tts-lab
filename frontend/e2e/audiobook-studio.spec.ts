@@ -91,8 +91,25 @@ test('audiobook studio renders icon badges in the hero preview cards', async ({ 
 
   await page.goto('/audiobook-studio');
 
-  await expect(page.locator('section[data-testid="studio-hero"] article').filter({ hasText: 'Your story' }).locator('svg')).toBeVisible();
-  await expect(page.locator('section[data-testid="studio-hero"] article').filter({ hasText: 'Detected cast' }).locator('svg')).toBeVisible();
+  const desktopPreview = page.locator('section[data-testid="studio-hero"] > div[aria-label="Story to cast audio preview"]');
+  await expect(desktopPreview.locator('article').filter({ hasText: 'Your story' }).locator('svg')).toBeVisible();
+  await expect(desktopPreview.locator('article').filter({ hasText: 'Detected cast' }).locator('svg')).toBeVisible();
+});
+
+test('hero CTA jumps to the Autopilot generation panel', async ({ context, page }) => {
+  await authenticate(context, page);
+
+  await page.goto('/audiobook-studio');
+  await ensureGuided(page);
+
+  await page.getByRole('button', { name: 'Create audio story' }).click();
+
+  await expect(page.getByTestId('studio-mode-autopilot')).toHaveAttribute('aria-selected', 'true');
+  await expect(page.getByTestId('autopilot-setup')).toBeVisible();
+  await expect(page.getByTestId('autopilot-story-input')).toBeFocused();
+  await expect.poll(async () => page.evaluate(() => {
+    return Math.round(document.getElementById('autopilot-setup')?.getBoundingClientRect().top ?? 9999);
+  })).toBeLessThan(220);
 });
 
 test('audiobook studio shows a compact mobile workflow stepper with a tappable bottom sheet', async ({ context, page }) => {
@@ -218,6 +235,97 @@ test('audiobook studio persists a step-1 voice change across reload', async ({ c
 
   await page.reload();
   await expect(page.locator('.voice-name-display').first()).toHaveText('PUCK');
+});
+
+test('audiobook studio adds a new speaker in step 2 and persists it across reload', async ({ context, page }) => {
+  await authenticate(context, page);
+  let currentSnapshot = {
+    ...(await loadWorkflowSnapshotFixture('cast-review')),
+    workflowStage: 'CAST_REVIEW',
+    scriptTurns: [],
+    speakers: [
+      { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'ZEPHYR' },
+      { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'PUCK' }
+    ]
+  };
+
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(currentSnapshot) });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/cast`, async (route) => {
+    const body = route.request().postDataJSON() as {
+      speakers: Array<{ speakerName: string; roleDescription: string; voiceSuggestion: string }>;
+    };
+    expect(body.speakers.map((s) => s.speakerName)).toEqual(['Mara', 'Jonas', 'Aria']);
+    currentSnapshot = { ...currentSnapshot, speakers: body.speakers, workflowStage: 'CAST_REVIEW' };
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(currentSnapshot) });
+  });
+
+  await page.goto(`/audiobook-studio/${testProjectId}`);
+  await expect(page.locator('app-cast-card')).toHaveCount(2);
+
+  await page.getByTestId('add-speaker').click();
+  await page.getByTestId('add-speaker-name').fill('Aria');
+  await page.getByTestId('add-speaker-role').fill('Mysterious guide');
+  await page.getByTestId('add-speaker-save').click();
+
+  await expect(page.locator('app-cast-card')).toHaveCount(3);
+  await expect(page.getByRole('heading', { name: 'Aria' })).toBeVisible();
+
+  await page.reload();
+  await expect(page.locator('app-cast-card')).toHaveCount(3);
+  await expect(page.getByRole('heading', { name: 'Aria' })).toBeVisible();
+});
+
+test('audiobook studio requires a name before adding a speaker in step 2', async ({ context, page }) => {
+  await authenticate(context, page);
+  await mockWorkflowSnapshot(page, 'cast-review', { workflowStage: 'CAST_REVIEW', scriptTurns: [] });
+
+  await page.goto(`/audiobook-studio/${testProjectId}`);
+  await page.getByTestId('add-speaker').click();
+  await page.getByTestId('add-speaker-save').click();
+
+  await expect(page.getByTestId('add-speaker-validation')).toContainText('Speaker name is required.');
+  await expect(page.getByTestId('add-speaker-form')).toBeVisible();
+});
+
+test('audiobook studio removes a speaker in step 2 after confirmation and persists across reload', async ({ context, page }) => {
+  await authenticate(context, page);
+  let currentSnapshot = {
+    ...(await loadWorkflowSnapshotFixture('cast-review')),
+    workflowStage: 'CAST_REVIEW',
+    scriptTurns: [],
+    speakers: [
+      { speakerName: 'Mara', roleDescription: 'Bold traveler', voiceSuggestion: 'ZEPHYR' },
+      { speakerName: 'Jonas', roleDescription: 'Careful friend', voiceSuggestion: 'PUCK' }
+    ]
+  };
+
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}`, async (route) => {
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(currentSnapshot) });
+  });
+  await page.route(`**/api/audiobooks/workflow/projects/${testProjectId}/cast`, async (route) => {
+    const body = route.request().postDataJSON() as {
+      speakers: Array<{ speakerName: string; roleDescription: string; voiceSuggestion: string }>;
+    };
+    expect(body.speakers.map((s) => s.speakerName)).toEqual(['Mara']);
+    currentSnapshot = { ...currentSnapshot, speakers: body.speakers, workflowStage: 'CAST_REVIEW' };
+    await route.fulfill({ status: 200, contentType: 'application/json', body: JSON.stringify(currentSnapshot) });
+  });
+
+  await page.goto(`/audiobook-studio/${testProjectId}`);
+  await expect(page.locator('app-cast-card')).toHaveCount(2);
+
+  await page.getByTestId('cast-remove-1').click();
+  await expect(page.getByTestId('cast-remove-confirm-panel-1')).toContainText('Remove this speaker from the cast?');
+  await page.getByTestId('cast-remove-confirm-1').click();
+
+  await expect(page.locator('app-cast-card')).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Jonas' })).toHaveCount(0);
+
+  await page.reload();
+  await expect(page.locator('app-cast-card')).toHaveCount(1);
+  await expect(page.getByRole('heading', { name: 'Jonas' })).toHaveCount(0);
 });
 
 test('audiobook studio shows the detected language in advanced production settings after step 1', async ({ context, page }) => {
@@ -491,14 +599,18 @@ test('audiobook studio keeps the workflow stepper sticky while scrolling through
   await page.evaluate((scrollTop) => {
     window.scrollTo(0, Math.max(0, scrollTop - 140));
   }, audioSectionTop);
-  await page.evaluate(() => new Promise<void>((resolve) => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))));
 
   await expect(workflowStepper).toBeVisible();
 
-  const afterScroll = await workflowStepper.boundingBox();
+  // The sticky reflow can lag a frame or two under parallel CI load, so poll the
+  // stepper position until it settles into its sticky band instead of reading a
+  // single post-scroll frame (which intermittently caught it mid-scroll).
+  await expect.poll(async () => {
+    const y = (await workflowStepper.boundingBox())?.y ?? -1;
+    return y >= 8 && y <= 48;
+  }).toBe(true);
+
   const afterTask = await currentTask.boundingBox();
-  expect(afterScroll?.y ?? 0).toBeGreaterThanOrEqual(8);
-  expect(afterScroll?.y ?? 0).toBeLessThanOrEqual(48);
   expect(afterTask?.y ?? 0).toBeLessThan(0);
 });
 

@@ -1,9 +1,9 @@
 <section id="autopilot-progress" class="glow-card" data-testid="autopilot-progress" aria-labelledby="autopilot-progress-title">
   <header class="flex items-start justify-between gap-4">
     <div>
-      <span class="task-label">Autopilot progress</span>
+      <span class="task-label">1-Click Creation progress</span>
       <h2 id="autopilot-progress-title" class="m-0 text-xl leading-tight text-studio-text">
-        TTS Lab is working through the steps automatically.
+        We are working through the following steps.
       </h2>
     </div>
     <span *ngIf="running && !busy" class="ap-live" aria-live="polite">● Live</span>
@@ -29,7 +29,12 @@
 
   <ol class="m-0 mt-5 grid list-none gap-2 p-0" aria-label="Autopilot steps">
     <li *ngFor="let step of steps; let i = index; trackBy: trackStep">
-      <app-autopilot-step-status [step]="step" [position]="i" (open)="openStep.emit($event)"></app-autopilot-step-status>
+      <app-autopilot-step-status
+        [step]="step"
+        [position]="i"
+        [progressMessage]="step.id === 'generate-preview' ? previewProgress : null"
+        (open)="openStep.emit($event)"
+      ></app-autopilot-step-status>
     </li>
   </ol>
 
@@ -39,7 +44,7 @@
     role="alert"
     data-testid="autopilot-error"
   >
-    <strong class="text-base text-studio-danger">Autopilot stopped at “{{ failedStep.label }}”.</strong>
+    <strong class="text-base text-studio-danger">1-Click Creation stopped at “{{ failedStep.label }}”.</strong>
     <p class="mb-3.5 mt-1.5 leading-normal text-studio-danger">
       {{ failedStep.errorMessage || 'You can inspect and fix this step manually.' }}
     </p>
@@ -50,7 +55,7 @@
         data-testid="open-guided-workflow-button"
         (click)="openGuided.emit()"
       >
-        Open in Guided workflow
+        Open in Step-by-Step Guide
       </button>
       <button type="button" class="secondary-button" data-testid="autopilot-retry-button" (click)="retry.emit()">
         Try again
@@ -72,7 +77,4 @@
     </button>
   </app-waveform-player>
 
-  <p *ngIf="!running && !finished && !failedStep" class="mb-0 mt-5 leading-relaxed text-studio-muted">
-    Start Autopilot to generate your audiobook preview automatically.
-  </p>
 </section>

@@ -1,4 +1,5 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import WaveSurfer from 'wavesurfer.js';
 import { FocusMonitor } from '@angular/cdk/a11y';
 import { VoiceSampleService } from '../../services/voice-sample.service';
 import { WaveSurferService } from '../../services/wave-surfer.service';
@@ -16,6 +17,8 @@ describe('StudioHeroComponent', () => {
     ]);
     focusMonitor = jasmine.createSpyObj<FocusMonitor>('FocusMonitor', ['monitor', 'stopMonitoring']);
     waveSurferService.get.and.returnValue(null);
+    const fakeWaveSurfer = jasmine.createSpyObj<WaveSurfer>('WaveSurfer', ['on', 'getDuration', 'playPause']);
+    waveSurferService.create.and.returnValue(fakeWaveSurfer);
 
     await TestBed.configureTestingModule({
       imports: [StudioHeroComponent],

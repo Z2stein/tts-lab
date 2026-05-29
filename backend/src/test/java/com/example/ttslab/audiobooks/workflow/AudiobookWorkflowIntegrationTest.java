@@ -292,6 +292,73 @@ class AudiobookWorkflowIntegrationTest {
     }
 
     @Test
+    void castUpdateAddsANewSpeakerToTheCast() throws Exception {
+        String projectId = UUID.randomUUID().toString();
+        AudiobookProject project = buildProject(projectId, AudiobookWorkflowStage.CAST_REVIEW);
+        audiobookProjectRepository.save(project);
+
+        SpeakerCharacter mara = buildCharacter(UUID.randomUUID().toString(), projectId, 0, "Mara", "Bold traveler", SpeakerVoice.KORE);
+        speakerCharacterRepository.save(mara);
+
+        MvcResult result = mockMvc.perform(patch("/api/audiobooks/workflow/projects/{projectId}/cast", projectId)
+                .contentType("application/json")
+                .content("""
+                    {
+                      "speakers": [
+                        {"speakerName": "Mara", "roleDescription": "Bold traveler", "voiceSuggestion": "KORE"},
+                        {"speakerName": "Aria", "roleDescription": "Mysterious guide", "voiceSuggestion": "PUCK"}
+                      ]
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.workflowStage").value("CAST_REVIEW"))
+            .andExpect(jsonPath("$.speakers.length()").value(2))
+            .andExpect(jsonPath("$.speakers[1].speakerName").value("Aria"))
+            .andExpect(jsonPath("$.speakers[1].voiceSuggestion").value("PUCK"))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+
+        List<SpeakerCharacter> characters = speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc(projectId);
+        assertThat(characters).extracting(SpeakerCharacter::getSpeakerName).containsExactly("Mara", "Aria");
+        AudiobookProject saved = audiobookProjectRepository.findById(projectId).orElseThrow();
+        assertThat(saved.getSpeakerCount()).isEqualTo(2);
+    }
+
+    @Test
+    void castUpdateRemovesASpeakerFromTheCast() throws Exception {
+        String projectId = UUID.randomUUID().toString();
+        AudiobookProject project = buildProject(projectId, AudiobookWorkflowStage.CAST_REVIEW);
+        audiobookProjectRepository.save(project);
+
+        SpeakerCharacter mara = buildCharacter(UUID.randomUUID().toString(), projectId, 0, "Mara", "Bold traveler", SpeakerVoice.KORE);
+        SpeakerCharacter jonas = buildCharacter(UUID.randomUUID().toString(), projectId, 1, "Jonas", "Careful friend", SpeakerVoice.PUCK);
+        speakerCharacterRepository.saveAll(List.of(mara, jonas));
+
+        MvcResult result = mockMvc.perform(patch("/api/audiobooks/workflow/projects/{projectId}/cast", projectId)
+                .contentType("application/json")
+                .content("""
+                    {
+                      "speakers": [
+                        {"speakerName": "Mara", "roleDescription": "Bold traveler", "voiceSuggestion": "KORE"}
+                      ]
+                    }
+                    """))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.workflowStage").value("CAST_REVIEW"))
+            .andExpect(jsonPath("$.speakers.length()").value(1))
+            .andExpect(jsonPath("$.speakers[0].speakerName").value("Mara"))
+            .andReturn();
+
+        assertInteractionMatchesContract(result.getRequest(), result.getResponse());
+
+        List<SpeakerCharacter> characters = speakerCharacterRepository.findByProjectIdOrderBySortOrderAsc(projectId);
+        assertThat(characters).extracting(SpeakerCharacter::getSpeakerName).containsExactly("Mara");
+        AudiobookProject saved = audiobookProjectRepository.findById(projectId).orElseThrow();
+        assertThat(saved.getSpeakerCount()).isEqualTo(1);
+    }
+
+    @Test
     void castUpdateIsRejectedAfterScriptPreviewExists() throws Exception {
         String projectId = UUID.randomUUID().toString();
         AudiobookProject project = buildProject(projectId, AudiobookWorkflowStage.SCRIPT_REVIEW);

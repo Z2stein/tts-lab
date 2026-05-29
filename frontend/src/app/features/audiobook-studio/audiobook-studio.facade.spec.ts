@@ -430,6 +430,106 @@ describe('AudiobookStudioFacade', () => {
     });
   });
 
+  describe('saveAddSpeaker', () => {
+    function snapshotWithSpeakers(speakers: { speakerName: string; roleDescription: string; voiceSuggestion: string }[]) {
+      return {
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'CAST_REVIEW',
+        speakers,
+        scriptTurns: [],
+        annotatedTurns: [],
+        audioAssets: [],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        audioAssetsCurrent: false,
+        performanceNotesStale: false
+      } as never;
+    }
+
+    it('appends a new speaker, persists the cast, and hydrates from the snapshot', async () => {
+      facade.setCast([maraItem]);
+      facade.setCurrentProjectId('project-1');
+      facade.startAddSpeaker();
+      const draft = facade.addSpeakerDraft()!;
+      draft.speakerName = '  Aria  ';
+      draft.roleDescription = ' Mysterious guide ';
+      facade.setAddSpeakerVoice('KORE');
+
+      const aria = { speakerName: 'Aria', roleDescription: 'Mysterious guide', voiceSuggestion: 'KORE' };
+      workflow.saveCast.and.resolveTo(snapshotWithSpeakers([maraItem, aria]));
+
+      await facade.saveAddSpeaker();
+
+      expect(workflow.saveCast).toHaveBeenCalledWith('project-1', { speakers: [maraItem, aria] });
+      expect(facade.cast()).toEqual([maraItem, aria]);
+      expect(facade.addingSpeaker()).toBeFalse();
+      expect(facade.addSpeakerDraft()).toBeNull();
+    });
+
+    it('blocks saving without a name, shows the error, and does not call the backend', async () => {
+      facade.setCast([maraItem]);
+      facade.setCurrentProjectId('project-1');
+      facade.startAddSpeaker();
+
+      await facade.saveAddSpeaker();
+
+      expect(workflow.saveCast).not.toHaveBeenCalled();
+      expect(facade.error()).toBe('Speaker name is required.');
+    });
+  });
+
+  describe('removeSpeaker', () => {
+    function snapshotWithSpeakers(speakers: { speakerName: string; roleDescription: string; voiceSuggestion: string }[]) {
+      return {
+        projectId: 'project-1',
+        title: 'The Hidden Signal',
+        storyText: 'Mara: Hello',
+        workflowStage: 'CAST_REVIEW',
+        speakers,
+        scriptTurns: [],
+        annotatedTurns: [],
+        audioAssets: [],
+        productionSettings: {
+          prompt: 'Prompt',
+          languageCode: 'en-US',
+          modelName: 'gemini-3.1-flash-tts-preview',
+          audioEncoding: 'MP3'
+        },
+        audioAssetsCurrent: false,
+        performanceNotesStale: false
+      } as never;
+    }
+
+    it('removes the speaker, persists the remaining cast, and hydrates from the snapshot', async () => {
+      facade.setCast([maraItem, jonasItem]);
+      facade.setCurrentProjectId('project-1');
+      workflow.saveCast.and.resolveTo(snapshotWithSpeakers([maraItem]));
+
+      await facade.removeSpeaker(1);
+
+      expect(workflow.saveCast).toHaveBeenCalledWith('project-1', { speakers: [maraItem] });
+      expect(facade.cast()).toEqual([maraItem]);
+      expect(renderSvc.abortAll).toHaveBeenCalled();
+    });
+
+    it('blocks removing the last remaining speaker and shows the error', async () => {
+      facade.setCast([maraItem]);
+      facade.setCurrentProjectId('project-1');
+
+      await facade.removeSpeaker(0);
+
+      expect(workflow.saveCast).not.toHaveBeenCalled();
+      expect(facade.error()).toBe('At least one speaker is required.');
+      expect(facade.cast()).toEqual([maraItem]);
+    });
+  });
+
   describe('saveScriptTurnEdit', () => {
     it('persists edited turns before closing the editor and resets downstream pipeline', async () => {
       facade.setScriptTurns([

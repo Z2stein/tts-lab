@@ -7,6 +7,7 @@ function steps(overrides: Partial<Record<string, AutopilotStep['status']>> = {})
     ['analyze-story', 'Analyze story'],
     ['detect-cast', 'Detect cast'],
     ['assign-voices', 'Assign voices'],
+    ['generate-preview', 'Generate audio preview'],
   ];
   return base.map(([id, label]) => ({
     id: id as AutopilotStep['id'],
@@ -75,5 +76,24 @@ describe('AutopilotProgressCardComponent', () => {
     fixture.detectChanges();
 
     expect(byTestId('autopilot-error')).toBeNull();
+  });
+
+  it('shows the preview progress text only on the running generate-preview step', () => {
+    component.steps = steps({ 'generate-preview': 'running' });
+    component.previewProgress = 'Generating part 4 of 8 — 3 of 8 parts ready, 5 still open';
+    fixture.detectChanges();
+
+    const progress = byTestId('autopilot-step-progress-generate-preview');
+    expect(progress).not.toBeNull();
+    expect(progress!.textContent).toContain('Generating part 4 of 8');
+    expect(progress!.textContent).toContain('5 still open');
+  });
+
+  it('hides the preview progress text while generate-preview is still pending', () => {
+    component.steps = steps();
+    component.previewProgress = '3 of 8 parts ready';
+    fixture.detectChanges();
+
+    expect(byTestId('autopilot-step-progress-generate-preview')).toBeNull();
   });
 });

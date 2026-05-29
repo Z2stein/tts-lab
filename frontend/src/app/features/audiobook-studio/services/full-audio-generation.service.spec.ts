@@ -33,6 +33,7 @@ describe('FullAudioGenerationService', () => {
     });
     service = TestBed.inject(FullAudioGenerationService);
     renderSvc = TestBed.inject(RenderRequestAudioService);
+    service.retryDelayMs = 0;
   });
 
   afterEach(() => {
@@ -70,6 +71,51 @@ describe('FullAudioGenerationService', () => {
     expect(service.loading).toBeFalse();
     expect(service.error).toContain('1 part failed to generate');
     expect(service.audioUrl).toBeNull();
+    // Initial attempt + 3 retries.
+    expect(tts.createAudioForRenderRequest).toHaveBeenCalledTimes(4);
+  });
+
+  it('retries a failed part and succeeds on a later attempt', async () => {
+    const p0 = part('One', 'V1');
+
+    let calls = 0;
+    tts.createAudioForRenderRequest.and.callFake(() => {
+      calls++;
+      return calls < 3
+        ? Promise.reject(new Error('Network error'))
+        : Promise.resolve({ blob: new Blob(['p0']), filename: 'p0.mp3' });
+    });
+
+    await service.generate([p0]);
+
+    expect(tts.createAudioForRenderRequest).toHaveBeenCalledTimes(3);
+    expect(service.error).toBeNull();
+    expect(service.audioUrl).toBe('blob:mock-full');
+  });
+
+  it('gives up after 3 retries', async () => {
+    const p0 = part('One', 'V1');
+
+    tts.createAudioForRenderRequest.and.rejectWith(new Error('Network error'));
+
+    await service.generate([p0]);
+
+    expect(tts.createAudioForRenderRequest).toHaveBeenCalledTimes(4);
+    expect(service.error).toContain('failed to generate');
+    expect(service.audioUrl).toBeNull();
+  });
+
+  it('does not auto-retry a canceled part', async () => {
+    const p0 = part('One', 'V1');
+
+    // An AbortError with no timeout reason makes the part settle as 'canceled'.
+    tts.createAudioForRenderRequest.and.rejectWith(new DOMException('Aborted', 'AbortError'));
+
+    await service.generate([p0]);
+
+    // Canceled parts are triggered once on the initial pass, but never retried.
+    expect(tts.createAudioForRenderRequest).toHaveBeenCalledTimes(1);
+    expect(service.error).toContain('failed to generate');
   });
 
   it('cancels orchestrating when cancel() is called', async () => {

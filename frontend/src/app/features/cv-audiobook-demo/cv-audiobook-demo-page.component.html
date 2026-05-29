@@ -55,20 +55,6 @@
             <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
           </svg>
         </a>
-
-        <a
-          [routerLink]="secondaryAction.route"
-          [fragment]="secondaryAction.fragment"
-          class="inline-flex items-center justify-center gap-3 rounded-2xl border border-white/14 bg-white/[0.025] px-5 py-4 text-center text-xs font-bold uppercase tracking-[0.12em] text-white/58 transition hover:border-white/28 hover:bg-white/[0.05] hover:text-white/82 focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-[#050811] sm:gap-4 sm:px-6 sm:text-base sm:tracking-[0.14em]"
-        >
-          <svg class="h-6 w-6" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-            <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.61-3.37-1.18-3.37-1.18-.45-1.15-1.11-1.46-1.11-1.46-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.6 9.6 0 0 1 12 6.02c.85 0 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" />
-          </svg>
-          {{ secondaryAction.label }}
-          <svg class="h-5 w-5" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M5 12h14m-6-6 6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
-          </svg>
-        </a>
       </nav>
 
       <section
@@ -77,14 +63,32 @@
         class="mx-auto w-full max-w-5xl border-t border-white/10 pt-8 text-left"
         aria-labelledby="cv-demo-technical-features-title"
       >
-        <div class="mx-auto max-w-2xl text-center">
-          <p class="eyebrow">Technical features</p>
-          <h2 id="cv-demo-technical-features-title" class="mt-2 text-2xl font-black tracking-normal text-white sm:text-3xl">
-            Evidence from the repository
-          </h2>
-          <p class="mt-3 text-sm leading-7 text-white/62 sm:text-base">
-            The cards below come directly from the implemented and prepared features in this repository.
-          </p>
+        <div class="grid w-full items-start gap-5 text-center sm:grid-cols-[1fr_minmax(0,32rem)_1fr]">
+          <div aria-hidden="true"></div>
+
+          <div>
+            <p class="eyebrow">Technical features</p>
+            <h2 id="cv-demo-technical-features-title" class="mt-2 text-2xl font-black tracking-normal text-white sm:text-3xl">
+              Evidence from the repository
+            </h2>
+            <p class="mt-3 text-sm leading-7 text-white/62 sm:text-base">
+              The cards below come directly from the implemented and prepared features in this repository.
+            </p>
+          </div>
+
+          <a
+            data-testid="cv-demo-github-link"
+            [href]="secondaryAction.href"
+            target="_blank"
+            rel="noopener noreferrer"
+            [attr.aria-label]="secondaryAction.ariaLabel"
+            class="inline-flex w-fit items-center justify-center gap-2 justify-self-center rounded-2xl border border-white/14 bg-white/[0.025] px-4 py-3 text-center text-xs font-bold text-white/70 transition hover:border-[#f0ad5d]/45 hover:bg-white/[0.055] hover:text-white focus:outline-none focus:ring-2 focus:ring-white/30 focus:ring-offset-2 focus:ring-offset-[#050811] sm:justify-self-end"
+          >
+            <svg class="h-5 w-5 shrink-0" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path fill-rule="evenodd" clip-rule="evenodd" d="M12 2a10 10 0 0 0-3.16 19.49c.5.09.68-.22.68-.48v-1.7c-2.78.61-3.37-1.18-3.37-1.18-.45-1.15-1.11-1.46-1.11-1.46-.91-.62.07-.61.07-.61 1 .07 1.53 1.03 1.53 1.03.9 1.52 2.34 1.08 2.91.83.09-.65.35-1.08.63-1.33-2.22-.25-4.55-1.11-4.55-4.94 0-1.09.39-1.98 1.03-2.68-.1-.25-.45-1.27.1-2.64 0 0 .84-.27 2.75 1.02A9.6 9.6 0 0 1 12 6.02c.85 0 1.7.11 2.5.33 1.91-1.29 2.75-1.02 2.75-1.02.55 1.37.2 2.39.1 2.64.64.7 1.03 1.59 1.03 2.68 0 3.84-2.34 4.68-4.57 4.93.36.31.68.92.68 1.86v2.76c0 .27.18.58.69.48A10 10 0 0 0 12 2Z" />
+            </svg>
+            {{ secondaryAction.label }}
+          </a>
         </div>
 
         <div class="mt-8 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -119,13 +123,6 @@
                 }
               </ul>
 
-              <p
-                data-testid="cv-demo-feature-card-demonstrates"
-                class="mt-4 rounded-2xl border border-white/8 bg-black/15 px-4 py-3 text-sm leading-6 text-white/70"
-              >
-                <span class="font-bold text-white/86">What this demonstrates:</span>
-                {{ card.demonstrates }}
-              </p>
             </article>
           }
         </div>

@@ -492,6 +492,7 @@
 
   .studio > * {
     position: relative;
+    min-width: 0;
   }
 
   .studio h1,
@@ -506,6 +507,19 @@
     display: flex;
     flex-direction: column;
     gap: 2.5rem;
+    min-width: 0;
+  }
+
+  @media (max-width: 767px) {
+    .studio {
+      margin-left: calc(-1 * clamp(1rem, 4vw, 2rem));
+      padding: 0.25rem;
+      width: 100vw;
+    }
+
+    .glow-card {
+      padding: 1rem;
+    }
   }
 
   /* Studio page texture overlay (::before pseudo-element) */
@@ -735,9 +749,15 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
     padding: 1rem;
     display: grid;
-    grid-template-columns: minmax(12rem, 0.65fr) auto minmax(16rem, 1fr) auto auto;
+    grid-template-columns: minmax(9rem, 0.65fr) auto minmax(0, 1fr) auto auto;
     align-items: center;
     gap: 1rem;
+  }
+
+  .generated-audio-player .waveform-canvas {
+    min-width: 0;
+    max-width: 100%;
+    overflow: hidden;
   }
 
   .generated-audio-player h3 {
@@ -753,7 +773,7 @@
     line-height: 1.55;
   }
 
-  @media (max-width: 600px) {
+  @media (max-width: 768px) {
     .generated-audio-player {
       grid-template-columns: 1fr;
     }
@@ -766,8 +786,8 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 2.6rem;
-    height: 2.6rem;
+    width: 4rem;
+    height: 4rem;
     border-radius: 9999px;
     border: 1px solid rgba(240, 173, 93, 0.4);
     background: rgba(240, 173, 93, 0.08);
@@ -793,6 +813,7 @@
 
   /* Nudge the triangle to look optically centred inside the circle. */
   .player-button .play-icon {
+    transform: scale(3);
     margin-left: 2px;
   }
 

@@ -19,6 +19,8 @@ export class AutopilotProgressCardComponent implements OnDestroy {
   @Input() finished = false;
   @Input() audioUrl: string | null = null;
   @Input() audioFilename: string | null = null;
+  // Live progress text for the audio-preview step (how many parts ready/open, retries).
+  @Input() previewProgress: string | null = null;
 
   @Output() openGuided = new EventEmitter<void>();
   @Output() openStep = new EventEmitter<AutopilotStepId>();

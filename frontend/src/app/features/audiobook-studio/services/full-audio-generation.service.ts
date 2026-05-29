@@ -11,6 +11,11 @@ export class FullAudioGenerationService {
   stale = false;
   statusMessage: string | null = null;
 
+  // Number of automatic retry passes for recoverable part failures (after the initial attempt).
+  private readonly maxPartRetries = 3;
+  // Delay before each retry pass. Public so tests can disable the wait.
+  retryDelayMs = 1000;
+
   // Track currently running full generation
   private fullGenerationController: AbortController | null = null;
   private currentFullRunId = 0;
@@ -45,55 +50,69 @@ export class FullAudioGenerationService {
     let fallbackProjectId: string | null = projectId ?? null;
 
     try {
-      const partsToTrigger: { index: number; request: SingleSpeakerRenderRequest }[] = [];
+      for (let attempt = 0; attempt <= this.maxPartRetries; attempt++) {
+        // Attempt 0 triggers every incomplete part; retries only re-trigger recoverable failures.
+        const partsToTrigger = renderRequests
+          .map((request, index) => ({ index, request }))
+          .filter(({ index, request }) => {
+            const status = this.renderRequestAudioService.getState(index, request).status;
+            if (status === 'generated' || status === 'generating') return false;
+            // We consider generating parts as valid because we will await them later.
+            return attempt === 0 || status === 'failed' || status === 'timed-out';
+          });
 
-      renderRequests.forEach((req, idx) => {
-        const state = this.renderRequestAudioService.getState(idx, req);
-        // We consider generating parts as valid because we will await them later.
-        if (state.status !== 'generated' && state.status !== 'generating') {
-          partsToTrigger.push({ index: idx, request: req });
+        if (partsToTrigger.length > 0) {
+          partsToTrigger.forEach(({ index }) => this.activePartIndexes.add(index));
+          this.statusMessage = attempt === 0
+            ? `Preparing ${partsToTrigger.length} incomplete ${partsToTrigger.length === 1 ? 'part' : 'parts'}...`
+            : `Retrying ${partsToTrigger.length} failed ${partsToTrigger.length === 1 ? 'part' : 'parts'} — attempt ${attempt + 1} of ${this.maxPartRetries + 1}...`;
+          const generationPromises = partsToTrigger.map(({ index, request }) =>
+            this.renderRequestAudioService.generate(request, index, { fullRunId: runId, projectId })
+              .catch(() => undefined) // Local orchestration catches failures via getState later
+          );
+          const projectIds = await this.awaitWithAbort(Promise.all(generationPromises), signal);
+          if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+          if (!fallbackProjectId) {
+            fallbackProjectId = projectIds.find((id) => id !== undefined) ?? null;
+          }
         }
-      });
 
-      if (partsToTrigger.length > 0) {
-        partsToTrigger.forEach(({ index }) => this.activePartIndexes.add(index));
-        this.statusMessage = `Preparing ${partsToTrigger.length} incomplete ${partsToTrigger.length === 1 ? 'part' : 'parts'}...`;
-        const generationPromises = partsToTrigger.map(({ index, request }) =>
-          this.renderRequestAudioService.generate(request, index, { fullRunId: runId, projectId })
-            .catch(() => undefined) // Local orchestration catches failures via getState later
-        );
-        const projectIds = await this.awaitWithAbort(Promise.all(generationPromises), signal);
-        if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-        fallbackProjectId = projectIds.find((id) => id !== undefined) ?? null;
-      }
+        this.statusMessage = 'Waiting for all parts to finish...';
+        const pendingPromises = renderRequests
+          .map((_, idx) => this.renderRequestAudioService.getState(idx).inFlightPromise)
+          .filter((p) => p !== null);
 
-      this.statusMessage = 'Waiting for all parts to finish...';
-      const pendingPromises = renderRequests
-        .map((_, idx) => this.renderRequestAudioService.getState(idx).inFlightPromise)
-        .filter((p) => p !== null);
-
-      if (pendingPromises.length > 0) {
-        const remainingProjectIds = await this.awaitWithAbort(Promise.all(pendingPromises), signal);
-        if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
-        if (!fallbackProjectId) {
-          fallbackProjectId = remainingProjectIds.find((id) => id !== undefined) ?? null;
+        if (pendingPromises.length > 0) {
+          const remainingProjectIds = await this.awaitWithAbort(Promise.all(pendingPromises), signal);
+          if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+          if (!fallbackProjectId) {
+            fallbackProjectId = remainingProjectIds.find((id) => id !== undefined) ?? null;
+          }
         }
-      }
 
-      if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
+        if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
 
-      // Verify success
-      const finalStates = renderRequests.map((_, idx) => this.renderRequestAudioService.getState(idx));
-      const failures = finalStates.filter(s => s.status !== 'generated');
+        // Verify success
+        const finalStates = renderRequests.map((_, idx) => this.renderRequestAudioService.getState(idx));
+        const failures = finalStates.filter(s => s.status !== 'generated');
 
-      if (failures.length > 0) {
-        this.error = `${failures.length} ${failures.length === 1 ? 'part' : 'parts'} failed to generate. Please retry them individually before generating the final preview.`;
-        return null; // Return null on failure instead of throwing
+        if (failures.length === 0) break;
+
+        const recoverable = failures.filter(s => s.status === 'failed' || s.status === 'timed-out');
+        if (recoverable.length === 0 || attempt === this.maxPartRetries) {
+          this.error = `${failures.length} ${failures.length === 1 ? 'part' : 'parts'} failed to generate. Please retry them individually before generating the final preview.`;
+          return null; // Return null on failure instead of throwing
+        }
+
+        await this.delay(this.retryDelayMs, signal);
+        if (signal.aborted) throw new DOMException('Aborted', 'AbortError');
       }
 
       // Concat everything
       this.statusMessage = 'Merging audio parts...';
-      const blobs = finalStates.map(s => s.blob).filter((b): b is Blob => b !== null);
+      const blobs = renderRequests
+        .map((_, idx) => this.renderRequestAudioService.getState(idx).blob)
+        .filter((b): b is Blob => b !== null);
 
       if (blobs.length > 0) {
         if (this.audioUrl) {
@@ -151,6 +170,17 @@ export class FullAudioGenerationService {
     if (this.audioUrl) {
       this.statusMessage = message;
     }
+  }
+
+  private delay(ms: number, signal: AbortSignal): Promise<void> {
+    if (ms <= 0) return Promise.resolve();
+    return new Promise<void>((resolve, reject) => {
+      const handle = window.setTimeout(resolve, ms);
+      signal.addEventListener('abort', () => {
+        window.clearTimeout(handle);
+        reject(new DOMException('Aborted', 'AbortError'));
+      }, { once: true });
+    });
   }
 
   private async awaitWithAbort<T>(promise: Promise<T>, signal: AbortSignal): Promise<T> {

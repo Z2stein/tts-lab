@@ -100,7 +100,7 @@ test('audiobook studio remains reachable from authenticated navigation', async (
   await page.goto('/audiobook-studio');
 
   await expect(page.getByRole('link', { name: 'My Audiobooks' })).toBeVisible();
-  await expect(page.getByRole('heading', { name: 'Give every character in your story a voice.' })).toBeVisible();
+  await expect(page.getByRole('heading', { name: 'Give your story voices you can feel.' })).toBeVisible();
   await page.getByRole('link', { name: 'My Audiobooks' }).click();
   await expect(page).toHaveURL(/\/audiobook-library$/);
 });

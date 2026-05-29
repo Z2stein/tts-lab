@@ -5,7 +5,12 @@ import { DemoAudioPreviewComponent } from './demo-audio-preview.component';
 interface DemoAction {
   label: string;
   route: string;
-  fragment?: string;
+}
+
+interface ExternalDemoAction {
+  label: string;
+  href: string;
+  ariaLabel: string;
 }
 
 interface TechnicalFeatureCard {
@@ -13,7 +18,6 @@ interface TechnicalFeatureCard {
   title: string;
   description: string;
   proof: string[];
-  demonstrates: string;
 }
 
 @Component({
@@ -23,21 +27,21 @@ interface TechnicalFeatureCard {
   templateUrl: './cv-audiobook-demo-page.component.html'
 })
 export class CvAudiobookDemoPageComponent {
-  readonly projectLabel = 'Private AI / Audiobook Project';
-  readonly headlinePrefix = 'I built an';
-  readonly headlineAccent = 'AI audiobook';
-  readonly headlineSuffix = 'creator.';
-  readonly subtitle = 'Paste a story excerpt with dialogue. The app analyses speakers, splits the script, adds performance notes, previews the final request, and turns it into audio.';
+  readonly projectLabel = 'AI AUDIOBOOK STUDIO';
+  readonly headlinePrefix = 'Create You Own';
+  readonly headlineAccent = 'Cinematic Audiobook';
+  readonly headlineSuffix = '';
+  readonly subtitle = 'Stop settling for boring audiobooks. Bring your own story to life! Write or paste a text. Watch our AI automatically cast characters, assign distinct voices, and transform your words into a fully immersive audio experience in minutes.';
   readonly demoLabel = 'Demo preview';
   readonly demoAudioSrc = '/assets/audio/voice-samples/full-text-preview.mp3';
   readonly primaryAction: DemoAction = {
     label: 'Try the Audiobook Creator',
     route: '/audiobook-studio'
   };
-  readonly secondaryAction: DemoAction = {
-    label: 'View technical details',
-    route: '/cv-audiobook-demo',
-    fragment: 'technical-details'
+  readonly secondaryAction: ExternalDemoAction = {
+    label: 'Z2stein/tts-lab',
+    href: 'https://github.com/Z2stein/tts-lab',
+    ariaLabel: 'View Z2stein/tts-lab on GitHub'
   };
   readonly technicalFeatureCards: TechnicalFeatureCard[] = [
     {
@@ -48,8 +52,7 @@ export class CvAudiobookDemoPageComponent {
         'Separate backend steps cover speaker analysis, speaker split, emotion annotation, render planning, and audio creation.',
         'The final request preview and render-plan endpoints expose the provider-shaped JSON before generation runs.',
         'Per-part audio generation is finalized separately from the merged preview that is shown to the user.'
-      ],
-      demonstrates: 'Inspectable AI pipeline design with clear checkpoints between each stage.'
+      ]
     },
     {
       id: 'human-in-the-loop-workflow',
@@ -59,8 +62,7 @@ export class CvAudiobookDemoPageComponent {
         'Cast editing and script editing are handled in focused Angular components and a central studio facade.',
         'Script edits mark performance notes stale so downstream steps are forced to refresh.',
         'The resume route reloads a saved workflow snapshot so an in-progress project can continue later.'
-      ],
-      demonstrates: 'Product thinking for AI systems that stay reviewable and user-controlled.'
+      ]
     },
     {
       id: 'backend-reliability',
@@ -70,8 +72,7 @@ export class CvAudiobookDemoPageComponent {
         'Global exception handling emits safe JSON responses with a request ID header.',
         'Auth and demo-token configuration are validated so invalid environment setup fails fast.',
         'Request limits and prompt history are persisted per user and per model.'
-      ],
-      demonstrates: 'Operational discipline for an AI-enabled application.'
+      ]
     },
     {
       id: 'contract-driven-development',
@@ -81,8 +82,7 @@ export class CvAudiobookDemoPageComponent {
         'The shared OpenAPI file is the source of truth for generated frontend types.',
         'Backend controller tests assert responses against that same contract.',
         'Shared fixtures in test-contracts are reused by frontend and backend tests.'
-      ],
-      demonstrates: 'Cross-stack alignment without duplicating schemas or sample payloads.'
+      ]
     },
     {
       id: 'branch-aware-deployment',
@@ -92,8 +92,7 @@ export class CvAudiobookDemoPageComponent {
         'GitHub Actions builds and pushes the frontend and backend images.',
         'Helm deploys frontend, backend, PostgreSQL, and ingress with probe checks.',
         'Shared scripts derive branch slugs, namespaces, release names, and preview hosts.'
-      ],
-      demonstrates: 'A predictable path from branch to deployable environment.'
+      ]
     },
     {
       id: 'testing-quality-gates',
@@ -103,8 +102,7 @@ export class CvAudiobookDemoPageComponent {
         'Angular/Karma, ESLint, and build scripts are part of the frontend workflow.',
         'Playwright covers mocked UI flows and a real backend health check.',
         'Backend tests validate controller behavior, contract shape, and error handling.'
-      ],
-      demonstrates: 'A repeatable review process for UI, API, and integration changes.'
+      ]
     },
     {
       id: 'provider-abstraction',
@@ -114,8 +112,7 @@ export class CvAudiobookDemoPageComponent {
         'Chat and audiobook workflows switch between mock and Gemini provider modes in the backend.',
         'Deterministic fallback services keep the workflow usable without live provider calls.',
         'Real TTS generation depends on optional backend credentials; the mock mode remains available for local work.'
-      ],
-      demonstrates: 'Practical provider integration with safe development defaults.'
+      ]
     }
   ];
 

@@ -1,12 +1,10 @@
-<section class="glow-card" data-testid="autopilot-setup" aria-labelledby="autopilot-setup-title">
+<section id="autopilot-setup" class="glow-card" data-testid="autopilot-setup" aria-labelledby="autopilot-setup-title">
   <header>
-    <span class="task-label">Autopilot mode</span>
+    <span class="task-label">1-Click Creation mode</span>
     <h2 id="autopilot-setup-title" class="mb-2 mt-1.5 text-2xl leading-tight text-studio-text">
-      Let TTS Lab turn your story into a ready-to-listen audiobook preview.
+      We turn your story into a ready-to-listen audiobook preview.
     </h2>
-    <p class="m-0 leading-relaxed text-studio-muted">
-      We'll analyze your script, build the cast, assign voices, add emotion &amp; pacing, and generate a full preview — all automatically.
-    </p>
+
   </header>
 
   <div role="tablist" class="mt-5 flex gap-1 border-b border-[rgba(195,204,255,0.16)]" aria-label="Story source">
@@ -44,7 +42,25 @@
       [formControl]="storyControl"
       data-testid="autopilot-story-input"
     ></textarea>
-    <p class="mb-0 mt-1.5 text-sm text-studio-muted">{{ characterCount }} characters</p>
+    <div class="mt-2 flex flex-wrap gap-[0.5rem] text-[#c9d1e8]" aria-label="Story text stats">
+      <span class="badge">{{ wordCount }} words</span>
+      <span class="badge">{{ characterCount }} characters</span>
+    </div>
+
+    @if (showIdeaCta()) {
+      <button
+        type="button"
+        data-testid="idea-cta"
+        class="mt-3 flex w-full items-center gap-3 rounded-xl border border-[rgba(167,139,250,0.5)] bg-[rgba(167,139,250,0.08)] px-4 py-3 text-left font-bold text-[#c4b5fd] transition-colors hover:bg-[rgba(167,139,250,0.16)]"
+        (click)="openIdeaTab()"
+      >
+        <span aria-hidden="true" class="text-lg leading-none">✨</span>
+        <span class="flex-1">No story yet? Create one from a rough idea ✨</span>
+        <svg aria-hidden="true" class="h-4 w-4 flex-none text-studio-muted" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M9 6l6 6-6 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    }
   </ng-container>
 
   <div *ngIf="activeTab() === 'generate'" class="mt-4">
@@ -54,14 +70,16 @@
     ></app-story-generator>
   </div>
 
-  <button
-    type="button"
-    class="primary-button glow-cta mt-6 w-full disabled:cursor-not-allowed"
-    data-testid="start-autopilot-button"
-    [disabled]="!canStart"
-    (click)="onStart()"
-  >
-    {{ running ? 'Autopilot running…' : '▶ Start autopilot' }}
-  </button>
-  <p class="mb-0 mt-3 text-center text-sm text-studio-muted">Estimated time: 2–6 minutes for a standard chapter</p>
+  @if (activeTab() !== 'generate') {
+    <button
+      type="button"
+      class="primary-button glow-cta mt-6 w-full disabled:cursor-not-allowed"
+      data-testid="start-autopilot-button"
+      [disabled]="!canStart"
+      (click)="onStart()"
+    >
+      {{ running ? '1-Click Creation running…' : '▶ Start 1-Click Creation' }}
+    </button>
+    <p class="mb-0 mt-3 text-center text-sm text-studio-muted">Estimated time: 2–6 minutes for a standard chapter</p>
+  }
 </section>

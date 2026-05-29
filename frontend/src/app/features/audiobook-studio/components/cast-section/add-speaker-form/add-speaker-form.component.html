@@ -1,0 +1,54 @@
+<article
+  class="flex flex-col gap-[0.6rem] border border-dashed border-[rgba(195,204,255,0.28)] rounded-2xl p-[1rem] bg-[rgba(5,9,20,0.4)]"
+  data-testid="add-speaker-form"
+>
+  <h3 class="m-0 text-[#fff8ec] text-[1.1rem] font-[900]">Add speaker</h3>
+
+  <label for="add-speaker-name" class="font-[900] text-[#f8efe5]">Speaker name</label>
+  <input
+    id="add-speaker-name"
+    name="add-speaker-name"
+    data-testid="add-speaker-name"
+    class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)]"
+    [(ngModel)]="draft.speakerName"
+    (ngModelChange)="validationError = null"
+    [attr.aria-invalid]="validationError !== null"
+  />
+
+  <label for="add-speaker-role" class="font-[900] text-[#f8efe5]">Role / description</label>
+  <textarea
+    id="add-speaker-role"
+    name="add-speaker-role"
+    data-testid="add-speaker-role"
+    rows="3"
+    class="box-border w-full border border-[rgba(195,204,255,0.18)] rounded-[0.8rem] bg-[rgba(5,9,20,0.74)] text-[#f8efe5] outline-none p-[0.85rem_1rem] focus:border-[#f0ad5d] focus:shadow-[0_0_0_3px_rgba(240,173,93,0.22)] leading-[1.6]"
+    [(ngModel)]="draft.roleDescription"
+  ></textarea>
+
+  <span class="font-[900] text-[#f8efe5]">Voice</span>
+  <div class="flex flex-wrap items-center gap-[0.6rem]">
+    <strong
+      class="text-[1rem] font-[900] tracking-[0.06em]"
+      [style.color]="hasVoice ? '#f0ad5d' : '#5a6380'"
+      data-testid="add-speaker-voice"
+    >{{ hasVoice ? (draft.voiceSuggestion | uppercase) : 'No voice selected yet' }}</strong>
+    <button
+      type="button"
+      class="secondary-button p-[0.5rem_0.9rem]"
+      data-testid="add-speaker-choose-voice"
+      (click)="pickVoice.emit()"
+    >{{ hasVoice ? 'Change voice' : 'Choose voice' }}</button>
+  </div>
+
+  <p
+    *ngIf="validationError"
+    class="m-0 text-[#ff9aa8] text-[0.9rem] font-[700]"
+    role="alert"
+    data-testid="add-speaker-validation"
+  >{{ validationError }}</p>
+
+  <div class="flex flex-wrap items-center gap-[0.85rem] justify-start mt-[0.2rem]">
+    <button type="button" class="primary-button p-[0.65rem_0.9rem]" data-testid="add-speaker-save" (click)="onSave()">Save speaker</button>
+    <button type="button" class="secondary-button p-[0.65rem_0.9rem]" data-testid="add-speaker-cancel" (click)="onCancel()">Cancel</button>
+  </div>
+</article>

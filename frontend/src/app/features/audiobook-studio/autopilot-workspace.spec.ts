@@ -4,6 +4,8 @@ import { AudiobookApiService } from '../audiobook-shared/service/audiobook-api.s
 import { AudiobookWorkflowService } from '../audiobook-shared/service/audiobook-workflow.service';
 import { AudiobookLibraryService } from '../audiobook-library/services/audiobook-library.service';
 import { VoicePickerService } from './services/voice-picker.service';
+import { AutopilotService } from './services/autopilot.service';
+import { RenderRequestAudioService } from '../audiobook-shared/service/render-request-audio.service';
 
 describe('AudiobookStudioWorkspaceComponent — Autopilot', () => {
   let fixture: ComponentFixture<AudiobookStudioWorkspaceComponent>;
@@ -154,6 +156,41 @@ describe('AudiobookStudioWorkspaceComponent — Autopilot', () => {
     // No full route navigation (projectCreated), just the in-place URL update.
     expect(navigated).toEqual([]);
     expect(linked).toEqual(['project-1']);
+  });
+
+  it('reports live preview progress (ready vs generating) on the running generate-preview step', () => {
+    const autopilot = fixture.debugElement.injector.get(AutopilotService);
+    const renderAudio = fixture.debugElement.injector.get(RenderRequestAudioService);
+
+    component.audioProductionPlan = {
+      renderRequests: [
+        { input: { text: 'First' }, voice: { name: 'Kore' }, audioConfig: {} },
+        { input: { text: 'Second' }, voice: { name: 'Iapetus' }, audioConfig: {} }
+      ]
+    } as never;
+
+    const ready = renderAudio.getState(0);
+    ready.status = 'generated';
+    ready.blob = new Blob(['x'], { type: 'audio/mpeg' });
+    renderAudio.getState(1).status = 'generating';
+
+    autopilot.markRunning('generate-preview');
+    fixture.detectChanges();
+
+    const progress = byTestId('autopilot-step-progress-generate-preview');
+    expect(progress).not.toBeNull();
+    expect(progress!.textContent).toContain('Generating part 2 of 2');
+    expect(progress!.textContent).toContain('1 of 2 parts ready');
+  });
+
+  it('shows no preview progress before the generate-preview step is running', () => {
+    component.audioProductionPlan = {
+      renderRequests: [{ input: { text: 'First' }, voice: { name: 'Kore' }, audioConfig: {} }]
+    } as never;
+    fixture.detectChanges();
+
+    expect(component.autopilotPreviewProgress).toBeNull();
+    expect(byTestId('autopilot-step-progress-generate-preview')).toBeNull();
   });
 
   it('stops on a failed step and falls back to the guided workflow with data preserved', async () => {
