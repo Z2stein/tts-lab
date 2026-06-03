@@ -18,9 +18,12 @@ public class DemoActivationController {
     private static final Logger log = LoggerFactory.getLogger(DemoActivationController.class);
 
     private final DemoTokenService demoTokenService;
+    private final TokenLoginUsageRepository tokenLoginUsageRepository;
 
-    public DemoActivationController(DemoTokenService demoTokenService) {
+    public DemoActivationController(DemoTokenService demoTokenService,
+                                    TokenLoginUsageRepository tokenLoginUsageRepository) {
         this.demoTokenService = demoTokenService;
+        this.tokenLoginUsageRepository = tokenLoginUsageRepository;
     }
 
     @GetMapping("/api/demo/activate")
@@ -35,6 +38,8 @@ public class DemoActivationController {
 
             HttpSession session = request.getSession(true);
             session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY, context);
+
+            tokenLoginUsageRepository.recordLogin(claims.jti(), claims.name());
 
             log.info("Demo token activated for user '{}' (jti={})", claims.name(), claims.jti());
             return new RedirectView("/cv-audiobook-demo");
